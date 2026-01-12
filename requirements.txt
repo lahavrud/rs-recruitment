@@ -1,3 +1,7 @@
 # Linting/Formatting Tools
 ruff
 pre-commit
+
+# FastAPI Stack
+fastapi
+uvicorn
