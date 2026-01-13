@@ -1,5 +1,7 @@
 # RS Recruitment
 
+![CI](https://github.com/lahavrud/rs-recruitment/actions/workflows/ci.yml/badge.svg)
+
 **RS Recruitment** is a specialized CRM for a boutique recruitment agency. The system streamlines the flow from "Lead" (Job/Candidate) to "Match", with the Admin as the central gatekeeper. This modular monolith is built with a focus on clean, maintainable MVP delivery.
 
 
