@@ -192,8 +192,21 @@ class LocalStorageProvider(StorageProvider):
         Raises:
             ValueError: If path traversal detected
         """
-        # Prevent path traversal by checking for parent directory references
-        if ".." in file_identifier or file_identifier.startswith("/"):
+        # Prevent path traversal by checking for actual traversal sequences
+        # Allow ".." in filenames (e.g., "file..txt" or "{uuid}..")
+        # but not "../" or "..\\"
+        # Block identifiers starting with ".." to prevent confusion
+        if (
+            "../" in file_identifier
+            or "..\\" in file_identifier
+            or file_identifier.startswith("/")
+            or file_identifier.startswith("\\")
+            or "/../" in file_identifier
+            or "\\..\\" in file_identifier
+            or file_identifier.startswith("../")
+            or file_identifier.startswith("..\\")
+            or file_identifier.startswith("..")
+        ):
             raise ValueError(
                 f"Path traversal detected: {file_identifier} "
                 f"contains invalid path components"

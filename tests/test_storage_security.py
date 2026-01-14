@@ -57,3 +57,78 @@ class TestLocalStorageProviderSecurity:
         # Delete should work
         result = await provider.delete_file(file_key)
         assert result is True
+
+    @pytest.mark.asyncio
+    async def test_file_with_double_dots_in_name(self, provider: LocalStorageProvider):
+        """Test that files with '..' in the filename (not path traversal) work."""
+        # Files like "test.txt.." or "file...." should be allowed
+        # Even if the file_key contains ".." (e.g., from suffix extraction),
+        # it should be accessible as long as it's not actual path traversal
+        file_content = b"test content with dots"
+
+        # Test file ending in ".." - upload and verify it works
+        file_key1 = await provider.upload_file(file_content, "test.txt..")
+        # Should be able to retrieve it (no path traversal error)
+        url1 = await provider.get_file_url(file_key1)
+        assert url1.startswith("/static/")
+
+        # Should be able to delete it
+        result1 = await provider.delete_file(file_key1)
+        assert result1 is True
+
+        # Test file with multiple dots
+        file_key2 = await provider.upload_file(file_content, "file....")
+        # Should be able to retrieve and delete without path traversal error
+        url2 = await provider.get_file_url(file_key2)
+        assert url2.startswith("/static/")
+        result2 = await provider.delete_file(file_key2)
+        assert result2 is True
+
+        # Test file with ".." in the middle of the name
+        file_key3 = await provider.upload_file(file_content, "file..name.txt")
+        # Should work fine - ".." is part of filename, not path traversal
+        url3 = await provider.get_file_url(file_key3)
+        assert url3.startswith("/static/")
+        result3 = await provider.delete_file(file_key3)
+        assert result3 is True
+
+        # Test that a file_key ending in ".." is accessible
+        # This simulates the reported bug where files with ".." extension
+        # become inaccessible
+        # Create a file directly with a key ending in ".."
+        # (simulating Path('test.txt..').suffix = "..")
+        from uuid import uuid4
+
+        test_key_with_dots = f"{uuid4()}.."
+        test_file_path = provider.storage_path / test_key_with_dots
+        test_file_path.write_bytes(file_content)
+
+        # Should be able to access it (this was the bug - it was being blocked)
+        url4 = await provider.get_file_url(test_key_with_dots)
+        assert url4.startswith("/static/")
+
+        # Should be able to delete it
+        result4 = await provider.delete_file(test_key_with_dots)
+        assert result4 is True
+
+    @pytest.mark.asyncio
+    async def test_path_traversal_still_blocked(self, provider: LocalStorageProvider):
+        """Test that actual path traversal is still blocked."""
+        # These should still be blocked (actual path traversal)
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("../etc/passwd")
+
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("../../secret.txt")
+
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.delete_file("../etc/passwd")
+
+        # Starting with ".." should be blocked
+        # (prevents confusion with parent directory)
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("..file.txt")
+
+        # Path traversal in middle should be blocked
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("some/path/../etc/passwd")
