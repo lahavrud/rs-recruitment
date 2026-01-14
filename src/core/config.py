@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 30
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./rs_recruitment.db"
+    database_url: str = "sqlite+aiosqlite:///./data/rs_recruitment.db"
 
     model_config = SettingsConfigDict(
         env_file=".env",
