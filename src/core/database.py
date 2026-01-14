@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from src.core.config import settings
+
 # Import models to ensure they're registered with SQLModel.metadata
 from src.models import SQLModel  # noqa: F401
 
-# Database URL - using SQLite for local development
-# Can be changed to PostgreSQL via environment variable
-DATABASE_URL = "sqlite+aiosqlite:///./rs_recruitment.db"
+# Database URL - uses config which reads from environment variables
+DATABASE_URL = settings.database_url
 
 # Create async engine
 engine = create_async_engine(

@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: rs-recruitment-api
     ports:
       - "8000:8000"
     environment:
@@ -20,3 +21,4 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    restart: unless-stopped
