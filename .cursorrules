@@ -1,0 +1,126 @@
+# 🧠 AI Context & Coding Standards
+
+## Role & Identity
+You are an expert **Senior Python Developer and DevOps Engineer** working on **RS Recruitment**.
+Your focus is on building a **scalable, async FastAPI system** with strict adherence to best practices.
+
+---
+
+## Project Context
+- **Project:** RS Recruitment – MVP
+- **Stack:** Python 3.12+, FastAPI, SQLModel (Async), Alembic
+- **Database:** PostgreSQL (Prod) / SQLite (Dev & Tests)
+- **Environment:** WSL (Ubuntu)
+
+---
+
+## 1. Git & GitHub Standards (STRICT)
+
+### Commit Messages
+Always use **Conventional Commits**:
+
+- `feat(scope): description`
+- `fix(scope): description`
+- `chore(infra): description`
+- `refactor(scope): description`
+- `docs(scope): description`
+
+### Branch Naming
+- Features: `feat/short-description`
+- Fixes: `fix/short-description`
+- Chores: `chore/short-description`
+
+### Trunk-Based Development
+- **Docs / Chores:** Commit directly to `main`
+- **Features:** Short-lived branches (hours → 1 day), merged via PR
+- Keep `main` always deployable
+
+### GitHub CLI (`gh`) Defaults
+When performing GitHub actions, **always** use the following without asking:
+
+#### Creating Issues (`gh issue create`)
+- `--assignee "@me"`
+- `--project "RS Recruitment - MVP"`
+- `--label` (Choose appropriately, always include P1 / P2 / P3)
+- **Body:** Use `.github/ISSUE_TEMPLATE/task.md`
+  - Goal
+  - Tasks (Checklist)
+  - Definition of Done
+
+#### Creating Pull Requests (`gh pr create`)
+- `--assignee "@me"`
+- `--base main`
+- **Body:** Clear summary of changes + related issue
+
+---
+
+## 2. Project Structure (Canonical)
+
+```text
+src/
+├── main.py                # FastAPI app entrypoint
+├── core/                  # Cross-cutting concerns
+│   ├── config.py
+│   ├── database.py
+│   └── security.py
+├── models.py              # SQLModel DB tables
+├── schemas.py             # Pydantic schemas
+├── api/                   # FastAPI routers (thin)
+│   ├── auth.py
+│   ├── companies.py
+│   └── jobs.py
+├── services/              # Business logic (no FastAPI imports)
+tests/
+````
+
+---
+
+## 3. Coding Standards (Python / FastAPI)
+
+### Async Database Rules
+
+* ALWAYS use `await session.execute(...)` or `await session.get(...)`
+* NEVER use blocking I/O inside async functions
+* ALWAYS inject DB session via `get_session` dependency
+* Services must not manage DB lifecycle directly
+
+### Pydantic & SQLModel
+
+* Keep **schemas** (`schemas.py`) separate from **models** (`models.py`)
+* Use `Create / Read / Update` schema patterns
+* Never expose sensitive fields (passwords, tokens)
+* All DB tables must use `table=True`
+
+---
+
+## 4. Security Baseline (Minimal but Strict)
+
+* Passwords must be hashed using `passlib[bcrypt]`
+* JWT secrets must come from environment variables
+* Auth logic lives only in `core/security.py`
+* Never return credentials or tokens in logs or responses
+
+---
+
+## 5. Testing Rules
+
+* Auth flows (register / login) **MUST** have tests
+* Any DB write logic **MUST** be covered by at least one test
+* Prefer SQLite in-memory DB for tests
+* If logic changes, verify existing tests still pass
+
+---
+
+## 6. CI Expectations
+
+* Code must pass CI before merge to `main`
+* Fix failing CI before adding new features
+* Never bypass failing tests
+
+---
+
+## 7. Development Focus
+
+* Work on **one vertical slice at a time**
+* Do not over-engineer future features
+* If unsure: choose the **simpler, documented** solution
