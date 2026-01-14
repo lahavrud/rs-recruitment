@@ -194,8 +194,18 @@ class LocalStorageProvider(StorageProvider):
         """
         # Prevent path traversal by checking for actual traversal sequences
         # Allow ".." in filenames (e.g., "file..txt" or "{uuid}..")
-        # but not "../" or "..\\"
+        # but not "../", "..\\", "/..", "\\..", or paths ending in "/.." or "\\.."
         # Block identifiers starting with ".." to prevent confusion
+
+        # Check for path traversal patterns
+        # 1. Contains "../" or "..\\" anywhere (path traversal with forward slash)
+        # 2. Contains "/../" or "\\..\\" (path traversal in middle)
+        # 3. Starts with "/" or "\\" (absolute paths)
+        # 4. Starts with "../" or "..\\" (relative traversal)
+        # 5. Starts with ".." (prevents "..file.txt" confusion)
+        # 6. Ends with "/.." or "\\.." (traversal without trailing slash)
+        # 7. Contains "/.." or "\\.." as path component (catches "subdir/..")
+        # Note: We allow filenames ending in ".." but not path components
         if (
             "../" in file_identifier
             or "..\\" in file_identifier
@@ -206,6 +216,10 @@ class LocalStorageProvider(StorageProvider):
             or file_identifier.startswith("../")
             or file_identifier.startswith("..\\")
             or file_identifier.startswith("..")
+            or file_identifier.endswith("/..")
+            or file_identifier.endswith("\\..")
+            or "/.." in file_identifier
+            or "\\.." in file_identifier
         ):
             raise ValueError(
                 f"Path traversal detected: {file_identifier} "
@@ -243,6 +257,9 @@ class LocalStorageProvider(StorageProvider):
         file_path = self._validate_file_path(file_identifier)
         if not file_path.exists():
             raise ValueError(f"File not found: {file_identifier}")
+        # Ensure the path is a file, not a directory
+        if file_path.is_dir():
+            raise ValueError(f"Path is a directory, not a file: {file_identifier}")
         # Return HTTP URL that will be served by FastAPI static file serving
         # The actual static file mount will be configured in main.py
         return f"/static/{file_identifier}"

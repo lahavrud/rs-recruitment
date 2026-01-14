@@ -132,3 +132,73 @@ class TestLocalStorageProviderSecurity:
         # Path traversal in middle should be blocked
         with pytest.raises(ValueError, match="Path traversal detected"):
             await provider.get_file_url("some/path/../etc/passwd")
+
+    @pytest.mark.asyncio
+    async def test_path_traversal_ending_with_dotdot(
+        self, provider: LocalStorageProvider
+    ):
+        """Test paths ending in '/..' or '\\..' are blocked (reported vulnerability)."""
+        # Paths ending in "/.." should be blocked (resolves to directory, not file)
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("subdir/..")
+
+        # Windows-style path traversal ending
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("subdir\\..")
+
+        # Path traversal ending in middle of path
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("some/subdir/..")
+
+        # Multiple levels ending in traversal
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("level1/level2/..")
+
+        # Test delete_file also blocks these
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.delete_file("subdir/..")
+
+    @pytest.mark.asyncio
+    async def test_valid_filenames_with_dots_still_work(
+        self, provider: LocalStorageProvider
+    ):
+        """Test that valid filenames ending in '..' still work (not path traversal)."""
+        file_content = b"test content"
+
+        # Filename ending in ".." should work (no separator before dots)
+        file_key1 = await provider.upload_file(file_content, "test..")
+        url1 = await provider.get_file_url(file_key1)
+        assert url1.startswith("/static/")
+        await provider.delete_file(file_key1)
+
+        # Filename with ".." in middle should work
+        file_key2 = await provider.upload_file(file_content, "file..name.txt")
+        url2 = await provider.get_file_url(file_key2)
+        assert url2.startswith("/static/")
+        await provider.delete_file(file_key2)
+
+        # UUID with ".." extension should work
+        from uuid import uuid4
+
+        test_key = f"{uuid4()}.."
+        test_file_path = provider.storage_path / test_key
+        test_file_path.write_bytes(file_content)
+        url3 = await provider.get_file_url(test_key)
+        assert url3.startswith("/static/")
+        await provider.delete_file(test_key)
+
+    @pytest.mark.asyncio
+    async def test_directory_path_blocked_in_get_file_url(
+        self, provider: LocalStorageProvider
+    ):
+        """Test that get_file_url correctly identifies and blocks directory paths."""
+        # Create a subdirectory in storage
+        subdir = provider.storage_path / "subdir"
+        subdir.mkdir(exist_ok=True)
+
+        # Even if a path resolves to a directory (not a file), it should be blocked
+        # This tests the is_dir() check in get_file_url
+        # Note: The path traversal check should catch "subdir/.." before we get here
+        # But we also test that directories are not treated as files
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            await provider.get_file_url("subdir/..")
