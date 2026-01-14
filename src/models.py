@@ -1,4 +1,6 @@
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import datetime, timezone
 from enum import Enum
 
 from sqlmodel import Field, Relationship, SQLModel
@@ -22,11 +24,12 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: UserRole
     is_active: bool = Field(default=False, description="False until Admin approves")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relationship to CompanyProfile (optional, only for COMPANY role)
-    company_profile: "CompanyProfile | None" = Relationship(
-        back_populates="user", sa_relationship_kwargs={"uselist": False}
+    company_profile: CompanyProfile = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False},
     )
 
 
@@ -42,7 +45,7 @@ class CompanyProfile(SQLModel, table=True):
     logo_url: str | None = None
     contact_person: str | None = None
     contact_phone: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relationship to User
     user: User = Relationship(back_populates="company_profile")
