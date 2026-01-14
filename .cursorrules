@@ -31,8 +31,7 @@ Always use **Conventional Commits**:
 - Chores: `chore/short-description`
 
 ### Trunk-Based Development
-- **Docs / Chores:** Commit directly to `main`
-- **Features:** Short-lived branches (hours → 1 day), merged via PR
+- Short-lived branches (hours → 1 day), merged via PR
 - Keep `main` always deployable
 
 ### GitHub CLI (`gh`) Defaults
