@@ -224,7 +224,7 @@ class TestEmailProviderFactory:
         """Test getting SMTP email provider."""
         monkeypatch.setattr(settings, "email_provider", "smtp")
         monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
-        monkeypatch.setattr(settings, "smtp_port", "587")
+        monkeypatch.setattr(settings, "smtp_port", 587)  # Use int, not string
         monkeypatch.setattr(settings, "smtp_user", "user@example.com")
         monkeypatch.setattr(settings, "smtp_password", "password")
         monkeypatch.setattr(settings, "smtp_from_email", "sender@example.com")

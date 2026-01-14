@@ -1,7 +1,6 @@
 """Tests for storage service."""
 
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -82,9 +81,10 @@ class TestLocalStorageProvider:
 
     @pytest.mark.asyncio
     async def test_delete_file_not_found(self, provider: LocalStorageProvider):
-        """Test deleting non-existent file."""
+        """Test deleting non-existent file (idempotent - returns True)."""
         result = await provider.delete_file("nonexistent.txt")
-        assert result is False
+        # Both S3 and Local providers return True for non-existent files (idempotent)
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_upload_with_content_type(self, provider: LocalStorageProvider):
@@ -202,7 +202,9 @@ class TestStorageProviderFactory:
 
         provider = get_storage_provider()
         assert isinstance(provider, LocalStorageProvider)
-        assert provider.storage_path == Path("./test_storage")
+        # storage_path is now resolved to absolute path
+        assert provider.storage_path.is_absolute()
+        assert "test_storage" in str(provider.storage_path)
 
     def test_get_storage_provider_s3(self, monkeypatch):
         """Test getting S3 storage provider."""

@@ -142,7 +142,11 @@ class S3StorageProvider(StorageProvider):
                 raise ValueError(f"Failed to generate URL for {file_identifier}: {e}")
 
     async def delete_file(self, file_identifier: str) -> bool:
-        """Delete file from S3."""
+        """
+        Delete file from S3.
+
+        Returns True if deletion succeeded or file didn't exist (idempotent behavior).
+        """
         client_kwargs = {
             "region_name": self.region,
             "aws_access_key_id": self.access_key_id,
@@ -156,6 +160,7 @@ class S3StorageProvider(StorageProvider):
         ) as s3:
             try:
                 await s3.delete_object(Bucket=self.bucket_name, Key=file_identifier)
+                # S3 delete_object is idempotent - returns success even if missing
                 return True
             except ClientError:
                 return False
@@ -171,8 +176,42 @@ class LocalStorageProvider(StorageProvider):
         Args:
             storage_path: Directory path for storing files
         """
-        self.storage_path = Path(storage_path)
+        self.storage_path = Path(storage_path).resolve()
         self.storage_path.mkdir(parents=True, exist_ok=True)
+
+    def _validate_file_path(self, file_identifier: str) -> Path:
+        """
+        Validate that file path stays within storage directory.
+
+        Args:
+            file_identifier: File identifier/key
+
+        Returns:
+            Validated Path object
+
+        Raises:
+            ValueError: If path traversal detected
+        """
+        # Prevent path traversal by checking for parent directory references
+        if ".." in file_identifier or file_identifier.startswith("/"):
+            raise ValueError(
+                f"Path traversal detected: {file_identifier} "
+                f"contains invalid path components"
+            )
+
+        # Resolve the full path
+        file_path = (self.storage_path / file_identifier).resolve()
+
+        # Check that resolved path is within storage directory
+        try:
+            file_path.relative_to(self.storage_path)
+        except ValueError:
+            raise ValueError(
+                f"Path traversal detected: {file_identifier} "
+                f"resolves outside storage directory"
+            )
+
+        return file_path
 
     async def upload_file(
         self, file_content: bytes, file_name: str, content_type: Optional[str] = None
@@ -188,7 +227,7 @@ class LocalStorageProvider(StorageProvider):
 
     async def get_file_url(self, file_identifier: str) -> str:
         """Return HTTP URL for local file (to be served by FastAPI static files)."""
-        file_path = self.storage_path / file_identifier
+        file_path = self._validate_file_path(file_identifier)
         if not file_path.exists():
             raise ValueError(f"File not found: {file_identifier}")
         # Return HTTP URL that will be served by FastAPI static file serving
@@ -196,13 +235,19 @@ class LocalStorageProvider(StorageProvider):
         return f"/static/{file_identifier}"
 
     async def delete_file(self, file_identifier: str) -> bool:
-        """Delete file from local storage."""
-        file_path = self.storage_path / file_identifier
+        """
+        Delete file from local storage.
+
+        Returns True if file was deleted or didn't exist (idempotent behavior
+        to match S3StorageProvider).
+        """
+        # Validate path first (raises ValueError if path traversal detected)
+        file_path = self._validate_file_path(file_identifier)
         try:
             if file_path.exists():
                 file_path.unlink()
-                return True
-            return False
+            # Return True even if file didn't exist (idempotent, matches S3 behavior)
+            return True
         except OSError:
             return False
 
