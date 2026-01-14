@@ -32,10 +32,10 @@ gantt
     Repo, Docker & CI Setup         :done,    infra1, 2026-01-01, 3d
     Architecture & Planning         :done,    infra2, after infra1, 2d
     AI Context & Governance         :done,    infra3, after infra2, 1d
-    CI/CD Pipeline (Linter/Test)    :active,  infra4, after infra3, 1d
+    CI/CD Pipeline (Linter/Test)    :done,    infra4, after infra3, 1d
 
     section 🏢 1. Company Slice
-    Company Onboarding (Auth + DB)  :         feat1,  after infra4, 5d
+    Company Onboarding (Auth + DB)  :active,  feat1,  after infra4, 5d
     Dev Environment Deploy          :         devops1, after feat1, 2d
     Admin Approval Flow             :         feat2,  after devops1, 3d
 
