@@ -217,3 +217,7 @@ __marimo__/
 *.db-trace-lock-journal-lock-journal
 *.db-trace-lock-journal-lock-journal-lock
 *.db-trace-lock-journal-lock-journal-lock-journal
+
+# Data directory (database files)
+data/
+!data/.gitkeep

@@ -62,15 +62,44 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
 
 ### Running with Docker
 
+#### Using Docker Compose (Recommended)
+
+```bash
+# Start the API
+docker-compose up
+
+# Or run in detached mode (background)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the API
+docker-compose down
+```
+
+#### Using Docker directly
+
 ```bash
 # Build the image
 docker build -t rs-recruitment .
 
 # Run the container
 docker run -p 8000:8000 rs-recruitment
+
+# Or with environment variables
+docker run -p 8000:8000 \
+  -e JWT_SECRET_KEY="your-production-secret-key" \
+  rs-recruitment
 ```
 
 The API will be available at `http://localhost:8000`.
+
+**Environment Variables:**
+- `JWT_SECRET_KEY` - Secret key for JWT token signing (default: "your-secret-key-change-in-production")
+- `JWT_ALGORITHM` - JWT algorithm (default: "HS256")
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration in minutes (default: 30)
+- `DATABASE_URL` - Database connection string (default: SQLite in `./data/rs_recruitment.db`)
 
 ### Code Quality
 
