@@ -27,7 +27,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relationship to CompanyProfile (optional, only for COMPANY role)
-    company_profile: CompanyProfile = Relationship(
+    company_profile: CompanyProfile | None = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"uselist": False},
     )
