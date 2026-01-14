@@ -103,6 +103,13 @@ async def login(
             detail="Incorrect email or password",
         )
 
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is inactive. Please wait for admin approval.",
+        )
+
     # Create access token
     access_token = create_access_token(
         data={"sub": str(user.id), "email": user.email, "role": user.role.value}

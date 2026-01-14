@@ -124,6 +124,15 @@ async def test_login_success(client: AsyncClient):
     }
     await client.post("/auth/register", json=registration_data)
 
+    # Activate the user (simulating admin approval)
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == "login@example.com")  # pyright: ignore[reportArgumentType]
+        )
+        user = result.scalar_one()
+        user.is_active = True
+        await session.commit()
+
     # Then login
     login_data = {
         "email": "login@example.com",
@@ -161,6 +170,15 @@ async def test_login_invalid_password(client: AsyncClient):
     }
     await client.post("/auth/register", json=registration_data)
 
+    # Activate the user (simulating admin approval)
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == "wrongpass@example.com")  # pyright: ignore[reportArgumentType]
+        )
+        user = result.scalar_one()
+        user.is_active = True
+        await session.commit()
+
     # Then try to login with wrong password
     login_data = {
         "email": "wrongpass@example.com",
@@ -169,6 +187,28 @@ async def test_login_invalid_password(client: AsyncClient):
     response = await client.post("/auth/login", json=login_data)
     assert response.status_code == 401
     assert "incorrect email or password" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_login_inactive_user(client: AsyncClient):
+    """Test login fails for inactive users."""
+    # Register a user (defaults to inactive)
+    registration_data = {
+        "email": "inactive@example.com",
+        "password": "password123",
+        "company_profile": {"name": "Inactive Company"},
+    }
+    await client.post("/auth/register", json=registration_data)
+
+    # Try to login with inactive user
+    login_data = {
+        "email": "inactive@example.com",
+        "password": "password123",
+    }
+    response = await client.post("/auth/login", json=login_data)
+    assert response.status_code == 403
+    assert "inactive" in response.json()["detail"].lower()
+    assert "admin approval" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
