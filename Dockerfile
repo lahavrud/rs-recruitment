@@ -15,6 +15,9 @@ COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini .
 
+# Create data directory for SQLite database
+RUN mkdir -p /app/data
+
 EXPOSE 8000
 
 # --proxy-headers: Trust X-Forwarded-* headers from reverse proxy (Docker, nginx, etc.)
