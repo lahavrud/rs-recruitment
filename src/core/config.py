@@ -17,9 +17,7 @@ class Settings(BaseSettings):
     # CORS Configuration (infra8 requirement)
     # Can be set via ALLOWED_ORIGINS env var as comma-separated list
     # Example: ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
-    allowed_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:3000"]
-    )
+    allowed_origins: str = Field(default="http://localhost:3000")
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/rs_recruitment.db"
@@ -48,25 +46,21 @@ class Settings(BaseSettings):
     # Testing Configuration
     testing: bool = False  # Set to True in test environment to disable rate limiting
 
-    @field_validator("allowed_origins", mode="before")
+    @field_validator("allowed_origins")
     @classmethod
-    def parse_allowed_origins(cls, v: str | list[str] | None) -> list[str]:
-        """Parse allowed_origins from comma-separated string or list.
+    def parse_allowed_origins(cls, v: str) -> list[str]:
+        """Parse allowed_origins from comma-separated string.
 
         Handles:
         - Comma-separated string from environment variable
-        - Already parsed list
-        - None (falls back to default)
+        - Empty string (falls back to default)
         """
-        if v is None:
+        if not v or not v.strip():
             # Use default if not provided
             return ["http://localhost:3000"]
-        if isinstance(v, str):
-            # Split by comma and strip whitespace, filter empty strings
-            origins = [origin.strip() for origin in v.split(",") if origin.strip()]
-            return origins if origins else ["http://localhost:3000"]
-        # Already a list
-        return v
+        # Split by comma and strip whitespace, filter empty strings
+        origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        return origins if origins else ["http://localhost:3000"]
 
     model_config = SettingsConfigDict(
         env_file=".env",
