@@ -12,7 +12,7 @@ import aioboto3
 from botocore.exceptions import ClientError
 from email_validator import EmailNotValidError, validate_email
 
-from src.core.config import settings
+from src.core.infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
 

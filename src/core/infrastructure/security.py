@@ -6,7 +6,7 @@ from typing import Any
 import bcrypt
 from jose import JWTError, jwt
 
-from src.core.config import get_jwt_secret_key, settings
+from src.core.infrastructure.config import get_jwt_secret_key, settings
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
