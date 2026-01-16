@@ -1,10 +1,11 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_session
+from src.core.limiter import get_limiter
 from src.core.security import create_access_token, get_password_hash, verify_password
 from src.models import CompanyProfile, User, UserRole
 from src.schemas import (
@@ -16,6 +17,7 @@ from src.schemas import (
     UserWithCompanyRead,
 )
 
+limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -24,7 +26,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     response_model=UserWithCompanyRead,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("3/hour")
 async def register(
+    request: Request,
     user_data: UserCreate,
     session: AsyncSession = Depends(get_session),
 ) -> UserWithCompanyRead:
@@ -53,11 +57,9 @@ async def register(
         is_active=False,  # Requires Admin approval
     )
     session.add(new_user)
-    await session.flush()  # Flush to get the user ID
+    await session.flush()
 
-    # Create CompanyProfile
-    # After flush, new_user.id is guaranteed to be set
-    assert new_user.id is not None, "User ID should be set after flush"
+    # Create CompanyProfile (new_user.id is set after flush)
     new_company_profile = CompanyProfile(
         user_id=new_user.id,
         name=user_data.company_profile.name,
@@ -67,8 +69,6 @@ async def register(
     )
     session.add(new_company_profile)
     await session.commit()
-    await session.refresh(new_user)
-    await session.refresh(new_company_profile)
 
     return UserWithCompanyRead(
         user=UserRead.model_validate(new_user),
@@ -77,7 +77,9 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     login_data: LoginRequest,
     session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:

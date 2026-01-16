@@ -44,6 +44,16 @@ async def test_db():
 @pytest.fixture(scope="function")
 async def client(test_db):
     """Create test client with overridden database dependency."""
+    # Rate limiting is automatically disabled via settings.testing=True
+    # (set in conftest.py setup_testing_environment fixture)
+    # Disable rate limiting on the existing limiter instance
+    # (decorators capture the limiter, so we update the same instance)
+    from src.api import auth
+
+    auth.limiter.enabled = False
+    app.state.limiter.enabled = False
+
+    # Override database dependency
     app.dependency_overrides[get_session] = override_get_session
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
