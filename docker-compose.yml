@@ -10,9 +10,15 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/rs_recruitment.db}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      # WARNING: JWT_SECRET_KEY must be set to a secure value (min 32 chars)
+      # Generate with: python -c 'import secrets; print(secrets.token_urlsafe(32))'
+      # If not set, validation will fail at startup (by design for security)
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      # CORS Configuration: Comma-separated list of allowed origins
+      # Example: ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - ./data:/app/data
     healthcheck:
