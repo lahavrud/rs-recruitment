@@ -3,7 +3,7 @@
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from src.core.config import settings
+from src.core.infrastructure.config import settings
 
 
 def get_limiter() -> Limiter:

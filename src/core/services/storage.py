@@ -8,7 +8,7 @@ from uuid import uuid4
 import aioboto3
 from botocore.exceptions import ClientError
 
-from src.core.config import settings
+from src.core.infrastructure.config import settings
 
 
 class StorageProvider(ABC):

@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from src.core.config import settings
+from src.core.infrastructure.config import settings
 
 
 @pytest.fixture(scope="session", autouse=True)

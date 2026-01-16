@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import auth
-from src.core.config import settings
-from src.core.database import init_db
+from src.core.infrastructure.config import settings
+from src.core.infrastructure.database import init_db
 
 
 @asynccontextmanager

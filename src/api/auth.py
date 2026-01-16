@@ -1,20 +1,17 @@
 """Authentication endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import get_session
-from src.core.limiter import get_limiter
-from src.core.security import create_access_token, get_password_hash, verify_password
-from src.models import CompanyProfile, User, UserRole
-from src.schemas import (
-    CompanyProfileRead,
-    LoginRequest,
-    TokenResponse,
-    UserCreate,
-    UserRead,
-    UserWithCompanyRead,
+from src.core.infrastructure.database import get_session
+from src.core.infrastructure.limiter import get_limiter
+from src.core.infrastructure.security import create_access_token
+from src.schemas import LoginRequest, TokenResponse, UserCreate, UserWithCompanyRead
+from src.services.auth import authenticate_user, register_company_user
+from src.services.exceptions import (
+    EmailAlreadyExistsError,
+    InactiveUserError,
+    InvalidCredentialsError,
 )
 
 limiter = get_limiter()
@@ -37,43 +34,15 @@ async def register(
     Creates a User with COMPANY role and associated CompanyProfile.
     User is inactive until Admin approves (is_active=False).
     """
-    # Check if user with email already exists
-    result = await session.execute(
-        select(User).where(User.email == user_data.email)  # pyright: ignore[reportArgumentType]
-    )
-    existing_user = result.scalar_one_or_none()
-    if existing_user:
+    try:
+        result = await register_company_user(user_data, session)
+        await session.commit()
+        return result
+    except EmailAlreadyExistsError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
-
-    # Create User with hashed password
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        role=UserRole.COMPANY,
-        is_active=False,  # Requires Admin approval
-    )
-    session.add(new_user)
-    await session.flush()
-
-    # Create CompanyProfile (new_user.id is set after flush)
-    new_company_profile = CompanyProfile(
-        user_id=new_user.id,
-        name=user_data.company_profile.name,
-        logo_url=user_data.company_profile.logo_url,
-        contact_person=user_data.company_profile.contact_person,
-        contact_phone=user_data.company_profile.contact_phone,
-    )
-    session.add(new_company_profile)
-    await session.commit()
-
-    return UserWithCompanyRead(
-        user=UserRead.model_validate(new_user),
-        company_profile=CompanyProfileRead.model_validate(new_company_profile),
-    )
+            detail=str(e),
+        ) from e
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -87,30 +56,18 @@ async def login(
 
     Validates email and password, returns JWT token if credentials are correct.
     """
-    # Find user by email
-    result = await session.execute(
-        select(User).where(User.email == login_data.email)  # pyright: ignore[reportArgumentType]
-    )
-    user = result.scalar_one_or_none()
-    if not user:
+    try:
+        user = await authenticate_user(login_data.email, login_data.password, session)
+    except InvalidCredentialsError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-
-    # Verify password
-    if not verify_password(login_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-
-    # Check if user is active
-    if not user.is_active:
+            detail=str(e),
+        ) from e
+    except InactiveUserError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is inactive. Please wait for admin approval.",
-        )
+            detail=str(e),
+        ) from e
 
     # Create access token
     access_token = create_access_token(
