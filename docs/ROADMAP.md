@@ -40,14 +40,14 @@ gantt
     Architecture & Planning         :done,    infra2, after infra1, 2d
     AI Context & Governance         :done,    infra3, after infra2, 1d
     CI/CD Pipeline (Linter/Test)    :done,    infra4, after infra3, 1d
-    Email Service (SMTP/SendGrid)   :crit,    infra5, after infra4, 2d
-    File Storage Strategy (S3/MinIO):crit,    infra6, after infra5, 2d
-    Frontend Architecture Decision  :crit,    infra7, after infra6, 1d
-    CORS Configuration (Backend)    :crit,    infra8, after infra7, 1d
+    Email Service (SMTP/SendGrid)   :done,    infra5, after infra4, 2d
+    File Storage Strategy (S3/MinIO):done,    infra6, after infra5, 2d
+    Frontend Architecture Decision  :done,    infra7, after infra6, 1d
+    CORS Configuration (Backend)    :done,    infra8, after infra7, 1d
 
     section 🏢 1. Company Slice
     Company Onboarding (Auth + DB)  :done,    feat1,  after infra4, 5d
-    Admin Approval Flow             :active,  feat2,  after feat1, 3d
+    Admin Approval Flow             :         feat2,  after feat1, 3d
 
     section 💼 2. Job Slice
     Job Posting (CRUD)              :         feat3,  after feat2, 4d
