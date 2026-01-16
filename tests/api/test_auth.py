@@ -242,3 +242,35 @@ async def test_register_minimal_data(client: AsyncClient):
     assert data["company_profile"]["logo_url"] is None
     assert data["company_profile"]["contact_person"] is None
     assert data["company_profile"]["contact_phone"] is None
+
+
+@pytest.mark.asyncio
+async def test_register_duplicate_returns_400_not_500(client: AsyncClient):
+    """Test that duplicate registration returns 400, not 500.
+
+    This ensures IntegrityError is properly caught and converted to a
+    user-friendly error message rather than leaking as a 500 Internal Server Error.
+    """
+    registration_data = {
+        "email": "duplicate-test@example.com",
+        "password": "password123",
+        "company_profile": {"name": "Duplicate Test Company"},
+    }
+
+    # First registration should succeed
+    response1 = await client.post("/auth/register", json=registration_data)
+    assert response1.status_code == 201
+
+    # Second registration with same email should return 400 (not 500)
+    response2 = await client.post("/auth/register", json=registration_data)
+    assert response2.status_code == 400
+    detail = response2.json()["detail"].lower()
+    assert "already" in detail or "exists" in detail
+
+    # Verify only one user was created in database
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == "duplicate-test@example.com")  # pyright: ignore[reportArgumentType]
+        )
+        users = result.scalars().all()
+        assert len(users) == 1
