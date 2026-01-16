@@ -1,6 +1,7 @@
 """Authentication endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
@@ -39,10 +40,28 @@ async def register(
         await session.commit()
         return result
     except EmailAlreadyExistsError as e:
+        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
+    except sqlalchemy_exc.IntegrityError as e:
+        await session.rollback()
+        # Check if it's a unique constraint violation on email
+        error_str = str(e.orig) if e.orig else str(e)
+        if "email" in error_str.lower() or "unique" in error_str.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User with email '{user_data.email}' already exists.",
+            ) from e
+        # Re-raise for other integrity errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error occurred during registration",
+        ) from e
+    except Exception:
+        await session.rollback()
+        raise
 
 
 @router.post("/login", response_model=TokenResponse)
