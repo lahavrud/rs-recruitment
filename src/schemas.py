@@ -55,7 +55,7 @@ class UserWithCompanyRead(BaseModel):
     """Schema for user with company profile."""
 
     user: UserRead
-    company_profile: CompanyProfileRead | None = None
+    company_profile: CompanyProfileRead
 
 
 # Login Schemas

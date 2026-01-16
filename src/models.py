@@ -28,6 +28,8 @@ class User(SQLModel, table=True):
 
     # Relationship to CompanyProfile (optional, only for COMPANY role)
     # Note: ADMIN users don't have CompanyProfile, so this can be None
+    # Reverted to original - CompanyProfile is defined later,
+    # but SQLModel handles forward references
     company_profile: CompanyProfile = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"uselist": False},
