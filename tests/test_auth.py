@@ -51,7 +51,9 @@ async def client(test_db):
     from src.api import auth
 
     auth.limiter.enabled = False
-    app.state.limiter.enabled = False
+    # Only disable app.state.limiter if it exists (may not be initialized in all PRs)
+    if hasattr(app.state, "limiter"):
+        app.state.limiter.enabled = False
 
     # Override database dependency
     app.dependency_overrides[get_session] = override_get_session
