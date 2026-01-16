@@ -103,6 +103,8 @@ class TestLocalStorageProvider:
 class TestS3StorageProvider:
     """Tests for S3StorageProvider using AsyncMock (moto doesn't support aioboto3)."""
 
+    # mock_s3_bucket fixture is now in conftest.py for reusability
+
     @pytest.mark.asyncio
     async def test_upload_file(self, mock_s3_bucket):
         """Test S3 file upload using mocked S3 client."""
