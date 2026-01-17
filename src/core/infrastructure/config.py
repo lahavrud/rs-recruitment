@@ -89,7 +89,8 @@ def validate_settings() -> None:
     # Validate JWT secret key
     if (
         not settings.jwt_secret_key
-        or settings.jwt_secret_key == "your-secret-key-change-in-production"
+        or settings.jwt_secret_key
+        == "your-secret-key-change-in-production"  # pragma: allowlist secret
     ):
         raise ValueError(
             "JWT_SECRET_KEY must be set to a secure value via environment variable. "
