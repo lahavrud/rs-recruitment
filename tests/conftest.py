@@ -3,8 +3,29 @@
 import os
 
 import pytest
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.core.infrastructure.config import settings
+
+
+def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
+    """Enable foreign key constraint enforcement for SQLite.
+
+    This function should be called after creating a SQLite async engine to ensure
+    foreign key constraints are enforced during tests, matching PostgreSQL
+    behavior in production.
+
+    Args:
+        engine: SQLAlchemy AsyncEngine instance
+    """
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        """Execute PRAGMA foreign_keys=ON for each connection."""
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
