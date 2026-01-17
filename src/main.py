@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api import auth
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import init_db
+from src.core.tasks import close_redis_pool, get_redis_pool
 
 
 @asynccontextmanager
@@ -13,7 +14,11 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events."""
     # Initialize database on startup
     await init_db()
+    # Initialize Redis connection pool for Arq tasks
+    await get_redis_pool()
     yield
+    # Cleanup Redis connection pool on shutdown
+    await close_redis_pool()
 
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
