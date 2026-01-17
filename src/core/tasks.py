@@ -82,18 +82,28 @@ async def get_redis_pool() -> ArqRedis:
     """
     Get or create Redis connection pool for Arq.
 
-    This should be called once at application startup to initialize
-    the Redis connection pool.
+    The pool is created lazily on first use (not during application startup).
+    This allows the application to start even if Redis is temporarily unavailable.
 
     Returns:
         ArqRedis connection pool instance
+
+    Raises:
+        ConnectionError: If unable to connect to Redis
     """
     global _redis_pool
 
     if _redis_pool is None:
-        redis_settings = RedisSettings.from_dsn(settings.redis_url)
-        _redis_pool = await create_pool(redis_settings)
-        logger.info(f"Created Redis connection pool: {settings.redis_url}")
+        try:
+            redis_settings = RedisSettings.from_dsn(settings.redis_url)
+            _redis_pool = await create_pool(redis_settings)
+            logger.info(f"Created Redis connection pool: {settings.redis_url}")
+        except Exception as e:
+            logger.error(
+                f"Failed to connect to Redis at {settings.redis_url}: {e}. "
+                "Make sure Redis is running and REDIS_URL is configured correctly."
+            )
+            raise
 
     return _redis_pool
 
