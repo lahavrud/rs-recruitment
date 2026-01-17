@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlmodel import SQLModel
 
 from src.core.infrastructure.security import verify_password
-from src.models import CompanyProfile, User, UserRole
+from src.enums import UserRole
+from src.models import CompanyProfile, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import authenticate_user, register_company_user
 from src.services.exceptions import (

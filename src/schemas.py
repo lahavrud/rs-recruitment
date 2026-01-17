@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from src.models import UserRole
+from src.enums import ApplicationStatus, JobStatus, UserRole
 
 
 # Registration Schemas
@@ -71,3 +71,138 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+
+
+# Job Schemas
+class JobCreate(BaseModel):
+    """Schema for creating a job posting."""
+
+    title: str
+    description: str
+    requirements: str
+    location: str
+
+
+class JobUpdate(BaseModel):
+    """Schema for updating a job posting."""
+
+    title: str | None = None
+    description: str | None = None
+    requirements: str | None = None
+    location: str | None = None
+    status: JobStatus | None = None
+
+
+class JobRead(BaseModel):
+    """Schema for reading job data."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    company_id: int
+    title: str
+    description: str
+    requirements: str
+    location: str
+    status: JobStatus
+    created_at: datetime
+    updated_at: datetime
+
+
+# CandidateProfile Schemas
+class CandidateProfileCreate(BaseModel):
+    """Schema for creating a candidate profile (application form)."""
+
+    full_name: str
+    email: EmailStr
+    phone: str | None = None
+    resume_path: str | None = None
+    linkedin_url: str | None = None
+    # Interview form fields
+    service_concept: str | None = None
+    salary_expectations: str | None = None
+    military_service_details: str | None = None
+    transportation: str | None = None
+    personality_weakness: str | None = None
+    personality_strength: str | None = None
+
+
+class CandidateProfileUpdate(BaseModel):
+    """Schema for updating a candidate profile."""
+
+    full_name: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    resume_path: str | None = None
+    linkedin_url: str | None = None
+    service_concept: str | None = None
+    salary_expectations: str | None = None
+    military_service_details: str | None = None
+    transportation: str | None = None
+    personality_weakness: str | None = None
+    personality_strength: str | None = None
+
+
+class CandidateProfileRead(BaseModel):
+    """Schema for reading candidate profile data."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    email: str
+    phone: str | None
+    resume_path: str | None
+    linkedin_url: str | None
+    service_concept: str | None
+    salary_expectations: str | None
+    military_service_details: str | None
+    transportation: str | None
+    personality_weakness: str | None
+    personality_strength: str | None
+    created_at: datetime
+
+
+# Application (Match) Schemas
+class ApplicationCreate(BaseModel):
+    """Schema for creating an application (match)."""
+
+    job_id: int
+    candidate_id: int
+
+
+class ApplicationUpdate(BaseModel):
+    """Schema for updating an application."""
+
+    status: ApplicationStatus | None = None
+    admin_notes: str | None = None
+
+
+class ApplicationRead(BaseModel):
+    """Schema for reading application data."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    job_id: int
+    candidate_id: int
+    status: ApplicationStatus
+    admin_notes: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ApplicationWithDetails(BaseModel):
+    """Schema for application with related job and candidate details."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    job_id: int
+    candidate_id: int
+    status: ApplicationStatus
+    admin_notes: str | None
+    created_at: datetime
+    updated_at: datetime
+    job: JobRead
+    candidate: CandidateProfileRead

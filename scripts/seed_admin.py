@@ -15,7 +15,8 @@ from sqlalchemy import select
 
 from src.core.infrastructure.database import async_session, init_db
 from src.core.infrastructure.security import get_password_hash
-from src.models import User, UserRole
+from src.enums import UserRole
+from src.models import User
 
 
 async def create_admin_user(email: str, password: str) -> None:

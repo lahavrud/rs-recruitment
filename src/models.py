@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import Enum
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import Text
+from sqlmodel import Column, Field, Relationship, SQLModel
 
-
-class UserRole(str, Enum):
-    """User role enumeration."""
-
-    ADMIN = "ADMIN"
-    COMPANY = "COMPANY"
+from src.enums import ApplicationStatus, JobStatus, UserRole
 
 
 class User(SQLModel, table=True):
@@ -50,5 +45,87 @@ class CompanyProfile(SQLModel, table=True):
     contact_phone: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # Relationship to User
+    # Relationships
     user: User = Relationship(back_populates="company_profile")
+    # Note: One-way relationships for Job and Application (SQLModel 0.0.22 limitation)
+    # Access via queries: session.exec(select(Job).where(Job.company_id == company.id))
+
+
+class Job(SQLModel, table=True):
+    """Job posting linked to a CompanyProfile.
+
+    Jobs can be posted by companies and require admin approval before being published.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    company_id: int = Field(foreign_key="companyprofile.id", index=True)
+    title: str
+    description: str
+    requirements: str
+    location: str
+    status: JobStatus = Field(default=JobStatus.PENDING_APPROVAL)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+
+    # Relationships
+    company: CompanyProfile = Relationship()
+    # Note: One-way relationship (SQLModel 0.0.22 limitation)
+    # Access via: session.exec(select(Job).where(Job.company_id == X))
+
+
+class CandidateProfile(SQLModel, table=True):
+    """Candidate profile (unauthenticated lead).
+
+    Candidates do not authenticate. They are treated as leads/data entities.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    full_name: str
+    email: str = Field(unique=True, index=True)
+    phone: str | None = None
+    resume_path: str | None = None
+    linkedin_url: str | None = None
+
+    # Interview Form Fields (Subject to Change)
+    service_concept: str | None = Field(default=None, sa_column=Column(Text))
+    salary_expectations: str | None = Field(default=None, sa_column=Column(Text))
+    military_service_details: str | None = Field(default=None, sa_column=Column(Text))
+    transportation: str | None = Field(default=None, sa_column=Column(Text))
+    personality_weakness: str | None = Field(default=None, sa_column=Column(Text))
+    personality_strength: str | None = Field(default=None, sa_column=Column(Text))
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Note: One-way relationships only (SQLModel 0.0.22 limitation)
+    # Access applications via:
+    # session.exec(select(Application).where(Application.candidate_id == candidate.id))
+
+
+class Application(SQLModel, table=True):
+    """Application (Match) - the core business entity.
+
+    Links a Candidate to a Job. Represents the recruitment match.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    job_id: int = Field(foreign_key="job.id", index=True)
+    candidate_id: int = Field(foreign_key="candidateprofile.id", index=True)
+    status: ApplicationStatus = Field(default=ApplicationStatus.NEW)
+    admin_notes: str | None = Field(default=None, sa_column=Column(Text))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+
+    # Relationships
+    job: Job = Relationship()
+    candidate: CandidateProfile = Relationship()
+    # Note: One-way relationships (SQLModel 0.0.22 limitation)
+    # Access job's applications via:
+    # session.exec(select(Application).where(Application.job_id == job.id))
+    # Access candidate's applications via:
+    # session.exec(select(Application).where(Application.candidate_id == candidate.id))
