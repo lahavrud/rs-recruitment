@@ -17,8 +17,8 @@ What problem does this task solve?
 - ...
 
 ## 🧩 Tasks
-- [ ] 
-- [ ] 
+- [ ]
+- [ ]
 
 ## ✅ Definition of Done (DoD)
 - [ ] Acceptance criteria met

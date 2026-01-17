@@ -41,32 +41,34 @@
   - `src/api/` – API routers, split by domain (vertical slice)
   - `src/services/` – Domain-specific business logic services
   - `src/core/` – Cross-cutting infrastructure
+    - `core/tasks.py` – Arq task definitions for async background jobs
     - `core/infrastructure/` – Pure infrastructure (config, database, security, limiter, dependencies)
     - `core/services/` – Infrastructure services for external systems (email, storage)
   - `src/main.py` – FastAPI app entry point
-  
+
 - **Test Structure** (mirrors source structure)
   - `tests/api/` – Integration tests for API routers
   - `tests/services/` – Unit tests for domain services
   - `tests/core/` – Tests for core infrastructure
     - `core/infrastructure/` – Tests for infrastructure modules
     - `core/services/` – Tests for infrastructure services
+    - `core/test_tasks.py` – Tests for async task processing
 
 - **Business Logic & Service Layer**
   - Keep logic close to the domain
   - Avoid "fat routers"
-  
+
   **When to use services (`src/services/`):**
   - Complex business logic (multi-step operations, validations, domain rules)
   - Logic that needs to be reused across multiple endpoints
   - Logic that should be testable without HTTP layer
   - Domain-specific operations (e.g., `services/auth.py`, `services/jobs.py`)
-  
+
   **When to keep logic in routers:**
   - Simple CRUD operations (single model, no complex validation)
   - Trivial transformations
   - Direct pass-through to database
-  
+
   **Service Layer Rules:**
   - Services should NOT import FastAPI (keep HTTP-agnostic)
   - Services raise domain exceptions (`services/exceptions.py`)
