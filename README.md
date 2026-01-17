@@ -211,6 +211,104 @@ The API will be available at `http://localhost:8000`.
 - `SMTP_FROM_EMAIL` - SMTP sender email (optional)
 - `SMTP_USE_TLS` - Use TLS encryption (default: `true`)
 
+**Task Queue Configuration:**
+- `REDIS_URL` - Redis connection URL for Arq task queue (default: `redis://localhost:6379/0`)
+
+---
+
+## Async Task Processing
+
+The application uses **Arq** (async task queue) with **Redis** for background job processing, enabling guaranteed email delivery and future background tasks.
+
+### Architecture
+
+- **Arq Worker**: Processes tasks asynchronously in the background
+- **Redis**: Message broker for task queue
+- **Tasks**: Defined in `src/core/tasks.py`
+
+### Running with Docker Compose
+
+Docker Compose automatically starts:
+- **API service**: FastAPI application
+- **Worker service**: Arq worker for processing tasks
+- **Redis service**: Task queue broker
+
+```bash
+docker-compose up
+```
+
+### Running Locally
+
+1. **Start Redis** (required for task processing):
+   ```bash
+   # Using Docker
+   docker run -d -p 6379:6379 redis:7-alpine
+
+   # Or install and run locally
+   redis-server
+   ```
+
+2. **Start Arq Worker** (in a separate terminal):
+   ```bash
+   source venv/bin/activate
+   arq src.core.tasks.WorkerSettings
+   ```
+
+3. **Start API** (in another terminal):
+   ```bash
+   source venv/bin/activate
+   uvicorn src.main:app --reload
+   ```
+
+### Using Email Tasks
+
+Send emails asynchronously from your application code:
+
+```python
+from src.core.tasks import enqueue_email_task
+
+# Enqueue an email task
+job_id = await enqueue_email_task(
+    to="user@example.com",
+    subject="Welcome!",
+    body="Thank you for registering."
+)
+
+# The email will be processed by the Arq worker
+# Failed sends are automatically retried (up to 3 times)
+```
+
+### Task Configuration
+
+Tasks are configured in `src/core/tasks.py`:
+- **Retry**: Failed tasks are automatically retried up to 3 times
+- **Timeout**: 5 minutes per job
+- **Concurrency**: Up to 10 concurrent jobs
+- **Result Retention**: Job results kept for 1 hour
+
+### Adding New Tasks
+
+1. Define the task function in `src/core/tasks.py`:
+   ```python
+   async def my_task(ctx: dict, param1: str, param2: int) -> bool:
+       # Task logic here
+       return True
+   ```
+
+2. Add to `WorkerSettings.functions`:
+   ```python
+   class WorkerSettings:
+       functions = [send_email_task, my_task]
+   ```
+
+3. Create an enqueue helper function:
+   ```python
+   async def enqueue_my_task(param1: str, param2: int) -> Optional[str]:
+       pool = await get_redis_pool()
+       job = await pool.enqueue_job("my_task", param1=param1, param2=param2)
+       return job.job_id
+   ```
+
 ---
 
 ## Testing
