@@ -19,7 +19,8 @@ DATABASE_URL = settings.database_url
 # Create async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,  # Log SQL queries for debugging
+    # Log SQL queries (configurable via DATABASE_ECHO env var)
+    echo=settings.database_echo,
     future=True,
 )
 
