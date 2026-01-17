@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from src.models import ApplicationStatus, JobStatus, UserRole
+from src.enums import ApplicationStatus, JobStatus, UserRole
 
 
 # Registration Schemas

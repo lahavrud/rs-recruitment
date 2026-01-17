@@ -1,34 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import Enum
 
 from sqlalchemy import Text
 from sqlmodel import Column, Field, Relationship, SQLModel
 
-
-class UserRole(str, Enum):
-    """User role enumeration."""
-
-    ADMIN = "ADMIN"
-    COMPANY = "COMPANY"
-
-
-class JobStatus(str, Enum):
-    """Job status enumeration."""
-
-    PENDING_APPROVAL = "PENDING_APPROVAL"
-    PUBLISHED = "PUBLISHED"
-    CLOSED = "CLOSED"
-
-
-class ApplicationStatus(str, Enum):
-    """Application (Match) status enumeration."""
-
-    NEW = "NEW"
-    APPROVED_BY_ADMIN = "APPROVED_BY_ADMIN"
-    REJECTED = "REJECTED"
-    HIRED = "HIRED"
+from src.enums import ApplicationStatus, JobStatus, UserRole
 
 
 class User(SQLModel, table=True):
@@ -68,8 +45,10 @@ class CompanyProfile(SQLModel, table=True):
     contact_phone: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # Relationship to User
+    # Relationships
     user: User = Relationship(back_populates="company_profile")
+    # Note: One-way relationships for Job and Application (SQLModel 0.0.22 limitation)
+    # Access via queries: session.exec(select(Job).where(Job.company_id == company.id))
 
 
 class Job(SQLModel, table=True):
@@ -86,10 +65,15 @@ class Job(SQLModel, table=True):
     location: str
     status: JobStatus = Field(default=JobStatus.PENDING_APPROVAL)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
 
-    # Relationship to CompanyProfile
+    # Relationships
     company: CompanyProfile = Relationship()
+    # Note: One-way relationship (SQLModel 0.0.22 limitation)
+    # Access via: session.exec(select(Job).where(Job.company_id == X))
 
 
 class CandidateProfile(SQLModel, table=True):
@@ -115,6 +99,10 @@ class CandidateProfile(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    # Note: One-way relationships only (SQLModel 0.0.22 limitation)
+    # Access applications via:
+    # session.exec(select(Application).where(Application.candidate_id == candidate.id))
+
 
 class Application(SQLModel, table=True):
     """Application (Match) - the core business entity.
@@ -128,8 +116,16 @@ class Application(SQLModel, table=True):
     status: ApplicationStatus = Field(default=ApplicationStatus.NEW)
     admin_notes: str | None = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
 
     # Relationships
     job: Job = Relationship()
     candidate: CandidateProfile = Relationship()
+    # Note: One-way relationships (SQLModel 0.0.22 limitation)
+    # Access job's applications via:
+    # session.exec(select(Application).where(Application.job_id == job.id))
+    # Access candidate's applications via:
+    # session.exec(select(Application).where(Application.candidate_id == candidate.id))

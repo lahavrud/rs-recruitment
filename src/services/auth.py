@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import get_password_hash, verify_password
-from src.models import CompanyProfile, User, UserRole
+from src.enums import UserRole
+from src.models import CompanyProfile, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.exceptions import (
     EmailAlreadyExistsError,

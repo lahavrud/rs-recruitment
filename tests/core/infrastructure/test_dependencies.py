@@ -7,7 +7,8 @@ from sqlmodel import SQLModel
 
 from src.core.infrastructure.dependencies import get_current_user
 from src.core.infrastructure.security import create_access_token
-from src.models import User, UserRole
+from src.enums import UserRole
+from src.models import User
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
