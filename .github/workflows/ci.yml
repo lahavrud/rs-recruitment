@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: "sqlite+aiosqlite:///:memory:"
-      JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long"
+      JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long"  # pragma: allowlist secret
       JWT_ALGORITHM: "HS256"
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
       PYTHONPATH: "."
@@ -93,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, test]  # Only run if lint and test pass
     env:
-      JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long"
+      JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long"  # pragma: allowlist secret
       DATABASE_URL: "sqlite+aiosqlite:///./data/test.db"
     steps:
       - uses: actions/checkout@v4
