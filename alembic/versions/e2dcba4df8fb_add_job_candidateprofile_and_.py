@@ -8,7 +8,6 @@ Create Date: 2026-01-17 20:40:31.952297
 from typing import Sequence, Union
 
 import sqlalchemy as sa
-import sqlmodel
 
 from alembic import op
 
@@ -25,11 +24,11 @@ def upgrade() -> None:
     op.create_table(
         "candidateprofile",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("full_name", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("email", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("phone", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("resume_path", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("linkedin_url", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column("full_name", sa.String(), nullable=False),
+        sa.Column("email", sa.String(), nullable=False),
+        sa.Column("phone", sa.String(), nullable=True),
+        sa.Column("resume_path", sa.String(), nullable=True),
+        sa.Column("linkedin_url", sa.String(), nullable=True),
         sa.Column("service_concept", sa.Text(), nullable=True),
         sa.Column("salary_expectations", sa.Text(), nullable=True),
         sa.Column("military_service_details", sa.Text(), nullable=True),
@@ -46,10 +45,10 @@ def upgrade() -> None:
         "job",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("company_id", sa.Integer(), nullable=False),
-        sa.Column("title", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("requirements", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("location", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("title", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("requirements", sa.String(), nullable=False),
+        sa.Column("location", sa.String(), nullable=False),
         sa.Column(
             "status",
             sa.Enum("PENDING_APPROVAL", "PUBLISHED", "CLOSED", name="jobstatus"),

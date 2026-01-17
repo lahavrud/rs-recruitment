@@ -89,9 +89,7 @@ class Job(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relationship to CompanyProfile
-    company: CompanyProfile = Relationship(back_populates="jobs")
-    # Relationship to Applications
-    applications: list["Application"] = Relationship(back_populates="job")
+    company: CompanyProfile = Relationship()
 
 
 class CandidateProfile(SQLModel, table=True):
@@ -117,9 +115,6 @@ class CandidateProfile(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # Relationship to Applications
-    applications: list["Application"] = Relationship(back_populates="candidate")
-
 
 class Application(SQLModel, table=True):
     """Application (Match) - the core business entity.
@@ -136,5 +131,5 @@ class Application(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relationships
-    job: Job = Relationship(back_populates="applications")
-    candidate: CandidateProfile = Relationship(back_populates="applications")
+    job: Job = Relationship()
+    candidate: CandidateProfile = Relationship()
