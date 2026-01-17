@@ -88,7 +88,7 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
    export JWT_SECRET_KEY="your-secret-key-change-in-production"
    export DATABASE_URL="sqlite+aiosqlite:///./data/rs_recruitment.db"
    ```
-   
+
    Or create a `.env` file in the project root with:
    ```bash
    JWT_SECRET_KEY=your-secret-key-change-in-production
@@ -96,7 +96,7 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
    ```
 
    **AWS Configuration (Optional):**
-   
+
    For production, configure AWS S3 and SES:
    ```bash
    # Storage Provider: 's3' or 'local' (default: 'local')
@@ -105,12 +105,12 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
    AWS_SECRET_ACCESS_KEY=your-secret-access-key
    AWS_REGION=us-east-1
    AWS_S3_BUCKET_NAME=your-bucket-name
-   
+
    # Email Provider: 'ses' or 'smtp' (default: 'smtp')
    EMAIL_PROVIDER=ses
    AWS_SES_FROM_EMAIL=noreply@yourdomain.com
    ```
-   
+
    For development/testing with SMTP:
    ```bash
    EMAIL_PROVIDER=smtp
@@ -121,7 +121,7 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
    SMTP_FROM_EMAIL=your-email@gmail.com
    SMTP_USE_TLS=true
    ```
-   
+
    See [AWS Setup](#aws-setup) section for detailed instructions.
 
 5. Run database migrations:
@@ -129,7 +129,14 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
    alembic upgrade head
    ```
 
-6. (Optional) Seed an admin user:
+6. (Optional) Set up pre-commit hooks:
+   ```bash
+   pre-commit install
+   pre-commit install --hook-type commit-msg
+   ```
+   This will install git hooks to automatically run code quality checks and validate commit messages before each commit.
+
+7. (Optional) Seed an admin user:
    ```bash
    python scripts/seed_admin.py admin@example.com your-secure-password
    ```
@@ -364,6 +371,30 @@ Current available endpoints:
 ---
 
 ## Code Quality
+
+### Pre-commit Hooks
+
+This project uses pre-commit hooks to enforce code quality and commit message standards. Hooks are automatically installed when you run `pre-commit install` (see Installation step 6).
+
+**Available hooks:**
+- File quality checks (trailing whitespace, end-of-file, YAML/JSON/TOML validation)
+- Security detection (detect-secrets) to prevent credential leaks
+- Commit message validation (Conventional Commits format)
+- Ruff linting and formatting (auto-fix enabled)
+
+**Manual usage:**
+```bash
+# Run all hooks on all files
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run ruff --all-files
+
+# Update hooks to latest versions
+pre-commit autoupdate
+```
+
+### Ruff Linter
 
 Run the linter to check code quality:
 ```bash

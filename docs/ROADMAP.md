@@ -34,7 +34,7 @@ gantt
     title RS Recruitment MVP Roadmap
     dateFormat  YYYY-MM-DD
     axisFormat  %d/%m
-    
+
     section 🏗️ 0. Infrastructure
     Repo, Docker & CI Setup         :done,    infra1, 2026-01-01, 3d
     Architecture & Planning         :done,    infra2, after infra1, 2d

@@ -109,7 +109,7 @@ This model reduces security risk and complexity while keeping the system flexibl
 **Decision Required:** Configure CORS middleware in FastAPI before frontend development starts.
 
 **Configuration Requirements:**
-- **Allowed Origins:** 
+- **Allowed Origins:**
   - Development: `http://localhost:3000` (or frontend dev server port)
   - Staging: Staging frontend URL
   - Production: Production frontend URL
@@ -117,7 +117,7 @@ This model reduces security risk and complexity while keeping the system flexibl
 - **Allowed Headers:** `Content-Type`, `Authorization` (for JWT tokens)
 - **Credentials:** `True` (to allow cookies/auth headers)
 
-**Implementation:** 
+**Implementation:**
 - Use FastAPI's `CORSMiddleware` in `src/main.py`
 - Environment-based origin configuration (dev/staging/prod)
 - Secure defaults: Never use `allow_origins=["*"]` in production
@@ -154,12 +154,12 @@ app.add_middleware(
 - **Point-in-Time Recovery** – WAL archiving for PostgreSQL
 - **Backup to S3** – Store dumps in object storage
 
-**Recommendation:** 
+**Recommendation:**
 - **Development:** Manual backups or Docker volume snapshots
 - **Staging/Production:** Use managed PostgreSQL (RDS/DO) with automated daily backups + point-in-time recovery
 - **Backup Retention:** 7 days daily, 4 weeks weekly, 12 months monthly
 
-**Implementation:** 
+**Implementation:**
 - Document backup/restore procedures
 - Test restore process regularly
 - Monitor backup success/failure
