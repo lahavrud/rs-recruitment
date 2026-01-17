@@ -7,7 +7,8 @@ from sqlmodel import SQLModel
 
 from src.core.infrastructure.dependencies import get_current_user
 from src.core.infrastructure.security import create_access_token
-from src.models import User, UserRole
+from src.enums import UserRole
+from src.models import User
 from tests.conftest import enable_sqlite_foreign_keys
 
 # Use in-memory SQLite for tests

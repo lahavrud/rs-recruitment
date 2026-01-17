@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import decode_access_token
-from src.models import User, UserRole
+from src.enums import UserRole
+from src.models import User
 
 security = HTTPBearer()
 
