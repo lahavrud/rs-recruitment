@@ -36,6 +36,7 @@
 
 - **Project Structure**
   - `src/models.py` – All SQLModel database tables
+  - `src/enums.py` – All enumeration types (UserRole, JobStatus, ApplicationStatus)
   - `src/schemas.py` – All Pydantic schemas for request/response validation
   - `src/api/` – API routers, split by domain (vertical slice)
   - `src/services/` – Domain-specific business logic services
@@ -79,6 +80,7 @@
 - **Testing**
   - `pytest` must pass before merging
   - Prefer simple unit tests over complex mocks
+  - **SQLite FK Constraints:** Test databases use `enable_sqlite_foreign_keys()` from `tests/conftest.py` to enforce foreign key constraints, ensuring test behavior matches PostgreSQL production behavior
 
 - **Async Database Rules**
   - ALWAYS use `await session.execute(...)` or `await session.get(...)`

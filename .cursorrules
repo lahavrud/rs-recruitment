@@ -74,6 +74,7 @@ When performing GitHub actions, **always** use the following without asking:
 src/
 ├── main.py                # FastAPI app entrypoint
 ├── models.py              # SQLModel DB tables
+├── enums.py               # Enumeration types (UserRole, JobStatus, ApplicationStatus)
 ├── schemas.py             # Pydantic schemas
 ├── api/                   # FastAPI routers (thin)
 │   ├── auth.py
@@ -133,6 +134,7 @@ tests/                     # Mirrors source structure
 * Auth flows (register / login) **MUST** have tests
 * Any DB write logic **MUST** be covered by at least one test
 * Prefer SQLite in-memory DB for tests
+* **SQLite FK Constraints:** Test databases use `enable_sqlite_foreign_keys()` from `tests/conftest.py` to enforce foreign key constraints, ensuring test behavior matches PostgreSQL production behavior
 * If logic changes, verify existing tests still pass
 
 ---
