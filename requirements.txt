@@ -36,3 +36,5 @@ email-validator==2.3.0
 boto3>=1.35.0
 aioboto3>=12.0.0
 slowapi==0.1.9
+arq>=0.25.0
+redis>=5.0.0
