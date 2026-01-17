@@ -4,17 +4,21 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
 from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+from tests.conftest import enable_sqlite_foreign_keys
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 # Create test engine and session factory
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
+# Enable FK constraints for SQLite to match PostgreSQL behavior
+enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -287,8 +291,8 @@ async def test_candidate_access_applications_via_query(
 async def test_application_foreign_key_constraints(session: AsyncSession):
     """Test foreign key constraint enforcement.
 
-    Note: SQLite in-memory DB doesn't enforce FK constraints by default.
-    This test documents the expected behavior but may not fail in tests.
+    With FK constraints enabled, attempting to create an application with
+    non-existent job_id or candidate_id should raise an IntegrityError.
     """
     # Attempting to create application with non-existent job_id
     app = Application(
@@ -297,14 +301,9 @@ async def test_application_foreign_key_constraints(session: AsyncSession):
     )
     session.add(app)
 
-    # In production with PostgreSQL, this would raise IntegrityError
-    # In SQLite tests, it may not fail unless FK constraints are enabled
-    try:
+    # Should raise IntegrityError due to FK constraint violation
+    with pytest.raises(IntegrityError):
         await session.commit()
-        # If we get here in SQLite, that's expected
-    except Exception:
-        # In production DB, this would be raised
-        pass
 
 
 @pytest.mark.asyncio

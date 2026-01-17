@@ -8,12 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlmodel import SQLModel
 
 from src.models import CandidateProfile
+from tests.conftest import enable_sqlite_foreign_keys
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 # Create test engine and session factory
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
+# Enable FK constraints for SQLite to match PostgreSQL behavior
+enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

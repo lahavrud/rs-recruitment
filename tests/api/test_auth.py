@@ -14,12 +14,15 @@ from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import verify_password
 from src.main import app
 from src.models import User
+from tests.conftest import enable_sqlite_foreign_keys
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 # Create test engine and session factory
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
+# Enable FK constraints for SQLite to match PostgreSQL behavior
+enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

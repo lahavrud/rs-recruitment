@@ -4,17 +4,21 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
 from src.enums import JobStatus, UserRole
 from src.models import CompanyProfile, Job, User
+from tests.conftest import enable_sqlite_foreign_keys
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 # Create test engine and session factory
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
+# Enable FK constraints for SQLite to match PostgreSQL behavior
+enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -177,8 +181,8 @@ async def test_company_access_jobs_via_query(
 async def test_job_foreign_key_constraint(session: AsyncSession):
     """Test foreign key constraint enforcement.
 
-    Note: SQLite in-memory DB doesn't enforce FK constraints by default.
-    This test documents the expected behavior but may not fail in tests.
+    With FK constraints enabled, attempting to create a job with a non-existent
+    company_id should raise an IntegrityError.
     """
     # Attempting to create a job with non-existent company_id
     job = Job(
@@ -190,14 +194,9 @@ async def test_job_foreign_key_constraint(session: AsyncSession):
     )
     session.add(job)
 
-    # In production with PostgreSQL, this would raise IntegrityError
-    # In SQLite tests, it may not fail unless FK constraints are enabled
-    try:
+    # Should raise IntegrityError due to FK constraint violation
+    with pytest.raises(IntegrityError):
         await session.commit()
-        # If we get here in SQLite, that's expected
-    except Exception:
-        # In production DB, this would be raised
-        pass
 
 
 @pytest.mark.asyncio
