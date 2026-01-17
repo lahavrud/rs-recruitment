@@ -5,40 +5,10 @@ from collections.abc import AsyncGenerator
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.enums import JobStatus, UserRole
 from src.models import CompanyProfile, Job, User
-from tests.conftest import enable_sqlite_foreign_keys
-
-# Use in-memory SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
-# Create test engine and session factory
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-# Enable FK constraints for SQLite to match PostgreSQL behavior
-enable_sqlite_foreign_keys(test_engine)
-TestSessionLocal = async_sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
-)
-
-
-@pytest.fixture(scope="function")
-async def test_db() -> AsyncGenerator[None, None]:
-    """Create and drop test database tables for each test."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture
-async def session(test_db) -> AsyncGenerator[AsyncSession, None]:
-    """Create a test database session."""
-    async with TestSessionLocal() as session:
-        yield session
 
 
 @pytest.fixture
