@@ -160,7 +160,7 @@ class Application(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     job_id: int = Field(foreign_key="job.id", index=True)
     candidate_id: int = Field(foreign_key="candidateprofile.id", index=True)
-    status: ApplicationStatus = Field(default=ApplicationStatus.NEW)
+    status: ApplicationStatus = Field(default=ApplicationStatus.NEW, index=True)
     admin_notes: str | None = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(

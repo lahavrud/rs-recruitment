@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/rs_recruitment.db"
+    database_echo: bool = False  # Enable SQL query logging (for debugging only)
 
     # AWS Configuration
     aws_access_key_id: Optional[str] = None
