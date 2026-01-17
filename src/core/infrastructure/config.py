@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./data/rs_recruitment.db"
     database_echo: bool = False  # Enable SQL query logging (for debugging only)
 
+    # Redis Configuration (for Arq task queue)
+    redis_url: str = "redis://localhost:6379/0"
+
     # AWS Configuration
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
