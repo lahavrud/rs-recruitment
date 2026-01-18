@@ -4,9 +4,11 @@ import asyncio
 import os
 import tempfile
 from collections.abc import AsyncGenerator
+from unittest.mock import patch
 
 import pytest
-from sqlalchemy import event, text
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event, select, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -16,6 +18,18 @@ from sqlalchemy.ext.asyncio import (
 from sqlmodel import SQLModel
 
 from src.core.infrastructure.config import settings
+from src.core.infrastructure.database import get_session
+from src.core.infrastructure.dependencies import (
+    get_current_admin,
+    get_current_company,
+    get_current_user,
+)
+from src.core.infrastructure.security import get_password_hash
+from src.enums import JobStatus, UserRole
+from src.main import app
+from src.models import CompanyProfile, Job, User
+from src.schemas import CompanyProfileCreate, UserCreate
+from src.services.auth import register_company_user
 
 
 def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
@@ -131,3 +145,257 @@ def mock_s3_bucket():
         "bucket_name": "test-bucket",
         "region": "us-east-1",
     }
+
+
+# ==================== User Fixtures ====================
+
+
+@pytest.fixture
+async def company_user(test_db) -> User:
+    """Create a pending (inactive) company user for testing."""
+    async with TestSessionLocal() as session:
+        user_data = UserCreate(
+            email="company@test.com",
+            password="password",
+            company_profile=CompanyProfileCreate(name="Test Company"),
+        )
+        with patch("src.services.auth.enqueue_email_task") as mock_enqueue:
+            mock_enqueue.return_value = "test-job-id"
+            result = await register_company_user(user_data, session)
+        await session.commit()
+        return result.user
+
+
+@pytest.fixture
+async def approved_company_user(test_db) -> User:
+    """Create an approved (active) company user for testing."""
+    async with TestSessionLocal() as session:
+        user_data = UserCreate(
+            email="approved@test.com",
+            password="password",
+            company_profile=CompanyProfileCreate(name="Approved Company"),
+        )
+        with patch("src.services.auth.enqueue_email_task") as mock_enqueue:
+            mock_enqueue.return_value = "test-job-id"
+            result = await register_company_user(user_data, session)
+        # Activate the user (simulate admin approval)
+        result.user.is_active = True
+        await session.commit()
+        return result.user
+
+
+@pytest.fixture
+async def company_profile(approved_company_user: User) -> CompanyProfile:
+    """Get company profile for approved company user."""
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
+                CompanyProfile.user_id == approved_company_user.id
+            )
+        )
+        return result.scalar_one()
+
+
+@pytest.fixture
+async def admin_user(test_db) -> User:
+    """Create an admin user for testing."""
+    async with TestSessionLocal() as session:
+        admin = User(
+            email="admin@test.com",
+            hashed_password=get_password_hash("adminpassword"),
+            role=UserRole.ADMIN,
+            is_active=True,
+        )
+        session.add(admin)
+        await session.commit()
+        await session.refresh(admin)
+        return admin
+
+
+@pytest.fixture
+async def company_with_user(session: AsyncSession) -> CompanyProfile:
+    """Create a company user and profile for service layer testing."""
+    user = User(
+        email="company@test.com",
+        hashed_password="hashed",
+        role=UserRole.COMPANY,
+        is_active=True,
+    )
+    session.add(user)
+    await session.flush()
+    assert user.id is not None
+
+    company = CompanyProfile(
+        user_id=user.id,
+        name="Test Company",
+        contact_person="John Doe",
+        contact_phone="123-456-7890",
+    )
+    session.add(company)
+    await session.commit()
+    await session.refresh(company)
+    assert company.id is not None
+    return company
+
+
+# ==================== Job Fixtures ====================
+
+
+@pytest.fixture
+async def job(company_profile: CompanyProfile) -> Job:
+    """Create a pending job for testing."""
+    async with TestSessionLocal() as session:
+        job = Job(
+            company_id=company_profile.id,
+            title="Senior Python Developer",
+            description="We are looking for a senior Python developer...",
+            requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+            location="Tel Aviv, Israel",
+            status=JobStatus.PENDING_APPROVAL,
+        )
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        return job
+
+
+@pytest.fixture
+async def pending_job(company_profile: CompanyProfile) -> Job:
+    """Create a pending job for testing."""
+    async with TestSessionLocal() as session:
+        job = Job(
+            company_id=company_profile.id,
+            title="Senior Python Developer",
+            description="We are looking for a senior Python developer...",
+            requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+            location="Tel Aviv, Israel",
+            status=JobStatus.PENDING_APPROVAL,
+        )
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        return job
+
+
+@pytest.fixture
+async def published_job(company_profile: CompanyProfile) -> Job:
+    """Create a published job for testing."""
+    async with TestSessionLocal() as session:
+        job = Job(
+            company_id=company_profile.id,
+            title="Senior Python Developer",
+            description="We are looking for a senior Python developer...",
+            requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+            location="Tel Aviv, Israel",
+            status=JobStatus.PUBLISHED,
+        )
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        return job
+
+
+@pytest.fixture
+async def closed_job(company_profile: CompanyProfile) -> Job:
+    """Create a closed job for testing."""
+    async with TestSessionLocal() as session:
+        job = Job(
+            company_id=company_profile.id,
+            title="Closed Position",
+            description="This position is closed",
+            requirements="N/A",
+            location="N/A",
+            status=JobStatus.CLOSED,
+        )
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        return job
+
+
+# ==================== API Client Fixtures ====================
+
+
+async def override_get_session():
+    """Override get_session dependency for tests."""
+    async with TestSessionLocal() as session:
+        yield session
+
+
+def setup_admin_overrides(admin_user: User):
+    """Helper function to set up admin authentication overrides."""
+    app.dependency_overrides[get_session] = override_get_session
+
+    async def override_get_current_user(
+        credentials=None,  # noqa: ARG001
+        session=None,  # noqa: ARG001
+    ):
+        return admin_user
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_current_admin] = override_get_current_user
+
+
+@pytest.fixture
+async def company_client(
+    approved_company_user: User,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Create test client authenticated as a company user."""
+
+    async def override_get_session():
+        async with TestSessionLocal() as session:
+            yield session
+
+    async def override_get_current_company():
+        async with TestSessionLocal() as session:
+            result = await session.execute(
+                select(User).where(User.id == approved_company_user.id)  # pyright: ignore[reportArgumentType]
+            )
+            user = result.scalar_one()
+            result = await session.execute(
+                select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
+                    CompanyProfile.user_id == user.id
+                )
+            )
+            company_profile = result.scalar_one()
+            return (user, company_profile)
+
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_current_company] = override_get_current_company
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def admin_client(admin_user: User) -> AsyncGenerator[AsyncClient, None]:
+    """Create test client authenticated as an admin user."""
+    setup_admin_overrides(admin_user)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def public_client() -> AsyncGenerator[AsyncClient, None]:
+    """Create test client without authentication (for public endpoints)."""
+    app.dependency_overrides[get_session] = override_get_session
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+# Legacy alias for backward compatibility
+@pytest.fixture
+async def client(company_client: AsyncClient) -> AsyncClient:
+    """Legacy alias for company_client."""
+    return company_client

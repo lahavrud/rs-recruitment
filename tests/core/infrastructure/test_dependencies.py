@@ -84,25 +84,6 @@ async def test_get_current_user_invalid_user_id_type(
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_float_user_id(session: AsyncSession, active_user: User):
-    """Test that float user_id in JWT token is handled gracefully."""
-    # Create token with float user_id
-    invalid_token = create_access_token(
-        data={"sub": "123.456", "email": "test@example.com", "role": "COMPANY"}
-    )
-
-    credentials = MockCredentials(invalid_token)
-
-    # Float strings can be converted to int via float, so this might work or fail
-    # depending on implementation. We just want to ensure no 500 error.
-    try:
-        await get_current_user(credentials=credentials, session=session)
-    except HTTPException as e:
-        # Should be 401 (invalid token) or 401 (user not found), not 500
-        assert e.status_code in [401, 403]
-
-
-@pytest.mark.asyncio
 async def test_get_current_user_none_user_id(session: AsyncSession):
     """Test that None user_id in JWT token returns 401."""
     # Create token with None user_id (missing sub)

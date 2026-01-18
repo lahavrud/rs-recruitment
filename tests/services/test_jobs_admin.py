@@ -5,36 +5,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.enums import JobStatus, UserRole
-from src.models import CompanyProfile, Job, User
+from src.enums import JobStatus
+from src.models import CompanyProfile, Job
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
 from src.services.jobs_admin import approve_job, list_pending_jobs, reject_job
-
-
-@pytest.fixture
-async def company_with_user(session: AsyncSession) -> CompanyProfile:
-    """Create a company user and profile for testing."""
-    user = User(
-        email="company@test.com",
-        hashed_password="hashed",
-        role=UserRole.COMPANY,
-        is_active=True,
-    )
-    session.add(user)
-    await session.flush()
-    assert user.id is not None
-
-    company = CompanyProfile(
-        user_id=user.id,
-        name="Test Company",
-        contact_person="John Doe",
-        contact_phone="123-456-7890",
-    )
-    session.add(company)
-    await session.commit()
-    await session.refresh(company)
-    assert company.id is not None
-    return company
 
 
 @pytest.fixture
