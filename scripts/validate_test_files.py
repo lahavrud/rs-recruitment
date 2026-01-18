@@ -18,13 +18,8 @@ SOURCE_TO_TEST_MAPPING = {
 }
 
 # Files that don't require tests (exceptions, simple factories, etc.)
-# TODO: Add tests for database.py, security.py, and config.py
 EXCLUDED_FILES = {
-    "src/services/exceptions.py",  # Exception classes tested indirectly
-    "src/core/infrastructure/limiter.py",  # Simple factory function
-    "src/core/infrastructure/database.py",  # TODO: Add tests for init_db
-    "src/core/infrastructure/security.py",  # TODO: Add tests for password/JWT
-    "src/core/infrastructure/config.py",  # TODO: Add tests for config validators
+    # All previously excluded files now have tests
 }
 
 
