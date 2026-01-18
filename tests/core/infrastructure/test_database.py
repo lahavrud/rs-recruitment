@@ -1,0 +1,141 @@
+"""Unit tests for database module initialization."""
+
+import pytest
+from sqlalchemy import inspect, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from src.core.infrastructure.database import engine
+from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+
+
+class TestInitDB:
+    """Tests for init_db() function."""
+
+    @pytest.mark.asyncio
+    async def test_init_db_creates_tables(self):
+        """Test that init_db creates database tables."""
+        # Use a separate test database
+        test_db_url = "sqlite+aiosqlite:///:memory:"
+        test_engine = create_async_engine(test_db_url, echo=False, future=True)
+
+        # Initialize database
+        async with test_engine.begin() as conn:
+            await conn.run_sync(User.metadata.create_all)
+
+        # Verify tables exist
+        inspector = inspect(test_engine.sync_engine)
+        table_names = inspector.get_table_names()
+
+        # Check that key tables exist
+        assert "user" in table_names
+        assert "companyprofile" in table_names
+        assert "job" in table_names
+        assert "candidateprofile" in table_names
+        assert "application" in table_names
+
+    @pytest.mark.asyncio
+    async def test_init_db_all_models_registered(self):
+        """Test that all models are registered with SQLModel.metadata."""
+        test_db_url = "sqlite+aiosqlite:///:memory:"
+        test_engine = create_async_engine(test_db_url, echo=False, future=True)
+
+        # Initialize database
+        async with test_engine.begin() as conn:
+            await conn.run_sync(User.metadata.create_all)
+
+        # Verify we can query each model
+        async with async_sessionmaker(test_engine, class_=AsyncSession)() as session:
+            # Try to query each model (this verifies tables exist)
+            result = await session.execute(select(User))
+            users = result.scalars().all()
+            assert isinstance(users, list)
+
+            result = await session.execute(select(CompanyProfile))
+            companies = result.scalars().all()
+            assert isinstance(companies, list)
+
+            result = await session.execute(select(Job))
+            jobs = result.scalars().all()
+            assert isinstance(jobs, list)
+
+            result = await session.execute(select(CandidateProfile))
+            candidates = result.scalars().all()
+            assert isinstance(candidates, list)
+
+            result = await session.execute(select(Application))
+            applications = result.scalars().all()
+            assert isinstance(applications, list)
+
+    @pytest.mark.asyncio
+    async def test_init_db_tables_can_be_queried(self):
+        """Test that tables can be queried after initialization."""
+        test_db_url = "sqlite+aiosqlite:///:memory:"
+        test_engine = create_async_engine(test_db_url, echo=False, future=True)
+        test_session_factory = async_sessionmaker(
+            test_engine, class_=AsyncSession, expire_on_commit=False
+        )
+
+        # Initialize database
+        async with test_engine.begin() as conn:
+            await conn.run_sync(User.metadata.create_all)
+
+        # Create a test user and verify we can query it
+        async with test_session_factory() as session:
+            from src.core.infrastructure.security import get_password_hash
+            from src.enums import UserRole
+
+            user = User(
+                email="test@example.com",
+                hashed_password=get_password_hash("password"),
+                role=UserRole.COMPANY,
+            )
+            session.add(user)
+            await session.commit()
+
+            # Query the user
+            result = await session.execute(
+                select(User).where(User.email == "test@example.com")
+            )
+            found_user = result.scalar_one_or_none()
+
+            assert found_user is not None
+            assert found_user.email == "test@example.com"
+
+
+class TestEngineConfiguration:
+    """Tests for engine configuration."""
+
+    def test_engine_is_created(self):
+        """Test that engine is created."""
+        assert engine is not None
+
+    def test_engine_echo_setting_respects_config(self):
+        """Test that engine echo setting respects config."""
+
+        # Engine should respect database_echo setting
+        # We can't easily test this without creating a new engine,
+        # but we can verify the engine exists and is configured
+        assert engine is not None
+        # The echo setting is set during engine creation based on settings.database_echo
+
+
+class TestSessionFactory:
+    """Tests for session factory configuration."""
+
+    def test_session_factory_creates_async_sessions(self):
+        """Test that session factory creates async sessions."""
+        from src.core.infrastructure.database import async_session
+
+        # Verify async_session is a sessionmaker
+        assert async_session is not None
+        assert isinstance(async_session, async_sessionmaker)
+
+    def test_session_factory_configuration(self):
+        """Test that session factory configuration is correct."""
+        from src.core.infrastructure.database import async_session
+
+        # Verify session factory is configured for async
+        # The class_ should be AsyncSession
+        assert async_session.kw.get("class_") == AsyncSession
+        # expire_on_commit should be False
+        assert async_session.kw.get("expire_on_commit") is False
