@@ -22,6 +22,7 @@ async def test_get_company_jobs(
     """Test getting all jobs for a company."""
     # Create jobs
     async with TestSessionLocal() as session:
+        assert company_profile.id is not None
         job1 = Job(
             company_id=company_profile.id,
             title="Job 1",

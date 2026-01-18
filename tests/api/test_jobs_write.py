@@ -100,6 +100,8 @@ async def test_update_job_closed_status(company_client: AsyncClient, job: Job):
     # Set job status to CLOSED
     async with TestSessionLocal() as session:
         db_job = await session.get(Job, job.id)
+        if db_job is None:
+            raise AssertionError(f"Job with id {job.id} not found in database.")
         db_job.status = JobStatus.CLOSED
         await session.commit()
 
@@ -137,6 +139,8 @@ async def test_delete_job_published_status(company_client: AsyncClient, job: Job
     # Set job status to PUBLISHED
     async with TestSessionLocal() as session:
         db_job = await session.get(Job, job.id)
+        if db_job is None:
+            raise AssertionError(f"Job with id {job.id} not found in database.")
         db_job.status = JobStatus.PUBLISHED
         await session.commit()
 
