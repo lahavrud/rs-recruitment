@@ -25,6 +25,7 @@ async def test_get_pending_jobs(
 ):
     """Test getting list of pending jobs."""
     # Create another pending job
+    assert company_profile.id is not None
     async with TestSessionLocal() as session:
         job2 = Job(
             company_id=company_profile.id,
@@ -54,6 +55,7 @@ async def test_get_pending_jobs_excludes_published_and_closed(
 ):
     """Test that pending jobs endpoint only returns pending jobs."""
     # Create published and closed jobs
+    assert company_profile.id is not None
     async with TestSessionLocal() as session:
         published_job = Job(
             company_id=company_profile.id,
@@ -125,6 +127,7 @@ async def test_approve_job_already_published(
 ):
     """Test approving an already published job returns 400."""
     # Create a published job
+    assert company_profile.id is not None
     async with TestSessionLocal() as session:
         job = Job(
             company_id=company_profile.id,
@@ -182,6 +185,7 @@ async def test_reject_job_already_published(
 ):
     """Test rejecting an already published job returns 400."""
     # Create a published job
+    assert company_profile.id is not None
     async with TestSessionLocal() as session:
         job = Job(
             company_id=company_profile.id,
