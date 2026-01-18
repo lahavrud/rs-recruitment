@@ -397,7 +397,7 @@ async def test_get_pending_jobs_excludes_published_and_closed(
 
 
 @pytest.mark.asyncio
-@patch("src.services.jobs.enqueue_email_task")
+@patch("src.services.jobs_admin.enqueue_email_task")
 async def test_approve_job_success(
     mock_enqueue_email, client: AsyncClient, pending_job: Job
 ):
@@ -456,7 +456,7 @@ async def test_approve_job_already_published(
 
 
 @pytest.mark.asyncio
-@patch("src.services.jobs.enqueue_email_task")
+@patch("src.services.jobs_admin.enqueue_email_task")
 async def test_reject_job_success(
     mock_enqueue_email, client: AsyncClient, pending_job: Job
 ):
