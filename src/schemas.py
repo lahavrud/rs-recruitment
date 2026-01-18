@@ -289,3 +289,18 @@ class ApplicationWithDetails(BaseModel):
     updated_at: datetime
     job: JobRead
     candidate: CandidateProfileRead
+
+
+# Admin Schemas
+class PendingCompanyRead(BaseModel):
+    """Schema for pending company registration (user + company profile)."""
+
+    user: UserRead
+    company_profile: CompanyProfileRead
+
+
+class ApprovedCompanyRead(BaseModel):
+    """Schema for approved company (user + company profile)."""
+
+    user: UserRead
+    company_profile: CompanyProfileRead

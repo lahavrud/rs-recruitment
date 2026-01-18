@@ -4,9 +4,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import get_password_hash, verify_password
+from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
 from src.models import CompanyProfile, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
+from src.services.admin import get_all_admin_emails
 from src.services.exceptions import (
     EmailAlreadyExistsError,
     InactiveUserError,
@@ -61,6 +63,24 @@ async def register_company_user(
     )
     session.add(new_company_profile)
     await session.flush()  # Flush to get CompanyProfile.id for schema validation
+
+    # Send email notification to all admins about new company registration
+    admin_emails = await get_all_admin_emails(session)
+    if admin_emails:
+        company_info = (
+            f"A new company '{new_company_profile.name}' has registered "
+            "and is pending approval.\n\n"
+            f"Company: {new_company_profile.name}\n"
+            f"Contact: {new_company_profile.contact_person or 'N/A'}\n"
+            f"Email: {new_user.email}\n"
+            f"Phone: {new_company_profile.contact_phone or 'N/A'}\n\n"
+            "Please review and approve or reject the registration."
+        )
+        await enqueue_email_task(
+            to=admin_emails,
+            subject="New Company Registration Pending Approval",
+            body=company_info,
+        )
 
     return UserWithCompanyRead(
         user=UserRead.model_validate(new_user),
