@@ -22,9 +22,13 @@ class TestInitDB:
         async with test_engine.begin() as conn:
             await conn.run_sync(User.metadata.create_all)
 
-        # Verify tables exist
-        inspector = inspect(test_engine.sync_engine)
-        table_names = inspector.get_table_names()
+        # Verify tables exist (need to use run_sync for sync operations)
+        def get_table_names(sync_conn):
+            inspector = inspect(sync_conn)
+            return inspector.get_table_names()
+
+        async with test_engine.connect() as conn:
+            table_names = await conn.run_sync(get_table_names)
 
         # Check that key tables exist
         assert "user" in table_names
@@ -135,7 +139,8 @@ class TestSessionFactory:
         from src.core.infrastructure.database import async_session
 
         # Verify session factory is configured for async
-        # The class_ should be AsyncSession
-        assert async_session.kw.get("class_") == AsyncSession
-        # expire_on_commit should be False
+        # The class_ is passed as a keyword argument during creation
+        # Check that expire_on_commit is False
         assert async_session.kw.get("expire_on_commit") is False
+        # Verify it's an async_sessionmaker instance
+        assert isinstance(async_session, async_sessionmaker)

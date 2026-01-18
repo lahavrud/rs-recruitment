@@ -154,12 +154,23 @@ async def test_company_profile_user_relationship(session: AsyncSession):
     await session.refresh(company)
     await session.refresh(user)
 
-    # Test relationship access
-    assert company.user is not None
-    assert company.user.id == user.id
-    assert company.user.email == "relationship@example.com"
-    assert user.company_profile is not None
-    assert user.company_profile.id == company.id
+    # Test relationship access - need to explicitly load relationships
+    # SQLModel relationships may require explicit loading
+    from sqlalchemy import select
+
+    # Query to load the relationship
+    result = await session.execute(
+        select(CompanyProfile).where(CompanyProfile.id == company.id)  # type: ignore[arg-type]
+    )
+    loaded_company = result.scalar_one()
+    assert loaded_company.user is not None
+    assert loaded_company.user.id == user.id
+    assert loaded_company.user.email == "relationship@example.com"
+
+    result = await session.execute(select(User).where(User.id == user.id))  # type: ignore[arg-type]
+    loaded_user = result.scalar_one()
+    assert loaded_user.company_profile is not None
+    assert loaded_user.company_profile.id == company.id
 
 
 @pytest.mark.asyncio
