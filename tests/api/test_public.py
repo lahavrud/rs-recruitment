@@ -44,7 +44,7 @@ async def test_get_public_jobs_multiple_published(
     # Create another published job
     async with TestSessionLocal() as session:
         job2 = Job(
-            company_id=company_profile.id,
+            company_id=company_profile.id if company_profile.id is not None else 0,
             title="Frontend Developer",
             description="We are looking for a frontend developer...",
             requirements="3+ years experience with React",
