@@ -164,18 +164,25 @@ async def test_user_company_profile_relationship(session: AsyncSession):
     await session.refresh(company_profile)
 
     # Test relationship access - need to explicitly load relationships
-    # SQLModel relationships may require explicit loading
+    # SQLModel relationships require eager loading in async context
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
 
-    # Query to load the relationship
-    result = await session.execute(select(User).where(User.id == user.id))  # type: ignore[arg-type]
+    # Query to load the relationship with eager loading
+    result = await session.execute(
+        select(User)
+        .options(selectinload(User.company_profile))
+        .where(User.id == user.id)  # type: ignore[arg-type]
+    )
     loaded_user = result.scalar_one()
     assert loaded_user.company_profile is not None
     assert loaded_user.company_profile.id == company_profile.id
     assert loaded_user.company_profile.name == "Test Company"
 
     result = await session.execute(
-        select(CompanyProfile).where(CompanyProfile.id == company_profile.id)  # type: ignore[arg-type]
+        select(CompanyProfile)
+        .options(selectinload(CompanyProfile.user))
+        .where(CompanyProfile.id == company_profile.id)  # type: ignore[arg-type]
     )
     loaded_company = result.scalar_one()
     assert loaded_company.user.id == user.id
