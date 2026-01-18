@@ -66,6 +66,7 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
     await session.flush()
 
     # Get company and user for email
+    # Foreign key constraints guarantee company and user exist
     result = await session.execute(
         select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
     )
@@ -120,6 +121,7 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
         )
 
     # Get company and user for email before updating
+    # Foreign key constraints guarantee company and user exist
     result = await session.execute(
         select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
     )
