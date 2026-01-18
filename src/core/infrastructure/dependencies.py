@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import decode_access_token
 from src.enums import UserRole
-from src.models import User
+from src.models import CompanyProfile, User
 
 security = HTTPBearer()
 
@@ -102,3 +102,44 @@ async def get_current_admin(
             detail="Admin access required",
         )
     return current_user
+
+
+async def get_current_company(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> tuple[User, CompanyProfile]:
+    """Get current authenticated company user and their company profile.
+
+    This dependency ensures the current user has COMPANY role and is active.
+    Returns both the user and their company profile for convenience.
+
+    Args:
+        current_user: Current authenticated user (from get_current_user)
+        session: Database session
+
+    Returns:
+        Tuple of (User, CompanyProfile)
+
+    Raises:
+        HTTPException: If user is not a company or company profile not found
+    """
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Company access required",
+        )
+
+    # Get company profile
+    result = await session.execute(
+        select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
+            CompanyProfile.user_id == current_user.id
+        )
+    )
+    company_profile = result.scalar_one_or_none()
+    if not company_profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company profile not found",
+        )
+
+    return (current_user, company_profile)
