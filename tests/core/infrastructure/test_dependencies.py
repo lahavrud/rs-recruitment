@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
-from src.core.infrastructure.dependencies import get_current_user
+from src.core.infrastructure.dependencies import get_current_admin, get_current_user
 from src.core.infrastructure.security import create_access_token
 from src.enums import UserRole
 from src.models import User
@@ -171,3 +171,138 @@ async def test_get_current_user_inactive_user(session: AsyncSession):
 
     assert exc_info.value.status_code == 403
     assert "inactive" in exc_info.value.detail.lower()
+
+
+@pytest.fixture
+async def admin_user(session: AsyncSession):
+    """Create an active admin test user."""
+    from src.core.infrastructure.security import get_password_hash
+
+    user = User(
+        email="admin@example.com",
+        hashed_password=get_password_hash("adminpassword"),
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+@pytest.fixture
+async def company_user(session: AsyncSession):
+    """Create an active company test user."""
+    from src.core.infrastructure.security import get_password_hash
+
+    user = User(
+        email="company@example.com",
+        hashed_password=get_password_hash("companypassword"),
+        role=UserRole.COMPANY,
+        is_active=True,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+class TestGetCurrentAdmin:
+    """Tests for get_current_admin() dependency."""
+
+    @pytest.mark.asyncio
+    async def test_get_current_admin_admin_user_access(
+        self, session: AsyncSession, admin_user: User
+    ):
+        """Test that admin user with valid token passes."""
+        token = create_access_token(
+            data={
+                "sub": str(admin_user.id),
+                "email": admin_user.email,
+                "role": admin_user.role.value,
+            }
+        )
+
+        credentials = MockCredentials(token)
+
+        # First get current user (which get_current_admin depends on)
+        current_user = await get_current_user(credentials=credentials, session=session)
+
+        # Then test get_current_admin
+        admin = await get_current_admin(current_user=current_user)
+
+        assert admin.id == admin_user.id
+        assert admin.email == admin_user.email
+        assert admin.role == UserRole.ADMIN
+
+    @pytest.mark.asyncio
+    async def test_get_current_admin_non_admin_user_rejection(
+        self, session: AsyncSession, company_user: User
+    ):
+        """Test that COMPANY role user raises 403 error."""
+        token = create_access_token(
+            data={
+                "sub": str(company_user.id),
+                "email": company_user.email,
+                "role": company_user.role.value,
+            }
+        )
+
+        credentials = MockCredentials(token)
+
+        # Get current user first
+        current_user = await get_current_user(credentials=credentials, session=session)
+
+        # Try to get admin - should fail
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_admin(current_user=current_user)
+
+        assert exc_info.value.status_code == 403
+        assert "admin" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_current_admin_invalid_token(
+        self, session: AsyncSession, admin_user: User
+    ):
+        """Test that invalid token raises appropriate error."""
+        invalid_token = "invalid.token.here"
+
+        credentials = MockCredentials(invalid_token)
+
+        # Should fail at get_current_user level
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(credentials=credentials, session=session)
+
+        assert exc_info.value.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_get_current_admin_inactive_admin_user(self, session: AsyncSession):
+        """Test inactive admin user handling."""
+        from src.core.infrastructure.security import get_password_hash
+
+        inactive_admin = User(
+            email="inactive_admin@example.com",
+            hashed_password=get_password_hash("adminpassword"),
+            role=UserRole.ADMIN,
+            is_active=False,
+        )
+        session.add(inactive_admin)
+        await session.commit()
+        await session.refresh(inactive_admin)
+
+        token = create_access_token(
+            data={
+                "sub": str(inactive_admin.id),
+                "email": inactive_admin.email,
+                "role": inactive_admin.role.value,
+            }
+        )
+
+        credentials = MockCredentials(token)
+
+        # Should fail at get_current_user level (inactive user)
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(credentials=credentials, session=session)
+
+        assert exc_info.value.status_code == 403
+        assert "inactive" in exc_info.value.detail.lower()
