@@ -25,3 +25,15 @@ class InactiveUserError(AuthError):
     """Raised when attempting to authenticate an inactive user."""
 
     pass
+
+
+class CompanyNotFoundError(Exception):
+    """Raised when a company user is not found."""
+
+    pass
+
+
+class CompanyNotPendingError(Exception):
+    """Raised when attempting to approve/reject a company that is not pending."""
+
+    pass
