@@ -47,27 +47,27 @@ gantt
 
     section 🏢 1. Company Slice
     Company Onboarding (Auth + DB)  :done,    feat1,  after infra4, 5d
-    Admin Approval Flow             :done,    feat2,  after feat1, 3d
+    Admin Approval Flow             :done,    feat2,  2026-01-18, 2d
 
     section 💼 2. Job Slice
-    Job Posting (CRUD)              :done,    feat3,  after feat2, 4d
-    Public Job Board                :         feat4,  after feat3, 3d
+    Job Posting (CRUD)              :done,    feat3,  2026-01-20, 2d
+    Public Job Board                :done,    feat4,  2026-01-22, 1d
 
     section 👤 3. Candidate Slice
-    Public Application Form         :         feat5,  after infra6, 5d
-    Shadow Profile Logic            :         feat6,  after feat5, 3d
+    Public Application Form         :         feat5,  2026-01-23, 2d
+    Shadow Profile Logic            :         feat6,  2026-01-25, 1d
 
     section 🤝 4. Match Slice
-    Admin Dashboard                 :         feat7,  after feat6, 5d
-    Notifications Integration       :         feat8,  after feat7, 2d
+    Admin Dashboard                 :         feat7,  2026-01-26, 2d
+    Notifications Integration       :         feat8,  2026-01-28, 1d
 
     section 🎨 5. Frontend
-    Frontend Structure & Setup      :         frontend1, after infra8, 3d
-    Public Pages (Job Board/Apply)  :         frontend2, after frontend1, 5d
-    Admin & Company Dashboards      :         frontend3, after frontend2, 5d
+    Frontend Structure & Setup      :         frontend1, 2026-01-29, 1d
+    Public Pages (Job Board/Apply)  :         frontend2, 2026-01-30, 2d
+    Admin & Company Dashboards      :         frontend3, 2026-02-01, 2d
 
     section 🚀 Deployment
-    Database Backup Strategy        :crit,    devops1, after frontend3, 2d
-    Dev Environment Deploy          :         devops2, after devops1, 2d
-    Staging Deploy                  :         devops3, after devops2, 2d
-    Production Deploy               :         deploy1, after devops3, 2d
+    Database Backup Strategy        :crit,    devops1, 2026-02-03, 1d
+    Dev Environment Deploy          :         devops2, 2026-02-04, 1d
+    Staging Deploy                  :         devops3, 2026-02-05, 1d
+    Production Deploy               :         deploy1, 2026-02-06, 1d
