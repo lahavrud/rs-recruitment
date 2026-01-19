@@ -1,5 +1,7 @@
 """Unit tests for authentication service layer."""
 
+import typing
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -40,14 +42,11 @@ async def test_db():
 
 
 @pytest.fixture
-async def session(test_db) -> AsyncSession:
+async def session(test_db) -> typing.AsyncGenerator[AsyncSession, None]:
     """Create a test database session."""
     async with TestSessionLocal() as session:
         yield session
 
-
-@pytest.mark.asyncio
-async def test_register_company_user_success(session: AsyncSession):
     """Test successful company user registration."""
     user_data = UserCreate(
         email="company@example.com",

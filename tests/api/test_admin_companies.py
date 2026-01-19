@@ -86,10 +86,12 @@ async def test_approve_company_not_found(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+@patch("src.services.admin.enqueue_email_task")
 async def test_approve_company_already_approved(
-    admin_client: AsyncClient, company_user
+    mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
     """Test approving an already approved company returns 400."""
+    mock_enqueue_email.return_value = "test-job-id"
     # First approve
     response1 = await admin_client.post(
         f"/api/admin/companies/{company_user.id}/approve"
@@ -134,8 +136,12 @@ async def test_reject_company_not_found(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_reject_company_already_approved(admin_client: AsyncClient, company_user):
+@patch("src.services.admin.enqueue_email_task")
+async def test_reject_company_already_approved(
+    mock_enqueue_email, admin_client: AsyncClient, company_user
+):
     """Test rejecting an already approved company returns 400."""
+    mock_enqueue_email.return_value = "test-job-id"
     # First approve
     response1 = await admin_client.post(
         f"/api/admin/companies/{company_user.id}/approve"

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     storage_provider: Literal["s3", "local"] = "local"
     aws_s3_bucket_name: Optional[str] = None
     aws_s3_endpoint_url: Optional[str] = None  # For MinIO or S3-compatible services
-    local_storage_path: str = "./storage"
+    local_storage_path: str = "./data/storage"  # Use data directory
 
     # Email Configuration
     email_provider: Literal["ses", "smtp"] = "smtp"
