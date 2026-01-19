@@ -114,7 +114,30 @@ class S3StorageProvider(StorageProvider):
             if content_type:
                 upload_kwargs["ContentType"] = content_type
 
-            await s3.put_object(**upload_kwargs)
+            try:
+                await s3.put_object(**upload_kwargs)
+            except ClientError as e:
+                error_code = e.response.get("Error", {}).get("Code", "Unknown")
+                error_message = e.response.get("Error", {}).get("Message", str(e))
+                raise ValueError(
+                    f"Failed to upload file to S3: {error_code} - {error_message}"
+                ) from e
+
+            # Verify upload succeeded by checking if object exists
+            try:
+                await s3.head_object(Bucket=self.bucket_name, Key=file_key)
+            except ClientError as e:
+                error_code = e.response.get("Error", {}).get("Code", "Unknown")
+                if error_code == "404":
+                    raise ValueError(
+                        "Upload appeared to succeed but object not found in S3 bucket. "
+                        "This may indicate a permissions or configuration issue."
+                    ) from e
+                # For other errors, log but don't fail
+                # (object might exist but head_object failed)
+                raise ValueError(
+                    f"Upload completed but verification failed: {error_code}"
+                ) from e
 
         return file_key
 
