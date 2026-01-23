@@ -46,11 +46,6 @@ async def create_job_posting(
         HTTPException: If company not found
     """
     user, company_profile = current_company
-    if company_profile.id is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Company profile ID is missing",
-        )
     try:
         result = await create_job(job_data, company_profile.id, session)
         await session.commit()
@@ -102,11 +97,6 @@ async def update_job_posting(
         HTTPException: If job not found, not owned by company, or cannot be updated
     """
     user, company_profile = current_company
-    if company_profile.id is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Company profile ID is missing",
-        )
     try:
         result = await update_job(job_id, job_data, company_profile.id, session)
         await session.commit()
@@ -158,11 +148,6 @@ async def delete_job_posting(
         HTTPException: If job not found, not owned by company, or cannot be deleted
     """
     user, company_profile = current_company
-    if company_profile.id is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Company profile ID is missing",
-        )
     try:
         await delete_job(job_id, company_profile.id, session)
         await session.commit()
