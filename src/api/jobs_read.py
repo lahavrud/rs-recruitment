@@ -34,11 +34,6 @@ async def get_company_jobs(
         List of jobs as JobRead schemas
     """
     user, company_profile = current_company
-    if company_profile.id is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Company profile ID is missing",
-        )
     jobs = await list_company_jobs(company_profile.id, session)
     return jobs
 
@@ -69,11 +64,6 @@ async def get_job_posting(
         HTTPException: If job not found or not owned by company
     """
     user, company_profile = current_company
-    if company_profile.id is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Company profile ID is missing",
-        )
     try:
         job = await get_job(job_id, session)
         # Verify ownership

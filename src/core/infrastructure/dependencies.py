@@ -142,4 +142,11 @@ async def get_current_company(
             detail="Company profile not found",
         )
 
+    # Validate company profile has an ID
+    if company_profile.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Company profile ID is missing",
+        )
+
     return (current_user, company_profile)
