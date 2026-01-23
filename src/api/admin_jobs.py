@@ -1,10 +1,11 @@
 """Admin endpoints for job approval workflow."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
+from src.core.infrastructure.error_handling import service_exception_to_http
 from src.models import User
 from src.schemas import JobRead
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
@@ -68,18 +69,9 @@ async def approve_job_posting(
         result = await approve_job(job_id, session)
         await session.commit()
         return result
-    except JobNotFoundError as e:
+    except (JobNotFoundError, JobNotPendingError) as e:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        ) from e
-    except JobNotPendingError as e:
-        await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
+        raise service_exception_to_http(e) from e
     except Exception:
         await session.rollback()
         raise
@@ -110,18 +102,9 @@ async def reject_job_posting(
     try:
         await reject_job(job_id, session)
         await session.commit()
-    except JobNotFoundError as e:
+    except (JobNotFoundError, JobNotPendingError) as e:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        ) from e
-    except JobNotPendingError as e:
-        await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
+        raise service_exception_to_http(e) from e
     except Exception:
         await session.rollback()
         raise

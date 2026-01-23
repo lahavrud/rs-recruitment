@@ -1,9 +1,10 @@
 """Public endpoints (no authentication required)."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
+from src.core.infrastructure.error_handling import service_exception_to_http
 from src.schemas import JobRead
 from src.services.exceptions import JobNotFoundError
 from src.services.jobs_public import get_published_job, list_published_jobs
@@ -60,7 +61,4 @@ async def get_public_job(
         job = await get_published_job(job_id, session)
         return job
     except JobNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        ) from e
+        raise service_exception_to_http(e) from e
