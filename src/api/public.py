@@ -1,6 +1,6 @@
 """Public endpoints (no authentication required)."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
@@ -15,7 +15,6 @@ router = APIRouter(prefix="/api/public", tags=["public"])
 @router.get(
     "/jobs",
     response_model=list[JobRead],
-    status_code=status.HTTP_200_OK,
 )
 async def get_public_jobs(
     session: AsyncSession = Depends(get_session),
@@ -37,7 +36,6 @@ async def get_public_jobs(
 @router.get(
     "/jobs/{job_id}",
     response_model=JobRead,
-    status_code=status.HTTP_200_OK,
 )
 async def get_public_job(
     job_id: int,

@@ -17,7 +17,6 @@ router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 @router.get(
     "/",
     response_model=list[JobRead],
-    status_code=status.HTTP_200_OK,
 )
 async def get_company_jobs(
     current_company: tuple[User, CompanyProfile] = Depends(get_current_company),
@@ -47,7 +46,6 @@ async def get_company_jobs(
 @router.get(
     "/{job_id}",
     response_model=JobRead,
-    status_code=status.HTTP_200_OK,
 )
 async def get_job_posting(
     job_id: int,

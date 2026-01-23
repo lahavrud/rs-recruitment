@@ -17,7 +17,6 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 @router.get(
     "/jobs/pending",
     response_model=list[JobRead],
-    status_code=status.HTTP_200_OK,
 )
 async def get_pending_jobs(
     current_admin: User = Depends(get_current_admin),

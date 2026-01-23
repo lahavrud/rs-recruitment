@@ -20,7 +20,6 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 @router.get(
     "/companies/pending",
     response_model=list[PendingCompanyRead],
-    status_code=status.HTTP_200_OK,
 )
 async def get_pending_companies(
     current_admin: User = Depends(get_current_admin),
