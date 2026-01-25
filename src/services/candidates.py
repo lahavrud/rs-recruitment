@@ -9,7 +9,101 @@ from src.enums import ApplicationStatus
 from src.models import Application, CandidateProfile, Job
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.admin import get_all_admin_emails
-from src.services.exceptions import JobNotFoundError
+from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
+
+
+async def find_candidate_by_email(
+    email: str,
+    session: AsyncSession,
+) -> CandidateProfile | None:
+    """Find an existing candidate profile by email address.
+
+    Args:
+        email: Email address to search for
+        session: Database session
+
+    Returns:
+        CandidateProfile if found, None otherwise
+    """
+    result = await session.execute(
+        select(CandidateProfile).where(  # pyright: ignore[reportArgumentType]
+            CandidateProfile.email == email
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_candidate_profile(
+    candidate: CandidateProfile,
+    candidate_data: CandidateProfileCreate,
+    resume_path: str | None = None,
+    session: AsyncSession | None = None,
+) -> CandidateProfile:
+    """Update an existing candidate profile with new information.
+
+    Update strategy:
+    - Always update: full_name (may have changed)
+    - Update if None: phone, linkedin_url, resume_path, interview fields
+    - Never overwrite: email, created_at
+
+    Args:
+        candidate: Existing CandidateProfile to update
+        candidate_data: New candidate data from form
+        resume_path: Optional new resume path
+        session: Database session (required)
+
+    Returns:
+        Updated CandidateProfile
+    """
+    if session is None:
+        raise ValueError("Database session is required")
+
+    # Always update full_name (person may have changed name)
+    candidate.full_name = candidate_data.full_name
+
+    # Update if None: phone, linkedin_url, and all interview fields
+    if candidate.phone is None and candidate_data.phone is not None:
+        candidate.phone = candidate_data.phone
+
+    if candidate.linkedin_url is None and candidate_data.linkedin_url is not None:
+        candidate.linkedin_url = candidate_data.linkedin_url
+
+    # Resume handling: only update if existing resume_path is None
+    if candidate.resume_path is None and resume_path is not None:
+        candidate.resume_path = resume_path
+
+    # Update interview fields if None
+    if candidate.service_concept is None and candidate_data.service_concept is not None:
+        candidate.service_concept = candidate_data.service_concept
+
+    if (
+        candidate.salary_expectations is None
+        and candidate_data.salary_expectations is not None
+    ):
+        candidate.salary_expectations = candidate_data.salary_expectations
+
+    if (
+        candidate.military_service_details is None
+        and candidate_data.military_service_details is not None
+    ):
+        candidate.military_service_details = candidate_data.military_service_details
+
+    if candidate.transportation is None and candidate_data.transportation is not None:
+        candidate.transportation = candidate_data.transportation
+
+    if (
+        candidate.personality_weakness is None
+        and candidate_data.personality_weakness is not None
+    ):
+        candidate.personality_weakness = candidate_data.personality_weakness
+
+    if (
+        candidate.personality_strength is None
+        and candidate_data.personality_strength is not None
+    ):
+        candidate.personality_strength = candidate_data.personality_strength
+
+    return candidate
 
 
 async def create_candidate_profile(
@@ -89,12 +183,21 @@ async def create_candidate_profile(
 
             # Upload file via storage service
             storage_provider: StorageProvider = get_storage_provider()
+            # Determine correct MIME type based on file extension
+            if file_extension == "pdf":
+                content_type = "application/pdf"
+            elif file_extension == "docx":
+                content_type = (
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                )
+            else:  # .doc
+                content_type = "application/msword"
+
             file_identifier = await storage_provider.upload_file(
                 file_content=resume_file,
                 file_name=resume_filename,
-                content_type="application/pdf"
-                if file_extension == "pdf"
-                else "application/msword",
+                content_type=content_type,
             )
 
             # Store the file identifier as resume_path
@@ -104,32 +207,71 @@ async def create_candidate_profile(
         except Exception as e:
             raise ValueError(f"Failed to upload resume file: {e}") from e
 
-    # Create CandidateProfile
-    candidate = CandidateProfile(
-        full_name=candidate_data.full_name,
-        email=candidate_data.email,
-        phone=candidate_data.phone,
-        resume_path=resume_path,
-        linkedin_url=candidate_data.linkedin_url,
-        service_concept=candidate_data.service_concept,
-        salary_expectations=candidate_data.salary_expectations,
-        military_service_details=candidate_data.military_service_details,
-        transportation=candidate_data.transportation,
-        personality_weakness=candidate_data.personality_weakness,
-        personality_strength=candidate_data.personality_strength,
+    # Check if candidate exists by email (shadow profile logic)
+    existing_candidate = await find_candidate_by_email(
+        email=candidate_data.email, session=session
     )
 
-    session.add(candidate)
-    await session.flush()  # Flush to get candidate.id
+    if existing_candidate:
+        # Update existing candidate profile with new information
+        candidate = await update_candidate_profile(
+            candidate=existing_candidate,
+            candidate_data=candidate_data,
+            resume_path=resume_path,
+            session=session,
+        )
+        await session.flush()  # Flush to ensure candidate is updated
 
-    # Create Application record (linking candidate to job)
-    application = Application(
-        job_id=job_id,
-        candidate_id=candidate.id,  # type: ignore[arg-type]
-        status=ApplicationStatus.NEW,  # Admin as Gatekeeper: starts as NEW
-    )
+        # Check if Application already exists for this job+candidate
+        result = await session.execute(
+            select(Application).where(  # pyright: ignore[reportArgumentType]
+                Application.job_id == job_id,
+                Application.candidate_id == candidate.id,  # type: ignore[reportArgumentType]
+            )
+        )
+        existing_application = result.scalar_one_or_none()
 
-    session.add(application)
+        if existing_application:
+            raise ApplicationAlreadyExistsError(
+                job_id=job_id,
+                candidate_id=candidate.id,  # type: ignore[arg-type]
+            )
+
+        # Create new Application for existing candidate
+        application = Application(
+            job_id=job_id,
+            candidate_id=candidate.id,  # type: ignore[arg-type]
+            status=ApplicationStatus.NEW,  # Admin as Gatekeeper: starts as NEW
+        )
+        session.add(application)
+    else:
+        # Create new CandidateProfile
+        candidate = CandidateProfile(
+            full_name=candidate_data.full_name,
+            email=candidate_data.email,
+            phone=candidate_data.phone,
+            resume_path=resume_path,
+            linkedin_url=candidate_data.linkedin_url,
+            service_concept=candidate_data.service_concept,
+            salary_expectations=candidate_data.salary_expectations,
+            military_service_details=candidate_data.military_service_details,
+            transportation=candidate_data.transportation,
+            personality_weakness=candidate_data.personality_weakness,
+            personality_strength=candidate_data.personality_strength,
+        )
+
+        session.add(candidate)
+        await session.flush()  # Flush to get candidate.id
+
+        # Create Application record (linking candidate to job)
+        application = Application(
+            job_id=job_id,
+            candidate_id=candidate.id,  # type: ignore[arg-type]
+            status=ApplicationStatus.NEW,  # Admin as Gatekeeper: starts as NEW
+        )
+
+        session.add(application)
+
     await session.commit()
 
     # Send email notification to all admins (async task)
@@ -159,7 +301,7 @@ Please review the application in the admin dashboard.
             body=email_body,
         )
 
-    # Refresh candidate to ensure all fields are loaded
+    # Refresh candidate to ensure all fields are loaded (before commit)
     await session.refresh(candidate)
 
     return CandidateProfileRead.model_validate(candidate)

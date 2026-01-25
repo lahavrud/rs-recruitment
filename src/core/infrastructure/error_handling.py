@@ -3,6 +3,7 @@
 from fastapi import HTTPException, status
 
 from src.services.exceptions import (
+    ApplicationAlreadyExistsError,
     CompanyNotFoundError,
     CompanyNotPendingError,
     EmailAlreadyExistsError,
@@ -20,6 +21,8 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     # Not found errors (404)
     JobNotFoundError: status.HTTP_404_NOT_FOUND,
     CompanyNotFoundError: status.HTTP_404_NOT_FOUND,
+    # Conflict errors (409)
+    ApplicationAlreadyExistsError: status.HTTP_409_CONFLICT,
     # Forbidden errors (403)
     JobNotOwnedByCompanyError: status.HTTP_403_FORBIDDEN,
     InactiveUserError: status.HTTP_403_FORBIDDEN,
