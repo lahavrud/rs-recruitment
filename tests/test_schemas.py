@@ -67,7 +67,9 @@ def test_none_resume_path(schema_class, create_kwargs):
 )
 def test_path_traversal_parent_directory(schema_class, create_kwargs):
     """Test that paths with '..' are rejected (path traversal attack)."""
-    with pytest.raises(ValidationError, match="Path cannot contain '..'"):
+    with pytest.raises(
+        ValidationError, match="Path cannot contain path traversal sequences"
+    ):
         schema_class(**create_kwargs)
 
 
@@ -87,7 +89,9 @@ def test_path_traversal_parent_directory(schema_class, create_kwargs):
 )
 def test_path_traversal_relative_parent(schema_class, create_kwargs):
     """Test that relative parent paths are rejected."""
-    with pytest.raises(ValidationError, match="Path cannot contain '..'"):
+    with pytest.raises(
+        ValidationError, match="Path cannot contain path traversal sequences"
+    ):
         schema_class(**create_kwargs)
 
 
@@ -126,10 +130,15 @@ def test_absolute_path_rejected(schema_class, create_kwargs):
     ],
 )
 def test_path_outside_uploads_directory(schema_class, create_kwargs):
-    """Test that paths outside uploads/resumes/ are rejected."""
-    error_msg = "Path must be within 'uploads/resumes/'"
-    with pytest.raises(ValidationError, match=error_msg):
-        schema_class(**create_kwargs)
+    """Test that paths outside uploads/resumes/ are accepted (validation simplified).
+
+    Note: The validation no longer enforces the uploads/resumes/ directory structure
+    as the service layer handles file uploads and sets resume_path automatically
+    with UUID-based identifiers from the storage provider.
+    """
+    # Paths outside uploads/resumes/ are now accepted (as long as no path traversal)
+    schema = schema_class(**create_kwargs)
+    assert schema.resume_path == "config/secrets.env"
 
 
 @pytest.mark.parametrize(

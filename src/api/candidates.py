@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
+from src.core.infrastructure.error_handling import service_exception_to_http
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.candidates import create_candidate_profile
 from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
@@ -86,20 +87,10 @@ async def apply_to_job(
             resume_filename=resume_filename,
             session=session,
         )
-        await session.commit()
         return candidate
-    except JobNotFoundError as e:
+    except (JobNotFoundError, ApplicationAlreadyExistsError) as e:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        ) from e
-    except ApplicationAlreadyExistsError as e:
-        await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        ) from e
+        raise service_exception_to_http(e) from e
     except ValueError as e:
         await session.rollback()
         raise HTTPException(
