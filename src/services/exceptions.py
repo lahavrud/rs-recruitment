@@ -67,3 +67,14 @@ class JobNotPendingError(Exception):
     """Raised when attempting to approve/reject a job that is not pending."""
 
     pass
+
+
+class ApplicationAlreadyExistsError(Exception):
+    """Raised when attempting to create an application that already exists."""
+
+    def __init__(self, job_id: int, candidate_id: int) -> None:
+        self.job_id = job_id
+        self.candidate_id = candidate_id
+        super().__init__(
+            f"Application already exists for job {job_id} and candidate {candidate_id}"
+        )

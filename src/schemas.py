@@ -132,10 +132,13 @@ class CandidateProfileCreate(BaseModel):
     def validate_resume_path(cls, v: str | None) -> str | None:
         """Validate resume path to prevent path traversal attacks.
 
+        Note: This field is typically not set manually. The service layer
+        handles file uploads and sets resume_path automatically with UUID-based
+        identifiers from the storage provider.
+
         Security Rules:
-        - Reject paths containing '..' (parent directory traversal)
-        - Reject absolute paths (starting with '/')
-        - Normalize path and ensure it stays within uploads/resumes/
+        - Reject paths containing path traversal sequences ('../', '..\\')
+        - Reject absolute paths (starting with '/' or '\\')
         - Allow None values (optional field)
 
         Args:
@@ -150,21 +153,24 @@ class CandidateProfileCreate(BaseModel):
         if v is None:
             return None
 
-        # Reject paths with parent directory traversal
-        if ".." in v:
-            raise ValueError("Path cannot contain '..' (parent directory reference)")
+        # Reject paths with parent directory traversal sequences
+        if "../" in v or "..\\" in v:
+            raise ValueError(
+                "Path cannot contain path traversal sequences ('../' or '..\\')"
+            )
 
         # Reject absolute paths
-        if v.startswith("/"):
-            raise ValueError("Path cannot be absolute (must not start with '/')")
+        if v.startswith("/") or v.startswith("\\"):
+            raise ValueError(
+                "Path cannot be absolute (must not start with '/' or '\\')"
+            )
 
-        # Normalize the path to resolve any redundant separators or references
+        # Normalize the path to resolve any redundant separators
         normalized = os.path.normpath(v)
 
-        # Ensure normalized path doesn't escape the expected directory
-        # All resume paths should be within uploads/resumes/
-        if not normalized.startswith("uploads/resumes/"):
-            raise ValueError("Path must be within 'uploads/resumes/' directory")
+        # Additional check: ensure no path traversal after normalization
+        if ".." in normalized:
+            raise ValueError("Path cannot contain '..' (parent directory reference)")
 
         return normalized
 
@@ -189,10 +195,13 @@ class CandidateProfileUpdate(BaseModel):
     def validate_resume_path(cls, v: str | None) -> str | None:
         """Validate resume path to prevent path traversal attacks.
 
+        Note: This field is typically not set manually. The service layer
+        handles file uploads and sets resume_path automatically with UUID-based
+        identifiers from the storage provider.
+
         Security Rules:
-        - Reject paths containing '..' (parent directory traversal)
-        - Reject absolute paths (starting with '/')
-        - Normalize path and ensure it stays within uploads/resumes/
+        - Reject paths containing path traversal sequences ('../', '..\\')
+        - Reject absolute paths (starting with '/' or '\\')
         - Allow None values (optional field)
 
         Args:
@@ -207,21 +216,24 @@ class CandidateProfileUpdate(BaseModel):
         if v is None:
             return None
 
-        # Reject paths with parent directory traversal
-        if ".." in v:
-            raise ValueError("Path cannot contain '..' (parent directory reference)")
+        # Reject paths with parent directory traversal sequences
+        if "../" in v or "..\\" in v:
+            raise ValueError(
+                "Path cannot contain path traversal sequences ('../' or '..\\')"
+            )
 
         # Reject absolute paths
-        if v.startswith("/"):
-            raise ValueError("Path cannot be absolute (must not start with '/')")
+        if v.startswith("/") or v.startswith("\\"):
+            raise ValueError(
+                "Path cannot be absolute (must not start with '/' or '\\')"
+            )
 
-        # Normalize the path to resolve any redundant separators or references
+        # Normalize the path to resolve any redundant separators
         normalized = os.path.normpath(v)
 
-        # Ensure normalized path doesn't escape the expected directory
-        # All resume paths should be within uploads/resumes/
-        if not normalized.startswith("uploads/resumes/"):
-            raise ValueError("Path must be within 'uploads/resumes/' directory")
+        # Additional check: ensure no path traversal after normalization
+        if ".." in normalized:
+            raise ValueError("Path cannot contain '..' (parent directory reference)")
 
         return normalized
 

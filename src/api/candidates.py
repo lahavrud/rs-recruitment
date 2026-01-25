@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.database import get_session
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.candidates import create_candidate_profile
-from src.services.exceptions import JobNotFoundError
+from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
@@ -86,14 +86,26 @@ async def apply_to_job(
             resume_filename=resume_filename,
             session=session,
         )
+        await session.commit()
         return candidate
     except JobNotFoundError as e:
+        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from e
+    except ApplicationAlreadyExistsError as e:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        ) from e
     except ValueError as e:
+        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
+    except Exception:
+        await session.rollback()
+        raise

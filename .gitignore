@@ -226,5 +226,5 @@ __marimo__/
 data/
 !data/.gitkeep
 
-# pre-commit cache
-.pre-commit-cache/  
+# Pre-commit cache
+.pre-commit-cache/
