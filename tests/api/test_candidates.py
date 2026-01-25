@@ -291,14 +291,15 @@ async def test_apply_endpoint_reuses_existing_profile(
 
     async with TestSessionLocal() as session:
         result = await session.execute(
-            select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-                CompanyProfile.id == published_job.company_id
+            select(CompanyProfile).where(
+                CompanyProfile.id == published_job.company_id  # pyright: ignore[reportArgumentType]
             )
         )
         company = result.scalar_one()
+        assert company.id is not None
 
         job2 = Job(
-            company_id=company.id,
+            company_id=company.id,  # type: ignore[arg-type]
             title="Junior Python Developer",
             description="We are looking for a junior Python developer...",
             requirements="1+ years experience with Python",
