@@ -883,9 +883,9 @@ async def test_one_profile_can_have_many_applications(
     for i in range(5):
         job = Job(
             company_id=company_with_user.id,
-            title=f"Job {i+1}",
-            description=f"Description for job {i+1}",
-            requirements=f"Requirements for job {i+1}",
+            title=f"Job {i + 1}",
+            description=f"Description for job {i + 1}",
+            requirements=f"Requirements for job {i + 1}",
             location="Tel Aviv, Israel",
         )
         session.add(job)
