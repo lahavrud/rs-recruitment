@@ -228,3 +228,4 @@ data/
 
 # Pre-commit cache
 .pre-commit-cache/
+.venv-cache/

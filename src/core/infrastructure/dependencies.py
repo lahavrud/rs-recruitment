@@ -131,8 +131,8 @@ async def get_current_company(
 
     # Get company profile
     result = await session.execute(
-        select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-            CompanyProfile.user_id == current_user.id
+        select(CompanyProfile).where(
+            CompanyProfile.user_id == current_user.id  # type: ignore[comparison-overlap]
         )
     )
     company_profile = result.scalar_one_or_none()
@@ -140,6 +140,13 @@ async def get_current_company(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Company profile not found",
+        )
+
+    # Validate company profile has an ID
+    if company_profile.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Company profile ID is missing",
         )
 
     return (current_user, company_profile)
