@@ -225,3 +225,6 @@ __marimo__/
 # Data directory (database files)
 data/
 !data/.gitkeep
+
+# pre-commit cache
+.pre-commit-cache/  

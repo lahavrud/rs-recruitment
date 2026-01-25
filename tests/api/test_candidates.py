@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import and_, select
 
 from src.enums import ApplicationStatus
 from src.models import Application, CandidateProfile, Job
@@ -43,8 +43,8 @@ async def test_apply_endpoint_success(
     # Verify candidate was created in database
     async with TestSessionLocal() as session:
         result = await session.execute(
-            select(CandidateProfile).where(  # pyright: ignore[reportArgumentType]
-                CandidateProfile.email == "john@example.com"
+            select(CandidateProfile).where(
+                CandidateProfile.email == "john@example.com"  # pyright: ignore[reportArgumentType]
             )
         )
         candidate = result.scalar_one_or_none()
@@ -53,9 +53,11 @@ async def test_apply_endpoint_success(
 
         # Verify Application was created
         result = await session.execute(
-            select(Application).where(  # pyright: ignore[reportArgumentType]
-                Application.candidate_id == candidate.id,
-                Application.job_id == published_job.id,
+            select(Application).where(
+                and_(
+                    Application.candidate_id == candidate.id,  # pyright: ignore[reportArgumentType]
+                    Application.job_id == published_job.id,  # pyright: ignore[reportArgumentType]
+                )
             )
         )
         application = result.scalar_one_or_none()
@@ -215,9 +217,11 @@ async def test_apply_endpoint_creates_application(
     # Verify Application was created
     async with TestSessionLocal() as session:
         result = await session.execute(
-            select(Application).where(  # pyright: ignore[reportArgumentType]
-                Application.candidate_id == candidate_id,
-                Application.job_id == published_job.id,
+            select(Application).where(
+                and_(
+                    Application.candidate_id == candidate_id,  # pyright: ignore[reportArgumentType]
+                    Application.job_id == published_job.id,  # pyright: ignore[reportArgumentType]
+                )
             )
         )
         application = result.scalar_one_or_none()
