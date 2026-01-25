@@ -193,7 +193,7 @@ async def create_candidate_profile(
                 )
             else:  # .doc
                 content_type = "application/msword"
-            
+
             file_identifier = await storage_provider.upload_file(
                 file_content=resume_file,
                 file_name=resume_filename,
@@ -233,7 +233,8 @@ async def create_candidate_profile(
 
         if existing_application:
             raise ApplicationAlreadyExistsError(
-                job_id=job_id, candidate_id=candidate.id  # type: ignore[arg-type]
+                job_id=job_id,
+                candidate_id=candidate.id,  # type: ignore[arg-type]
             )
 
         # Create new Application for existing candidate
