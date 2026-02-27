@@ -285,8 +285,8 @@ src/
 │   ├── auth.py
 │   └── admin.py
 └── services/         # Business logic
-├── auth.py
-└── admin.py
+    ├── auth.py
+    └── admin.py
 
 ```
 
