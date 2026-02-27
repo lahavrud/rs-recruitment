@@ -1,3 +1,4 @@
+
 # Architecture Decisions
 
 This document captures all architectural decisions made for the RS Recruitment MVP, with references to GitHub Issues where decisions were discussed and implemented.
@@ -131,7 +132,27 @@ These principles guide all architectural decisions:
 
 ---
 
-### 3. Containerization Strategy
+### 3. Async Background Jobs (Task Queue)
+
+**Problem:** Standard HTTP requests must return quickly. Long-running tasks (like sending emails or processing files) will cause API timeouts and poor user experience.
+
+**Decision:** Implement an asynchronous background worker queue using Redis and Arq.
+
+**Chosen Solution:**
+- **Broker:** Redis (In-memory data store, extremely fast for message queuing).
+- **Worker:** Arq (Python library specifically designed for asyncio and Redis).
+
+**Implementation:**
+- **Task Definition:** Tasks are defined as standard async Python functions in `src/core/tasks.py`.
+- **Worker Process:** A separate Docker container runs the Arq worker process to consume tasks off the Redis queue.
+- **API Integration:** The FastAPI endpoints push job payloads to Redis and immediately return `201 Created` or `200 OK` to the user.
+- **Resilience:** Built-in retry logic ensures transient failures (like AWS SES throttling) do not result in dropped tasks.
+
+**Status:** ✅ Implemented
+
+---
+
+### 4. Containerization Strategy
 
 **Problem:** Need consistent runtime environment across all stages (Dev, Test, Prod) to avoid "it works on my machine" issues.
 
@@ -150,7 +171,7 @@ These principles guide all architectural decisions:
 
 ---
 
-### 4. CI/CD Pipeline
+### 5. CI/CD Pipeline
 
 **Problem:** Need automated quality checks and testing on every push to prevent regressions.
 
@@ -256,14 +277,17 @@ These principles guide all architectural decisions:
 - **Benefits:** Better testability, separation of concerns, reusable business logic
 
 **Example Structure:**
+
 ```
+
 src/
 ├── api/              # Thin routers (FastAPI endpoints)
 │   ├── auth.py
 │   └── admin.py
 └── services/         # Business logic
-    ├── auth.py
-    └── admin.py
+├── auth.py
+└── admin.py
+
 ```
 
 **Related Issues:**
@@ -355,6 +379,7 @@ erDiagram
         string location
         enum status "PENDING_APPROVAL, PUBLISHED, CLOSED"
         datetime created_at
+        datetime updated_at
     }
 
     %% Candidate Lead (No Authentication)
@@ -383,16 +408,19 @@ erDiagram
         int job_id
         int candidate_id
         datetime created_at
+        datetime updated_at
         enum status "NEW, APPROVED_BY_ADMIN, REJECTED, HIRED"
         text admin_notes
     }
+
 ```
 
 **Key Relationships:**
-- `User` 1:1 `CompanyProfile` (one user owns one company profile)
-- `CompanyProfile` 1:N `Job` (one company posts many jobs)
-- `Job` 1:N `Application` (one job receives many applications)
-- `CandidateProfile` 1:N `Application` (one candidate submits many applications)
+
+* `User` 1:1 `CompanyProfile` (one user owns one company profile)
+* `CompanyProfile` 1:N `Job` (one company posts many jobs)
+* `Job` 1:N `Application` (one job receives many applications)
+* `CandidateProfile` 1:N `Application` (one candidate submits many applications)
 
 **Status:** ✅ Implemented
 
@@ -407,24 +435,28 @@ erDiagram
 **Decision:** Use managed PostgreSQL service with automated backups for staging/production.
 
 **Options Considered:**
-- **Automated PostgreSQL Backups** – pg_dump scheduled via cron/kubernetes job
-- **Managed Database Service** ✅ **CHOSEN** – AWS RDS Managed DB (built-in backups)
-- **Point-in-Time Recovery** – WAL archiving for PostgreSQL
-- **Backup to S3** – Store dumps in object storage
+
+* **Automated PostgreSQL Backups** – pg_dump scheduled via cron/kubernetes job
+* **Managed Database Service** ✅ **CHOSEN** – AWS RDS Managed DB (built-in backups)
+* **Point-in-Time Recovery** – WAL archiving for PostgreSQL
+* **Backup to S3** – Store dumps in object storage
 
 **Recommendation:**
-- **Development:** Manual backups or Docker volume snapshots
-- **Staging/Production:** Use managed PostgreSQL (RDS/DO) with automated daily backups + point-in-time recovery
-- **Backup Retention:** 7 days daily, 4 weeks weekly, 12 months monthly
+
+* **Development:** Manual backups or Docker volume snapshots
+* **Staging/Production:** Use managed PostgreSQL (RDS/DO) with automated daily backups + point-in-time recovery
+* **Backup Retention:** 7 days daily, 4 weeks weekly, 12 months monthly
 
 **Implementation Requirements:**
-- Document backup/restore procedures
-- Test restore process regularly
-- Monitor backup success/failure
-- Store backups in separate region/account
+
+* Document backup/restore procedures
+* Test restore process regularly
+* Monitor backup success/failure
+* Store backups in separate region/account
 
 **Related Issues:**
-- [#94](https://github.com/lahavrud/rs-recruitment/issues/94) - devops1: Database Backup Strategy 🔄 OPEN
+
+* [#94](https://github.com/lahavrud/rs-recruitment/issues/94) - devops1: Database Backup Strategy 🔄 OPEN
 
 **Status:** 🔄 Decision made, implementation pending
 
@@ -437,20 +469,23 @@ erDiagram
 **Decision:** Deploy to separate environments with environment-specific configurations.
 
 **Environments:**
+
 1. **Development** – Shared dev environment for testing
 2. **Staging** – Mirrors production for final validation
 3. **Production** – Live production environment
 
 **Deployment Requirements:**
-- Environment-specific configuration (env vars, CORS origins, database URLs)
-- CI/CD pipeline for automatic deployment
-- SSL/TLS certificates for staging/production
-- Basic monitoring and alerting
+
+* Environment-specific configuration (env vars, CORS origins, database URLs)
+* CI/CD pipeline for automatic deployment
+* SSL/TLS certificates for staging/production
+* Basic monitoring and alerting
 
 **Related Issues:**
-- [#95](https://github.com/lahavrud/rs-recruitment/issues/95) - devops2: Dev Environment Deployment 🔄 OPEN
-- [#96](https://github.com/lahavrud/rs-recruitment/issues/96) - devops3: Staging Environment Deployment 🔄 OPEN
-- [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment 🔄 OPEN
+
+* [#95](https://github.com/lahavrud/rs-recruitment/issues/95) - devops2: Dev Environment Deployment 🔄 OPEN
+* [#96](https://github.com/lahavrud/rs-recruitment/issues/96) - devops3: Staging Environment Deployment 🔄 OPEN
+* [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment 🔄 OPEN
 
 **Status:** 🔄 Decisions made, implementation pending
 
@@ -465,14 +500,16 @@ erDiagram
 **Decision:** Implement comprehensive pre-commit hooks for code quality, security, and commit message validation.
 
 **Implementation:**
-- **File Quality:** Trailing whitespace, end-of-file, YAML/JSON validation
-- **Security:** detect-secrets to prevent credential commits
-- **Commit Messages:** Conventional Commits format validation
-- **Linting:** Ruff auto-fix enabled
-- **Secrets Baseline:** Baseline file for false positives
+
+* **File Quality:** Trailing whitespace, end-of-file, YAML/JSON validation
+* **Security:** detect-secrets to prevent credential commits
+* **Commit Messages:** Conventional Commits format validation
+* **Linting:** Ruff auto-fix enabled
+* **Secrets Baseline:** Baseline file for false positives
 
 **Related Issues:**
-- [#75](https://github.com/lahavrud/rs-recruitment/issues/75) - chore(infra): Enhance pre-commit hooks configuration ✅ CLOSED
+
+* [#75](https://github.com/lahavrud/rs-recruitment/issues/75) - chore(infra): Enhance pre-commit hooks configuration ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -483,19 +520,22 @@ erDiagram
 **Problem:** Need automated validation to enforce code quality standards and prevent common issues.
 
 **Decision:** Implement validation scripts in CI to check for:
-- Type hints on public functions
-- Blocking I/O in async functions
-- Test file existence (matching source structure)
-- Import patterns (SOC enforcement)
-- File size limits
+
+* Type hints on public functions
+* Blocking I/O in async functions
+* Test file existence (matching source structure)
+* Import patterns (SOC enforcement)
+* File size limits
 
 **Implementation:**
-- **Scripts:** `scripts/validate_*.py` for various validations
-- **CI Integration:** All validations run in CI `lint` job
-- **Fast Execution:** All validations run in < 5 seconds
+
+* **Scripts:** `scripts/validate_*.py` for various validations
+* **CI Integration:** All validations run in CI `lint` job
+* **Fast Execution:** All validations run in < 5 seconds
 
 **Related Issues:**
-- [#80](https://github.com/lahavrud/rs-recruitment/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
+
+* [#80](https://github.com/lahavrud/rs-recruitment/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -506,9 +546,10 @@ erDiagram
 This section tracks when decisions were made and implemented:
 
 | Decision | Issue | Status | Date |
-|----------|-------|--------|------|
+| --- | --- | --- | --- |
 | File Storage Strategy | [#43](https://github.com/lahavrud/rs-recruitment/issues/43) | ✅ Implemented | - |
 | Email/Notification Service | [#44](https://github.com/lahavrud/rs-recruitment/issues/44) | ✅ Implemented | - |
+| Async Background Jobs | Architecture doc | ✅ Implemented | - |
 | Containerization | [#9](https://github.com/lahavrud/rs-recruitment/issues/9) | ✅ Implemented | - |
 | CI/CD Pipeline | [#21](https://github.com/lahavrud/rs-recruitment/issues/21) | ✅ Implemented | - |
 | Frontend Architecture | Architecture doc | ✅ Decision made | - |
@@ -537,7 +578,7 @@ These are potential future architecture decisions that may need to be made:
 
 ## References
 
-- [GitHub Issues](https://github.com/lahavrud/rs-recruitment/issues) - All architecture-related issues
-- [Roadmap](ROADMAP.md) - Development timeline and dependencies
-- [Context](CONTEXT.md) - Project context and standards
-- [GitHub Organization](GITHUB_ORGANIZATION.md) - Issue templates and project management
+* [GitHub Issues](https://github.com/lahavrud/rs-recruitment/issues) - All architecture-related issues
+* [Roadmap](https://www.google.com/search?q=ROADMAP.md) - Development timeline and dependencies
+* [Context](CONTEXT.md) - Project context and standards
+* [GitHub Organization](https://www.google.com/search?q=GITHUB_ORGANIZATION.md) - Issue templates and project management
