@@ -17,7 +17,6 @@
 * Candidates are unauthenticated `CandidateProfile` leads.
 * Do NOT add Candidate authentication unless explicitly requested.
 
-
 * **MVP First**: Prefer simple, explicit solutions over abstractions. Avoid over-engineering and premature optimization.
 
 ---
@@ -29,11 +28,9 @@
 * Strict type hints required (validated via CI).
 * Prefer explicit return types.
 
-
 * **Dependency Management**:
 * **`uv`** is the primary tool for dependency management and execution.
 * Use `uv sync` for environment setup and `uv run` for executing scripts and tests.
-
 
 * **Project Structure**:
 * `src/models.py`: All SQLModel database tables.
@@ -43,27 +40,21 @@
 * `src/services/`: Domain-specific business logic (HTTP-agnostic).
 * `src/core/infrastructure/`: Pure infrastructure (config, database, security).
 
-
 * **Business Logic & Service Layer**:
 * Services raise domain exceptions from `services/exceptions.py`.
 * Routers convert domain exceptions to HTTP responses.
 * Services accept `AsyncSession` as a parameter (dependency injection).
 
-
 * **Testing**:
 * `pytest` must pass before merging.
 * Parallel execution via `uv run pytest -n auto`.
-
 
 * **Async Database Rules**:
 * ALWAYS use `await session.execute(...)` or `await session.get(...)`.
 * NEVER use blocking I/O inside async functions (validated via CI).
 
-
 * **Custom CI Validations**:
 * All code must pass automated scripts for: SOC enforcement, Async safety, Type hints, and Test file existence.
-
-
 
 ---
 
@@ -84,8 +75,6 @@
 * **CI/CD Expectations**:
 * Code must pass `lint`, `test`, and `docker-build` jobs before merge.
 * Fix failing CI before adding new features.
-
-
 
 ---
 
