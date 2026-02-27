@@ -156,7 +156,7 @@ jobs:
         run: |
           response=$(curl -s http://localhost:8000/health)
           if [ "$response" != '{"status": "ok", "environment": "development"}' ]; then
-            echo "❌ Health endpoint returned: $response (expected: {\"status\":\"ok\"})"
+            echo "❌ Health endpoint returned: $response (expected: {\"status\":\"ok\"\, \"environment\":\"development\""})"
             exit 1
           fi
           echo "✅ Health endpoint verified"
