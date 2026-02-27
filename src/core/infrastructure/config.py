@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_from_email: Optional[str] = None
 
+    # Environment
+    environment: Literal["development", "production"] = "development"
+
     # Testing Configuration
     testing: bool = False  # Set to True in test environment to disable rate limiting
 
