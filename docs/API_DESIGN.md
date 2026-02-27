@@ -38,7 +38,27 @@ Register a new company user and profile. Places the company in a `PENDING_APPROV
     }
     ```
 * **Response:** `201 Created` | `400 Bad Request` (Email already registered) | `422 Validation Error`
-* **Response Body:** `UserRead` object (Excludes password hash).
+* **Response Body:** `UserWithCompanyRead` object with nested user and company profile:
+    ```json
+    {
+      "user": {
+        "id": 1,
+        "email": "user@example.com",
+        "role": "company",
+        "is_active": true,
+        "created_at": "2024-01-01T00:00:00"
+      },
+      "company_profile": {
+        "id": 1,
+        "user_id": 1,
+        "name": "string",
+        "logo_url": "string",
+        "contact_person": "string",
+        "contact_phone": "string",
+        "created_at": "2024-01-01T00:00:00"
+      }
+    }
+    ```
 
 ### `POST /api/auth/login`
 Authenticate a user and receive a JWT access token.
