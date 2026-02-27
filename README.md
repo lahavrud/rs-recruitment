@@ -55,9 +55,9 @@ This project follows a **Modular Monolith** architecture with a **Vertical Slice
 
 ## 📂 Documentation
 
-* **[ARCHITECTURE.md](https://www.google.com/search?q=docs/ARCHITECTURE.md)**: System design, authentication models, and ERDs.
-* **[CONTEXT.md](https://www.google.com/search?q=docs/CONTEXT.md)**: Coding standards, domain models, and SOC enforcement rules.
-* **[ROADMAP.md](https://www.google.com/search?q=docs/ROADMAP.md)**: Development phases and feature timeline.
+* **[ARCHITECTURE.md](docs/ARCHITECTURE.md)**: System design, authentication models, and ERDs.
+* **[CONTEXT.md](docs/CONTEXT.md)**: Coding standards, domain models, and SOC enforcement rules.
+* **[ROADMAP.md](docs/ROADMAP.md)**: Development phases and feature timeline.
 
 ---
 
