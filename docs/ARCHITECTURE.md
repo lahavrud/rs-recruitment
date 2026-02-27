@@ -581,4 +581,4 @@ These are potential future architecture decisions that may need to be made:
 * [GitHub Issues](https://github.com/lahavrud/rs-recruitment/issues) - All architecture-related issues
 * [Roadmap](https://www.google.com/search?q=ROADMAP.md) - Development timeline and dependencies
 * [Context](CONTEXT.md) - Project context and standards
-* [GitHub Organization](https://www.google.com/search?q=GITHUB_ORGANIZATION.md) - Issue templates and project management
+* [GitHub Organization](docs/GITHUB_ORGANIZATION.md) - Issue templates and project management
