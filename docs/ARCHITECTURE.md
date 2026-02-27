@@ -1,4 +1,3 @@
-
 # Architecture Decisions
 
 This document captures all architectural decisions made for the RS Recruitment MVP, with references to GitHub Issues where decisions were discussed and implemented.
