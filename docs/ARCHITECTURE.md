@@ -546,7 +546,7 @@ erDiagram
 This section tracks when decisions were made and implemented:
 
 | Decision | Issue | Status | Date |
-| --- | --- | --- | --- |
+|----------|-------|--------|------|
 | File Storage Strategy | [#43](https://github.com/lahavrud/rs-recruitment/issues/43) | ✅ Implemented | - |
 | Email/Notification Service | [#44](https://github.com/lahavrud/rs-recruitment/issues/44) | ✅ Implemented | - |
 | Async Background Jobs | Architecture doc | ✅ Implemented | - |
