@@ -174,10 +174,10 @@ Unauthenticated leads submitting data to the system.
 Submit a candidate profile and resume for a specific job.
 * **Auth Required:** No
 * **Content-Type:** `multipart/form-data`
-* **Form Data Parameters:**
-  * `job_id` * (integer)
-  * `full_name` * (string)
-  * `email` * (string)
+* **Form Data Parameters** (**bold** = required, regular = optional):
+  * **`job_id`** (integer)
+  * **`full_name`** (string)
+  * **`email`** (string)
   * `phone` (string | null)
   * `linkedin_url` (string | null)
   * `service_concept` (string | null)
