@@ -1,5 +1,3 @@
----
-
 # RS Recruitment
 
 **Vision:** A specialized CRM for a boutique recruitment agency.
