@@ -16,12 +16,11 @@ Here is the comprehensive, production-ready **README.md** for your project. I ha
 * **Admin as Gatekeeper:** All public data (Companies, Jobs, Matches) require Admin approval.
 * **Hybrid Auth:** Admins & Companies are authenticated Users; Candidates are unauthenticated leads.
 * **Trunk-Based Development:** Docs/Chores → direct Main; Features → short-lived branches merged quickly.
-* **DevOps / Agile Deploy:** - CI/CD ensures every push is tested and containerized.
-* Dev Environment deploy after first working slice.
-* Staging deploy after multiple slices for integration validation.
-* Production deploy after full MVP.
-
-
+* **DevOps / Agile Deploy:**
+  - CI/CD ensures every push is tested and containerized.
+  - Dev Environment deploy after first working slice.
+  - Staging deploy after multiple slices for integration validation.
+  - Production deploy after full MVP.
 * **Low Friction MVP:** Minimal auth surface, minimal public access, focus on working vertical slices.
 
 ---
