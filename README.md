@@ -1,5 +1,3 @@
-Here is the comprehensive, production-ready **README.md** for your project. I have integrated all the necessary technical details from your architecture, infrastructure, and CI/CD setup while maintaining your project's vision.
-
 ---
 
 # RS Recruitment
