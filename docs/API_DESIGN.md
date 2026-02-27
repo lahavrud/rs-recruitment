@@ -43,10 +43,14 @@ Register a new company user and profile. Places the company in a `PENDING_APPROV
 ### `POST /api/auth/login`
 Authenticate a user and receive a JWT access token.
 * **Auth Required:** No
-* **Content-Type:** `application/x-www-form-urlencoded`
+* **Content-Type:** `application/json`
 * **Request Body:**
-  * `username` (Email address)
-  * `password`
+    ```json
+    {
+      "email": "user@example.com",
+      "password": "string"
+    }
+    ```
 * **Response:** `200 OK` | `401 Unauthorized` | `422 Validation Error`
 * **Response Body:**
     ```json
