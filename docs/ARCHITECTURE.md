@@ -278,7 +278,6 @@ These principles guide all architectural decisions:
 **Example Structure:**
 
 ```
-
 src/
 ├── api/              # Thin routers (FastAPI endpoints)
 │   ├── auth.py
@@ -286,7 +285,6 @@ src/
 └── services/         # Business logic
     ├── auth.py
     └── admin.py
-
 ```
 
 **Related Issues:**
