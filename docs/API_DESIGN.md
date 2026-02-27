@@ -67,17 +67,17 @@ List all companies awaiting approval.
 * **Response:** `200 OK`
 * **Response Body:** List of `PendingCompanyRead` objects.
 
-### `POST /api/admin/companies/{user_id}/approve`
+### `POST /api/admin/companies/{company_user_id}/approve`
 Approve a pending company.
 * **Auth Required:** Yes (Admin)
-* **Parameters:** `user_id` (Integer, Path)
+* **Parameters:** `company_user_id` (Integer, Path)
 * **Response:** `200 OK` | `404 Not Found` | `400 Bad Request` (Not pending)
 * **Response Body:** `ApprovedCompanyRead` object.
 
-### `POST /api/admin/companies/{user_id}/reject`
+### `POST /api/admin/companies/{company_user_id}/reject`
 Reject a pending company (Deletes the object from the DB).
 * **Auth Required:** Yes (Admin)
-* **Parameters:** `user_id` (Integer, Path)
+* **Parameters:** `company_user_id` (Integer, Path)
 * **Response:** `204 No Content` | `404 Not Found` | `400 Bad Request` (Not pending)
 * **Response Body:** None
 
