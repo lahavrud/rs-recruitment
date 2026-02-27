@@ -154,12 +154,30 @@ jobs:
 
       - name: Verify health endpoint
         run: |
+          # Use curl to get the response
           response=$(curl -s http://localhost:8000/health)
+<<<<<<< HEAD
           if [ "$response" != '{"status": "ok", "environment": "development"}' ]; then
             echo "❌ Health endpoint returned: $response (expected: {\"status\":\"ok\"\, \"environment\":\"development\""})"
             exit 1
           fi
           echo "✅ Health endpoint verified"
+=======
+
+          # Use python3 to safely parse the JSON and verify the fields
+          # This avoids fragile string comparisons and shell syntax errors
+          echo "$response" | python3 -c "
+          import sys, json
+          try:
+              data = json.load(sys.stdin)
+              assert data['status'] == 'ok', f'Unexpected status: {data.get(\"status\")}'
+              assert data['environment'] == 'development', f'Unexpected env: {data.get(\"environment\")}'
+              print('✅ Health endpoint verified')
+          except Exception as e:
+              print(f'❌ Verification failed: {e}')
+              sys.exit(1)
+          "
+>>>>>>> e20268d (chore(infra) fix health endpoint verification in ci.yml)
 
       - name: Cleanup
         if: always()
