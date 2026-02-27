@@ -546,7 +546,7 @@ erDiagram
 This section tracks when decisions were made and implemented:
 
 | Decision | Issue | Status | Date |
-| --- | --- | --- | --- |
+|----------|-------|--------|------|
 | File Storage Strategy | [#43](https://github.com/lahavrud/rs-recruitment/issues/43) | ✅ Implemented | - |
 | Email/Notification Service | [#44](https://github.com/lahavrud/rs-recruitment/issues/44) | ✅ Implemented | - |
 | Async Background Jobs | Architecture doc | ✅ Implemented | - |
@@ -581,4 +581,4 @@ These are potential future architecture decisions that may need to be made:
 * [GitHub Issues](https://github.com/lahavrud/rs-recruitment/issues) - All architecture-related issues
 * [Roadmap](https://www.google.com/search?q=ROADMAP.md) - Development timeline and dependencies
 * [Context](CONTEXT.md) - Project context and standards
-* [GitHub Organization](https://www.google.com/search?q=GITHUB_ORGANIZATION.md) - Issue templates and project management
+* [GitHub Organization](docs/GITHUB_ORGANIZATION.md) - Issue templates and project management

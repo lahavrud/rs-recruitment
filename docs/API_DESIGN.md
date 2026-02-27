@@ -44,7 +44,8 @@ Register a new company user and profile. Places the company in a `PENDING_APPROV
 Authenticate a user and receive a JWT access token.
 * **Auth Required:** No
 * **Content-Type:** `application/x-www-form-urlencoded`
-* **Request Body:** * `username` (Email address)
+* **Request Body:**
+  * `username` (Email address)
   * `password`
 * **Response:** `200 OK` | `401 Unauthorized` | `422 Validation Error`
 * **Response Body:**
@@ -174,10 +175,10 @@ Unauthenticated leads submitting data to the system.
 Submit a candidate profile and resume for a specific job.
 * **Auth Required:** No
 * **Content-Type:** `multipart/form-data`
-* **Form Data Parameters:**
-  * `job_id` * (integer)
-  * `full_name` * (string)
-  * `email` * (string)
+* **Form Data Parameters** (**bold** = required, regular = optional):
+  * **`job_id`** (integer)
+  * **`full_name`** (string)
+  * **`email`** (string)
   * `phone` (string | null)
   * `linkedin_url` (string | null)
   * `service_concept` (string | null)
