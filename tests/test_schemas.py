@@ -220,11 +220,23 @@ def test_invalid_phone(schema_class, phone, error_match):
 @pytest.mark.parametrize(
     "schema_class,url,expected",
     [
-        (CandidateProfileCreate, "https://www.linkedin.com/in/johndoe", "https://www.linkedin.com/in/johndoe"),
-        (CandidateProfileCreate, "http://linkedin.com/in/janedoe", "http://linkedin.com/in/janedoe"),
+        (
+            CandidateProfileCreate,
+            "https://www.linkedin.com/in/johndoe",
+            "https://www.linkedin.com/in/johndoe",
+        ),
+        (
+            CandidateProfileCreate,
+            "http://linkedin.com/in/janedoe",
+            "http://linkedin.com/in/janedoe",
+        ),
         (CandidateProfileCreate, None, None),
         (CandidateProfileCreate, "", None),
-        (CandidateProfileUpdate, "https://linkedin.com/company/acme", "https://linkedin.com/company/acme"),
+        (
+            CandidateProfileUpdate,
+            "https://linkedin.com/company/acme",
+            "https://linkedin.com/company/acme",
+        ),
         (CandidateProfileUpdate, None, None),
     ],
 )
@@ -261,4 +273,3 @@ def test_invalid_linkedin_url(schema_class, url, error_match):
         kwargs.update(BASE_CREATE)
     with pytest.raises(ValidationError, match=error_match):
         schema_class(**kwargs)
-
