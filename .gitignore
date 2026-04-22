@@ -231,3 +231,7 @@ data/
 
 # Virtual environment cache
 .venv-cache/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
