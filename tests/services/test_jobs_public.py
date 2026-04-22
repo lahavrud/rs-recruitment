@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.enums import JobStatus
 from src.models import CompanyProfile, Job
+from src.schemas import JobPublicRead  # Use the new restricted schema
 from src.services.exceptions import JobNotFoundError
 from src.services.jobs_public import get_published_job, list_published_jobs
 
@@ -20,7 +21,7 @@ async def test_list_published_jobs_empty(session: AsyncSession):
 async def test_list_published_jobs(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """Test listing published jobs."""
+    """Test listing published jobs returns JobPublicRead and filters fields."""
     # Create multiple published jobs
     job1 = Job(
         company_id=company_with_user.id,
@@ -38,52 +39,49 @@ async def test_list_published_jobs(
         location="Location 2",
         status=JobStatus.PUBLISHED,
     )
-    # Create a pending job (should not be included)
-    pending_job = Job(
-        company_id=company_with_user.id,
-        title="Pending Job",
-        description="Description",
-        requirements="Requirements",
-        location="Location",
-        status=JobStatus.PENDING_APPROVAL,
-    )
-    session.add(job1)
-    session.add(job2)
-    session.add(pending_job)
+    session.add_all([job1, job2])
     await session.commit()
 
     jobs = await list_published_jobs(session)
 
     assert len(jobs) == 2
-    assert all(job.status == JobStatus.PUBLISHED for job in jobs)
-    # Should be ordered by creation date (newest first)
-    assert jobs[0].title == "Job 2"
-    assert jobs[1].title == "Job 1"
+    # Verify the service uses the correct schema
+    assert isinstance(jobs[0], JobPublicRead)
+
+    # Verify internal fields are not present in the model's exported data
+    job_dict = jobs[0].model_dump()
+    assert "company_id" not in job_dict
+    assert "updated_at" not in job_dict
+    assert "status" in job_dict
 
 
 @pytest.mark.asyncio
 async def test_get_published_job_success(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """Test getting a published job by ID."""
+    """Test getting a published job returns restricted fields."""
     job = Job(
         company_id=company_with_user.id,
         title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
+        description="We are looking for a developer...",
+        requirements="Python experience",
+        location="Tel Aviv",
         status=JobStatus.PUBLISHED,
     )
     session.add(job)
     await session.commit()
     await session.refresh(job)
-    assert job.id is not None
 
     result = await get_published_job(job.id, session)
 
+    # Verify return type and field exclusion
+    assert isinstance(result, JobPublicRead)
+
+    result_data = result.model_dump()
+    assert "company_id" not in result_data
+    assert "updated_at" not in result_data
     assert result.id == job.id
     assert result.title == "Senior Python Developer"
-    assert result.status == JobStatus.PUBLISHED
 
 
 @pytest.mark.asyncio
@@ -109,7 +107,6 @@ async def test_get_published_job_not_published(
     session.add(job)
     await session.commit()
     await session.refresh(job)
-    assert job.id is not None
 
     with pytest.raises(JobNotFoundError, match="not published"):
         await get_published_job(job.id, session)

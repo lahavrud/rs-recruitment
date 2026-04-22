@@ -110,6 +110,24 @@ class JobRead(BaseModel):
     updated_at: datetime
 
 
+class JobPublicRead(BaseModel):
+    """Schema for public job board responses.
+
+    Excludes internal fields (company_id, updated_at) that should not
+    be exposed to unauthenticated users.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str
+    requirements: str
+    location: str
+    status: JobStatus
+    created_at: datetime
+
+
 # CandidateProfile Schemas
 class CandidateProfileCreate(BaseModel):
     """Schema for creating a candidate profile (application form)."""
