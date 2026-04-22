@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { type ChangeEvent, type FocusEvent, type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getPublicJob, submitApplication } from "@/services/jobs";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
@@ -25,7 +25,7 @@ interface FieldProps {
   label: string;
   id: string;
   required?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 function Field({ label, id, required, children }: FieldProps) {
@@ -47,6 +47,7 @@ const textareaCls = inputCls + " resize-y min-h-[80px]";
 export default function ApplicationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const jobId = id !== undefined ? Number.parseInt(id, 10) : NaN;
 
   const [job, setJob] = useState<JobPublicRead | null>(null);
   const [jobLoading, setJobLoading] = useState(true);
@@ -81,12 +82,18 @@ export default function ApplicationPage() {
       if (value.replace(/\D/g, "").length < 5) return "Phone number must have at least 5 digits";
     }
     if (name === "linkedin_url" && value.trim()) {
+      let parsed: URL;
       try {
-        new URL(value);
+        parsed = new URL(value);
       } catch {
         return "Please enter a valid URL";
       }
-      if (!value.includes("linkedin.com")) return "LinkedIn URL must contain linkedin.com";
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return "LinkedIn URL must start with http:// or https://";
+      }
+      if (!parsed.hostname.endsWith("linkedin.com")) {
+        return "LinkedIn URL must be a linkedin.com address";
+      }
     }
     // Interview fields: optional, but limit length
     const textFields = ["service_concept", "salary_expectations", "military_service_details", "transportation", "personality_strength", "personality_weakness"];
@@ -109,7 +116,7 @@ export default function ApplicationPage() {
     return Object.keys(errors).length === 0;
   }
 
-  function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleBlur(e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     const error = validateField(name, value);
     setFieldErrors(prev => ({ ...prev, [name]: error || "" }));
@@ -126,7 +133,7 @@ export default function ApplicationPage() {
 
   // Load job details to show title in the header
   useEffect(() => {
-    if (!id) {
+    if (!Number.isFinite(jobId)) {
       navigate("/jobs", { replace: true });
       return;
     }
@@ -135,7 +142,7 @@ export default function ApplicationPage() {
 
     async function fetchJob() {
       try {
-        const data = await getPublicJob(Number(id));
+        const data = await getPublicJob(jobId);
         if (!cancelled) setJob(data);
       } catch (err) {
         if (!cancelled) {
@@ -154,7 +161,7 @@ export default function ApplicationPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, navigate]);
+  }, [jobId, navigate]);
 
 
 
@@ -191,7 +198,7 @@ export default function ApplicationPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!id) return;
+    if (!Number.isFinite(jobId)) return;
 
     // Validate form fields
     if (!validateForm()) {
@@ -207,7 +214,7 @@ export default function ApplicationPage() {
     setSubmitError(null);
 
     try {
-      await submitApplication({ ...form, job_id: Number(id) }, resumeFile);
+      await submitApplication({ ...form, job_id: jobId }, resumeFile);
       setSuccess(true);
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -282,7 +289,7 @@ export default function ApplicationPage() {
     <div className="mx-auto max-w-2xl">
       {/* Back + title */}
       <Link
-        to={`/jobs/${id}`}
+        to={`/jobs/${jobId}`}
         className="mb-6 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
       >
         ← Back to Job

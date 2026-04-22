@@ -18,7 +18,7 @@ const adminNav: NavItem[] = [
 
 const companyNav: NavItem[] = [
   { label: "Dashboard", to: "/" },
-  { label: "My Jobs", to: "/jobs" },
+  { label: "Job Board", to: "/jobs" },
 ];
 
 interface SidebarProps {

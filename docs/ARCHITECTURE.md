@@ -250,7 +250,7 @@ These principles guide all architectural decisions:
 frontend/
 ├── src/
 │   ├── components/
-│   │   ├── layout/       # AppLayout, Header, Sidebar (auth), PublicLayout (public)
+│   │   ├── layout/       # AppShell (root wrapper), Header, Sidebar (auth), PublicHeader (public, inside AppShell)
 │   │   └── ProtectedRoute.tsx
 │   ├── pages/
 │   │   ├── public/       # JobBoardPage, JobDetailPage, ApplicationPage

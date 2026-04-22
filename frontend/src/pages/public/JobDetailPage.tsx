@@ -25,11 +25,17 @@ export default function JobDetailPage() {
       return;
     }
 
+    const jobId = Number.parseInt(id, 10);
+    if (!Number.isFinite(jobId)) {
+      navigate("/jobs", { replace: true });
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchJob() {
       try {
-        const data = await getPublicJob(Number(id));
+        const data = await getPublicJob(jobId);
         if (!cancelled) setJob(data);
       } catch (err) {
         if (!cancelled) {

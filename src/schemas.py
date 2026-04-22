@@ -3,10 +3,43 @@
 import os
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.enums import ApplicationStatus, JobStatus, UserRole
+
+
+def _validate_phone_value(v: str | None) -> str | None:
+    """Validate phone number format.
+
+    Used by CandidateProfileCreate and CandidateProfileUpdate.
+    """
+    if v is None or v == "":
+        return None
+    pattern = r"^[+\d\s()-]*$"
+    if not re.match(pattern, v):
+        raise ValueError("Phone number may only contain digits, spaces, +, -, (, )")
+    digits = re.sub(r"\D", "", v)
+    if len(digits) < 5:
+        raise ValueError("Phone number must have at least 5 digits")
+    return v
+
+
+def _validate_linkedin_url_value(v: str | None) -> str | None:
+    """Validate LinkedIn URL format.
+
+    Used by CandidateProfileCreate and CandidateProfileUpdate.
+    """
+    if v is None or v == "":
+        return None
+    parsed = urlparse(v)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("LinkedIn URL must start with http:// or https://")
+    hostname = parsed.hostname or ""
+    if not (hostname == "linkedin.com" or hostname.endswith(".linkedin.com")):
+        raise ValueError("LinkedIn URL must be a linkedin.com address")
+    return v
 
 
 # Registration Schemas
@@ -198,28 +231,13 @@ class CandidateProfileCreate(BaseModel):
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
         """Validate phone number format."""
-        if v is None or v == "":
-            return None
-        pattern = r"^[+\d\s()-]*$"
-        if not re.match(pattern, v):
-            raise ValueError("Phone number may only contain digits, spaces, +, -, (, )")
-        # Ensure at least 5 digits
-        digits = re.sub(r"\D", "", v)
-        if len(digits) < 5:
-            raise ValueError("Phone number must have at least 5 digits")
-        return v
+        return _validate_phone_value(v)
 
     @field_validator("linkedin_url")
     @classmethod
     def validate_linkedin_url(cls, v: str | None) -> str | None:
         """Validate LinkedIn URL format."""
-        if v is None or v == "":
-            return None
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("LinkedIn URL must start with http:// or https://")
-        if "linkedin.com" not in v:
-            raise ValueError("LinkedIn URL must contain linkedin.com")
-        return v
+        return _validate_linkedin_url_value(v)
 
 
 class CandidateProfileUpdate(BaseModel):
@@ -260,27 +278,13 @@ class CandidateProfileUpdate(BaseModel):
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
         """Validate phone number format."""
-        if v is None or v == "":
-            return None
-        pattern = r"^[+\d\s()-]*$"
-        if not re.match(pattern, v):
-            raise ValueError("Phone number may only contain digits, spaces, +, -, (, )")
-        digits = re.sub(r"\D", "", v)
-        if len(digits) < 5:
-            raise ValueError("Phone number must have at least 5 digits")
-        return v
+        return _validate_phone_value(v)
 
     @field_validator("linkedin_url")
     @classmethod
     def validate_linkedin_url(cls, v: str | None) -> str | None:
         """Validate LinkedIn URL format."""
-        if v is None or v == "":
-            return None
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("LinkedIn URL must start with http:// or https://")
-        if "linkedin.com" not in v:
-            raise ValueError("LinkedIn URL must contain linkedin.com")
-        return v
+        return _validate_linkedin_url_value(v)
 
 
 class CandidateProfileRead(BaseModel):

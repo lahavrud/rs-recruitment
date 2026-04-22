@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
@@ -20,7 +20,7 @@ export default function LoginPage() {
     }
     if (name === "password") {
       if (!value.trim()) return "Password is required";
-      if (value.length < 6) return "Password must be at least 6 characters";
+      if (value.length < 8) return "Password must be at least 8 characters";
     }
     return "";
   }
@@ -34,20 +34,20 @@ export default function LoginPage() {
     return !errors.email && !errors.password;
   }
 
-  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+  function handleBlur(e: FocusEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     const error = validateField(name, value);
     setFieldErrors(prev => ({ ...prev, [name]: error }));
   }
 
-  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleEmailChange(e: ChangeEvent<HTMLInputElement>) {
     setEmail(e.target.value);
     if (fieldErrors.email) {
       setFieldErrors(prev => ({ ...prev, email: '' }));
     }
   }
 
-  function handlePasswordChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handlePasswordChange(e: ChangeEvent<HTMLInputElement>) {
     setPassword(e.target.value);
     if (fieldErrors.password) {
       setFieldErrors(prev => ({ ...prev, password: '' }));
