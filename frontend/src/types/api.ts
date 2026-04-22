@@ -75,6 +75,35 @@ export interface JwtPayload {
   exp: number;
 }
 
+// --- Jobs (authenticated) ---
+
+export interface JobRead {
+  id: number;
+  company_id: number;
+  title: string;
+  description: string;
+  requirements: string;
+  location: string;
+  status: JobStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobCreate {
+  title: string;
+  description: string;
+  requirements: string;
+  location: string;
+}
+
+export interface JobUpdate {
+  title?: string;
+  description?: string;
+  requirements?: string;
+  location?: string;
+  status?: JobStatus;
+}
+
 // --- Public Jobs ---
 
 /** Mirrors backend JobPublicRead schema. Status is omitted (only PUBLISHED returned). */
@@ -124,6 +153,47 @@ export interface CandidateApplicationForm {
   personality_weakness: string;
   personality_strength: string;
   // File — handled separately as File | null
+}
+
+// --- Admin: Companies ---
+
+export interface PendingCompanyRead {
+  user: UserRead;
+  company_profile: CompanyProfileRead;
+}
+
+export interface ApprovedCompanyRead {
+  user: UserRead;
+  company_profile: CompanyProfileRead;
+}
+
+// --- Applications ---
+
+export interface ApplicationRead {
+  id: number;
+  job_id: number;
+  candidate_id: number;
+  status: ApplicationStatus;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicationWithDetails {
+  id: number;
+  job_id: number;
+  candidate_id: number;
+  status: ApplicationStatus;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  job: JobRead;
+  candidate: CandidateProfileRead;
+}
+
+export interface ApplicationStatusUpdate {
+  status: ApplicationStatus;
+  admin_notes?: string | null;
 }
 
 // --- Health ---
