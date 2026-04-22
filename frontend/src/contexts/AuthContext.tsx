@@ -40,6 +40,8 @@ function getInitialUser(): AuthUser | null {
     if (payload) {
       return payloadToUser(payload);
     }
+
+    logoutService();
   }
   return null;
 }
@@ -50,9 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (credentials: LoginRequest) => {
     const response = await loginService(credentials);
     const payload = decodeToken(response.access_token);
-    if (payload) {
-      setUser(payloadToUser(payload));
+
+    if (!payload) {
+      logoutService();
+      throw new Error("Authentication failed: invalid access token");
     }
+
+    setUser(payloadToUser(payload));
   }, []);
 
   const logout = useCallback(() => {
