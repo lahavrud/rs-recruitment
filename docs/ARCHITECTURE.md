@@ -228,10 +228,36 @@ These principles guide all architectural decisions:
 
 **API Structure:** All endpoints return JSON. Frontend consumes REST API with JWT authentication.
 
-**Related Issues:**
-- Frontend issues pending: [#91](https://github.com/lahavrud/rs-recruitment/issues/91), [#92](https://github.com/lahavrud/rs-recruitment/issues/92), [#93](https://github.com/lahavrud/rs-recruitment/issues/93)
+**Implementation:**
+- **Framework:** React 19 + TypeScript (via Vite 8)
+- **Styling:** Tailwind CSS v4
+- **Routing:** React Router v7
+- **API Client:** Axios with JWT interceptors
+- **Auth Flow:** JWT token stored in localStorage, decoded client-side for user info (role, email), verified server-side on every request
+- **Dev Server:** Vite on port 3000 with proxy to backend at :8000
 
-**Status:** ✅ Decision made, 🔄 Implementation pending
+**Project Structure:**
+```
+frontend/
+├── src/
+│   ├── components/       # Reusable UI components
+│   │   └── layout/       # AppLayout, Header, Sidebar
+│   ├── pages/            # Route-level page components
+│   ├── services/         # API client (Axios), auth service
+│   ├── contexts/         # React Context providers (AuthContext)
+│   ├── hooks/            # Custom hooks (useAuth)
+│   ├── types/            # TypeScript types mirroring backend schemas
+│   └── utils/            # Token storage helpers
+├── vite.config.ts        # Vite config (Tailwind, proxy, path aliases)
+├── .env.example          # Environment variable template
+└── package.json
+```
+
+**Related Issues:**
+- [#91](https://github.com/lahavrud/rs-recruitment/issues/91) - frontend1: Frontend Structure & Setup ✅ CLOSED
+- [#92](https://github.com/lahavrud/rs-recruitment/issues/92), [#93](https://github.com/lahavrud/rs-recruitment/issues/93) - frontend2/3: Pages implementation (pending)
+
+**Status:** ✅ Implemented (structure & auth), 🔄 Pending (pages)
 
 ---
 
