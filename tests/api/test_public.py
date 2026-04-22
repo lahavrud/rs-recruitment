@@ -33,8 +33,8 @@ async def test_get_public_jobs_only_published(
     # Should only return published job, not pending or closed
     assert len(data) == 1
     assert data[0]["id"] == published_job.id
-    assert data[0]["status"] == "PUBLISHED"
     assert data[0]["title"] == "Senior Python Developer"
+    assert "status" not in data[0]
 
 
 @pytest.mark.asyncio
@@ -63,8 +63,7 @@ async def test_get_public_jobs_multiple_published(
     # Should be ordered by creation date (newest first)
     assert all("id" in job for job in data)
     assert all("title" in job for job in data)
-    assert all("status" in job for job in data)
-    assert all(job["status"] == "PUBLISHED" for job in data)
+    assert all("status" not in job for job in data)
 
 
 @pytest.mark.asyncio
@@ -79,7 +78,7 @@ async def test_get_public_job_success(public_client: AsyncClient, published_job:
     assert data["description"] == published_job.description
     assert data["requirements"] == published_job.requirements
     assert data["location"] == published_job.location
-    assert data["status"] == "PUBLISHED"
+    assert "status" not in data
 
 
 @pytest.mark.asyncio
@@ -171,14 +170,6 @@ async def test_get_public_job_payload_integrity(
     assert job_public.id == published_job.id
     assert job_public.title == published_job.title
 
-    # 4. Optional: Assert that only the allowed keys exist in the response
-    expected_keys = {
-        "id",
-        "title",
-        "description",
-        "requirements",
-        "location",
-        "status",
-        "created_at",
-    }
+    # 4. Assert that only the allowed keys exist in the response
+    expected_keys = {"id", "title", "description", "requirements", "location", "created_at"}
     assert set(data.keys()) == expected_keys

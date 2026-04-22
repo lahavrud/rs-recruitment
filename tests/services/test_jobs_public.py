@@ -75,7 +75,7 @@ async def test_list_published_jobs(
     job_dict = jobs[0].model_dump()
     assert "company_id" not in job_dict
     assert "updated_at" not in job_dict
-    assert "status" in job_dict
+    assert "status" not in job_dict
 
 
 @pytest.mark.asyncio
@@ -103,6 +103,7 @@ async def test_get_published_job_success(
     result_data = result.model_dump()
     assert "company_id" not in result_data
     assert "updated_at" not in result_data
+    assert "status" not in result_data
     assert result.id == job.id
     assert result.title == "Senior Python Developer"
 

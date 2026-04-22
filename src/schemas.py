@@ -113,8 +113,10 @@ class JobRead(BaseModel):
 class JobPublicRead(BaseModel):
     """Schema for public job board responses.
 
-    Excludes internal fields (company_id, updated_at) that should not
-    be exposed to unauthenticated users.
+    Excludes internal fields (company_id, status, updated_at) that should
+    not be exposed to unauthenticated users. Status is omitted because the
+    public endpoint only ever returns PUBLISHED jobs — it carries no
+    information and leaks an internal enum.
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -124,7 +126,6 @@ class JobPublicRead(BaseModel):
     description: str
     requirements: str
     location: str
-    status: JobStatus
     created_at: datetime
 
 
