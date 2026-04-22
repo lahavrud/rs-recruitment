@@ -25,9 +25,9 @@ from src.core.infrastructure.dependencies import (
     get_current_user,
 )
 from src.core.infrastructure.security import get_password_hash
-from src.enums import JobStatus, UserRole
+from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.main import app
-from src.models import CompanyProfile, Job, User
+from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
 
@@ -311,6 +311,41 @@ async def closed_job(company_profile: CompanyProfile) -> Job:
         await session.commit()
         await session.refresh(job)
         return job
+
+
+# ==================== Application Fixtures ====================
+
+
+@pytest.fixture
+async def candidate_profile(test_db) -> CandidateProfile:
+    """Create a candidate profile for testing."""
+    async with TestSessionLocal() as session:
+        candidate = CandidateProfile(
+            full_name="Jane Candidate",
+            email="jane@candidate.com",
+            phone="555-1234",
+        )
+        session.add(candidate)
+        await session.commit()
+        await session.refresh(candidate)
+        return candidate
+
+
+@pytest.fixture
+async def application(
+    published_job: Job, candidate_profile: CandidateProfile
+) -> Application:
+    """Create a NEW application linking a candidate to a published job."""
+    async with TestSessionLocal() as session:
+        app_obj = Application(
+            job_id=published_job.id,
+            candidate_id=candidate_profile.id,
+            status=ApplicationStatus.NEW,
+        )
+        session.add(app_obj)
+        await session.commit()
+        await session.refresh(app_obj)
+        return app_obj
 
 
 # ==================== API Client Fixtures ====================

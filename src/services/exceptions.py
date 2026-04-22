@@ -78,3 +78,15 @@ class ApplicationAlreadyExistsError(Exception):
         super().__init__(
             f"Application already exists for job {job_id} and candidate {candidate_id}"
         )
+
+
+class ApplicationNotFoundError(Exception):
+    """Raised when an application is not found."""
+
+    pass
+
+
+class InvalidApplicationStatusTransitionError(Exception):
+    """Raised when attempting an invalid application status transition."""
+
+    pass
