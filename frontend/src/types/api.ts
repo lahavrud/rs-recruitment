@@ -41,6 +41,19 @@ export interface TokenResponse {
   token_type: string;
 }
 
+export interface CompanyProfileCreate {
+  name: string;
+  logo_url?: string | null;
+  contact_person?: string | null;
+  contact_phone?: string | null;
+}
+
+export interface UserCreate {
+  email: string;
+  password: string;
+  company_profile: CompanyProfileCreate;
+}
+
 // --- Users ---
 
 export interface UserRead {

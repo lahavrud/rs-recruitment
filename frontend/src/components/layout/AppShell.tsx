@@ -61,8 +61,8 @@ export default function AppShell({ children }: Props) {
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ── Login page: no chrome at all ──────────────────────────────────────
-  if (pathname === "/login") {
+  // ── Login / Register pages: no chrome ───────────────────────────────────
+  if (pathname === "/login" || pathname === "/register") {
     return <>{children}</>;
   }
 

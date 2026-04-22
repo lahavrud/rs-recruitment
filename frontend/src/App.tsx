@@ -5,6 +5,7 @@ import AdminRoute from "@/components/AdminRoute";
 import CompanyRoute from "@/components/CompanyRoute";
 import AppShell from "@/components/layout/AppShell";
 import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 // Public
@@ -26,6 +27,7 @@ export default function App() {
         <AppShell>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
             {/* Public job board */}
             <Route path="/jobs" element={<JobBoardPage />} />
