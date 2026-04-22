@@ -52,8 +52,6 @@ export async function submitApplication(
   const response = await api.post<CandidateProfileRead>(
     "/api/candidates/apply",
     data,
-    // Let Axios set Content-Type automatically (multipart + boundary)
-    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return response.data;
 }
