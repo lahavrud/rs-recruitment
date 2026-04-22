@@ -16,7 +16,7 @@ class CompanyProfileCreate(BaseModel):
     name: str = Field(..., max_length=100)
     logo_url: str | None = None
     contact_person: str | None = Field(None, max_length=100)
-    contact_phone: str | None = Field(None, max_length=30, pattern=r'^[+\d\s()-]*$')
+    contact_phone: str | None = Field(None, max_length=30, pattern=r"^[+\d\s()-]*$")
 
 
 class UserCreate(BaseModel):
@@ -202,9 +202,7 @@ class CandidateProfileCreate(BaseModel):
             return None
         pattern = r"^[+\d\s()-]*$"
         if not re.match(pattern, v):
-            raise ValueError(
-                "Phone number may only contain digits, spaces, +, -, (, )"
-            )
+            raise ValueError("Phone number may only contain digits, spaces, +, -, (, )")
         # Ensure at least 5 digits
         digits = re.sub(r"\D", "", v)
         if len(digits) < 5:
@@ -266,9 +264,7 @@ class CandidateProfileUpdate(BaseModel):
             return None
         pattern = r"^[+\d\s()-]*$"
         if not re.match(pattern, v):
-            raise ValueError(
-                "Phone number may only contain digits, spaces, +, -, (, )"
-            )
+            raise ValueError("Phone number may only contain digits, spaces, +, -, (, )")
         digits = re.sub(r"\D", "", v)
         if len(digits) < 5:
             raise ValueError("Phone number must have at least 5 digits")
