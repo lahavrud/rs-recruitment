@@ -1,10 +1,18 @@
+# ruff: noqa: E402  -- env var must be set before src imports (see _TEST_JWT_SECRET below)
 """Shared pytest fixtures for all tests."""
 
 import asyncio
 import os
 import tempfile
 from collections.abc import AsyncGenerator
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
+
+# Single source of truth for the test JWT secret.
+# Set with os.environ[] (not setdefault) so it always wins over any value that
+# might already be in the environment, and so every xdist worker process gets
+# the same predictable value at import time — before settings is loaded.
+_TEST_JWT_SECRET = "test-secret-key-min-32-chars-for-testing!"
+os.environ["JWT_SECRET_KEY"] = _TEST_JWT_SECRET
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -25,11 +33,38 @@ from src.core.infrastructure.dependencies import (
     get_current_user,
 )
 from src.core.infrastructure.security import get_password_hash
-from src.enums import JobStatus, UserRole
+from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.main import app
-from src.models import CompanyProfile, Job, User
+from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
+
+_EMAIL_TASK_TARGETS = [
+    "src.services.auth.enqueue_email_task",
+    "src.services.admin.enqueue_email_task",
+    "src.services.jobs.enqueue_email_task",
+    "src.services.jobs_admin.enqueue_email_task",
+    "src.services.candidates.enqueue_email_task",
+    # applications_admin no longer imports enqueue_email_task directly;
+    # the router enqueues after commit — patch at the router level instead.
+    "src.api.admin_applications.enqueue_email_task",
+]
+
+
+@pytest.fixture(autouse=True)
+def mock_enqueue_email():
+    """Patch enqueue_email_task in every service module for all tests.
+
+    Prevents any test from trying to connect to Redis. Each service imports
+    enqueue_email_task with 'from src.core.tasks import ...', creating a local
+    binding, so each module must be patched individually.
+    """
+    patches = [patch(target, new_callable=AsyncMock) for target in _EMAIL_TASK_TARGETS]
+    for p in patches:
+        p.start()
+    yield
+    for p in patches:
+        p.stop()
 
 
 def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
@@ -90,14 +125,9 @@ def setup_testing_environment():
     """Set up testing environment before all tests."""
     # Enable testing mode (disables rate limiting and config validation)
     settings.testing = True
-    # Ensure JWT_SECRET_KEY is set for tests
-    os.environ.setdefault(
-        "JWT_SECRET_KEY", "test_secret_key_min_32_chars_long_for_testing"
-    )
     yield
     # Cleanup
     settings.testing = False
-    os.environ.pop("TESTING", None)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -159,9 +189,7 @@ async def company_user(test_db) -> User:
             password="password",
             company_profile=CompanyProfileCreate(name="Test Company"),
         )
-        with patch("src.services.auth.enqueue_email_task") as mock_enqueue:
-            mock_enqueue.return_value = "test-job-id"
-            result = await register_company_user(user_data, session)
+        result = await register_company_user(user_data, session)
         await session.commit()
         return result.user
 
@@ -175,9 +203,7 @@ async def approved_company_user(test_db) -> User:
             password="password",
             company_profile=CompanyProfileCreate(name="Approved Company"),
         )
-        with patch("src.services.auth.enqueue_email_task") as mock_enqueue:
-            mock_enqueue.return_value = "test-job-id"
-            result = await register_company_user(user_data, session)
+        result = await register_company_user(user_data, session)
         # Activate the user (simulate admin approval)
         result.user.is_active = True
         await session.commit()
@@ -311,6 +337,41 @@ async def closed_job(company_profile: CompanyProfile) -> Job:
         await session.commit()
         await session.refresh(job)
         return job
+
+
+# ==================== Application Fixtures ====================
+
+
+@pytest.fixture
+async def candidate_profile(test_db) -> CandidateProfile:
+    """Create a candidate profile for testing."""
+    async with TestSessionLocal() as session:
+        candidate = CandidateProfile(
+            full_name="Jane Candidate",
+            email="jane@candidate.com",
+            phone="555-1234",
+        )
+        session.add(candidate)
+        await session.commit()
+        await session.refresh(candidate)
+        return candidate
+
+
+@pytest.fixture
+async def application(
+    published_job: Job, candidate_profile: CandidateProfile
+) -> Application:
+    """Create a NEW application linking a candidate to a published job."""
+    async with TestSessionLocal() as session:
+        app_obj = Application(
+            job_id=published_job.id,
+            candidate_id=candidate_profile.id,
+            status=ApplicationStatus.NEW,
+        )
+        session.add(app_obj)
+        await session.commit()
+        await session.refresh(app_obj)
+        return app_obj
 
 
 # ==================== API Client Fixtures ====================

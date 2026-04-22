@@ -285,6 +285,17 @@ class ApplicationCreate(BaseModel):
     candidate_id: int
 
 
+class ApplicationStatusUpdate(BaseModel):
+    """Schema for admin status updates on an application.
+
+    status is required — use ApplicationUpdate for partial updates
+    where status is optional.
+    """
+
+    status: ApplicationStatus
+    admin_notes: str | None = None
+
+
 class ApplicationUpdate(BaseModel):
     """Schema for updating an application."""
 
