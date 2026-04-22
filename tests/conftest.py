@@ -4,7 +4,11 @@ import asyncio
 import os
 import tempfile
 from collections.abc import AsyncGenerator
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
+
+# Set JWT_SECRET_KEY before any src imports so settings loads it correctly
+# in both the main process and each xdist worker process.
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-min-32-chars-for-testing!")
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -30,6 +34,31 @@ from src.main import app
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
+
+_EMAIL_TASK_TARGETS = [
+    "src.services.auth.enqueue_email_task",
+    "src.services.admin.enqueue_email_task",
+    "src.services.jobs.enqueue_email_task",
+    "src.services.jobs_admin.enqueue_email_task",
+    "src.services.candidates.enqueue_email_task",
+    "src.services.applications_admin.enqueue_email_task",
+]
+
+
+@pytest.fixture(autouse=True)
+def mock_enqueue_email():
+    """Patch enqueue_email_task in every service module for all tests.
+
+    Prevents any test from trying to connect to Redis. Each service imports
+    enqueue_email_task with 'from src.core.tasks import ...', creating a local
+    binding, so each module must be patched individually.
+    """
+    patches = [patch(target, new_callable=AsyncMock) for target in _EMAIL_TASK_TARGETS]
+    for p in patches:
+        p.start()
+    yield
+    for p in patches:
+        p.stop()
 
 
 def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
@@ -159,9 +188,7 @@ async def company_user(test_db) -> User:
             password="password",
             company_profile=CompanyProfileCreate(name="Test Company"),
         )
-        with patch("src.services.auth.enqueue_email_task") as mock_enqueue:
-            mock_enqueue.return_value = "test-job-id"
-            result = await register_company_user(user_data, session)
+        result = await register_company_user(user_data, session)
         await session.commit()
         return result.user
 
@@ -175,9 +202,7 @@ async def approved_company_user(test_db) -> User:
             password="password",
             company_profile=CompanyProfileCreate(name="Approved Company"),
         )
-        with patch("src.services.auth.enqueue_email_task") as mock_enqueue:
-            mock_enqueue.return_value = "test-job-id"
-            result = await register_company_user(user_data, session)
+        result = await register_company_user(user_data, session)
         # Activate the user (simulate admin approval)
         result.user.is_active = True
         await session.commit()
