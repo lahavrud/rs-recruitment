@@ -24,6 +24,11 @@ export function decodeToken(token: string): JwtPayload | null {
   try {
     const payload = jwtDecode<JwtPayload>(token);
 
+    if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp)) {
+      removeToken();
+      return null;
+    }
+
     // Check if token is expired
     if (payload.exp * 1000 < Date.now()) {
       removeToken();
@@ -32,6 +37,7 @@ export function decodeToken(token: string): JwtPayload | null {
 
     return payload;
   } catch {
+    removeToken();
     return null;
   }
 }
