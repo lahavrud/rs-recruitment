@@ -171,5 +171,12 @@ async def test_get_public_job_payload_integrity(
     assert job_public.title == published_job.title
 
     # 4. Assert that only the allowed keys exist in the response
-    expected_keys = {"id", "title", "description", "requirements", "location", "created_at"}
+    expected_keys = {
+        "id",
+        "title",
+        "description",
+        "requirements",
+        "location",
+        "created_at",
+    }
     assert set(data.keys()) == expected_keys
