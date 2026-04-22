@@ -1,3 +1,4 @@
+# ruff: noqa: E402  -- env var must be set before src imports (see _TEST_JWT_SECRET below)
 """Shared pytest fixtures for all tests."""
 
 import asyncio
@@ -6,9 +7,12 @@ import tempfile
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
-# Set JWT_SECRET_KEY before any src imports so settings loads it correctly
-# in both the main process and each xdist worker process.
-os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-min-32-chars-for-testing!")
+# Single source of truth for the test JWT secret.
+# Set with os.environ[] (not setdefault) so it always wins over any value that
+# might already be in the environment, and so every xdist worker process gets
+# the same predictable value at import time — before settings is loaded.
+_TEST_JWT_SECRET = "test-secret-key-min-32-chars-for-testing!"
+os.environ["JWT_SECRET_KEY"] = _TEST_JWT_SECRET
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -41,7 +45,9 @@ _EMAIL_TASK_TARGETS = [
     "src.services.jobs.enqueue_email_task",
     "src.services.jobs_admin.enqueue_email_task",
     "src.services.candidates.enqueue_email_task",
-    "src.services.applications_admin.enqueue_email_task",
+    # applications_admin no longer imports enqueue_email_task directly;
+    # the router enqueues after commit — patch at the router level instead.
+    "src.api.admin_applications.enqueue_email_task",
 ]
 
 
@@ -119,14 +125,9 @@ def setup_testing_environment():
     """Set up testing environment before all tests."""
     # Enable testing mode (disables rate limiting and config validation)
     settings.testing = True
-    # Ensure JWT_SECRET_KEY is set for tests
-    os.environ.setdefault(
-        "JWT_SECRET_KEY", "test_secret_key_min_32_chars_long_for_testing"
-    )
     yield
     # Cleanup
     settings.testing = False
-    os.environ.pop("TESTING", None)
 
 
 @pytest.fixture(scope="function", autouse=True)

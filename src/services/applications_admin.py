@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.tasks import enqueue_email_task
 from src.enums import ApplicationStatus
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import ApplicationRead, ApplicationWithDetails
@@ -103,11 +102,13 @@ async def update_application_status(
     new_status: ApplicationStatus,
     session: AsyncSession,
     admin_notes: str | None = None,
-) -> ApplicationRead:
+) -> tuple[ApplicationRead, list[dict[str, str]]]:
     """Update an application's status and optionally add admin notes.
 
-    Enforces valid status transitions. Sends email notifications to both
-    the candidate and the company on every status change.
+    Enforces valid status transitions. Returns the updated application and
+    a list of email payloads to be enqueued by the caller *after* the
+    surrounding DB transaction has been committed, so emails are never sent
+    for changes that were subsequently rolled back.
 
     Args:
         application_id: ID of the application to update
@@ -116,7 +117,8 @@ async def update_application_status(
         admin_notes: Optional notes from the admin
 
     Returns:
-        Updated application as ApplicationRead schema
+        Tuple of (updated ApplicationRead, list of email payload dicts).
+        Each payload dict has keys: ``to``, ``subject``, ``body``.
 
     Raises:
         ApplicationNotFoundError: If application not found
@@ -145,7 +147,7 @@ async def update_application_status(
     application.updated_at = datetime.now(timezone.utc)
     await session.flush()
 
-    # Fetch candidate and company for email notifications
+    # Fetch related records needed for email content
     candidate_result = await session.execute(
         select(CandidateProfile).where(CandidateProfile.id == application.candidate_id)  # pyright: ignore[reportArgumentType]
     )
@@ -166,32 +168,34 @@ async def update_application_status(
     )
     company_user = user_result.scalar_one()
 
-    # Notify candidate
-    await enqueue_email_task(
-        to=candidate.email,
-        subject=f"Your application status has been updated: {new_status}",
-        body=(
-            f"Dear {candidate.full_name},\n\n"
-            f"Your application for '{job.title}' has been updated.\n\n"
-            f"Previous status: {old_status}\n"
-            f"New status: {new_status}\n"
-            + (f"\nAdmin notes: {admin_notes}\n" if admin_notes else "")
-            + "\nThank you for your interest."
-        ),
-    )
+    notes_line = f"\nAdmin notes: {admin_notes}\n" if admin_notes else ""
 
-    # Notify company
-    await enqueue_email_task(
-        to=company_user.email,
-        subject=f"Application status updated for '{job.title}'",
-        body=(
-            f"Dear {company.name},\n\n"
-            f"An application for your job posting '{job.title}' has been updated.\n\n"
-            f"Candidate: {candidate.full_name}\n"
-            f"Previous status: {old_status}\n"
-            f"New status: {new_status}\n"
-            + (f"\nAdmin notes: {admin_notes}\n" if admin_notes else "")
-        ),
-    )
+    email_payloads: list[dict[str, str]] = [
+        {
+            "to": candidate.email,
+            "subject": f"Your application status has been updated: {new_status}",
+            "body": (
+                f"Dear {candidate.full_name},\n\n"
+                f"Your application for '{job.title}' has been updated.\n\n"
+                f"Previous status: {old_status}\n"
+                f"New status: {new_status}\n"
+                f"{notes_line}"
+                "\nThank you for your interest."
+            ),
+        },
+        {
+            "to": company_user.email,
+            "subject": f"Application status updated for '{job.title}'",
+            "body": (
+                f"Dear {company.name},\n\n"
+                f"An application for your job posting '{job.title}' "
+                "has been updated.\n\n"
+                f"Candidate: {candidate.full_name}\n"
+                f"Previous status: {old_status}\n"
+                f"New status: {new_status}\n"
+                f"{notes_line}"
+            ),
+        },
+    ]
 
-    return ApplicationRead.model_validate(application)
+    return ApplicationRead.model_validate(application), email_payloads

@@ -1,14 +1,15 @@
 """Admin endpoints for application (match) management."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.tasks import enqueue_email_task
 from src.enums import ApplicationStatus
 from src.models import User
-from src.schemas import ApplicationRead, ApplicationUpdate, ApplicationWithDetails
+from src.schemas import ApplicationRead, ApplicationStatusUpdate, ApplicationWithDetails
 from src.services.applications_admin import (
     get_application,
     list_applications,
@@ -92,7 +93,7 @@ async def get_application_detail(
 )
 async def update_application_status_endpoint(
     application_id: int,
-    body: ApplicationUpdate,
+    body: ApplicationStatusUpdate,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> ApplicationRead:
@@ -103,12 +104,14 @@ async def update_application_status_endpoint(
     - APPROVED_BY_ADMIN → HIRED or REJECTED
     - REJECTED and HIRED are terminal states
 
-    Sends email notifications to both candidate and company on update.
+    Sends email notifications to both candidate and company after the
+    DB transaction commits, so emails are never enqueued for rolled-back
+    changes.
     Requires admin authentication.
 
     Args:
         application_id: ID of the application to update
-        body: New status and optional admin notes
+        body: Required new status and optional admin notes
         current_admin: Current authenticated admin user (from dependency)
         session: Database session
 
@@ -118,20 +121,20 @@ async def update_application_status_endpoint(
     Raises:
         HTTPException: If application not found or transition is invalid
     """
-    if body.status is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="status is required",
-        )
     try:
-        result = await update_application_status(
+        result, email_payloads = await update_application_status(
             application_id, body.status, session, admin_notes=body.admin_notes
         )
         await session.commit()
-        return result
     except (ApplicationNotFoundError, InvalidApplicationStatusTransitionError) as e:
         await session.rollback()
         raise service_exception_to_http(e) from e
     except Exception:
         await session.rollback()
         raise
+
+    # Enqueue emails only after the transaction has committed successfully
+    for payload in email_payloads:
+        await enqueue_email_task(**payload)
+
+    return result

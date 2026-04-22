@@ -180,12 +180,13 @@ async def test_update_status_new_to_approved(
     candidate = await _make_candidate(session)
     app = await _make_application(session, company_with_user, candidate)
 
-    result = await update_application_status(
+    result, email_payloads = await update_application_status(
         app.id, ApplicationStatus.APPROVED_BY_ADMIN, session
     )
 
     assert isinstance(result, ApplicationRead)
     assert result.status == ApplicationStatus.APPROVED_BY_ADMIN
+    assert len(email_payloads) == 2
 
 
 @pytest.mark.asyncio
@@ -196,7 +197,7 @@ async def test_update_status_new_to_rejected(
     candidate = await _make_candidate(session)
     app = await _make_application(session, company_with_user, candidate)
 
-    result = await update_application_status(
+    result, _ = await update_application_status(
         app.id, ApplicationStatus.REJECTED, session
     )
 
@@ -216,7 +217,9 @@ async def test_update_status_approved_to_hired(
         status=ApplicationStatus.APPROVED_BY_ADMIN,
     )
 
-    result = await update_application_status(app.id, ApplicationStatus.HIRED, session)
+    result, _ = await update_application_status(
+        app.id, ApplicationStatus.HIRED, session
+    )
 
     assert result.status == ApplicationStatus.HIRED
 
@@ -234,7 +237,7 @@ async def test_update_status_approved_to_rejected(
         status=ApplicationStatus.APPROVED_BY_ADMIN,
     )
 
-    result = await update_application_status(
+    result, _ = await update_application_status(
         app.id, ApplicationStatus.REJECTED, session
     )
 
@@ -291,7 +294,7 @@ async def test_update_status_with_admin_notes(
     candidate = await _make_candidate(session)
     app = await _make_application(session, company_with_user, candidate)
 
-    result = await update_application_status(
+    result, email_payloads = await update_application_status(
         app.id,
         ApplicationStatus.APPROVED_BY_ADMIN,
         session,
@@ -299,6 +302,7 @@ async def test_update_status_with_admin_notes(
     )
 
     assert result.admin_notes == "Strong candidate, schedule interview"
+    assert any("Strong candidate" in p["body"] for p in email_payloads)
 
 
 @pytest.mark.asyncio
