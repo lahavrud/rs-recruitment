@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import AppLayout from "@/components/layout/AppLayout";
-import PublicLayout from "@/components/layout/PublicLayout";
+import AppShell from "@/components/layout/AppShell";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -14,31 +13,34 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Standalone public route */}
-          <Route path="/login" element={<LoginPage />} />
+        {/*
+         * AppShell wraps <Routes> so the nav is mounted once and never
+         * remounted during navigation. The shell inspects location +
+         * auth state to decide which chrome (header/sidebar) to render.
+         */}
+        <AppShell>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
-          {/* Public job board routes (no auth required) */}
-          <Route element={<PublicLayout />}>
+            {/* Public job board */}
             <Route path="/jobs" element={<JobBoardPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id/apply" element={<ApplicationPage />} />
-          </Route>
 
-          {/* Protected routes (auth required) */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<DashboardPage />} />
-          </Route>
+            {/* Protected — ProtectedRoute redirects to /login if not authed */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Catch-all */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+            {/* Catch-all */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </AppShell>
       </AuthProvider>
     </BrowserRouter>
   );
