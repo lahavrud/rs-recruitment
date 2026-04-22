@@ -1,39 +1,90 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
+import CompanyRoute from "@/components/CompanyRoute";
 import AppShell from "@/components/layout/AppShell";
 import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+// Public
 import JobBoardPage from "@/pages/public/JobBoardPage";
 import JobDetailPage from "@/pages/public/JobDetailPage";
 import ApplicationPage from "@/pages/public/ApplicationPage";
+// Admin
+import AdminCompaniesPage from "@/pages/admin/AdminCompaniesPage";
+import AdminJobsPage from "@/pages/admin/AdminJobsPage";
+import AdminApplicationsPage from "@/pages/admin/AdminApplicationsPage";
+import AdminCandidatesPage from "@/pages/admin/AdminCandidatesPage";
+// Company
+import CompanyJobsPage from "@/pages/company/CompanyJobsPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        {/*
-         * AppShell wraps <Routes> so the nav is mounted once and never
-         * remounted during navigation. The shell inspects location +
-         * auth state to decide which chrome (header/sidebar) to render.
-         */}
         <AppShell>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
             {/* Public job board */}
             <Route path="/jobs" element={<JobBoardPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id/apply" element={<ApplicationPage />} />
 
-            {/* Protected — ProtectedRoute redirects to /login if not authed */}
+            {/* Shared authenticated dashboard */}
             <Route
               path="/"
               element={
                 <ProtectedRoute>
                   <DashboardPage />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* Admin-only routes */}
+            <Route
+              path="/admin/companies"
+              element={
+                <AdminRoute>
+                  <AdminCompaniesPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/jobs"
+              element={
+                <AdminRoute>
+                  <AdminJobsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/applications"
+              element={
+                <AdminRoute>
+                  <AdminApplicationsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/candidates"
+              element={
+                <AdminRoute>
+                  <AdminCandidatesPage />
+                </AdminRoute>
+              }
+            />
+
+            {/* Company-only routes */}
+            <Route
+              path="/company/jobs"
+              element={
+                <CompanyRoute>
+                  <CompanyJobsPage />
+                </CompanyRoute>
               }
             />
 

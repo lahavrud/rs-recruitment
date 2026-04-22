@@ -18,7 +18,7 @@ const adminNav: NavItem[] = [
 
 const companyNav: NavItem[] = [
   { label: "Dashboard", to: "/" },
-  { label: "Job Board", to: "/jobs" },
+  { label: "My Jobs", to: "/company/jobs" },
 ];
 
 interface SidebarProps {
@@ -30,8 +30,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuth();
   const navItems = user?.role === UserRole.ADMIN ? adminNav : companyNav;
 
-  // Close sidebar when route changes on mobile (via click on nav link)
-  // also close on Escape key
+  // Close on Escape key
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -64,7 +63,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* ── Mobile: backdrop + drawer ── */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 md:hidden"
@@ -80,7 +79,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Mobile: close button inside drawer */}
+        {/* Mobile close button */}
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 md:hidden">
           <span className="text-sm font-semibold text-gray-700">Menu</span>
           <button

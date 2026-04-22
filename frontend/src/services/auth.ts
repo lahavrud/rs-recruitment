@@ -1,5 +1,5 @@
 import api from "@/services/api";
-import type { LoginRequest, TokenResponse } from "@/types/api";
+import type { LoginRequest, TokenResponse, UserCreate, UserWithCompanyRead } from "@/types/api";
 import { removeToken, setToken } from "@/utils/token";
 
 /**
@@ -10,6 +10,15 @@ import { removeToken, setToken } from "@/utils/token";
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const response = await api.post<TokenResponse>("/auth/login", credentials);
   setToken(response.data.access_token);
+  return response.data;
+}
+
+/**
+ * Register a new company account.
+ * The account is inactive until an admin approves it — no token is issued.
+ */
+export async function register(data: UserCreate): Promise<UserWithCompanyRead> {
+  const response = await api.post<UserWithCompanyRead>("/auth/register", data);
   return response.data;
 }
 
