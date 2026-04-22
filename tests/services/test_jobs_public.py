@@ -1,5 +1,7 @@
 """Unit tests for public job board service functions."""
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,34 +23,55 @@ async def test_list_published_jobs_empty(session: AsyncSession):
 async def test_list_published_jobs(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """Test listing published jobs returns JobPublicRead and filters fields."""
-    # Create multiple published jobs
+    """Test listing published jobs returns only PUBLISHED jobs as JobPublicRead,
+    ordered newest-first, and excludes internal fields."""
+    now = datetime.now(timezone.utc)
+
+    # Create two published jobs with explicit timestamps for ordering verification
     job1 = Job(
         company_id=company_with_user.id,
-        title="Job 1",
+        title="Older Job",
         description="Description 1",
         requirements="Requirements 1",
         location="Location 1",
         status=JobStatus.PUBLISHED,
+        created_at=now - timedelta(hours=1),
     )
     job2 = Job(
         company_id=company_with_user.id,
-        title="Job 2",
+        title="Newer Job",
         description="Description 2",
         requirements="Requirements 2",
         location="Location 2",
         status=JobStatus.PUBLISHED,
+        created_at=now,
     )
-    session.add_all([job1, job2])
+    # Non-published job — must be excluded by the gatekeeper
+    job3 = Job(
+        company_id=company_with_user.id,
+        title="Pending Job",
+        description="Description 3",
+        requirements="Requirements 3",
+        location="Location 3",
+        status=JobStatus.PENDING_APPROVAL,
+        created_at=now + timedelta(hours=1),
+    )
+    session.add_all([job1, job2, job3])
     await session.commit()
 
     jobs = await list_published_jobs(session)
 
+    # Gatekeeper: only published jobs are returned
     assert len(jobs) == 2
-    # Verify the service uses the correct schema
-    assert isinstance(jobs[0], JobPublicRead)
 
-    # Verify internal fields are not present in the model's exported data
+    # Correct schema type
+    assert all(isinstance(j, JobPublicRead) for j in jobs)
+
+    # Ordering: newest first (job2 before job1)
+    assert jobs[0].title == "Newer Job"
+    assert jobs[1].title == "Older Job"
+
+    # Internal fields are not present in the exported data
     job_dict = jobs[0].model_dump()
     assert "company_id" not in job_dict
     assert "updated_at" not in job_dict
