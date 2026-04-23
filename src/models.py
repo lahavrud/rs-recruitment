@@ -4,8 +4,7 @@ import os
 from datetime import datetime, timezone
 
 from pydantic import field_validator
-from sqlalchemy import Text, UniqueConstraint
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, Text, UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from src.enums import ApplicationStatus, JobStatus, UserRole
