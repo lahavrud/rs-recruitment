@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from "rea
 import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import LanguageToggle from "@/components/LanguageToggle";
 import axios from "axios";
 
 export default function LoginPage() {
@@ -86,7 +87,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-6 shadow sm:p-8">
-        <div>
+        <div className="relative">
+          <div className="absolute start-0 top-0">
+            <LanguageToggle />
+          </div>
           <h1 className="text-center text-2xl font-bold text-gray-900">
             {t("auth.login.title")}
           </h1>
