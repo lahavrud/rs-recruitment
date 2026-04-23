@@ -77,7 +77,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           fixed inset-y-0 start-0 z-30 flex w-56 flex-col border-e border-gray-200
           bg-white transition-transform duration-200 ease-in-out
           md:static md:translate-x-0 md:bg-gray-50
-          ${isOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"}
+          ${isOpen ? "translate-x-0" : "max-md:ltr:-translate-x-full max-md:rtl:translate-x-full"}
         `}
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 md:hidden">
