@@ -1,0 +1,76 @@
+# Manual deployment compose file — EC2 + Cloudflare + RDS
+#
+# Prerequisites on the EC2 instance before running:
+#   1. Export ECR_REGISTRY (done by deploy script, not stored here):
+#        export ECR_REGISTRY=$(aws sts get-caller-identity \
+#          --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
+#
+#   2. Create ~/app/.env with:
+#        JWT_SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
+#        DATABASE_URL=postgresql+asyncpg://<user>:<password>@<rds-endpoint>:5432/<dbname>
+#        REDIS_URL=redis://redis:6379/0
+#        STORAGE_PROVIDER=local
+#        LOCAL_STORAGE_PATH=/app/data/storage
+#        ALLOWED_ORIGINS=https://rs-recruiting.com,https://www.rs-recruiting.com
+#        ENVIRONMENT=production
+#
+#   3. Place built frontend files at ~/app/frontend/dist/
+#      and this nginx config at ~/app/frontend/nginx.conf
+#
+# Deploy:
+#   docker compose -f docker-compose.deploy.yml pull
+#   docker compose -f docker-compose.deploy.yml up -d
+#   docker compose -f docker-compose.deploy.yml exec -T api uv run alembic upgrade head
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    image: ${ECR_REGISTRY}/rs-recruitment/api:latest
+    env_file: .env
+    volumes:
+      - app-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  worker:
+    image: ${ECR_REGISTRY}/rs-recruitment/api:latest
+    command: ["arq", "src.core.tasks.WorkerSettings"]
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  app-data:   # persistent storage for local file uploads (/app/data)
+  redis-data: # persistent redis data for Arq job queue
