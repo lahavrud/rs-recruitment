@@ -86,18 +86,28 @@ def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
         cursor.close()
 
 
-# Use file-based SQLite for tests (faster than in-memory for multiple tests)
-# Using a temporary file that gets cleaned up
-_test_db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
-_test_db_file.close()
-TEST_DATABASE_URL = f"sqlite+aiosqlite:///{_test_db_file.name}"
+# Use DATABASE_URL from the environment when it is a PostgreSQL URL (CI),
+# otherwise fall back to a temporary SQLite file (local development).
+# PostgreSQL tests run sequentially (-n 0) to avoid workers sharing one DB.
+_env_db_url = os.environ.get("DATABASE_URL", "")
 
-# Create test engine and session factory
-test_engine = create_async_engine(
-    TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
-)
-# Enable FK constraints for SQLite to match PostgreSQL behavior
-enable_sqlite_foreign_keys(test_engine)
+if _env_db_url.startswith("postgresql"):
+    TEST_DATABASE_URL = _env_db_url
+    test_engine = create_async_engine(
+        TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
+    )
+    # No SQLite FK pragma needed — PostgreSQL enforces FKs natively
+else:
+    # File-based SQLite: faster than :memory: for multiple tests, and each
+    # xdist worker gets its own temp file (process-level isolation).
+    _test_db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    _test_db_file.close()
+    TEST_DATABASE_URL = f"sqlite+aiosqlite:///{_test_db_file.name}"
+    test_engine = create_async_engine(
+        TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
+    )
+    enable_sqlite_foreign_keys(test_engine)
+
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -143,16 +153,12 @@ async def test_db() -> AsyncGenerator[None, None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     yield
-    # Fast cleanup: delete all data from tables (much faster than drop/create)
-    async with TestSessionLocal() as cleanup_session:
-        # Delete in reverse order of foreign key dependencies
-        await cleanup_session.execute(text("DELETE FROM application"))
-        await cleanup_session.execute(text("DELETE FROM job"))
-        await cleanup_session.execute(text("DELETE FROM candidateprofile"))
-        await cleanup_session.execute(text("DELETE FROM companyprofile"))
-        await cleanup_session.execute(text("DELETE FROM user"))
-        await cleanup_session.commit()
-        await cleanup_session.close()
+    # Dialect-agnostic cleanup using SQLModel metadata table references.
+    # Avoids raw SQL with "user" which is a reserved word in PostgreSQL.
+    # Reversed sorted_tables respects FK dependency order automatically.
+    async with test_engine.begin() as conn:
+        for table in reversed(SQLModel.metadata.sorted_tables):
+            await conn.execute(table.delete())
 
 
 @pytest.fixture

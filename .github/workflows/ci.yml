@@ -58,8 +58,24 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: rs_recruitment_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test # pragma: allowlist secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     env:
-      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/rs_recruitment_test" # pragma: allowlist secret
       JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long" # pragma: allowlist secret
       JWT_ALGORITHM: "HS256"
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
@@ -100,7 +116,9 @@ jobs:
         run: uv pip install --system -r requirements.txt
 
       - name: Run Tests
-        run: uv run pytest -n auto
+        # Sequential: all workers share one PostgreSQL DB; -n auto would cause
+        # cross-worker cleanup conflicts (table.delete() wipes all rows).
+        run: uv run pytest
 
   docker-build:
     runs-on: ubuntu-latest
