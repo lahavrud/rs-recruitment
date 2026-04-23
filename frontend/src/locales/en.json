@@ -1,0 +1,331 @@
+{
+  "header": {
+    "logout": "Logout"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "companies": "Companies",
+    "jobs": "Jobs",
+    "applications": "Applications",
+    "candidates": "Candidates",
+    "myJobs": "My Jobs",
+    "menu": "Menu",
+    "toggleNavigation": "Toggle navigation",
+    "closeNavigation": "Close navigation"
+  },
+  "common": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "submitting": "Submitting…",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "approve": "Approve",
+    "reject": "Reject",
+    "back": "Back",
+    "submit": "Submit",
+    "remove": "Remove",
+    "close": "Close",
+    "open": "Open",
+    "posted": "Posted",
+    "pending": "pending",
+    "error": "Error",
+    "optional": "optional"
+  },
+  "auth": {
+    "appName": "RS Recruitment",
+    "login": {
+      "title": "RS Recruitment",
+      "subtitle": "Sign in to your account",
+      "emailLabel": "Email address",
+      "passwordLabel": "Password",
+      "emailPlaceholder": "you@example.com",
+      "passwordPlaceholder": "Enter your password",
+      "submitText": "Sign in",
+      "submittingText": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Register your company",
+      "validation": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email address",
+        "passwordRequired": "Password is required",
+        "passwordMin": "Password must be at least 8 characters"
+      },
+      "errors": {
+        "loginFailed": "Login failed",
+        "unexpectedError": "An unexpected error occurred"
+      }
+    },
+    "register": {
+      "title": "Create an Account",
+      "subtitle": "Register your company to start posting jobs.",
+      "companySection": "Company Information",
+      "accountSection": "Account",
+      "companyName": "Company Name",
+      "contactPerson": "Contact Person",
+      "contactPhone": "Contact Phone",
+      "emailLabel": "Email Address",
+      "passwordLabel": "Password",
+      "confirmLabel": "Confirm Password",
+      "companyNamePlaceholder": "Acme Ltd.",
+      "contactPersonPlaceholder": "Jane Smith",
+      "contactPhonePlaceholder": "+972 50 000 0000",
+      "emailPlaceholder": "you@company.com",
+      "passwordPlaceholder": "At least 8 characters",
+      "confirmPlaceholder": "Repeat your password",
+      "submitText": "Create Account",
+      "submittingText": "Submitting…",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "success": {
+        "title": "Registration Submitted!",
+        "message": "Your company account is pending admin approval. You will be notified by email once your account has been reviewed.",
+        "backToLogin": "Back to Login"
+      },
+      "validation": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Enter a valid email address",
+        "passwordRequired": "Password is required",
+        "passwordMin": "Password must be at least 8 characters",
+        "confirmRequired": "Please confirm your password",
+        "confirmMismatch": "Passwords do not match",
+        "companyNameRequired": "Company name is required",
+        "companyNameMax": "Company name cannot exceed 100 characters",
+        "phoneInvalid": "Phone may only contain digits, spaces, +, -, (, )",
+        "phoneMin": "Phone must have at least 5 digits"
+      },
+      "errors": {
+        "tooManyAttempts": "Too many registration attempts. Please try again later.",
+        "failed": "Registration failed. Please try again.",
+        "unexpected": "An unexpected error occurred."
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back,",
+    "adminLinks": {
+      "pendingCompanies": "Pending Companies",
+      "pendingCompaniesDesc": "Review and approve company registrations.",
+      "pendingJobs": "Pending Jobs",
+      "pendingJobsDesc": "Approve or reject job postings before they go live.",
+      "applications": "Applications",
+      "applicationsDesc": "Track and update candidate application statuses.",
+      "candidates": "Candidates",
+      "candidatesDesc": "Browse candidate profiles."
+    },
+    "companyLinks": {
+      "myJobs": "My Jobs",
+      "myJobsDesc": "Post new jobs and manage your existing listings."
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Page not found",
+    "goToDashboard": "Go to Dashboard"
+  },
+  "publicJobs": {
+    "board": {
+      "title": "Open Positions",
+      "subtitle": "Browse our current job openings and apply today.",
+      "loading": "Loading jobs...",
+      "errorGeneric": "An unexpected error occurred.",
+      "errorLoad": "Failed to load jobs. Please try again later.",
+      "noPositions": "No open positions at this time. Check back soon.",
+      "open": "Open",
+      "posted": "Posted"
+    },
+    "detail": {
+      "loading": "Loading job...",
+      "unavailable": "This job is no longer available.",
+      "errorLoad": "Failed to load job details. Please try again later.",
+      "notFound": "Job not found.",
+      "backToJobs": "← Back to Jobs",
+      "aboutRole": "About the Role",
+      "requirements": "Requirements",
+      "applyNow": "Apply Now",
+      "open": "Open",
+      "posted": "Posted"
+    },
+    "application": {
+      "loading": "Loading...",
+      "errorLoad": "Failed to load job details.",
+      "unavailable": "This job is no longer available.",
+      "backToJob": "← Back to Job",
+      "applyFor": "Apply —",
+      "submitted": "Application Submitted!",
+      "submittedMessage": "Thank you for applying to",
+      "submittedDetail": "We will be in touch if your profile is a good fit.",
+      "browseMore": "Browse More Jobs",
+      "personalSection": "Personal Information",
+      "resumeSection": "Resume",
+      "interviewSection": "Interview Questions",
+      "interviewSectionHint": "All fields in this section are optional.",
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "linkedin": "LinkedIn URL",
+      "resumeUpload": "Upload Resume",
+      "serviceConcept": "Service Concept",
+      "salaryExpectations": "Salary Expectations",
+      "militaryService": "Military Service Details",
+      "transportation": "Transportation",
+      "strength": "Key Strength",
+      "weakness": "Area for Growth",
+      "placeholders": {
+        "fullName": "Jane Smith",
+        "email": "jane@example.com",
+        "phone": "+972 50 000 0000",
+        "linkedin": "https://linkedin.com/in/yourprofile",
+        "serviceConcept": "Describe your approach to customer service...",
+        "salaryExpectations": "What are your salary expectations?",
+        "militaryService": "Please describe your military service (if applicable)...",
+        "transportation": "How do you plan to commute to work?",
+        "strength": "What is your greatest professional strength?",
+        "weakness": "What is an area you are actively working to improve?"
+      },
+      "submitText": "Submit Application",
+      "submittingText": "Submitting...",
+      "removeFile": "Remove",
+      "fileHint": "PDF, DOC, or DOCX — max {{maxSize}} MB",
+      "validation": {
+        "fullNameRequired": "Full name is required",
+        "fullNameMin": "Full name must be at least 2 characters",
+        "fullNameMax": "Full name cannot exceed 100 characters",
+        "emailRequired": "Email is required",
+        "emailMax": "Email cannot exceed 255 characters",
+        "emailInvalid": "Please enter a valid email address",
+        "phoneInvalid": "Phone number can only contain digits, spaces, plus, hyphens, parentheses",
+        "phoneMin": "Phone number must have at least 5 digits",
+        "urlInvalid": "Please enter a valid URL",
+        "urlProtocol": "LinkedIn URL must start with http:// or https://",
+        "urlLinkedin": "LinkedIn URL must be a linkedin.com address",
+        "textMax": "This field cannot exceed 2000 characters"
+      },
+      "resumeErrors": {
+        "invalidExtension": "Only PDF, DOC, or DOCX files are allowed.",
+        "fileTooBig": "File must be smaller than {{maxSize}} MB."
+      },
+      "errors": {
+        "alreadyApplied": "You have already applied to this job.",
+        "jobUnavailable": "This job is no longer available.",
+        "generic": "Something went wrong. Please try again."
+      }
+    }
+  },
+  "admin": {
+    "companies": {
+      "title": "Pending Companies",
+      "subtitle": "Review and approve company registrations.",
+      "pending": "pending",
+      "loading": "Loading…",
+      "empty": "No pending company registrations.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "contactLabel": "Contact",
+      "registeredLabel": "Registered",
+      "approveError": "Failed to approve company.",
+      "rejectError": "Failed to reject company.",
+      "rejectConfirm": "Reject and permanently delete this company registration?",
+      "loadError": "Failed to load pending companies."
+    },
+    "jobs": {
+      "title": "Pending Jobs",
+      "subtitle": "Review and approve job postings before they go live.",
+      "pending": "pending",
+      "loading": "Loading…",
+      "empty": "No pending job postings.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "companyLabel": "Company #{{id}}",
+      "submittedLabel": "Submitted",
+      "approveError": "Failed to approve job.",
+      "rejectError": "Failed to reject job.",
+      "rejectConfirm": "Reject this job posting? It will be marked as Closed.",
+      "loadError": "Failed to load pending jobs."
+    },
+    "applications": {
+      "title": "Applications",
+      "subtitle": "Review and update candidate application statuses.",
+      "loading": "Loading…",
+      "empty": "No applications found.",
+      "loadError": "Failed to load applications.",
+      "filterAll": "All",
+      "table": {
+        "candidate": "Candidate",
+        "job": "Job",
+        "status": "Status",
+        "date": "Date",
+        "action": "Action"
+      },
+      "statusLabels": {
+        "NEW": "New",
+        "APPROVED_BY_ADMIN": "Approved",
+        "REJECTED": "Rejected",
+        "HIRED": "Hired"
+      },
+      "modal": {
+        "title": "Update Application Status",
+        "candidateLabel": "Candidate",
+        "jobLabel": "Job",
+        "currentStatusLabel": "Current status",
+        "newStatusLabel": "New Status",
+        "adminNotes": "Admin Notes",
+        "notesPlaceholder": "Add notes visible to the team…",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving…"
+      },
+      "errors": {
+        "updateFailed": "Failed to update status. Please try again."
+      }
+    },
+    "candidates": {
+      "title": "Candidates",
+      "subtitle": "Browse and manage candidate profiles.",
+      "comingSoon": "Candidate listing will be available in a future update."
+    }
+  },
+  "company": {
+    "jobs": {
+      "title": "My Jobs",
+      "subtitle": "Manage your job postings. New jobs require admin approval before going live.",
+      "postJob": "+ Post a Job",
+      "loading": "Loading…",
+      "empty": "No jobs yet. Post your first job to get started.",
+      "statusLabels": {
+        "PENDING_APPROVAL": "Pending Review",
+        "PUBLISHED": "Published",
+        "CLOSED": "Closed"
+      },
+      "createTitle": "Post a New Job",
+      "editTitle": "Edit Job",
+      "submitForReview": "Submit for Review",
+      "saveChanges": "Save Changes",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this job posting?",
+      "form": {
+        "jobTitle": "Job Title",
+        "location": "Location",
+        "description": "Description",
+        "requirements": "Requirements"
+      },
+      "placeholders": {
+        "jobTitle": "e.g. Senior Account Manager",
+        "location": "e.g. Tel Aviv",
+        "description": "Describe the role and responsibilities…",
+        "requirements": "List required skills and qualifications…"
+      },
+      "postedLabel": "Posted",
+      "errors": {
+        "loadFailed": "Failed to load jobs.",
+        "saveFailed": "Failed to save. Please try again.",
+        "deleteFailed": "Failed to delete job. Only pending jobs can be deleted."
+      }
+    }
+  }
+}

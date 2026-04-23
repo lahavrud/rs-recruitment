@@ -1,53 +1,29 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/api";
 
-interface QuickLink {
-  label: string;
-  description: string;
-  to: string;
-}
-
-const adminLinks: QuickLink[] = [
-  {
-    label: "Pending Companies",
-    description: "Review and approve company registrations.",
-    to: "/admin/companies",
-  },
-  {
-    label: "Pending Jobs",
-    description: "Approve or reject job postings before they go live.",
-    to: "/admin/jobs",
-  },
-  {
-    label: "Applications",
-    description: "Track and update candidate application statuses.",
-    to: "/admin/applications",
-  },
-  {
-    label: "Candidates",
-    description: "Browse candidate profiles.",
-    to: "/admin/candidates",
-  },
-];
-
-const companyLinks: QuickLink[] = [
-  {
-    label: "My Jobs",
-    description: "Post new jobs and manage your existing listings.",
-    to: "/company/jobs",
-  },
-];
-
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
-  const links = user?.role === UserRole.ADMIN ? adminLinks : companyLinks;
+  const isAdmin = user?.role === UserRole.ADMIN;
+
+  const links = isAdmin
+    ? [
+        { label: t("dashboard.adminLinks.pendingCompanies"), description: t("dashboard.adminLinks.pendingCompaniesDesc"), to: "/admin/companies" },
+        { label: t("dashboard.adminLinks.pendingJobs"), description: t("dashboard.adminLinks.pendingJobsDesc"), to: "/admin/jobs" },
+        { label: t("dashboard.adminLinks.applications"), description: t("dashboard.adminLinks.applicationsDesc"), to: "/admin/applications" },
+        { label: t("dashboard.adminLinks.candidates"), description: t("dashboard.adminLinks.candidatesDesc"), to: "/admin/candidates" },
+      ]
+    : [
+        { label: t("dashboard.companyLinks.myJobs"), description: t("dashboard.companyLinks.myJobsDesc"), to: "/company/jobs" },
+      ];
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t("dashboard.title")}</h1>
       <p className="mt-1 text-sm text-gray-500">
-        Welcome back,{" "}
+        {t("dashboard.welcomeBack")}{" "}
         <span className="font-medium text-gray-700">{user?.email}</span>
       </p>
 

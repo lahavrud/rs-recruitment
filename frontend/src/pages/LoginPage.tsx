@@ -1,9 +1,12 @@
 import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import LanguageToggle from "@/components/LanguageToggle";
 import axios from "axios";
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,16 +14,15 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
 
-  // Validation
   function validateField(name: string, value: string): string {
     if (name === "email") {
-      if (!value.trim()) return "Email is required";
+      if (!value.trim()) return t("auth.login.validation.emailRequired");
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) return "Please enter a valid email address";
+      if (!emailRegex.test(value)) return t("auth.login.validation.emailInvalid");
     }
     if (name === "password") {
-      if (!value.trim()) return "Password is required";
-      if (value.length < 8) return "Password must be at least 8 characters";
+      if (!value.trim()) return t("auth.login.validation.passwordRequired");
+      if (value.length < 8) return t("auth.login.validation.passwordMin");
     }
     return "";
   }
@@ -54,7 +56,6 @@ export default function LoginPage() {
     }
   }
 
-  // If already authenticated, redirect to dashboard
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
@@ -63,7 +64,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    // Validate form fields
     if (!validateForm()) {
       return;
     }
@@ -75,9 +75,9 @@ export default function LoginPage() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const detail = err.response?.data?.detail;
-        setError(typeof detail === "string" ? detail : "Login failed");
+        setError(typeof detail === "string" ? detail : t("auth.login.errors.loginFailed"));
       } else {
-        setError("An unexpected error occurred");
+        setError(t("auth.login.errors.unexpectedError"));
       }
     } finally {
       setSubmitting(false);
@@ -87,12 +87,15 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-6 shadow sm:p-8">
-        <div>
+        <div className="relative">
+          <div className="absolute start-0 top-0">
+            <LanguageToggle />
+          </div>
           <h1 className="text-center text-2xl font-bold text-gray-900">
-            RS Recruitment
+            {t("auth.login.title")}
           </h1>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your account
+            {t("auth.login.subtitle")}
           </p>
         </div>
 
@@ -107,7 +110,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700"
               >
-                Email address
+                {t("auth.login.emailLabel")}
               </label>
               <input
                 id="email"
@@ -117,7 +120,7 @@ export default function LoginPage() {
                 onChange={handleEmailChange}
                 onBlur={handleBlur}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                placeholder="you@example.com"
+                placeholder={t("auth.login.emailPlaceholder")}
                 autoComplete="email"
               />
               {fieldErrors.email && (
@@ -130,7 +133,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
               >
-                Password
+                {t("auth.login.passwordLabel")}
               </label>
               <input
                 id="password"
@@ -140,7 +143,7 @@ export default function LoginPage() {
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                placeholder="Enter your password"
+                placeholder={t("auth.login.passwordPlaceholder")}
                 autoComplete="current-password"
               />
               {fieldErrors.password && (
@@ -154,14 +157,14 @@ export default function LoginPage() {
             disabled={submitting}
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Signing in..." : "Sign in"}
+            {submitting ? t("auth.login.submittingText") : t("auth.login.submitText")}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500">
-          Don&apos;t have an account?{" "}
+          {t("auth.login.noAccount")}{" "}
           <Link to="/register" className="font-medium text-blue-600 hover:underline">
-            Register your company
+            {t("auth.login.registerLink")}
           </Link>
         </p>
       </div>

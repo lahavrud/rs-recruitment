@@ -1,0 +1,332 @@
+{
+  "header": {
+    "logout": "התנתקות"
+  },
+  "nav": {
+    "dashboard": "לוח בקרה",
+    "companies": "חברות",
+    "jobs": "משרות",
+    "applications": "מועמדויות",
+    "candidates": "מועמדים",
+    "myJobs": "המשרות שלי",
+    "menu": "תפריט",
+    "toggleNavigation": "פתיחת תפריט ניווט",
+    "closeNavigation": "סגירת תפריט ניווט"
+  },
+  "common": {
+    "loading": "טוען…",
+    "saving": "שומר…",
+    "submitting": "שולח…",
+    "cancel": "ביטול",
+    "save": "שמירה",
+    "edit": "עריכה",
+    "delete": "מחיקה",
+    "approve": "אישור",
+    "reject": "דחייה",
+    "back": "חזרה",
+    "submit": "שליחה",
+    "remove": "הסרה",
+    "close": "סגירה",
+    "open": "פתוח",
+    "posted": "פורסם",
+    "pending": "ממתין",
+    "error": "שגיאה",
+    "optional": "אופציונלי"
+  },
+  "auth": {
+    "appName": "RS Recruitment",
+    "login": {
+      "title": "RS Recruitment",
+      "subtitle": "התחבר לחשבון שלך",
+      "emailLabel": "כתובת אימייל",
+      "passwordLabel": "סיסמה",
+      "emailPlaceholder": "you@example.com",
+      "passwordPlaceholder": "הכנס את הסיסמה שלך",
+      "submitText": "התחברות",
+      "submittingText": "מתחבר…",
+      "noAccount": "אין לך חשבון?",
+      "registerLink": "הרשם כחברה",
+      "validation": {
+        "emailRequired": "נדרשת כתובת אימייל",
+        "emailInvalid": "נא להזין כתובת אימייל תקינה",
+        "passwordRequired": "נדרשת סיסמה",
+        "passwordMin": "הסיסמה חייבת להכיל לפחות 8 תווים"
+      },
+      "errors": {
+        "loginFailed": "ההתחברות נכשלה",
+        "unexpectedError": "אירעה שגיאה בלתי צפויה"
+      }
+    },
+    "register": {
+      "title": "יצירת חשבון",
+      "subtitle": "הרשם את החברה שלך כדי להתחיל לפרסם משרות.",
+      "companySection": "פרטי החברה",
+      "accountSection": "חשבון",
+      "companyName": "שם החברה",
+      "contactPerson": "איש קשר",
+      "contactPhone": "טלפון ליצירת קשר",
+      "emailLabel": "כתובת אימייל",
+      "passwordLabel": "סיסמה",
+      "confirmLabel": "אימות סיסמה",
+      "companyNamePlaceholder": "Acme Ltd.",
+      "contactPersonPlaceholder": "ישראל ישראלי",
+      "contactPhonePlaceholder": "050-000-0000",
+      "emailPlaceholder": "you@company.com",
+      "passwordPlaceholder": "לפחות 8 תווים",
+      "confirmPlaceholder": "הזן שוב את הסיסמה",
+      "submitText": "יצירת חשבון",
+      "submittingText": "שולח…",
+      "haveAccount": "כבר יש לך חשבון?",
+      "loginLink": "התחברות",
+      "success": {
+        "title": "ההרשמה התקבלה!",
+        "message": "חשבון החברה שלך ממתין לאישור מנהל. תקבל הודעה באימייל כשהחשבון שלך יאושר.",
+        "backToLogin": "חזרה להתחברות"
+      },
+      "validation": {
+        "emailRequired": "נדרשת כתובת אימייל",
+        "emailInvalid": "הזן כתובת אימייל תקינה",
+        "passwordRequired": "נדרשת סיסמה",
+        "passwordMin": "הסיסמה חייבת להכיל לפחות 8 תווים",
+        "confirmRequired": "נא לאשר את הסיסמה",
+        "confirmMismatch": "הסיסמאות אינן תואמות",
+        "companyNameRequired": "שם החברה נדרש",
+        "companyNameMax": "שם החברה לא יכול להכיל יותר מ-100 תווים",
+        "phoneInvalid": "טלפון יכול להכיל רק ספרות, רווחים, +, -, (, )",
+        "phoneMin": "לטלפון חייבות להיות לפחות 5 ספרות"
+      },
+      "errors": {
+        "tooManyAttempts": "יותר מדי ניסיונות הרשמה. נסה שוב מאוחר יותר.",
+        "failed": "ההרשמה נכשלה. נסה שוב.",
+        "unexpected": "אירעה שגיאה בלתי צפויה."
+      }
+    }
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "welcomeBack": "ברוך השב,",
+
+    "adminLinks": {
+      "pendingCompanies": "חברות ממתינות",
+      "pendingCompaniesDesc": "בדוק ואשר רישומי חברות.",
+      "pendingJobs": "משרות ממתינות",
+      "pendingJobsDesc": "אשר או דחה פרסומי משרות לפני פרסומן.",
+      "applications": "מועמדויות",
+      "applicationsDesc": "עקוב ועדכן סטטוסי מועמדות.",
+      "candidates": "מועמדים",
+      "candidatesDesc": "עיין בפרופילי מועמדים."
+    },
+    "companyLinks": {
+      "myJobs": "המשרות שלי",
+      "myJobsDesc": "פרסם משרות חדשות ונהל את הרשימות הקיימות."
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "הדף לא נמצא",
+    "goToDashboard": "עבור ללוח הבקרה"
+  },
+  "publicJobs": {
+    "board": {
+      "title": "משרות פתוחות",
+      "subtitle": "עיין במשרות הפנויות שלנו והגש מועמדות היום.",
+      "loading": "טוען משרות...",
+      "errorGeneric": "אירעה שגיאה בלתי צפויה.",
+      "errorLoad": "טעינת המשרות נכשלה. נסה שוב מאוחר יותר.",
+      "noPositions": "אין משרות פתוחות כרגע. בדוק שוב בהמשך.",
+      "open": "פתוח",
+      "posted": "פורסם"
+    },
+    "detail": {
+      "loading": "טוען משרה...",
+      "unavailable": "משרה זו אינה זמינה יותר.",
+      "errorLoad": "טעינת פרטי המשרה נכשלה. נסה שוב מאוחר יותר.",
+      "notFound": "המשרה לא נמצאה.",
+      "backToJobs": "← חזרה למשרות",
+      "aboutRole": "על התפקיד",
+      "requirements": "דרישות",
+      "applyNow": "הגש מועמדות",
+      "open": "פתוח",
+      "posted": "פורסם"
+    },
+    "application": {
+      "loading": "טוען...",
+      "errorLoad": "טעינת פרטי המשרה נכשלה.",
+      "unavailable": "משרה זו אינה זמינה יותר.",
+      "backToJob": "← חזרה למשרה",
+      "applyFor": "הגש מועמדות —",
+      "submitted": "המועמדות התקבלה!",
+      "submittedMessage": "תודה שהגשת מועמדות למשרת",
+      "submittedDetail": "ניצור איתך קשר אם הפרופיל שלך מתאים.",
+      "browseMore": "עיין במשרות נוספות",
+      "personalSection": "פרטים אישיים",
+      "resumeSection": "קורות חיים",
+      "interviewSection": "שאלות ראיון",
+      "interviewSectionHint": "כל השדות בחלק זה הם אופציונליים.",
+      "fullName": "שם מלא",
+      "email": "כתובת אימייל",
+      "phone": "מספר טלפון",
+      "linkedin": "קישור ל-LinkedIn",
+      "resumeUpload": "העלאת קורות חיים",
+      "serviceConcept": "תפיסת שירות",
+      "salaryExpectations": "ציפיות שכר",
+      "militaryService": "פרטי שירות צבאי",
+      "transportation": "הסעות",
+      "strength": "חוזק מרכזי",
+      "weakness": "תחום לשיפור",
+      "placeholders": {
+        "fullName": "ישראל ישראלי",
+        "email": "israel@example.com",
+        "phone": "050-000-0000",
+        "linkedin": "https://linkedin.com/in/yourprofile",
+        "serviceConcept": "תאר את הגישה שלך לשירות לקוחות...",
+        "salaryExpectations": "מהן ציפיות השכר שלך?",
+        "militaryService": "נא לתאר את השירות הצבאי שלך (אם רלוונטי)...",
+        "transportation": "כיצד אתה מתכנן להגיע לעבודה?",
+        "strength": "מהו החוזק המקצועי הגדול ביותר שלך?",
+        "weakness": "באיזה תחום אתה פועל לשיפור?"
+      },
+      "submitText": "שליחת מועמדות",
+      "submittingText": "שולח...",
+      "removeFile": "הסרה",
+      "fileHint": "PDF, DOC או DOCX — מקסימום {{maxSize}} MB",
+      "validation": {
+        "fullNameRequired": "שם מלא נדרש",
+        "fullNameMin": "שם מלא חייב להכיל לפחות 2 תווים",
+        "fullNameMax": "שם מלא לא יכול להכיל יותר מ-100 תווים",
+        "emailRequired": "נדרשת כתובת אימייל",
+        "emailMax": "אימייל לא יכול להכיל יותר מ-255 תווים",
+        "emailInvalid": "נא להזין כתובת אימייל תקינה",
+        "phoneInvalid": "מספר טלפון יכול להכיל רק ספרות, רווחים, פלוס, מקף, סוגריים",
+        "phoneMin": "מספר הטלפון חייב להכיל לפחות 5 ספרות",
+        "urlInvalid": "נא להזין כתובת URL תקינה",
+        "urlProtocol": "כתובת LinkedIn חייבת להתחיל ב-http:// או https://",
+        "urlLinkedin": "כתובת LinkedIn חייבת להיות בכתובת linkedin.com",
+        "textMax": "שדה זה לא יכול להכיל יותר מ-2000 תווים"
+      },
+      "resumeErrors": {
+        "invalidExtension": "רק קבצי PDF, DOC או DOCX מותרים.",
+        "fileTooBig": "הקובץ חייב להיות קטן מ-{{maxSize}} MB."
+      },
+      "errors": {
+        "alreadyApplied": "כבר הגשת מועמדות למשרה זו.",
+        "jobUnavailable": "משרה זו אינה זמינה יותר.",
+        "generic": "משהו השתבש. נסה שוב."
+      }
+    }
+  },
+  "admin": {
+    "companies": {
+      "title": "חברות ממתינות",
+      "subtitle": "בדוק ואשר רישומי חברות.",
+      "pending": "ממתין",
+      "loading": "טוען…",
+      "empty": "אין חברות ממתינות לאישור.",
+      "approve": "אישור",
+      "reject": "דחייה",
+      "contactLabel": "איש קשר",
+      "registeredLabel": "נרשם",
+      "approveError": "אישור החברה נכשל.",
+      "rejectError": "דחיית החברה נכשלה.",
+      "rejectConfirm": "לדחות ולמחוק לצמיתות את רישום החברה?",
+      "loadError": "טעינת החברות הממתינות נכשלה."
+    },
+    "jobs": {
+      "title": "משרות ממתינות",
+      "subtitle": "בדוק ואשר פרסומי משרות לפני פרסומם.",
+      "pending": "ממתין",
+      "loading": "טוען…",
+      "empty": "אין משרות ממתינות לאישור.",
+      "approve": "אישור",
+      "reject": "דחייה",
+      "companyLabel": "חברה #{{id}}",
+      "submittedLabel": "הוגש",
+      "approveError": "אישור המשרה נכשל.",
+      "rejectError": "דחיית המשרה נכשלה.",
+      "rejectConfirm": "לדחות פרסום משרה זה? הוא יסומן כסגור.",
+      "loadError": "טעינת המשרות הממתינות נכשלה."
+    },
+    "applications": {
+      "title": "מועמדויות",
+      "subtitle": "בדוק ועדכן סטטוסי מועמדות.",
+      "loading": "טוען…",
+      "empty": "לא נמצאו מועמדויות.",
+      "loadError": "טעינת המועמדויות נכשלה.",
+      "filterAll": "הכל",
+      "table": {
+        "candidate": "מועמד",
+        "job": "משרה",
+        "status": "סטטוס",
+        "date": "תאריך",
+        "action": "פעולה"
+      },
+      "statusLabels": {
+        "NEW": "חדש",
+        "APPROVED_BY_ADMIN": "אושר",
+        "REJECTED": "נדחה",
+        "HIRED": "גויס"
+      },
+      "modal": {
+        "title": "עדכון סטטוס מועמדות",
+        "candidateLabel": "מועמד",
+        "jobLabel": "משרה",
+        "currentStatusLabel": "סטטוס נוכחי",
+        "newStatusLabel": "סטטוס חדש",
+        "adminNotes": "הערות מנהל",
+        "notesPlaceholder": "הוסף הערות גלויות לצוות…",
+        "cancel": "ביטול",
+        "save": "שמירה",
+        "saving": "שומר…"
+      },
+      "errors": {
+        "updateFailed": "עדכון הסטטוס נכשל. נסה שוב."
+      }
+    },
+    "candidates": {
+      "title": "מועמדים",
+      "subtitle": "עיין ונהל פרופילי מועמדים.",
+      "comingSoon": "רשימת המועמדים תהיה זמינה בעדכון עתידי."
+    }
+  },
+  "company": {
+    "jobs": {
+      "title": "המשרות שלי",
+      "subtitle": "נהל את פרסומי המשרות שלך. משרות חדשות דורשות אישור מנהל לפני פרסום.",
+      "postJob": "+ פרסום משרה",
+      "loading": "טוען…",
+      "empty": "אין עדיין משרות. פרסם את המשרה הראשונה שלך.",
+      "statusLabels": {
+        "PENDING_APPROVAL": "ממתין לאישור",
+        "PUBLISHED": "פורסם",
+        "CLOSED": "סגור"
+      },
+      "createTitle": "פרסם משרה חדשה",
+      "editTitle": "עריכת משרה",
+      "submitForReview": "שלח לאישור",
+      "saveChanges": "שמור שינויים",
+      "cancel": "ביטול",
+      "saving": "שומר…",
+      "edit": "עריכה",
+      "delete": "מחיקה",
+      "deleteConfirm": "למחוק פרסום משרה זה?",
+      "form": {
+        "jobTitle": "כותרת המשרה",
+        "location": "מיקום",
+        "description": "תיאור",
+        "requirements": "דרישות"
+      },
+      "placeholders": {
+        "jobTitle": "למשל: מנהל חשבונות ראשי",
+        "location": "למשל: תל אביב",
+        "description": "תאר את התפקיד והאחריויות…",
+        "requirements": "רשום כישורים ודרישות נדרשות…"
+      },
+      "postedLabel": "פורסם",
+      "errors": {
+        "loadFailed": "טעינת המשרות נכשלה.",
+        "saveFailed": "השמירה נכשלה. נסה שוב.",
+        "deleteFailed": "מחיקת המשרה נכשלה. רק משרות ממתינות ניתנות למחיקה."
+      }
+    }
+  }
+}
