@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from pydantic import field_validator
 from sqlalchemy import Text, UniqueConstraint
+from sqlalchemy import DateTime
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from src.enums import ApplicationStatus, JobStatus, UserRole
@@ -21,7 +22,10 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: UserRole
     is_active: bool = Field(default=False, description="False until Admin approves")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
 
     # Relationship to CompanyProfile (optional, only for COMPANY role)
     # Note: ADMIN users don't have CompanyProfile, so this can be None
@@ -45,7 +49,10 @@ class CompanyProfile(SQLModel, table=True):
     logo_url: str | None = None
     contact_person: str | None = None
     contact_phone: str | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
 
     # Relationships
     user: User = Relationship(back_populates="company_profile")
@@ -66,10 +73,17 @@ class Job(SQLModel, table=True):
     requirements: str
     location: str
     status: JobStatus = Field(default=JobStatus.PENDING_APPROVAL)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
 
     # Relationships
@@ -99,7 +113,10 @@ class CandidateProfile(SQLModel, table=True):
     personality_weakness: str | None = Field(default=None, sa_column=Column(Text))
     personality_strength: str | None = Field(default=None, sa_column=Column(Text))
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
 
     # Note: One-way relationships only (SQLModel 0.0.22 limitation)
     # Access applications via:
@@ -162,10 +179,17 @@ class Application(SQLModel, table=True):
     candidate_id: int = Field(foreign_key="candidateprofile.id", index=True)
     status: ApplicationStatus = Field(default=ApplicationStatus.NEW, index=True)
     admin_notes: str | None = Field(default=None, sa_column=Column(Text))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
 
     # Relationships

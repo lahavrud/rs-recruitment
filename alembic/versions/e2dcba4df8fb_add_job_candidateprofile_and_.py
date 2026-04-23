@@ -36,7 +36,7 @@ def upgrade() -> None:
         sa.Column("transportation", sa.Text(), nullable=True),
         sa.Column("personality_weakness", sa.Text(), nullable=True),
         sa.Column("personality_strength", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -55,8 +55,8 @@ def upgrade() -> None:
             sa.Enum("PENDING_APPROVAL", "PUBLISHED", "CLOSED", name="jobstatus"),
             nullable=False,
         ),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
             ["company_id"],
             ["companyprofile.id"],
@@ -81,8 +81,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("admin_notes", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
             ["candidate_id"],
             ["candidateprofile.id"],

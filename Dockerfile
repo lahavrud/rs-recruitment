@@ -19,6 +19,7 @@ RUN apt-get update && \
 COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini .
+COPY scripts/ scripts/
 
 # Copy entrypoint script and make it executable and secure
 COPY docker-entrypoint.sh /usr/local/bin/
