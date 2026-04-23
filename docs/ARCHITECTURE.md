@@ -172,16 +172,21 @@ These principles guide all architectural decisions:
 
 ### 5. CI/CD Pipeline
 
-**Problem:** Need automated quality checks and testing on every push to prevent regressions.
+**Problem:** Need automated quality checks, testing against production-identical database, and zero-touch deployment on every push to main.
 
-**Decision:** Implement GitHub Actions CI/CD pipeline with linting, testing, and Docker build verification.
+**Decision:** GitHub Actions CI/CD with OIDC-based AWS authentication, PostgreSQL service container for tests, and SSM Run Command for keyless deployment.
 
 **Implementation:**
 - **Workflow:** `.github/workflows/ci.yml`
-- **Jobs:**
-  - `lint`: Ruff linter, Ruff formatter, custom validation scripts
-  - `test`: Pytest with parallel execution
-  - `docker-build`: Docker image build and health check verification
+- **On pull_request to main:**
+  - `lint`: Ruff linter + formatter + 5 custom validation scripts
+  - `test`: Pytest against a PostgreSQL 16 service container (dialect parity with production)
+  - `docker-build`: Build image and verify `/health` endpoint
+- **On push to main (after lint + test pass):**
+  - `lint` + `test`: (same as above)
+  - `deploy`: OIDC auth → ECR push (`:latest` + `:<sha>`) → frontend build → S3 upload → SSM Run Command → poll until complete
+- **Authentication:** GitHub Actions OIDC — role `github-actions-rs-recruitment` (no stored AWS credentials)
+- **Deploy Script:** `scripts/deploy_ec2.sh` runs on EC2 via SSM; derives ECR registry and S3 bucket from the EC2 IAM role at runtime (nothing hardcoded)
 - **Validation Scripts:**
   - `validate_imports.py` - SOC enforcement (separation of concerns)
   - `check_file_sizes.py` - File size limits
@@ -192,6 +197,7 @@ These principles guide all architectural decisions:
 **Related Issues:**
 - [#21](https://github.com/lahavrud/rs-recruitment/issues/21) - infra: ci/cd pipeline ✅ CLOSED
 - [#80](https://github.com/lahavrud/rs-recruitment/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
+- [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -499,32 +505,69 @@ erDiagram
 
 ---
 
-### 2. Environment Deployment Strategy
+### 2. Production Infrastructure
+
+**Decision:** Single EC2 instance running Docker Compose behind Cloudflare, with managed RDS PostgreSQL. Simple and cost-effective for MVP scale; migrating to ECS/ALB when load requires it.
+
+**Architecture:**
+
+```
+Internet (HTTPS)
+      │
+Cloudflare  ←── TLS termination, DDoS protection, CDN caching
+      │ HTTP :80
+EC2 t3.micro (Amazon Linux 2023, us-east-1)
+  ├── nginx:alpine       ← serves React SPA + proxies /api /auth /health → api:8000
+  ├── api container      ← FastAPI (pulled from ECR on each deploy)
+  ├── worker container   ← Arq background worker (same ECR image, different CMD)
+  └── redis:7-alpine     ← in-memory job queue for Arq
+        │
+RDS PostgreSQL db.t3.micro  ← private subnets, encrypted at rest
+S3 rs-recruitment-*         ← file uploads + CI deploy artifacts
+ECR rs-recruitment/api      ← Docker image registry
+```
+
+**AWS Resources:**
+
+| Resource | Identifier | Purpose |
+|---|---|---|
+| EC2 | `i-07959a0abe714cb59` | App server |
+| RDS | `rs-recruitment-prod-db` | PostgreSQL 16, private subnets |
+| S3 | `rs-recruitment-510144817435` | Uploads + deploy artifacts |
+| ECR | `rs-recruitment/api` | Docker images |
+| IAM Role (EC2) | `rs-recruitment-app-role` | SSM, ECR pull, S3, SSM params |
+| IAM Role (CI) | `github-actions-rs-recruitment` | OIDC, ECR push, S3 deploy, SSM send |
+
+**Domain:** `rs-recruiting.com` managed in Cloudflare (DNS, TLS via Cloudflare Flexible, CDN)
+
+**Configuration:** Runtime secrets stored in a `.env` file on EC2 (`/home/ec2-user/app/.env`). Non-secret config stored in AWS SSM Parameter Store under `/rs-recruitment/prod/`.
+
+**Related Issues:**
+
+* [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment ✅ CLOSED
+
+**Status:** ✅ Live at https://rs-recruiting.com
+
+---
+
+### 3. Environment Deployment Strategy
 
 **Problem:** Need deployment strategy for dev, staging, and production environments.
 
-**Decision:** Deploy to separate environments with environment-specific configurations.
+**Current State:** Production environment is live. Dev/staging environments not yet provisioned.
 
 **Environments:**
 
-1. **Development** – Shared dev environment for testing
-2. **Staging** – Mirrors production for final validation
-3. **Production** – Live production environment
-
-**Deployment Requirements:**
-
-* Environment-specific configuration (env vars, CORS origins, database URLs)
-* CI/CD pipeline for automatic deployment
-* SSL/TLS certificates for staging/production
-* Basic monitoring and alerting
+1. **Development** – Local Docker Compose (`docker-compose.yml`) with SQLite
+2. **Staging** – Not yet provisioned
+3. **Production** – Live at `https://rs-recruiting.com` (see Production Infrastructure above)
 
 **Related Issues:**
 
 * [#95](https://github.com/lahavrud/rs-recruitment/issues/95) - devops2: Dev Environment Deployment 🔄 OPEN
 * [#96](https://github.com/lahavrud/rs-recruitment/issues/96) - devops3: Staging Environment Deployment 🔄 OPEN
-* [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment 🔄 OPEN
 
-**Status:** 🔄 Decisions made, implementation pending
+**Status:** ✅ Production live, 🔄 Staging pending
 
 ---
 
@@ -588,14 +631,15 @@ This section tracks when decisions were made and implemented:
 | Email/Notification Service | [#44](https://github.com/lahavrud/rs-recruitment/issues/44) | ✅ Implemented | - |
 | Async Background Jobs | Architecture doc | ✅ Implemented | - |
 | Containerization | [#9](https://github.com/lahavrud/rs-recruitment/issues/9) | ✅ Implemented | - |
-| CI/CD Pipeline | [#21](https://github.com/lahavrud/rs-recruitment/issues/21) | ✅ Implemented | - |
-| Frontend Architecture | Architecture doc | ✅ Decision made | - |
+| CI/CD Pipeline | [#21](https://github.com/lahavrud/rs-recruitment/issues/21), [#97](https://github.com/lahavrud/rs-recruitment/issues/97) | ✅ Implemented | 2026-04-23 |
+| Frontend Architecture | Architecture doc | ✅ Implemented | - |
 | CORS Configuration | Architecture doc | ✅ Implemented | - |
 | Service Layer Pattern | [#41](https://github.com/lahavrud/rs-recruitment/issues/41) | ✅ Implemented | - |
 | Database Models | [#42](https://github.com/lahavrud/rs-recruitment/issues/42) | ✅ Implemented | - |
 | Error Handling | [#47](https://github.com/lahavrud/rs-recruitment/issues/47), [#48](https://github.com/lahavrud/rs-recruitment/issues/48) | ✅ Implemented | - |
+| Production Infrastructure | [#97](https://github.com/lahavrud/rs-recruitment/issues/97) | ✅ Live | 2026-04-23 |
 | Database Backup Strategy | [#94](https://github.com/lahavrud/rs-recruitment/issues/94) | 🔄 Pending | - |
-| Environment Deployment | [#95](https://github.com/lahavrud/rs-recruitment/issues/95), [#96](https://github.com/lahavrud/rs-recruitment/issues/96), [#97](https://github.com/lahavrud/rs-recruitment/issues/97) | 🔄 Pending | - |
+| Staging Environment | [#95](https://github.com/lahavrud/rs-recruitment/issues/95), [#96](https://github.com/lahavrud/rs-recruitment/issues/96) | 🔄 Pending | - |
 | Pre-commit Hooks | [#75](https://github.com/lahavrud/rs-recruitment/issues/75) | ✅ Implemented | - |
 | Code Validation | [#80](https://github.com/lahavrud/rs-recruitment/issues/80) | ✅ Implemented | - |
 
