@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   createJob,
   deleteJob,
@@ -8,20 +9,8 @@ import {
 import { JobStatus } from "@/types/api";
 import type { JobCreate, JobRead, JobUpdate } from "@/types/api";
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING_APPROVAL: "Pending Review",
-  PUBLISHED: "Published",
-  CLOSED: "Closed",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  PENDING_APPROVAL: "bg-yellow-50 text-yellow-700",
-  PUBLISHED: "bg-green-50 text-green-700",
-  CLOSED: "bg-gray-100 text-gray-500",
-};
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+function formatDate(iso: string, locale: string) {
+  return new Date(iso).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -38,6 +27,7 @@ interface JobFormProps {
 }
 
 function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<JobCreate>(initial);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -53,7 +43,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
     try {
       await onSubmit(form);
     } catch {
-      setErr("Failed to save. Please try again.");
+      setErr(t("company.jobs.errors.saveFailed"));
       setSaving(false);
     }
   }
@@ -66,7 +56,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Job Title <span className="text-red-500">*</span>
+            {t("company.jobs.form.jobTitle")} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -75,12 +65,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             className={inputCls}
-            placeholder="e.g. Senior Account Manager"
+            placeholder={t("company.jobs.placeholders.jobTitle")}
           />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Location <span className="text-red-500">*</span>
+            {t("company.jobs.form.location")} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -89,12 +79,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.location}
             onChange={(e) => set("location", e.target.value)}
             className={inputCls}
-            placeholder="e.g. Tel Aviv"
+            placeholder={t("company.jobs.placeholders.location")}
           />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Description <span className="text-red-500">*</span>
+            {t("company.jobs.form.description")} <span className="text-red-500">*</span>
           </label>
           <textarea
             required
@@ -103,12 +93,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
             className={inputCls + " resize-y"}
-            placeholder="Describe the role and responsibilities…"
+            placeholder={t("company.jobs.placeholders.description")}
           />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700">
-            Requirements <span className="text-red-500">*</span>
+            {t("company.jobs.form.requirements")} <span className="text-red-500">*</span>
           </label>
           <textarea
             required
@@ -117,7 +107,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.requirements}
             onChange={(e) => set("requirements", e.target.value)}
             className={inputCls + " resize-y"}
-            placeholder="List required skills and qualifications…"
+            placeholder={t("company.jobs.placeholders.requirements")}
           />
         </div>
       </div>
@@ -131,14 +121,14 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
           disabled={saving}
           className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
         >
-          Cancel
+          {t("company.jobs.cancel")}
         </button>
         <button
           type="submit"
           disabled={saving}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {saving ? "Saving…" : submitLabel}
+          {saving ? t("company.jobs.saving") : submitLabel}
         </button>
       </div>
     </form>
@@ -148,18 +138,31 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
 type Mode = "idle" | "create" | { type: "edit"; job: JobRead };
 
 export default function CompanyJobsPage() {
+  const { t, i18n } = useTranslation();
   const [jobs, setJobs] = useState<JobRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
   const [deleting, setDeleting] = useState<number | null>(null);
 
+  const STATUS_LABEL: Record<string, string> = {
+    PENDING_APPROVAL: t("company.jobs.statusLabels.PENDING_APPROVAL"),
+    PUBLISHED: t("company.jobs.statusLabels.PUBLISHED"),
+    CLOSED: t("company.jobs.statusLabels.CLOSED"),
+  };
+
+  const STATUS_COLOR: Record<string, string> = {
+    PENDING_APPROVAL: "bg-yellow-50 text-yellow-700",
+    PUBLISHED: "bg-green-50 text-green-700",
+    CLOSED: "bg-gray-100 text-gray-500",
+  };
+
   useEffect(() => {
     getCompanyJobs()
       .then(setJobs)
-      .catch(() => setError("Failed to load jobs."))
+      .catch(() => setError(t("company.jobs.errors.loadFailed")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   async function handleCreate(data: JobCreate) {
     const job = await createJob(data);
@@ -175,13 +178,13 @@ export default function CompanyJobsPage() {
   }
 
   async function handleDelete(jobId: number) {
-    if (!confirm("Delete this job posting?")) return;
+    if (!confirm(t("company.jobs.deleteConfirm"))) return;
     setDeleting(jobId);
     try {
       await deleteJob(jobId);
       setJobs((prev) => prev.filter((j) => j.id !== jobId));
     } catch {
-      setError("Failed to delete job. Only pending jobs can be deleted.");
+      setError(t("company.jobs.errors.deleteFailed"));
     } finally {
       setDeleting(null);
     }
@@ -191,12 +194,11 @@ export default function CompanyJobsPage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Jobs</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("company.jobs.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage your job postings. New jobs require admin approval before going live.
+            {t("company.jobs.subtitle")}
           </p>
         </div>
         {!showForm && (
@@ -204,7 +206,7 @@ export default function CompanyJobsPage() {
             onClick={() => setMode("create")}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            + Post a Job
+            {t("company.jobs.postJob")}
           </button>
         )}
       </div>
@@ -213,11 +215,10 @@ export default function CompanyJobsPage() {
         <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
       )}
 
-      {/* Create / Edit form panel */}
       {showForm && (
         <div className="mb-6 rounded-lg border border-blue-100 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-base font-semibold text-gray-900">
-            {mode === "create" ? "Post a New Job" : "Edit Job"}
+            {mode === "create" ? t("company.jobs.createTitle") : t("company.jobs.editTitle")}
           </h2>
           <JobForm
             initial={
@@ -236,17 +237,16 @@ export default function CompanyJobsPage() {
                 : handleCreate
             }
             onCancel={() => setMode("idle")}
-            submitLabel={mode === "create" ? "Submit for Review" : "Save Changes"}
+            submitLabel={mode === "create" ? t("company.jobs.submitForReview") : t("company.jobs.saveChanges")}
           />
         </div>
       )}
 
-      {/* Jobs list */}
       {loading ? (
-        <div className="flex justify-center py-16 text-gray-400">Loading…</div>
+        <div className="flex justify-center py-16 text-gray-400">{t("company.jobs.loading")}</div>
       ) : jobs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-20 text-center text-gray-400">
-          No jobs yet. Post your first job to get started.
+          {t("company.jobs.empty")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -262,7 +262,6 @@ export default function CompanyJobsPage() {
                 key={job.id}
                 className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-5 sm:flex-row sm:items-start sm:justify-between"
               >
-                {/* Info */}
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold text-gray-900">{job.title}</p>
@@ -274,14 +273,13 @@ export default function CompanyJobsPage() {
                   </div>
                   <p className="mt-0.5 text-sm text-gray-500">{job.location}</p>
                   <p className="mt-1 text-xs text-gray-400">
-                    Posted {formatDate(job.created_at)}
+                    {t("company.jobs.postedLabel")} {formatDate(job.created_at, i18n.language)}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-600">
                     {job.description}
                   </p>
                 </div>
 
-                {/* Actions */}
                 <div className="flex shrink-0 gap-2">
                   {canEdit && (
                     <button
@@ -289,7 +287,7 @@ export default function CompanyJobsPage() {
                       disabled={showForm}
                       className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
                     >
-                      Edit
+                      {t("company.jobs.edit")}
                     </button>
                   )}
                   {canDelete && (
@@ -298,7 +296,7 @@ export default function CompanyJobsPage() {
                       disabled={busyDel || showForm}
                       className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
                     >
-                      {busyDel ? "…" : "Delete"}
+                      {busyDel ? "…" : t("company.jobs.delete")}
                     </button>
                   )}
                 </div>

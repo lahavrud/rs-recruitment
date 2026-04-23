@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
 import axios from "axios";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -18,6 +19,7 @@ function truncate(text: string, maxLength: number): string {
 }
 
 export default function JobBoardPage() {
+  const { t, i18n } = useTranslation();
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +34,9 @@ export default function JobBoardPage() {
       } catch (err) {
         if (!cancelled) {
           if (axios.isAxiosError(err)) {
-            setError("Failed to load jobs. Please try again later.");
+            setError(t("publicJobs.board.errorLoad"));
           } else {
-            setError("An unexpected error occurred.");
+            setError(t("publicJobs.board.errorGeneric"));
           }
         }
       } finally {
@@ -46,12 +48,12 @@ export default function JobBoardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-gray-400">Loading jobs...</div>
+        <div className="text-gray-400">{t("publicJobs.board.loading")}</div>
       </div>
     );
   }
@@ -65,15 +67,15 @@ export default function JobBoardPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Open Positions</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t("publicJobs.board.title")}</h1>
         <p className="mt-2 text-gray-600">
-          Browse our current job openings and apply today.
+          {t("publicJobs.board.subtitle")}
         </p>
       </div>
 
       {jobs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-24 text-center text-gray-400">
-          No open positions at this time. Check back soon.
+          {t("publicJobs.board.noPositions")}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
@@ -91,14 +93,14 @@ export default function JobBoardPage() {
                   <p className="mt-1 text-sm text-gray-500">{job.location}</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                  Open
+                  {t("publicJobs.board.open")}
                 </span>
               </div>
               <p className="mt-3 text-sm text-gray-600">
                 {truncate(job.description, 160)}
               </p>
               <p className="mt-4 text-xs text-gray-400">
-                Posted {formatDate(job.created_at)}
+                {t("publicJobs.board.posted")} {formatDate(job.created_at, i18n.language)}
               </p>
             </Link>
           ))}

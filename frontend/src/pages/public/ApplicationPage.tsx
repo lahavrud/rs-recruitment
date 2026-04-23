@@ -1,5 +1,6 @@
 import { type ChangeEvent, type FocusEvent, type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
 import axios from "axios";
@@ -33,7 +34,7 @@ function Field({ label, id, required, children }: FieldProps) {
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+        {required && <span className="ms-1 text-red-500">*</span>}
       </label>
       <div className="mt-1">{children}</div>
     </div>
@@ -45,6 +46,7 @@ const inputCls =
 const textareaCls = inputCls + " resize-y min-h-[80px]";
 
 export default function ApplicationPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const jobId = id !== undefined ? Number.parseInt(id, 10) : NaN;
@@ -63,55 +65,51 @@ export default function ApplicationPage() {
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Validation rules
   function validateField(name: string, value: string): string | null {
+    const v = t;
     if (name === "full_name") {
-      if (!value.trim()) return "Full name is required";
-      if (value.trim().length < 2) return "Full name must be at least 2 characters";
-      if (value.length > 100) return "Full name cannot exceed 100 characters";
+      if (!value.trim()) return v("publicJobs.application.validation.fullNameRequired");
+      if (value.trim().length < 2) return v("publicJobs.application.validation.fullNameMin");
+      if (value.length > 100) return v("publicJobs.application.validation.fullNameMax");
     }
     if (name === "email") {
-      if (!value.trim()) return "Email is required";
-      if (value.length > 255) return "Email cannot exceed 255 characters";
+      if (!value.trim()) return v("publicJobs.application.validation.emailRequired");
+      if (value.length > 255) return v("publicJobs.application.validation.emailMax");
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) return "Please enter a valid email address";
+      if (!emailRegex.test(value)) return v("publicJobs.application.validation.emailInvalid");
     }
     if (name === "phone" && value.trim()) {
       const phoneRegex = /^[+\d\s()-]*$/;
-      if (!phoneRegex.test(value)) return "Phone number can only contain digits, spaces, plus, hyphens, parentheses";
-      if (value.replace(/\D/g, "").length < 5) return "Phone number must have at least 5 digits";
+      if (!phoneRegex.test(value)) return v("publicJobs.application.validation.phoneInvalid");
+      if (value.replace(/\D/g, "").length < 5) return v("publicJobs.application.validation.phoneMin");
     }
     if (name === "linkedin_url" && value.trim()) {
       let parsed: URL;
       try {
         parsed = new URL(value);
       } catch {
-        return "Please enter a valid URL";
+        return v("publicJobs.application.validation.urlInvalid");
       }
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return "LinkedIn URL must start with http:// or https://";
+        return v("publicJobs.application.validation.urlProtocol");
       }
       if (!parsed.hostname.endsWith("linkedin.com")) {
-        return "LinkedIn URL must be a linkedin.com address";
+        return v("publicJobs.application.validation.urlLinkedin");
       }
     }
-    // Interview fields: optional, but limit length
     const textFields = ["service_concept", "salary_expectations", "military_service_details", "transportation", "personality_strength", "personality_weakness"];
     if (textFields.includes(name) && value.length > 2000) {
-      return `This field cannot exceed 2000 characters`;
+      return v("publicJobs.application.validation.textMax");
     }
     return null;
   }
 
   function validateForm(): boolean {
     const errors: Record<string, string> = {};
-    // Validate each field in form
     Object.entries(form).forEach(([key, value]) => {
       const error = validateField(key, value);
       if (error) errors[key] = error;
     });
-    // Validate resume file (if required? optional)
-    // resume validation already handled separately
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -125,13 +123,11 @@ export default function ApplicationPage() {
   function handleChange(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({ ...prev, [name]: "" }));
     }
   }
 
-  // Load job details to show title in the header
   useEffect(() => {
     if (!Number.isFinite(jobId)) {
       navigate("/jobs", { replace: true });
@@ -147,9 +143,9 @@ export default function ApplicationPage() {
       } catch (err) {
         if (!cancelled) {
           if (axios.isAxiosError(err) && err.response?.status === 404) {
-            setJobError("This job is no longer available.");
+            setJobError(t("publicJobs.application.unavailable"));
           } else {
-            setJobError("Failed to load job details.");
+            setJobError(t("publicJobs.application.errorLoad"));
           }
         }
       } finally {
@@ -161,9 +157,7 @@ export default function ApplicationPage() {
     return () => {
       cancelled = true;
     };
-  }, [jobId, navigate]);
-
-
+  }, [jobId, navigate, t]);
 
   function handleResumeChange(e: ChangeEvent<HTMLInputElement>) {
     setResumeError(null);
@@ -175,12 +169,12 @@ export default function ApplicationPage() {
 
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      setResumeError("Only PDF, DOC, or DOCX files are allowed.");
+      setResumeError(t("publicJobs.application.resumeErrors.invalidExtension"));
       e.target.value = "";
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setResumeError(`File must be smaller than ${MAX_FILE_SIZE_MB} MB.`);
+      setResumeError(t("publicJobs.application.resumeErrors.fileTooBig", { maxSize: MAX_FILE_SIZE_MB }));
       e.target.value = "";
       return;
     }
@@ -191,7 +185,6 @@ export default function ApplicationPage() {
   function clearResume() {
     setResumeFile(null);
     setResumeError(null);
-    // Reset the file input
     const input = document.getElementById("resume") as HTMLInputElement | null;
     if (input) input.value = "";
   }
@@ -200,12 +193,10 @@ export default function ApplicationPage() {
     e.preventDefault();
     if (!Number.isFinite(jobId)) return;
 
-    // Validate form fields
     if (!validateForm()) {
       return;
     }
 
-    // Validate resume file (if any)
     if (resumeError) {
       return;
     }
@@ -221,27 +212,26 @@ export default function ApplicationPage() {
         const status = err.response?.status;
         const detail = err.response?.data?.detail;
         if (status === 409) {
-          setSubmitError("You have already applied to this job.");
+          setSubmitError(t("publicJobs.application.errors.alreadyApplied"));
         } else if (status === 404) {
-          setSubmitError("This job is no longer available.");
+          setSubmitError(t("publicJobs.application.errors.jobUnavailable"));
         } else if (typeof detail === "string") {
           setSubmitError(detail);
         } else {
-          setSubmitError("Something went wrong. Please try again.");
+          setSubmitError(t("publicJobs.application.errors.generic"));
         }
       } else {
-        setSubmitError("Something went wrong. Please try again.");
+        setSubmitError(t("publicJobs.application.errors.generic"));
       }
     } finally {
       setSubmitting(false);
     }
   }
 
-  // --- Loading / error states for job ---
   if (jobLoading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-gray-400">Loading...</div>
+        <div className="text-gray-400">{t("publicJobs.application.loading")}</div>
       </div>
     );
   }
@@ -254,65 +244,60 @@ export default function ApplicationPage() {
           to="/jobs"
           className="mt-6 inline-block text-sm text-blue-600 hover:underline"
         >
-          ← Back to Jobs
+          {t("publicJobs.application.backToJob")}
         </Link>
       </div>
     );
   }
 
-  // --- Success state ---
   if (success) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rounded-lg border border-green-200 bg-green-50 p-10 text-center">
           <div className="text-4xl">✓</div>
           <h2 className="mt-4 text-xl font-semibold text-green-800">
-            Application Submitted!
+            {t("publicJobs.application.submitted")}
           </h2>
           <p className="mt-2 text-sm text-green-700">
-            Thank you for applying to <span className="font-medium">{job?.title}</span>.
-            We will be in touch if your profile is a good fit.
+            {t("publicJobs.application.submittedMessage")} <span className="font-medium">{job?.title}</span>.
+            {t("publicJobs.application.submittedDetail")}
           </p>
           <Link
             to="/jobs"
             className="mt-6 block rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700 sm:inline-block"
           >
-            Browse More Jobs
+            {t("publicJobs.application.browseMore")}
           </Link>
         </div>
       </div>
     );
   }
 
-  // --- Application form ---
   return (
     <div className="mx-auto max-w-2xl">
-      {/* Back + title */}
       <Link
         to={`/jobs/${jobId}`}
         className="mb-6 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
       >
-        ← Back to Job
+        {t("publicJobs.application.backToJob")}
       </Link>
 
-      <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Apply — {job?.title}</h1>
+      <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{t("publicJobs.application.applyFor")} {job?.title}</h1>
       <p className="mt-1 text-sm text-gray-500">{job?.location}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-10" noValidate>
-        {/* Global error */}
         {submitError && (
           <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
             {submitError}
           </div>
         )}
 
-        {/* ── Section 1: Personal Information ── */}
         <section>
           <h2 className="mb-4 border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
-            Personal Information
+            {t("publicJobs.application.personalSection")}
           </h2>
           <div className="space-y-4">
-            <Field label="Full Name" id="full_name" required>
+            <Field label={t("publicJobs.application.fullName")} id="full_name" required>
               <input
                 id="full_name"
                 name="full_name"
@@ -322,7 +307,7 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={inputCls}
-                placeholder="Jane Smith"
+                placeholder={t("publicJobs.application.placeholders.fullName")}
                 autoComplete="name"
               />
               {fieldErrors.full_name && (
@@ -330,7 +315,7 @@ export default function ApplicationPage() {
               )}
             </Field>
 
-            <Field label="Email Address" id="email" required>
+            <Field label={t("publicJobs.application.email")} id="email" required>
               <input
                 id="email"
                 name="email"
@@ -340,7 +325,7 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={inputCls}
-                placeholder="jane@example.com"
+                placeholder={t("publicJobs.application.placeholders.email")}
                 autoComplete="email"
               />
               {fieldErrors.email && (
@@ -348,7 +333,7 @@ export default function ApplicationPage() {
               )}
             </Field>
 
-            <Field label="Phone Number" id="phone">
+            <Field label={t("publicJobs.application.phone")} id="phone">
               <input
                 id="phone"
                 name="phone"
@@ -357,7 +342,7 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={inputCls}
-                placeholder="+972 50 000 0000"
+                placeholder={t("publicJobs.application.placeholders.phone")}
                 autoComplete="tel"
               />
               {fieldErrors.phone && (
@@ -365,7 +350,7 @@ export default function ApplicationPage() {
               )}
             </Field>
 
-            <Field label="LinkedIn URL" id="linkedin_url">
+            <Field label={t("publicJobs.application.linkedin")} id="linkedin_url">
               <input
                 id="linkedin_url"
                 name="linkedin_url"
@@ -374,7 +359,7 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={inputCls}
-                placeholder="https://linkedin.com/in/yourprofile"
+                placeholder={t("publicJobs.application.placeholders.linkedin")}
               />
               {fieldErrors.linkedin_url && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.linkedin_url}</p>
@@ -383,12 +368,11 @@ export default function ApplicationPage() {
           </div>
         </section>
 
-        {/* ── Section 2: Resume ── */}
         <section>
           <h2 className="mb-4 border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
-            Resume
+            {t("publicJobs.application.resumeSection")}
           </h2>
-          <Field label="Upload Resume" id="resume">
+          <Field label={t("publicJobs.application.resumeUpload")} id="resume">
             {resumeFile ? (
               <div className="flex items-center gap-3 rounded-md border border-gray-300 bg-gray-50 px-3 py-2">
                 <span className="flex-1 truncate text-sm text-gray-700">
@@ -399,7 +383,7 @@ export default function ApplicationPage() {
                   onClick={clearResume}
                   className="shrink-0 text-xs text-red-500 hover:text-red-700"
                 >
-                  Remove
+                  {t("publicJobs.application.removeFile")}
                 </button>
               </div>
             ) : (
@@ -409,26 +393,25 @@ export default function ApplicationPage() {
                 type="file"
                 accept=".pdf,.doc,.docx"
                 onChange={handleResumeChange}
-                className="block w-full text-sm text-gray-500 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-gray-500 file:me-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
               />
             )}
           </Field>
           {resumeError && <p className="mt-1 text-xs text-red-600">{resumeError}</p>}
           <p className="mt-1 text-xs text-gray-400">
-            PDF, DOC, or DOCX — max {MAX_FILE_SIZE_MB} MB
+            {t("publicJobs.application.fileHint", { maxSize: MAX_FILE_SIZE_MB })}
           </p>
         </section>
 
-        {/* ── Section 3: Interview Questions ── */}
         <section>
           <h2 className="mb-1 border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
-            Interview Questions
+            {t("publicJobs.application.interviewSection")}
           </h2>
           <p className="mb-4 text-xs text-gray-500">
-            All fields in this section are optional.
+            {t("publicJobs.application.interviewSectionHint")}
           </p>
           <div className="space-y-4">
-            <Field label="Service Concept" id="service_concept">
+            <Field label={t("publicJobs.application.serviceConcept")} id="service_concept">
               <textarea
                 id="service_concept"
                 name="service_concept"
@@ -436,14 +419,14 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={textareaCls}
-                placeholder="Describe your approach to customer service..."
+                placeholder={t("publicJobs.application.placeholders.serviceConcept")}
               />
               {fieldErrors.service_concept && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.service_concept}</p>
               )}
             </Field>
 
-            <Field label="Salary Expectations" id="salary_expectations">
+            <Field label={t("publicJobs.application.salaryExpectations")} id="salary_expectations">
               <textarea
                 id="salary_expectations"
                 name="salary_expectations"
@@ -451,14 +434,14 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={textareaCls}
-                placeholder="What are your salary expectations?"
+                placeholder={t("publicJobs.application.placeholders.salaryExpectations")}
               />
               {fieldErrors.salary_expectations && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.salary_expectations}</p>
               )}
             </Field>
 
-            <Field label="Military Service Details" id="military_service_details">
+            <Field label={t("publicJobs.application.militaryService")} id="military_service_details">
               <textarea
                 id="military_service_details"
                 name="military_service_details"
@@ -466,14 +449,14 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={textareaCls}
-                placeholder="Please describe your military service (if applicable)..."
+                placeholder={t("publicJobs.application.placeholders.militaryService")}
               />
               {fieldErrors.military_service_details && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.military_service_details}</p>
               )}
             </Field>
 
-            <Field label="Transportation" id="transportation">
+            <Field label={t("publicJobs.application.transportation")} id="transportation">
               <textarea
                 id="transportation"
                 name="transportation"
@@ -481,14 +464,14 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={textareaCls}
-                placeholder="How do you plan to commute to work?"
+                placeholder={t("publicJobs.application.placeholders.transportation")}
               />
               {fieldErrors.transportation && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.transportation}</p>
               )}
             </Field>
 
-            <Field label="Key Strength" id="personality_strength">
+            <Field label={t("publicJobs.application.strength")} id="personality_strength">
               <textarea
                 id="personality_strength"
                 name="personality_strength"
@@ -496,14 +479,14 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={textareaCls}
-                placeholder="What is your greatest professional strength?"
+                placeholder={t("publicJobs.application.placeholders.strength")}
               />
               {fieldErrors.personality_strength && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.personality_strength}</p>
               )}
             </Field>
 
-            <Field label="Area for Growth" id="personality_weakness">
+            <Field label={t("publicJobs.application.weakness")} id="personality_weakness">
               <textarea
                 id="personality_weakness"
                 name="personality_weakness"
@@ -511,7 +494,7 @@ export default function ApplicationPage() {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={textareaCls}
-                placeholder="What is an area you are actively working to improve?"
+                placeholder={t("publicJobs.application.placeholders.weakness")}
               />
               {fieldErrors.personality_weakness && (
                 <p className="mt-1 text-xs text-red-600">{fieldErrors.personality_weakness}</p>
@@ -520,14 +503,13 @@ export default function ApplicationPage() {
           </div>
         </section>
 
-        {/* Submit */}
         <div className="border-t border-gray-200 pt-6">
           <button
             type="submit"
             disabled={submitting || !!resumeError}
             className="w-full rounded-md bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            {submitting ? "Submitting..." : "Submit Application"}
+            {submitting ? t("publicJobs.application.submittingText") : t("publicJobs.application.submitText")}
           </button>
         </div>
       </form>

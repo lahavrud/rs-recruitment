@@ -1,36 +1,44 @@
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 
-// ── Field error helpers ───────────────────────────────────────────────────────
+const inputCls =
+  "mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm " +
+  "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
 
-function validateEmail(v: string): string {
-  if (!v.trim()) return "Email is required";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Enter a valid email address";
-  return "";
-}
-function validatePassword(v: string): string {
-  if (!v) return "Password is required";
-  if (v.length < 8) return "Password must be at least 8 characters";
-  return "";
-}
-function validateConfirm(v: string, pw: string): string {
-  if (!v) return "Please confirm your password";
-  if (v !== pw) return "Passwords do not match";
-  return "";
-}
-function validateCompanyName(v: string): string {
-  if (!v.trim()) return "Company name is required";
-  if (v.length > 100) return "Company name cannot exceed 100 characters";
-  return "";
-}
-function validatePhone(v: string): string {
-  if (!v) return "";
-  if (!/^[+\d\s()-]*$/.test(v)) return "Phone may only contain digits, spaces, +, -, (, )";
-  if (v.replace(/\D/g, "").length < 5) return "Phone must have at least 5 digits";
-  return "";
+function useValidation() {
+  const { t } = useTranslation();
+  return {
+    validateEmail(v: string): string {
+      if (!v.trim()) return t("auth.register.validation.emailRequired");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return t("auth.register.validation.emailInvalid");
+      return "";
+    },
+    validatePassword(v: string): string {
+      if (!v) return t("auth.register.validation.passwordRequired");
+      if (v.length < 8) return t("auth.register.validation.passwordMin");
+      return "";
+    },
+    validateConfirm(v: string, pw: string): string {
+      if (!v) return t("auth.register.validation.confirmRequired");
+      if (v !== pw) return t("auth.register.validation.confirmMismatch");
+      return "";
+    },
+    validateCompanyName(v: string): string {
+      if (!v.trim()) return t("auth.register.validation.companyNameRequired");
+      if (v.length > 100) return t("auth.register.validation.companyNameMax");
+      return "";
+    },
+    validatePhone(v: string): string {
+      if (!v) return "";
+      if (!/^[+\d\s()-]*$/.test(v)) return t("auth.register.validation.phoneInvalid");
+      if (v.replace(/\D/g, "").length < 5) return t("auth.register.validation.phoneMin");
+      return "";
+    },
+  };
 }
 
 interface FormState {
@@ -51,13 +59,9 @@ const EMPTY: FormState = {
   contactPhone: "",
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
-const inputCls =
-  "mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm " +
-  "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
-
 export default function RegisterPage() {
+  const { t } = useTranslation();
+  const val = useValidation();
   const { isAuthenticated } = useAuth();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<Partial<FormState>>({});
@@ -69,7 +73,6 @@ export default function RegisterPage() {
 
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
-    // Clear the field's error as the user types
     if (fieldErrors[field]) {
       setFieldErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -87,22 +90,22 @@ export default function RegisterPage() {
 
   function getFieldError(field: keyof FormState, value: string): string {
     switch (field) {
-      case "email":        return validateEmail(value);
-      case "password":     return validatePassword(value);
-      case "confirm":      return validateConfirm(value, form.password);
-      case "companyName":  return validateCompanyName(value);
-      case "contactPhone": return validatePhone(value);
+      case "email":        return val.validateEmail(value);
+      case "password":     return val.validatePassword(value);
+      case "confirm":      return val.validateConfirm(value, form.password);
+      case "companyName":  return val.validateCompanyName(value);
+      case "contactPhone": return val.validatePhone(value);
       default:             return "";
     }
   }
 
   function validateAll(): boolean {
     const errors: Partial<FormState> = {
-      email:        validateEmail(form.email),
-      password:     validatePassword(form.password),
-      confirm:      validateConfirm(form.confirm, form.password),
-      companyName:  validateCompanyName(form.companyName),
-      contactPhone: validatePhone(form.contactPhone),
+      email:        val.validateEmail(form.email),
+      password:     val.validatePassword(form.password),
+      confirm:      val.validateConfirm(form.confirm, form.password),
+      companyName:  val.validateCompanyName(form.companyName),
+      contactPhone: val.validatePhone(form.contactPhone),
     };
     setFieldErrors(errors);
     return Object.values(errors).every((e) => !e);
@@ -130,21 +133,19 @@ export default function RegisterPage() {
         const status = err.response?.status;
         const detail = err.response?.data?.detail;
         if (status === 429) {
-          setSubmitError("Too many registration attempts. Please try again later.");
+          setSubmitError(t("auth.register.errors.tooManyAttempts"));
         } else if (typeof detail === "string") {
           setSubmitError(detail);
         } else {
-          setSubmitError("Registration failed. Please try again.");
+          setSubmitError(t("auth.register.errors.failed"));
         }
       } else {
-        setSubmitError("An unexpected error occurred.");
+        setSubmitError(t("auth.register.errors.unexpected"));
       }
     } finally {
       setSubmitting(false);
     }
   }
-
-  // ── Success ──────────────────────────────────────────────────────────────────
 
   if (success) {
     return (
@@ -154,37 +155,32 @@ export default function RegisterPage() {
             ✓
           </div>
           <h2 className="mt-4 text-xl font-semibold text-green-800">
-            Registration Submitted!
+            {t("auth.register.success.title")}
           </h2>
           <p className="mt-2 text-sm text-green-700">
-            Your company account is pending admin approval. You will be notified
-            by email once your account has been reviewed.
+            {t("auth.register.success.message")}
           </p>
           <Link
             to="/login"
             className="mt-6 inline-block rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700"
           >
-            Back to Login
+            {t("auth.register.success.backToLogin")}
           </Link>
         </div>
       </div>
     );
   }
 
-  // ── Form ─────────────────────────────────────────────────────────────────────
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-6 shadow sm:p-8">
-        {/* Header */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Create an Account</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("auth.register.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Register your company to start posting jobs.
+            {t("auth.register.subtitle")}
           </p>
         </div>
 
-        {/* Global error */}
         {submitError && (
           <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
             {submitError}
@@ -192,15 +188,14 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
-          {/* ── Company Information ── */}
           <section>
             <h2 className="mb-3 border-b border-gray-100 pb-1.5 text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Company Information
+              {t("auth.register.companySection")}
             </h2>
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Company Name <span className="text-red-500">*</span>
+                  {t("auth.register.companyName")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="companyName"
@@ -211,7 +206,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={inputCls}
-                  placeholder="Acme Ltd."
+                  placeholder={t("auth.register.companyNamePlaceholder")}
                   autoComplete="organization"
                 />
                 {fieldErrors.companyName && (
@@ -221,7 +216,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Contact Person
+                  {t("auth.register.contactPerson")}
                 </label>
                 <input
                   name="contactPerson"
@@ -230,14 +225,14 @@ export default function RegisterPage() {
                   value={form.contactPerson}
                   onChange={handleChange}
                   className={inputCls}
-                  placeholder="Jane Smith"
+                  placeholder={t("auth.register.contactPersonPlaceholder")}
                   autoComplete="name"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Contact Phone
+                  {t("auth.register.contactPhone")}
                 </label>
                 <input
                   name="contactPhone"
@@ -247,7 +242,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={inputCls}
-                  placeholder="+972 50 000 0000"
+                  placeholder={t("auth.register.contactPhonePlaceholder")}
                   autoComplete="tel"
                 />
                 {fieldErrors.contactPhone && (
@@ -257,15 +252,14 @@ export default function RegisterPage() {
             </div>
           </section>
 
-          {/* ── Account ── */}
           <section>
             <h2 className="mb-3 border-b border-gray-100 pb-1.5 text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Account
+              {t("auth.register.accountSection")}
             </h2>
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Email Address <span className="text-red-500">*</span>
+                  {t("auth.register.emailLabel")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="email"
@@ -276,7 +270,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={inputCls}
-                  placeholder="you@company.com"
+                  placeholder={t("auth.register.emailPlaceholder")}
                   autoComplete="email"
                 />
                 {fieldErrors.email && (
@@ -286,7 +280,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Password <span className="text-red-500">*</span>
+                  {t("auth.register.passwordLabel")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="password"
@@ -296,7 +290,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={inputCls}
-                  placeholder="At least 8 characters"
+                  placeholder={t("auth.register.passwordPlaceholder")}
                   autoComplete="new-password"
                 />
                 {fieldErrors.password && (
@@ -306,7 +300,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Confirm Password <span className="text-red-500">*</span>
+                  {t("auth.register.confirmLabel")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="confirm"
@@ -316,7 +310,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={inputCls}
-                  placeholder="Repeat your password"
+                  placeholder={t("auth.register.confirmPlaceholder")}
                   autoComplete="new-password"
                 />
                 {fieldErrors.confirm && (
@@ -326,21 +320,19 @@ export default function RegisterPage() {
             </div>
           </section>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={submitting}
             className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Submitting…" : "Create Account"}
+            {submitting ? t("auth.register.submittingText") : t("auth.register.submitText")}
           </button>
         </form>
 
-        {/* Login link */}
         <p className="text-center text-sm text-gray-500">
-          Already have an account?{" "}
+          {t("auth.register.haveAccount")}{" "}
           <Link to="/login" className="font-medium text-blue-600 hover:underline">
-            Sign in
+            {t("auth.register.loginLink")}
           </Link>
         </p>
       </div>

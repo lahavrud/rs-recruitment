@@ -1,25 +1,13 @@
 import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/api";
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   to: string;
 }
-
-const adminNav: NavItem[] = [
-  { label: "Dashboard", to: "/" },
-  { label: "Companies", to: "/admin/companies" },
-  { label: "Jobs", to: "/admin/jobs" },
-  { label: "Applications", to: "/admin/applications" },
-  { label: "Candidates", to: "/admin/candidates" },
-];
-
-const companyNav: NavItem[] = [
-  { label: "Dashboard", to: "/" },
-  { label: "My Jobs", to: "/company/jobs" },
-];
 
 interface SidebarProps {
   isOpen: boolean;
@@ -27,10 +15,24 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
+
+  const adminNav: NavItem[] = [
+    { labelKey: "nav.dashboard", to: "/" },
+    { labelKey: "nav.companies", to: "/admin/companies" },
+    { labelKey: "nav.jobs", to: "/admin/jobs" },
+    { labelKey: "nav.applications", to: "/admin/applications" },
+    { labelKey: "nav.candidates", to: "/admin/candidates" },
+  ];
+
+  const companyNav: NavItem[] = [
+    { labelKey: "nav.dashboard", to: "/" },
+    { labelKey: "nav.myJobs", to: "/company/jobs" },
+  ];
+
   const navItems = user?.role === UserRole.ADMIN ? adminNav : companyNav;
 
-  // Close on Escape key
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -55,7 +57,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             }`
           }
         >
-          {item.label}
+          {t(item.labelKey)}
         </NavLink>
       ))}
     </nav>
@@ -63,7 +65,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 md:hidden"
@@ -73,20 +74,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 flex w-56 flex-col border-r border-gray-200
+          fixed inset-y-0 start-0 z-30 flex w-56 flex-col border-e border-gray-200
           bg-white transition-transform duration-200 ease-in-out
           md:static md:translate-x-0 md:bg-gray-50
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          ${isOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"}
         `}
       >
-        {/* Mobile close button */}
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 md:hidden">
-          <span className="text-sm font-semibold text-gray-700">Menu</span>
+          <span className="text-sm font-semibold text-gray-700">{t("nav.menu")}</span>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-gray-500 hover:bg-gray-100"
-            aria-label="Close navigation"
+            aria-label={t("nav.closeNavigation")}
           >
             <svg
               className="h-5 w-5"
