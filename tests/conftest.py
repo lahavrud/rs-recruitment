@@ -16,7 +16,7 @@ os.environ["JWT_SECRET_KEY"] = _TEST_JWT_SECRET
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event, select, text
+from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
