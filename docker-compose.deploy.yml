@@ -14,8 +14,12 @@
 #        ALLOWED_ORIGINS=https://rs-recruiting.com,https://www.rs-recruiting.com
 #        ENVIRONMENT=production
 #
-#   3. Place built frontend files at ~/app/frontend/dist/
-#      and this nginx config at ~/app/frontend/nginx.conf
+#   3. Sync frontend build from S3 to EC2:
+#        aws s3 sync s3://<bucket>/deploy/dist/ ~/app/frontend/dist/ --delete
+#        aws s3 cp s3://<bucket>/deploy/dist/index.html ~/app/frontend/dist/index.html
+#        aws s3 cp s3://<bucket>/deploy/nginx.conf ~/app/frontend/nginx.conf
+#      NOTE: always use `aws s3 cp` for index.html in addition to sync —
+#      sync skips it when file size is unchanged (hash filenames are always same length).
 #
 # Deploy:
 #   docker compose -f docker-compose.deploy.yml pull
