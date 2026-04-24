@@ -21,10 +21,10 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">{t("dashboard.title")}</h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <h1 className="text-2xl font-bold text-ink">{t("dashboard.title")}</h1>
+      <p className="mt-1 text-sm text-ink-2">
         {t("dashboard.welcomeBack")}{" "}
-        <span className="font-medium text-gray-700">{user?.email}</span>
+        <span className="font-medium text-ink-2">{user?.email}</span>
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -32,12 +32,12 @@ export default function DashboardPage() {
           <Link
             key={link.to}
             to={link.to}
-            className="group rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md"
+            className="group rounded-lg border border-line bg-surface p-5 shadow-sm transition hover:border-copper/40 hover:shadow-md"
           >
-            <p className="font-semibold text-gray-900 group-hover:text-blue-600">
+            <p className="font-semibold text-ink group-hover:text-copper">
               {link.label}
             </p>
-            <p className="mt-1 text-sm text-gray-500">{link.description}</p>
+            <p className="mt-1 text-sm text-ink-2">{link.description}</p>
           </Link>
         ))}
       </div>
