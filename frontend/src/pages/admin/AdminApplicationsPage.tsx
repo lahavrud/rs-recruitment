@@ -12,14 +12,14 @@ const NEXT_STATUSES: Record<string, string[]> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  NEW: "bg-blue-50 text-blue-700",
-  APPROVED_BY_ADMIN: "bg-green-50 text-green-700",
-  REJECTED: "bg-red-50 text-red-700",
-  HIRED: "bg-purple-50 text-purple-700",
+  NEW: "bg-copper/10 text-copper",
+  APPROVED_BY_ADMIN: "bg-success/10 text-success",
+  REJECTED: "bg-danger/10 text-danger",
+  HIRED: "bg-hired/10 text-hired",
 };
 
-function formatDate(iso: string, locale: string) {
-  return new Date(iso).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", {
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("he-IL", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -34,7 +34,7 @@ interface UpdateModal {
 }
 
 export default function AdminApplicationsPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [applications, setApplications] = useState<ApplicationWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,14 +114,14 @@ export default function AdminApplicationsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t("admin.applications.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-ink">{t("admin.applications.title")}</h1>
+        <p className="mt-1 text-sm text-ink-2">
           {t("admin.applications.subtitle")}
         </p>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="mb-4 rounded-md bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -137,8 +137,8 @@ export default function AdminApplicationsPage() {
               onClick={() => setFilter(tab)}
               className={`rounded-full px-3 py-1 text-sm font-medium transition ${
                 active
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-copper text-white"
+                  : "bg-subtle text-ink-2 hover:bg-line"
               }`}
             >
               {tab === ALL_FILTER ? t("admin.applications.filterAll") : STATUS_LABELS[tab]} ({count})
@@ -148,15 +148,15 @@ export default function AdminApplicationsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16 text-gray-400">{t("admin.applications.loading")}</div>
+        <div className="flex justify-center py-16 text-ink-3">{t("admin.applications.loading")}</div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 py-20 text-center text-gray-400">
+        <div className="rounded-lg border border-dashed border-line-2 py-20 text-center text-ink-3">
           {t("admin.applications.empty")}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+          <table className="min-w-full divide-y divide-line text-sm">
+            <thead className="bg-canvas text-xs font-medium uppercase tracking-wide text-ink-2">
               <tr>
                 <th className="px-4 py-3 text-start">{t("admin.applications.table.candidate")}</th>
                 <th className="px-4 py-3 text-start">{t("admin.applications.table.job")}</th>
@@ -165,20 +165,20 @@ export default function AdminApplicationsPage() {
                 <th className="px-4 py-3 text-start">{t("admin.applications.table.action")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {filtered.map((app) => {
                 const canUpdate = (NEXT_STATUSES[app.status] ?? []).length > 0;
                 return (
-                  <tr key={app.id} className="hover:bg-gray-50">
+                  <tr key={app.id} className="hover:bg-canvas">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-ink">
                         {app.candidate.full_name}
                       </p>
-                      <p className="text-xs text-gray-500">{app.candidate.email}</p>
+                      <p className="text-xs text-ink-2">{app.candidate.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-gray-900">{app.job.title}</p>
-                      <p className="text-xs text-gray-500">{app.job.location}</p>
+                      <p className="text-ink">{app.job.title}</p>
+                      <p className="text-xs text-ink-2">{app.job.location}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -187,19 +187,19 @@ export default function AdminApplicationsPage() {
                         {STATUS_LABELS[app.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {formatDate(app.created_at, i18n.language)}
+                    <td className="px-4 py-3 text-ink-2">
+                      {formatDate(app.created_at)}
                     </td>
                     <td className="px-4 py-3">
                       {canUpdate ? (
                         <button
                           onClick={() => openModal(app)}
-                          className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          className="rounded-md border border-line-2 px-3 py-1 text-xs font-medium text-ink-2 hover:bg-canvas"
                         >
                           {t("common.edit")}
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-xs text-ink-3">—</span>
                       )}
                     </td>
                   </tr>
@@ -212,9 +212,9 @@ export default function AdminApplicationsPage() {
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-gray-900">{t("admin.applications.modal.title")}</h2>
-            <div className="mt-3 space-y-0.5 text-sm text-gray-600">
+          <div className="w-full max-w-md rounded-lg bg-surface p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-ink">{t("admin.applications.modal.title")}</h2>
+            <div className="mt-3 space-y-0.5 text-sm text-ink-2">
               <p>
                 <span className="font-medium">{t("admin.applications.modal.candidateLabel")}:</span>{" "}
                 {modal.app.candidate.full_name}
@@ -234,13 +234,13 @@ export default function AdminApplicationsPage() {
 
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-ink-2">
                   {t("admin.applications.modal.newStatusLabel")}
                 </label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="mt-1 block w-full rounded-md border border-line-2 px-3 py-2 text-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none"
                 >
                   {(NEXT_STATUSES[modal.app.status] ?? []).map((s) => (
                     <option key={s} value={s}>
@@ -251,36 +251,36 @@ export default function AdminApplicationsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-ink-2">
                   {t("admin.applications.modal.adminNotes")}{" "}
-                  <span className="font-normal text-gray-400">({t("common.optional")})</span>
+                  <span className="font-normal text-ink-3">({t("common.optional")})</span>
                 </label>
                 <textarea
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   rows={3}
-                  className="mt-1 block w-full resize-y rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="mt-1 block w-full resize-y rounded-md border border-line-2 px-3 py-2 text-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none"
                   placeholder={t("admin.applications.modal.notesPlaceholder")}
                 />
               </div>
             </div>
 
             {saveError && (
-              <p className="mt-3 text-sm text-red-600">{saveError}</p>
+              <p className="mt-3 text-sm text-danger">{saveError}</p>
             )}
 
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={closeModal}
                 disabled={saving}
-                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                className="rounded-md px-4 py-2 text-sm text-ink-2 hover:bg-subtle disabled:opacity-50"
               >
                 {t("admin.applications.modal.cancel")}
               </button>
               <button
                 onClick={handleSaveStatus}
                 disabled={saving || !newStatus}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-md bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-50"
               >
                 {saving ? t("admin.applications.modal.saving") : t("admin.applications.modal.save")}
               </button>

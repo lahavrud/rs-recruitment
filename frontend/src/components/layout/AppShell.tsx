@@ -14,29 +14,29 @@ function PublicHeader() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:py-4">
         <Link
           to="/jobs"
-          className="text-base font-semibold text-gray-900 hover:text-blue-600 sm:text-lg"
+          className="text-base font-semibold text-ink hover:text-copper sm:text-lg"
         >
           {t("auth.appName")}
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4">
-          <Link to="/jobs" className="text-sm text-gray-600 hover:text-gray-900">
+          <Link to="/jobs" className="text-sm text-ink-2 hover:text-ink">
             {t("nav.jobs")}
           </Link>
           {isAuthenticated ? (
             <Link
               to="/"
-              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 sm:px-4"
+              className="rounded-md bg-copper px-3 py-1.5 text-sm font-medium text-white hover:bg-gold sm:px-4"
             >
               {t("nav.dashboard")}
             </Link>
           ) : (
             <Link
               to="/login"
-              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 sm:px-4"
+              className="rounded-md bg-copper px-3 py-1.5 text-sm font-medium text-white hover:bg-gold sm:px-4"
             >
               {t("auth.login.submitText")}
             </Link>
@@ -64,7 +64,7 @@ export default function AppShell({ children }: Props) {
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <main
             key={pathname}
-            className="page-enter flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6"
+            className="page-enter flex-1 overflow-y-auto bg-canvas p-4 sm:p-6"
           >
             {children}
           </main>
@@ -74,7 +74,7 @@ export default function AppShell({ children }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-canvas">
       <PublicHeader />
       <main
         key={pathname}
