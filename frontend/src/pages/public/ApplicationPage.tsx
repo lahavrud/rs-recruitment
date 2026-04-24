@@ -205,7 +205,7 @@ export default function ApplicationPage() {
     setSubmitError(null);
 
     try {
-      await submitApplication({ ...form, job_id: jobId }, resumeFile);
+      await submitApplication(jobId, form, resumeFile);
       setSuccess(true);
     } catch (err) {
       if (axios.isAxiosError(err)) {
