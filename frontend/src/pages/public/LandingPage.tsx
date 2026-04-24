@@ -79,33 +79,33 @@ export default function LandingPage() {
         </div>
 
         {/* Centered hero content */}
-        <div className="mx-auto max-w-3xl px-6 pb-24 pt-16 text-center sm:pb-32 sm:pt-20">
+        <div className="mx-auto max-w-3xl px-6 pb-20 pt-12 text-center sm:pb-32 sm:pt-20">
           <LogoBanner />
 
           {/* Gold rule */}
           <div
-            className="mx-auto mt-8 h-px w-32"
+            className="mx-auto mt-7 h-px w-28 sm:mt-9 sm:w-36"
             style={{
               background:
                 "linear-gradient(to right, transparent, #B87333, #C9A84C, #B87333, transparent)",
             }}
           />
 
-          <p className="mx-auto mt-8 max-w-md text-base leading-relaxed text-white/45 sm:text-lg">
+          <p className="mx-auto mt-6 max-w-sm px-2 text-sm leading-relaxed text-white/45 sm:mt-8 sm:max-w-md sm:px-0 sm:text-base">
             {t("landing.hero.subtitle")}
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-3">
             <Link
               to="/jobs"
-              className="rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold"
+              className="w-full rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold sm:w-auto"
             >
               {t("landing.hero.browseJobs")}
             </Link>
             {!isAuthenticated && (
               <Link
                 to="/register"
-                className="rounded-sm border border-white/18 px-8 py-3 text-sm text-white/55 transition hover:border-white/35 hover:text-white/80"
+                className="w-full rounded-sm border border-white/20 px-8 py-3 text-sm text-white/55 transition hover:border-white/35 hover:text-white/80 sm:w-auto"
               >
                 {t("landing.footer.register")}
               </Link>
