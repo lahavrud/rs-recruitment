@@ -21,8 +21,8 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={`rounded-lg border border-line bg-surface shadow-sm ${paddingCls[padding]} ${
-        hover ? "transition hover:border-copper/40 hover:shadow-md" : ""
+      className={`rounded-xl border border-line bg-surface shadow-sm ${paddingCls[padding]} ${
+        hover ? "transition hover:border-copper/30 hover:shadow-md" : ""
       } ${className}`}
     >
       {children}

@@ -12,6 +12,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import JobBoardPage from "@/pages/public/JobBoardPage";
 import JobDetailPage from "@/pages/public/JobDetailPage";
 import ApplicationPage from "@/pages/public/ApplicationPage";
+import LandingPage from "@/pages/public/LandingPage";
 // Admin
 import AdminCompaniesPage from "@/pages/admin/AdminCompaniesPage";
 import AdminJobsPage from "@/pages/admin/AdminJobsPage";
@@ -29,6 +30,9 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
+            {/* Public landing page */}
+            <Route path="/" element={<LandingPage />} />
+
             {/* Public job board */}
             <Route path="/jobs" element={<JobBoardPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
@@ -36,7 +40,7 @@ export default function App() {
 
             {/* Shared authenticated dashboard */}
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <DashboardPage />

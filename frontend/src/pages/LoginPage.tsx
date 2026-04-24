@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from "rea
 import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/ui/Logo";
 import axios from "axios";
 
 export default function LoginPage() {
@@ -56,7 +57,7 @@ export default function LoginPage() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -84,18 +85,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-surface p-6 shadow sm:p-8">
-        <div>
-          <h1 className="text-center text-2xl font-bold text-ink">
-            {t("auth.login.title")}
-          </h1>
-          <p className="mt-2 text-center text-sm text-ink-2">
+    <div className="texture-paper flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
+      <div className="w-full max-w-sm space-y-8 rounded-xl border border-line bg-surface shadow-sm sm:max-w-md" style={{ borderTop: "2px solid #B87333" }}>
+        <div className="px-6 pt-8 text-center sm:px-8">
+          <div className="flex justify-center">
+            <Logo size={36} />
+          </div>
+          <h1 className="mt-4 text-xl font-semibold text-ink">
             {t("auth.login.subtitle")}
-          </p>
+          </h1>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-6 px-6 sm:px-8" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-danger/10 p-3 text-sm text-danger">{error}</div>
           )}
@@ -115,7 +116,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={handleEmailChange}
                 onBlur={handleBlur}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-line-2 px-3 py-2 text-sm shadow-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none"
                 placeholder={t("auth.login.emailPlaceholder")}
                 autoComplete="email"
               />
@@ -157,7 +158,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-ink-2">
+        <p className="px-6 pb-8 text-center text-sm text-ink-2 sm:px-8">
           {t("auth.login.noAccount")}{" "}
           <Link to="/register" className="font-medium text-copper hover:underline">
             {t("auth.login.registerLink")}

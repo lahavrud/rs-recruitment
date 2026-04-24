@@ -11,7 +11,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantCls: Record<Variant, string> = {
   primary:
-    "bg-copper text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-copper text-white transition hover:brightness-110 focus:ring-2 focus:ring-copper/40 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
   secondary:
     "border border-line-2 text-ink-2 hover:bg-canvas disabled:opacity-50",
   danger:
