@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
-import LanguageToggle from "@/components/LanguageToggle";
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -37,7 +36,6 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        <LanguageToggle />
         <span className="hidden max-w-[140px] truncate text-sm text-gray-600 sm:block">
           {user?.email}
         </span>
