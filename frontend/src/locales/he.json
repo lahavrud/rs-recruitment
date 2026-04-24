@@ -34,9 +34,9 @@
     "optional": "אופציונלי"
   },
   "auth": {
-    "appName": "RS Recruitment",
+    "appName": "RS Recruiting",
     "login": {
-      "title": "RS Recruitment",
+      "title": "RS Recruiting",
       "subtitle": "התחבר לחשבון שלך",
       "emailLabel": "כתובת אימייל",
       "passwordLabel": "סיסמה",

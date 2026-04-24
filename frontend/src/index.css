@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@theme {
+  /* Neutral palette */
+  --color-canvas: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F3F3F3;
+  --color-ink: #1A1A1A;
+  --color-ink-2: #555555;
+  --color-ink-3: #999999;
+  --color-line: #E5E5E5;
+  --color-line-2: #CCCCCC;
+
+  /* Brand */
+  --color-copper: #B87333;
+  --color-gold: #C9A84C;
+  --color-nickel: #727472;
+
+  /* Status */
+  --color-success: #2D7D46;
+  --color-warning: #B8860B;
+  --color-danger: #C72A2A;
+  --color-info: #3B6B9A;
+  --color-hired: #7C3AED;
+}
+
 @keyframes page-in {
   from {
     opacity: 0;

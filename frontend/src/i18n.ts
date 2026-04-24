@@ -1,20 +1,10 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import en from "./locales/en.json";
 import he from "./locales/he.json";
 
-const savedLang = (() => {
-  try {
-    return localStorage.getItem("i18nextLng") || "en";
-  } catch {
-    return "en";
-  }
-})();
-
 i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, he: { translation: he } },
-  lng: savedLang,
-  fallbackLng: "en",
+  resources: { he: { translation: he } },
+  lng: "he",
   interpolation: { escapeValue: false },
 });
 

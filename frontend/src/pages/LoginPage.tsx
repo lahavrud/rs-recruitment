@@ -2,7 +2,6 @@ import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from "rea
 import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
-import LanguageToggle from "@/components/LanguageToggle";
 import axios from "axios";
 
 export default function LoginPage() {
@@ -85,30 +84,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-6 shadow sm:p-8">
-        <div className="relative">
-          <div className="absolute start-0 top-0">
-            <LanguageToggle />
-          </div>
-          <h1 className="text-center text-2xl font-bold text-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
+      <div className="w-full max-w-md space-y-8 rounded-lg bg-surface p-6 shadow sm:p-8">
+        <div>
+          <h1 className="text-center text-2xl font-bold text-ink">
             {t("auth.login.title")}
           </h1>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-ink-2">
             {t("auth.login.subtitle")}
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+            <div className="rounded-md bg-danger/10 p-3 text-sm text-danger">{error}</div>
           )}
 
           <div className="space-y-4">
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-ink-2"
               >
                 {t("auth.login.emailLabel")}
               </label>
@@ -124,14 +120,14 @@ export default function LoginPage() {
                 autoComplete="email"
               />
               {fieldErrors.email && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
               )}
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-ink-2"
               >
                 {t("auth.login.passwordLabel")}
               </label>
@@ -142,12 +138,12 @@ export default function LoginPage() {
                 value={password}
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-line-2 px-3 py-2 shadow-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none"
                 placeholder={t("auth.login.passwordPlaceholder")}
                 autoComplete="current-password"
               />
               {fieldErrors.password && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.password}</p>
               )}
             </div>
           </div>
@@ -155,15 +151,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-md bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? t("auth.login.submittingText") : t("auth.login.submitText")}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-ink-2">
           {t("auth.login.noAccount")}{" "}
-          <Link to="/register" className="font-medium text-blue-600 hover:underline">
+          <Link to="/register" className="font-medium text-copper hover:underline">
             {t("auth.login.registerLink")}
           </Link>
         </p>

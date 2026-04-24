@@ -5,8 +5,8 @@ import { getPublicJob } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
 import axios from "axios";
 
-function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale === "he" ? "he-IL" : "en-GB", {
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("he-IL", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -14,7 +14,7 @@ function formatDate(iso: string, locale: string): string {
 }
 
 export default function JobDetailPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<JobPublicRead | null>(null);
@@ -61,7 +61,7 @@ export default function JobDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-gray-400">{t("publicJobs.detail.loading")}</div>
+        <div className="text-ink-3">{t("publicJobs.detail.loading")}</div>
       </div>
     );
   }
@@ -69,12 +69,12 @@ export default function JobDetailPage() {
   if (error || !job) {
     return (
       <div className="text-center">
-        <div className="rounded-md bg-red-50 p-6 text-red-700">
+        <div className="rounded-md bg-danger/10 p-6 text-danger">
           {error ?? t("publicJobs.detail.notFound")}
         </div>
         <Link
           to="/jobs"
-          className="mt-6 inline-block text-sm text-blue-600 hover:underline"
+          className="mt-6 inline-block text-sm text-copper hover:underline"
         >
           {t("publicJobs.detail.backToJobs")}
         </Link>
@@ -86,43 +86,43 @@ export default function JobDetailPage() {
     <div className="mx-auto max-w-3xl">
       <Link
         to="/jobs"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-copper hover:underline"
       >
         {t("publicJobs.detail.backToJobs")}
       </Link>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+      <div className="rounded-lg border border-line bg-surface p-5 shadow-sm sm:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{job.title}</h1>
-            <p className="mt-1 text-gray-500">{job.location}</p>
+            <h1 className="text-xl font-bold text-ink sm:text-2xl">{job.title}</h1>
+            <p className="mt-1 text-ink-2">{job.location}</p>
           </div>
-          <span className="shrink-0 rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700">
+          <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">
             {t("publicJobs.detail.open")}
           </span>
         </div>
-        <p className="mt-2 text-xs text-gray-400">
-          {t("publicJobs.detail.posted")} {formatDate(job.created_at, i18n.language)}
+        <p className="mt-2 text-xs text-ink-3">
+          {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
         </p>
 
         <div className="mt-8">
-          <h2 className="text-base font-semibold text-gray-900">{t("publicJobs.detail.aboutRole")}</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+          <h2 className="text-base font-semibold text-ink">{t("publicJobs.detail.aboutRole")}</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink-2">
             {job.description}
           </p>
         </div>
 
         <div className="mt-8">
-          <h2 className="text-base font-semibold text-gray-900">{t("publicJobs.detail.requirements")}</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+          <h2 className="text-base font-semibold text-ink">{t("publicJobs.detail.requirements")}</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink-2">
             {job.requirements}
           </p>
         </div>
 
-        <div className="mt-8 border-t border-gray-100 pt-6 sm:mt-10">
+        <div className="mt-8 border-t border-line pt-6 sm:mt-10">
           <Link
             to={`/jobs/${job.id}/apply`}
-            className="block rounded-md bg-blue-600 px-6 py-3 text-center text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none sm:inline-block sm:py-2.5"
+            className="block rounded-md bg-copper px-6 py-3 text-center text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none sm:inline-block sm:py-2.5"
           >
             {t("publicJobs.detail.applyNow")}
           </Link>

@@ -52,8 +52,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           className={({ isActive }) =>
             `block rounded-md px-3 py-2 text-sm font-medium ${
               isActive
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                ? "bg-copper/10 text-copper"
+                : "text-ink-2 hover:bg-subtle hover:text-ink"
             }`
           }
         >
@@ -74,18 +74,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
       <aside
         className={`
-          fixed inset-y-0 start-0 z-30 flex w-56 flex-col border-e border-gray-200
-          bg-white transition-transform duration-200 ease-in-out
-          md:static md:translate-x-0 md:bg-gray-50
+          fixed inset-y-0 start-0 z-30 flex w-56 flex-col border-e border-line
+          bg-surface transition-transform duration-200 ease-in-out
+          md:static md:translate-x-0 md:bg-canvas
           ${isOpen ? "translate-x-0" : "max-md:ltr:-translate-x-full max-md:rtl:translate-x-full"}
         `}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 md:hidden">
-          <span className="text-sm font-semibold text-gray-700">{t("nav.menu")}</span>
+        <div className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
+          <span className="text-sm font-semibold text-ink-2">{t("nav.menu")}</span>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-gray-500 hover:bg-gray-100"
+            className="rounded-md p-1 text-ink-3 hover:bg-subtle"
             aria-label={t("nav.closeNavigation")}
           >
             <svg
