@@ -17,7 +17,7 @@ function PublicHeader() {
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:py-4">
         <Link
-          to="/jobs"
+          to="/"
           className="text-base font-semibold text-ink hover:text-copper sm:text-lg"
         >
           {t("auth.appName")}
@@ -28,7 +28,7 @@ function PublicHeader() {
           </Link>
           {isAuthenticated ? (
             <Link
-              to="/"
+              to="/dashboard"
               className="rounded-md bg-copper px-3 py-1.5 text-sm font-medium text-white hover:bg-gold sm:px-4"
             >
               {t("nav.dashboard")}
@@ -52,7 +52,7 @@ export default function AppShell({ children }: Props) {
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (pathname === "/login" || pathname === "/register") {
+  if (pathname === "/" || pathname === "/login" || pathname === "/register") {
     return <>{children}</>;
   }
 

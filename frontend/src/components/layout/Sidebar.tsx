@@ -19,7 +19,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuth();
 
   const adminNav: NavItem[] = [
-    { labelKey: "nav.dashboard", to: "/" },
+    { labelKey: "nav.dashboard", to: "/dashboard" },
     { labelKey: "nav.companies", to: "/admin/companies" },
     { labelKey: "nav.jobs", to: "/admin/jobs" },
     { labelKey: "nav.applications", to: "/admin/applications" },
@@ -27,7 +27,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   ];
 
   const companyNav: NavItem[] = [
-    { labelKey: "nav.dashboard", to: "/" },
+    { labelKey: "nav.dashboard", to: "/dashboard" },
     { labelKey: "nav.myJobs", to: "/company/jobs" },
   ];
 
@@ -47,7 +47,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <NavLink
           key={item.to}
           to={item.to}
-          end={item.to === "/"}
+          end={item.to === "/dashboard"}
           onClick={onClose}
           className={({ isActive }) =>
             `block rounded-md px-3 py-2 text-sm font-medium ${

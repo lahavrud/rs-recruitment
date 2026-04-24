@@ -1,19 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  /* Neutral palette */
-  --color-canvas: #FAFAFA;
-  --color-surface: #FFFFFF;
-  --color-subtle: #F3F3F3;
-  --color-ink: #1A1A1A;
-  --color-ink-2: #555555;
-  --color-ink-3: #999999;
-  --color-line: #E5E5E5;
-  --color-line-2: #CCCCCC;
+  /* Warm neutral palette */
+  --color-canvas: #F7F5F1;
+  --color-surface: #FDFCFA;
+  --color-subtle: #EFEBE4;
+  --color-ink: #1C1917;
+  --color-ink-2: #57534E;
+  --color-ink-3: #A8A29E;
+  --color-line: #E7E2DA;
+  --color-line-2: #CEC6BB;
 
   /* Brand */
   --color-copper: #B87333;
+  --color-copper-dark: #8B5A1E;
   --color-gold: #C9A84C;
+  --color-gold-light: #DDBF72;
   --color-nickel: #727472;
 
   /* Status */
@@ -22,6 +26,30 @@
   --color-danger: #C72A2A;
   --color-info: #3B6B9A;
   --color-hired: #7C3AED;
+}
+
+html {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Wave texture — for dark hero section */
+.texture-wave {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='40'%3E%3Cpath d='M0 20 C150 8 450 32 600 20' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.04' fill='none'/%3E%3Cpath d='M0 30 C150 18 450 42 600 30' stroke='%23ffffff' stroke-width='1' stroke-opacity='0.025' fill='none'/%3E%3Cpath d='M0 10 C150 -2 450 22 600 10' stroke='%23ffffff' stroke-width='0.8' stroke-opacity='0.02' fill='none'/%3E%3C/svg%3E");
+  background-size: 600px 40px;
+  background-repeat: repeat;
+}
+
+/* Paper grain — for light sections */
+.texture-paper {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Ccircle cx='20' cy='20' r='1' fill='%23907060' opacity='0.1'/%3E%3Ccircle cx='80' cy='55' r='0.8' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='140' cy='30' r='1.2' fill='%23907060' opacity='0.06'/%3E%3Ccircle cx='170' cy='90' r='0.9' fill='%23907060' opacity='0.09'/%3E%3Ccircle cx='50' cy='120' r='1' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='110' cy='160' r='0.7' fill='%23907060' opacity='0.08'/%3E%3Ccircle cx='30' cy='175' r='1.1' fill='%23907060' opacity='0.08'/%3E%3Ccircle cx='190' cy='145' r='0.8' fill='%23907060' opacity='0.11'/%3E%3Ccircle cx='95' cy='95' r='1' fill='%23907060' opacity='0.05'/%3E%3Ccircle cx='155' cy='170' r='0.9' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='60' cy='10' r='0.7' fill='%23907060' opacity='0.09'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  background-repeat: repeat;
 }
 
 @keyframes page-in {

@@ -9,7 +9,7 @@ export default function NotFoundPage() {
       <h1 className="text-6xl font-bold text-ink-3">{t("notFound.title")}</h1>
       <p className="mt-4 text-lg text-ink-2">{t("notFound.message")}</p>
       <Link
-        to="/"
+        to="/dashboard"
         className="mt-6 rounded-md bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
       >
         {t("notFound.goToDashboard")}

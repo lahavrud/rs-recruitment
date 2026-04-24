@@ -69,7 +69,7 @@ export default function RegisterPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));

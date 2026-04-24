@@ -7,6 +7,6 @@ import { UserRole } from "@/types/api";
 export default function CompanyRoute({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role !== UserRole.COMPANY) return <Navigate to="/" replace />;
+  if (user?.role !== UserRole.COMPANY) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
