@@ -6,8 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 
 const inputCls =
-  "mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm " +
-  "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+  "mt-1 block w-full rounded-md border border-line-2 px-3 py-2 text-sm shadow-sm " +
+  "focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none";
 
 function useValidation() {
   const { t } = useTranslation();
@@ -149,20 +149,20 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
-        <div className="w-full max-w-md rounded-lg border border-green-200 bg-green-50 p-8 text-center shadow">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl">
+      <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
+        <div className="w-full max-w-md rounded-lg border border-success/20 bg-success/10 p-8 text-center shadow">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/20 text-2xl">
             ✓
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-green-800">
+          <h2 className="mt-4 text-xl font-semibold text-success">
             {t("auth.register.success.title")}
           </h2>
-          <p className="mt-2 text-sm text-green-700">
+          <p className="mt-2 text-sm text-success">
             {t("auth.register.success.message")}
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700"
+            className="mt-6 inline-block rounded-md bg-success px-5 py-2 text-sm font-medium text-white hover:bg-success/80"
           >
             {t("auth.register.success.backToLogin")}
           </Link>
@@ -172,30 +172,30 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-6 shadow sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
+      <div className="w-full max-w-md space-y-6 rounded-lg bg-surface p-6 shadow sm:p-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">{t("auth.register.title")}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-ink">{t("auth.register.title")}</h1>
+          <p className="mt-1 text-sm text-ink-2">
             {t("auth.register.subtitle")}
           </p>
         </div>
 
         {submitError && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-md bg-danger/10 p-3 text-sm text-danger">
             {submitError}
           </div>
         )}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           <section>
-            <h2 className="mb-3 border-b border-gray-100 pb-1.5 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-3 border-b border-line pb-1.5 text-sm font-semibold uppercase tracking-wide text-ink-2">
               {t("auth.register.companySection")}
             </h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("auth.register.companyName")} <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-ink-2">
+                  {t("auth.register.companyName")} <span className="text-danger">*</span>
                 </label>
                 <input
                   name="companyName"
@@ -210,12 +210,12 @@ export default function RegisterPage() {
                   autoComplete="organization"
                 />
                 {fieldErrors.companyName && (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.companyName}</p>
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.companyName}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-ink-2">
                   {t("auth.register.contactPerson")}
                 </label>
                 <input
@@ -231,7 +231,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-ink-2">
                   {t("auth.register.contactPhone")}
                 </label>
                 <input
@@ -246,20 +246,20 @@ export default function RegisterPage() {
                   autoComplete="tel"
                 />
                 {fieldErrors.contactPhone && (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.contactPhone}</p>
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.contactPhone}</p>
                 )}
               </div>
             </div>
           </section>
 
           <section>
-            <h2 className="mb-3 border-b border-gray-100 pb-1.5 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-3 border-b border-line pb-1.5 text-sm font-semibold uppercase tracking-wide text-ink-2">
               {t("auth.register.accountSection")}
             </h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("auth.register.emailLabel")} <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-ink-2">
+                  {t("auth.register.emailLabel")} <span className="text-danger">*</span>
                 </label>
                 <input
                   name="email"
@@ -274,13 +274,13 @@ export default function RegisterPage() {
                   autoComplete="email"
                 />
                 {fieldErrors.email && (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("auth.register.passwordLabel")} <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-ink-2">
+                  {t("auth.register.passwordLabel")} <span className="text-danger">*</span>
                 </label>
                 <input
                   name="password"
@@ -294,13 +294,13 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                 />
                 {fieldErrors.password && (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.password}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("auth.register.confirmLabel")} <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-ink-2">
+                  {t("auth.register.confirmLabel")} <span className="text-danger">*</span>
                 </label>
                 <input
                   name="confirm"
@@ -314,7 +314,7 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                 />
                 {fieldErrors.confirm && (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.confirm}</p>
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.confirm}</p>
                 )}
               </div>
             </div>
@@ -323,15 +323,15 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-md bg-copper px-4 py-2.5 text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? t("auth.register.submittingText") : t("auth.register.submitText")}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-ink-2">
           {t("auth.register.haveAccount")}{" "}
-          <Link to="/login" className="font-medium text-blue-600 hover:underline">
+          <Link to="/login" className="font-medium text-copper hover:underline">
             {t("auth.register.loginLink")}
           </Link>
         </p>

@@ -465,9 +465,9 @@ async def seed() -> None:
     print(f"  {'Applications':<30} {'~12-15':>8} >")
     print(f"{'─' * 50}")
     print(f"\n🔑 Admin login:     {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
-    print(f"🔑 Company logins:  admin@fmrecruit.com / Company123!")
-    print(f"                    (each company uses their own email)")
-    print(f"\n💡 Tip: Run with PYTHONPATH=. uv run python scripts/seed_mock_data.py")
+    print("🔑 Company logins:  admin@fmrecruit.com / Company123!")
+    print("                    (each company uses their own email)")
+    print("\n💡 Tip: Run with PYTHONPATH=. uv run python scripts/seed_mock_data.py")
 
 
 def main() -> None:

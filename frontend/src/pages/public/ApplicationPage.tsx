@@ -32,9 +32,9 @@ interface FieldProps {
 function Field({ label, id, required, children }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={id} className="block text-sm font-medium text-ink-2">
         {label}
-        {required && <span className="ms-1 text-red-500">*</span>}
+        {required && <span className="ms-1 text-danger">*</span>}
       </label>
       <div className="mt-1">{children}</div>
     </div>
@@ -42,7 +42,7 @@ function Field({ label, id, required, children }: FieldProps) {
 }
 
 const inputCls =
-  "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+  "block w-full rounded-md border border-line-2 px-3 py-2 text-sm shadow-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none";
 const textareaCls = inputCls + " resize-y min-h-[80px]";
 
 export default function ApplicationPage() {
@@ -231,7 +231,7 @@ export default function ApplicationPage() {
   if (jobLoading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-gray-400">{t("publicJobs.application.loading")}</div>
+        <div className="text-ink-3">{t("publicJobs.application.loading")}</div>
       </div>
     );
   }
@@ -239,10 +239,10 @@ export default function ApplicationPage() {
   if (jobError) {
     return (
       <div className="text-center">
-        <div className="rounded-md bg-red-50 p-6 text-red-700">{jobError}</div>
+        <div className="rounded-md bg-danger/10 p-6 text-danger">{jobError}</div>
         <Link
           to="/jobs"
-          className="mt-6 inline-block text-sm text-blue-600 hover:underline"
+          className="mt-6 inline-block text-sm text-copper hover:underline"
         >
           {t("publicJobs.application.backToJob")}
         </Link>
@@ -253,18 +253,18 @@ export default function ApplicationPage() {
   if (success) {
     return (
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-lg border border-green-200 bg-green-50 p-10 text-center">
+        <div className="rounded-lg border border-success/20 bg-success/10 p-10 text-center">
           <div className="text-4xl">✓</div>
-          <h2 className="mt-4 text-xl font-semibold text-green-800">
+          <h2 className="mt-4 text-xl font-semibold text-success">
             {t("publicJobs.application.submitted")}
           </h2>
-          <p className="mt-2 text-sm text-green-700">
+          <p className="mt-2 text-sm text-success">
             {t("publicJobs.application.submittedMessage")} <span className="font-medium">{job?.title}</span>.
             {t("publicJobs.application.submittedDetail")}
           </p>
           <Link
             to="/jobs"
-            className="mt-6 block rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700 sm:inline-block"
+            className="mt-6 block rounded-md bg-success px-5 py-2 text-sm font-medium text-white hover:bg-success/80 sm:inline-block"
           >
             {t("publicJobs.application.browseMore")}
           </Link>
@@ -277,23 +277,23 @@ export default function ApplicationPage() {
     <div className="mx-auto max-w-2xl">
       <Link
         to={`/jobs/${jobId}`}
-        className="mb-6 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-copper hover:underline"
       >
         {t("publicJobs.application.backToJob")}
       </Link>
 
-      <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{t("publicJobs.application.applyFor")} {job?.title}</h1>
-      <p className="mt-1 text-sm text-gray-500">{job?.location}</p>
+      <h1 className="text-xl font-bold text-ink sm:text-2xl">{t("publicJobs.application.applyFor")} {job?.title}</h1>
+      <p className="mt-1 text-sm text-ink-2">{job?.location}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-10" noValidate>
         {submitError && (
-          <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-md bg-danger/10 p-4 text-sm text-danger">
             {submitError}
           </div>
         )}
 
         <section>
-          <h2 className="mb-4 border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
+          <h2 className="mb-4 border-b border-line pb-2 text-base font-semibold text-ink">
             {t("publicJobs.application.personalSection")}
           </h2>
           <div className="space-y-4">
@@ -311,7 +311,7 @@ export default function ApplicationPage() {
                 autoComplete="name"
               />
               {fieldErrors.full_name && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.full_name}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.full_name}</p>
               )}
             </Field>
 
@@ -329,7 +329,7 @@ export default function ApplicationPage() {
                 autoComplete="email"
               />
               {fieldErrors.email && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
               )}
             </Field>
 
@@ -346,7 +346,7 @@ export default function ApplicationPage() {
                 autoComplete="tel"
               />
               {fieldErrors.phone && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.phone}</p>
               )}
             </Field>
 
@@ -362,26 +362,26 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.linkedin")}
               />
               {fieldErrors.linkedin_url && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.linkedin_url}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.linkedin_url}</p>
               )}
             </Field>
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
+          <h2 className="mb-4 border-b border-line pb-2 text-base font-semibold text-ink">
             {t("publicJobs.application.resumeSection")}
           </h2>
           <Field label={t("publicJobs.application.resumeUpload")} id="resume">
             {resumeFile ? (
-              <div className="flex items-center gap-3 rounded-md border border-gray-300 bg-gray-50 px-3 py-2">
-                <span className="flex-1 truncate text-sm text-gray-700">
+              <div className="flex items-center gap-3 rounded-md border border-line-2 bg-canvas px-3 py-2">
+                <span className="flex-1 truncate text-sm text-ink-2">
                   {resumeFile.name}
                 </span>
                 <button
                   type="button"
                   onClick={clearResume}
-                  className="shrink-0 text-xs text-red-500 hover:text-red-700"
+                  className="shrink-0 text-xs text-danger hover:text-danger"
                 >
                   {t("publicJobs.application.removeFile")}
                 </button>
@@ -393,21 +393,21 @@ export default function ApplicationPage() {
                 type="file"
                 accept=".pdf,.doc,.docx"
                 onChange={handleResumeChange}
-                className="block w-full text-sm text-gray-500 file:me-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-ink-2 file:me-3 file:rounded-md file:border-0 file:bg-copper/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-copper hover:file:bg-copper/20"
               />
             )}
           </Field>
-          {resumeError && <p className="mt-1 text-xs text-red-600">{resumeError}</p>}
-          <p className="mt-1 text-xs text-gray-400">
+          {resumeError && <p className="mt-1 text-xs text-danger">{resumeError}</p>}
+          <p className="mt-1 text-xs text-ink-3">
             {t("publicJobs.application.fileHint", { maxSize: MAX_FILE_SIZE_MB })}
           </p>
         </section>
 
         <section>
-          <h2 className="mb-1 border-b border-gray-200 pb-2 text-base font-semibold text-gray-900">
+          <h2 className="mb-1 border-b border-line pb-2 text-base font-semibold text-ink">
             {t("publicJobs.application.interviewSection")}
           </h2>
-          <p className="mb-4 text-xs text-gray-500">
+          <p className="mb-4 text-xs text-ink-2">
             {t("publicJobs.application.interviewSectionHint")}
           </p>
           <div className="space-y-4">
@@ -422,7 +422,7 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.serviceConcept")}
               />
               {fieldErrors.service_concept && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.service_concept}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.service_concept}</p>
               )}
             </Field>
 
@@ -437,7 +437,7 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.salaryExpectations")}
               />
               {fieldErrors.salary_expectations && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.salary_expectations}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.salary_expectations}</p>
               )}
             </Field>
 
@@ -452,7 +452,7 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.militaryService")}
               />
               {fieldErrors.military_service_details && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.military_service_details}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.military_service_details}</p>
               )}
             </Field>
 
@@ -467,7 +467,7 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.transportation")}
               />
               {fieldErrors.transportation && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.transportation}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.transportation}</p>
               )}
             </Field>
 
@@ -482,7 +482,7 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.strength")}
               />
               {fieldErrors.personality_strength && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.personality_strength}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.personality_strength}</p>
               )}
             </Field>
 
@@ -497,17 +497,17 @@ export default function ApplicationPage() {
                 placeholder={t("publicJobs.application.placeholders.weakness")}
               />
               {fieldErrors.personality_weakness && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.personality_weakness}</p>
+                <p className="mt-1 text-xs text-danger">{fieldErrors.personality_weakness}</p>
               )}
             </Field>
           </div>
         </section>
 
-        <div className="border-t border-gray-200 pt-6">
+        <div className="border-t border-line pt-6">
           <button
             type="submit"
             disabled={submitting || !!resumeError}
-            className="w-full rounded-md bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="w-full rounded-md bg-copper px-6 py-3 text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {submitting ? t("publicJobs.application.submittingText") : t("publicJobs.application.submitText")}
           </button>
