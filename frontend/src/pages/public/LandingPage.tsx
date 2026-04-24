@@ -47,9 +47,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-canvas">
       {/* ── Hero ──────────────────────────────────────── */}
-      <section className="texture-wave" style={{ backgroundColor: "#1C1917" }}>
+      <section
+        className="texture-wave flex min-h-screen flex-col"
+        style={{ backgroundColor: "#1C1917" }}
+      >
         {/* Nav */}
-        <div className="mx-auto max-w-4xl px-6 py-5">
+        <div className="mx-auto w-full max-w-4xl px-6 py-5">
           <div className="flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-5">
@@ -78,8 +81,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Centered hero content */}
-        <div className="mx-auto max-w-3xl px-6 pb-20 pt-12 text-center sm:pb-32 sm:pt-20">
+        {/* Centered hero content — vertically fills remaining space */}
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
           <LogoBanner />
 
           {/* Gold rule */}
