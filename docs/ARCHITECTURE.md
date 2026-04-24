@@ -552,22 +552,21 @@ ECR rs-recruitment/api      ← Docker image registry
 
 ### 3. Environment Deployment Strategy
 
-**Problem:** Need deployment strategy for dev, staging, and production environments.
-
-**Current State:** Production environment is live. Dev/staging environments not yet provisioned.
+**Decision:** Trunk-based deployment. CI validates everything (lint → test → docker-build), then merge to `main` auto-deploys to production. No separate dev/staging environments — overkill for current scale ($30/mo infra budget, small team).
 
 **Environments:**
 
-1. **Development** – Local Docker Compose (`docker-compose.yml`) with SQLite
-2. **Staging** – Not yet provisioned
-3. **Production** – Live at `https://rs-recruiting.com` (see Production Infrastructure above)
+1. **Development** – Local Docker Compose (`docker-compose.yml`) with PostgreSQL
+2. **Production** – Live at `https://rs-recruiting.com` (see Production Infrastructure above)
 
-**Related Issues:**
+**CI Gate:** lint + test (PostgreSQL) + docker-build smoke test — catch prod-specific issues before deploy.
 
-* [#95](https://github.com/lahavrud/rs-recruitment/issues/95) - devops2: Dev Environment Deployment 🔄 OPEN
-* [#96](https://github.com/lahavrud/rs-recruitment/issues/96) - devops3: Staging Environment Deployment 🔄 OPEN
+**Related Issues (icebox):**
 
-**Status:** ✅ Production live, 🔄 Staging pending
+* [#95](https://github.com/lahavrud/rs-recruitment/issues/95) - devops2: Dev Environment Deployment 🧊 ICEBOX
+* [#96](https://github.com/lahavrud/rs-recruitment/issues/96) - devops3: Staging Environment Deployment 🧊 ICEBOX
+
+**Status:** ✅ Production live, 🧊 Dev/staging deferred
 
 ---
 
