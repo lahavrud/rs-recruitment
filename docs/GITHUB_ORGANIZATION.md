@@ -91,7 +91,7 @@ Each milestone aligns with a development phase from `docs/ROADMAP.md`.
 4. **Candidate Slice**: Application submission and shadow profile logic.
 5. **Match Slice**: Admin dashboard and notification triggers.
 6. **Frontend**: SPA setup and dashboard implementation.
-7. **Deployment**: **P1 Blockers** (Database Backup Strategy) and staging/prod deploys.
+7. **Deployment**: **P1 Blockers** (Database Backup Strategy) and production deploys.
 
 ---
 

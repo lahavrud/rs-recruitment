@@ -61,8 +61,7 @@ gantt
 
     section 🚀 Deployment
     Database Backup Strategy          :         devops1, 2026-03-15, 2d
-    Dev/Staging Environment Deploy    :         devops2, after devops1, 2d
-    Production Deploy                 :         deploy1, after devops2, 1d
+    Production Deploy                 :         deploy1, after devops1, 1d
 
 ```
 
