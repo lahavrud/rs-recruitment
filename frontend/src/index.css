@@ -52,6 +52,16 @@ html {
   background-repeat: repeat;
 }
 
+/* 3D job carousel */
+.carousel-card {
+  transition: transform 0.45s ease-out, filter 0.45s ease-out, opacity 0.45s ease-out;
+  transform:
+    rotateY(calc(var(--offset, 0) * 48deg))
+    translateZ(calc(var(--abs-offset, 0) * -160px))
+    translateX(calc(var(--direction, 0) * 58%));
+  filter: brightness(calc(1 - var(--abs-offset, 0) * 0.55));
+}
+
 @keyframes page-in {
   from {
     opacity: 0;
