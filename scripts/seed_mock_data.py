@@ -32,7 +32,7 @@ COMPANIES = [
     {
         "email": "ops@integrated-fm.co.il",
         "password": "Company123!",
-        "company_name": "פתרונות מתקנים בע\"מ",
+        "company_name": 'פתרונות מתקנים בע"מ',
         "contact_person": "דוד כהן",
         "contact_phone": "050-1111111",
     },
@@ -180,7 +180,7 @@ CANDIDATES = [
         "service_concept": "שרת כקצין ביטחון בפיקוד העורף. ניהול תרגילים.",
         "salary_expectations": "18,000–22,000 ₪ לחודש",
         "military_service_details": "פיקוד העורף, סמל, 2014–2017",
-        "transportation": "רכב פרטי. מוכן עד 30 ק\"מ.",
+        "transportation": 'רכב פרטי. מוכן עד 30 ק"מ.',
         "personality_strength": "רגוע תחת לחץ ומאוד שיטתי",
         "personality_weakness": "לפעמים מרבה לעסוק בפרטים הקטנים",
     },
@@ -284,9 +284,7 @@ async def seed() -> None:
 
     async with async_session() as session:
         # ── מנהל ──
-        result = await session.execute(
-            select(User).where(User.email == ADMIN_EMAIL)
-        )
+        result = await session.execute(select(User).where(User.email == ADMIN_EMAIL))
         admin = result.scalar_one_or_none()
         if admin:
             _print_result("מנהל", "skipped", ADMIN_EMAIL)
@@ -306,9 +304,7 @@ async def seed() -> None:
         company_users: list[User] = []
         company_profiles: list[CompanyProfile] = []
         for c in COMPANIES:
-            result = await session.execute(
-                select(User).where(User.email == c["email"])
-            )
+            result = await session.execute(select(User).where(User.email == c["email"]))
             user = result.scalar_one_or_none()
             if user:
                 _print_result("משתמש חברה", "skipped", c["email"])
@@ -379,9 +375,7 @@ async def seed() -> None:
         created_candidates: list[CandidateProfile] = []
         for cand in CANDIDATES:
             result = await session.execute(
-                select(CandidateProfile).where(
-                    CandidateProfile.email == cand["email"]
-                )
+                select(CandidateProfile).where(CandidateProfile.email == cand["email"])
             )
             existing = result.scalar_one_or_none()
             if existing:
@@ -427,7 +421,8 @@ async def seed() -> None:
                 )
                 if result.scalar_one_or_none():
                     _print_result(
-                        "מועמדות", "skipped",
+                        "מועמדות",
+                        "skipped",
                         f"{candidate.full_name} → {job.title}",
                     )
                     continue
@@ -450,14 +445,15 @@ async def seed() -> None:
                 session.add(app)
                 await session.flush()
                 _print_result(
-                    "מועמדות", "created",
+                    "מועמדות",
+                    "created",
                     f"{candidate.full_name} → {job.title} [{app_status.value}]",
                 )
 
         await session.commit()
 
     print(f"\n{'─' * 50}")
-    print(f"  {'סה\"כ':<30} {'נוצר':>8} {'דולג':>8}")
+    print(f"  {'סה"כ':<30} {'נוצר':>8} {'דולג':>8}")
     print(f"  {'─' * 46}")
     print(f"  {'מנהלים':<30} {'1':>8}")
     print(f"  {'חברות':<30} {'3':>8}")
