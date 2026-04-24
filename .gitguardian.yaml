@@ -1,0 +1,4 @@
+version: 2
+ignore-known-secrets: true
+paths-ignore:
+  - "scripts/seed_mock_data.py"
