@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Seed mock data for local development and testing.
+"""הרצת נתוני בדיקה לפיתוח מקומי.
 
-Usage:
+שימוש:
     PYTHONPATH=. uv run python scripts/seed_mock_data.py
 
-Run this after starting the backend (docker compose up) and seeding the admin user.
+הרץ לאחר הפעלת הבקאנד (docker compose up) והוספת משתמש מנהל.
 
-Generates:
-    - 1 admin user (admin@fmrecruit.com / Admin123!)
-    - 3 company users with CompanyProfiles
-    - 15 jobs (5 per company, mixed statuses)
-    - 8 candidate profiles
-    - 12 applications (various statuses)
+יוצר:
+    - 1 משתמש מנהל (admin@rsrecruit.co.il / Admin123!)
+    - 3 חברות עם פרופילים
+    - 15 משרות (5 לכל חברה, סטטוסים מעורבים)
+    - 8 פרופילי מועמדים
+    - כ-12 מועמדויות (סטטוסים שונים)
 """
 
 import asyncio
@@ -23,250 +23,250 @@ from src.core.infrastructure.security import get_password_hash
 from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 
-# ── Admin ──
-ADMIN_EMAIL = "admin@fmrecruit.com"
+# ── מנהל ──
+ADMIN_EMAIL = "admin@rsrecruit.co.il"
 ADMIN_PASSWORD = "Admin123!"
 
-# ── Companies ──
+# ── חברות ──
 COMPANIES = [
     {
-        "email": "ops@integrated-fm.com",
+        "email": "ops@integrated-fm.co.il",
         "password": "Company123!",
-        "company_name": "Integrated Facility Solutions",
-        "contact_person": "David Cohen",
+        "company_name": "פתרונות מתקנים בע\"מ",
+        "contact_person": "דוד כהן",
         "contact_phone": "050-1111111",
     },
     {
-        "email": "hr@premiseguard.co.il",
+        "email": "hr@sharion.co.il",
         "password": "Company123!",
-        "company_name": "PremiseGuard Security & Maintenance",
-        "contact_person": "Noa Levy",
+        "company_name": "שריון — אבטחה ותחזוקה",
+        "contact_person": "נועה לוי",
         "contact_phone": "050-2222222",
     },
     {
         "email": "info@cleanpro.co.il",
         "password": "Company123!",
-        "company_name": "CleanPro Facility Services",
-        "contact_person": "Ran Mizrahi",
+        "company_name": "קלינפרו שירותי מתקנים",
+        "contact_person": "רן מזרחי",
         "contact_phone": "050-3333333",
     },
 ]
 
-# ── Jobs ──
+# ── משרות ──
 JOBS_BY_COMPANY = [
-    # Integrated Facility Solutions
+    # פתרונות מתקנים
     [
         {
-            "title": "Senior Facility Manager",
-            "description": "Oversee daily operations of a 50,000 sqm commercial campus incl. HVAC, plumbing, electrical, and janitorial. Lead a team of 12 technicians and coordinate with external vendors.",
-            "requirements": "5+ years facility management experience. BSc in Industrial Engineering or equivalent. PMP certification preferred. Excellent Hebrew and English.",
-            "location": "Tel Aviv",
+            "title": "מנהל מתקנים בכיר",
+            "description": "ניהול קמפוס מסחרי — מיזוג, חשמל, אינסטלציה וניקיון.",
+            "requirements": "5+ שנות ניסיון בניהול מתקנים. תואר הנדסה.",
+            "location": "תל אביב",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "HVAC Technician",
-            "description": "Install, maintain, and repair HVAC systems across multiple client sites. Perform preventive maintenance and emergency repairs.",
-            "requirements": "3+ years HVAC experience. Technical certification required. Type 1-3 refrigerant handling license. Valid driver's license.",
-            "location": "Tel Aviv",
+            "title": "טכנאי מיזוג אוויר",
+            "description": "התקנה ותחזוקת מערכות מיזוג אצל לקוחות מגוונים.",
+            "requirements": "3+ שנות ניסיון. תעודת מיזוג. רישיון נהיגה.",
+            "location": "תל אביב",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Building Systems Engineer",
-            "description": "Manage BMS (Building Management System) for smart office buildings. Monitor energy consumption, optimize HVAC schedules, and implement IoT sensor upgrades.",
-            "requirements": "BSc in Mechanical/Electrical Engineering. 3+ years with BMS platforms (Siemens, Honeywell, or Johnson Controls). Energy efficiency certification a plus.",
-            "location": "Herzliya",
+            "title": "מהנדס מערכות בניין",
+            "description": "ניהול מערכות BMS ואופטימיזציית צריכת אנרגיה.",
+            "requirements": "תואר הנדסה מכנית/חשמלית. 3+ שנות ניסיון ב-BMS.",
+            "location": "הרצליה",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Electrical Maintenance Supervisor",
-            "description": "Supervise electrical maintenance team across 5 client properties. Plan preventive maintenance schedules and ensure compliance with Israeli electrical standards.",
-            "requirements": "Practical engineer (Handesai) in Electrical Engineering. 5+ years supervisory experience. Licensed by the Ministry of Energy. Knowledge of Israeli standard SI 61439.",
-            "location": "Tel Aviv",
+            "title": "מנהל תחזוקה חשמלית",
+            "description": "פיקוח על צוות חשמלאים ב-5 נכסי לקוח.",
+            "requirements": "הנדסאי חשמל. 5+ שנות ניסיון. רישיון משרד האנרגיה.",
+            "location": "תל אביב",
             "status": JobStatus.PENDING_APPROVAL,
         },
         {
-            "title": "Plumbing Maintenance Lead",
-            "description": "Lead plumbing maintenance for a large hospital campus. Coordinate emergency repairs, manage parts inventory, and train junior plumbers.",
-            "requirements": "10+ years plumbing experience. 3+ years in a lead/supervisory role. Experience with medical gas systems preferred. Water certificate from Ministry of Health.",
-            "location": "Ramat Gan",
+            "title": "ראש צוות אינסטלציה",
+            "description": "ניהול תחזוקת אינסטלציה בקמפוס בית חולים.",
+            "requirements": "10+ שנות ניסיון. 3+ שנות ניהול. תעודת מים.",
+            "location": "רמת גן",
             "status": JobStatus.CLOSED,
         },
     ],
-    # PremiseGuard
+    # שריון — אבטחה ותחזוקה
     [
         {
-            "title": "Security Operations Manager",
-            "description": "Manage security operations for a portfolio of 8 commercial buildings. Oversee 40 security guards, CCTV systems, access control, and emergency response procedures.",
-            "requirements": "5+ years security management experience. Retired police/military officer preferred. Certified security manager license from Ministry of Public Security.",
-            "location": "Tel Aviv",
+            "title": "מנהל מבצעי ביטחון",
+            "description": "ניהול אבטחת 8 מבנים מסחריים ו-40 מאבטחים.",
+            "requirements": "5+ שנות ניסיון. רישיון מנהל ביטחון ממשרד הפנים.",
+            "location": "תל אביב",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Fire Safety Coordinator",
-            "description": "Develop and implement fire safety programs across client facilities. Conduct fire drills, inspect extinguishers and sprinklers, and maintain compliance with Fire Department regulations.",
-            "requirements": "Fire safety certification from Israel Fire and Rescue Services. 3+ years experience in fire safety coordination. First responder training preferred.",
-            "location": "Haifa",
+            "title": "רכז בטיחות אש",
+            "description": "הטמעת תוכניות בטיחות אש ופיקוח על ציוד כיבוי.",
+            "requirements": "תעודת בטיחות אש. 3+ שנות ניסיון. הדרכת עזרה ראשונה.",
+            "location": "חיפה",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Access Control Technician",
-            "description": "Install and maintain electronic access control systems (DDS, Lenel, or similar). Program RFID readers, biometric scanners, and intercom systems.",
-            "requirements": "2+ years experience with access control systems. Technical background in electronics or low-voltage systems. Customer service oriented.",
-            "location": "Petah Tikva",
+            "title": "טכנאי בקרת כניסה",
+            "description": "התקנת מערכות RFID, ביומטריה ואינטרקום.",
+            "requirements": "2+ שנות ניסיון בבקרת כניסה. רקע אלקטרוניקה.",
+            "location": "פתח תקווה",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Security Guard - Hi-Tech Campus",
-            "description": "Entry-level security guard for a hi-tech campus in Herzliya. Patrol grounds, monitor CCTV, screen visitors, and respond to incidents.",
-            "requirements": "Valid security guard license from Ministry of Public Security. No criminal record. Basic Hebrew and English. Must pass physical fitness test.",
-            "location": "Herzliya",
+            "title": "מאבטח — קמפוס היי-טק",
+            "description": "סיורים, ניטור CCTV וקבלת אורחים בקמפוס טכנולוגי.",
+            "requirements": "רישיון מאבטח בתוקף. עברית ואנגלית בסיסית.",
+            "location": "הרצליה",
             "status": JobStatus.PENDING_APPROVAL,
         },
         {
-            "title": "CCTV System Administrator",
-            "description": "Administer Milestone XProtect VMS across multiple sites. Maintain camera health, storage retention, and user permissions. Generate incident reports.",
-            "requirements": "Milestone certifications preferred. 3+ years experience with VMS platforms. Networking fundamentals (TCP/IP, VLANs). Available for on-call rotation.",
-            "location": "Tel Aviv",
+            "title": "מנהל מערכות CCTV",
+            "description": "ניהול Milestone XProtect, בריאות מצלמות ואחסון.",
+            "requirements": "הסמכת Milestone. 3+ שנות ניסיון. זמינות כוננות.",
+            "location": "תל אביב",
             "status": JobStatus.CLOSED,
         },
     ],
-    # CleanPro
+    # קלינפרו שירותי מתקנים
     [
         {
-            "title": "Cleaning Operations Manager",
-            "description": "Manage janitorial operations for 12 commercial properties. Schedule 80+ cleaning staff, manage supply inventory, and maintain quality standards through regular inspections.",
-            "requirements": "5+ years in cleaning/housekeeping management. Strong logistical and people management skills. Familiarity with green cleaning standards. Fluent Arabic and Hebrew.",
-            "location": "Jerusalem",
+            "title": "מנהל פעילות ניקיון",
+            "description": "ניהול ניקיון ב-12 נכסים וצוות של 80+ עובדים.",
+            "requirements": "5+ שנות ניסיון בניהול ניקיון. שליטה בעברית ובערבית.",
+            "location": "ירושלים",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Industrial Cleaning Specialist",
-            "description": "Perform specialized industrial cleaning at food processing plants and warehouses. Operate floor scrubbers, pressure washers, and chemical dispensing equipment.",
-            "requirements": "2+ years industrial cleaning experience. Certification in hazardous material handling (OSHA equivalent). Knowledge of kosher cleaning protocols for food facilities.",
-            "location": "Ashdod",
+            "title": "מומחה ניקיון תעשייתי",
+            "description": "ניקיון מפעלי מזון ומחסנים. תפעול ציוד תעשייתי.",
+            "requirements": "2+ שנות ניסיון. הסמכת חומרים מסוכנים.",
+            "location": "אשדוד",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Waste Management Supervisor",
-            "description": "Supervise waste disposal and recycling programs for municipal and commercial clients. Ensure compliance with Ministry of Environmental Protection regulations.",
-            "requirements": "3+ years in waste management. Knowledge of Israeli recycling regulations (package law, electronic waste). Supervisory experience. Truck license preferred.",
-            "location": "Rishon LeZion",
+            "title": "מנהל פסולת ומיחזור",
+            "description": "פיקוח על מיחזור ופינוי פסולת עבור לקוחות עסקיים.",
+            "requirements": "3+ שנות ניסיון. ידע ברגולציית משרד הסביבה.",
+            "location": "ראשון לציון",
             "status": JobStatus.PUBLISHED,
         },
         {
-            "title": "Cleaning Quality Inspector",
-            "description": "Conduct unannounced quality inspections across client sites. Score cleaning quality, identify deficiencies, and work with site managers on corrective action plans.",
-            "requirements": "2+ years in quality assurance. High attention to detail. Strong documentation skills. Willingness to travel between sites (car required).",
-            "location": "Tel Aviv",
+            "title": "מפקח איכות ניקיון",
+            "description": "ביקורות איכות בלתי מוכרזות בכל אתרי הלקוחות.",
+            "requirements": "2+ שנות ניסיון. עין חדה לפרטים. רכב פרטי.",
+            "location": "תל אביב",
             "status": JobStatus.PENDING_APPROVAL,
         },
         {
-            "title": "Janitorial Team Lead",
-            "description": "Lead a team of 6 janitors at a large government office complex. Assign daily tasks, train new staff, and ensure all KPIs are met.",
-            "requirements": "1+ year supervisory experience in cleaning services. Good communication skills. Basic computer literacy for reporting. Must pass government security clearance.",
-            "location": "Jerusalem",
+            "title": "ראש צוות ניקיון",
+            "description": "ניהול 6 עובדים בקומפלקס משרדי ממשלתי.",
+            "requirements": "ניסיון ניהולי. אוריינות מחשב. אישור ביטחון.",
+            "location": "ירושלים",
             "status": JobStatus.CLOSED,
         },
     ],
 ]
 
-# ── Candidates ──
+# ── מועמדים ──
 CANDIDATES = [
     {
-        "full_name": "Ahmed Fahoum",
+        "full_name": "אחמד פאהום",
         "email": "ahmed.fahoum@gmail.com",
         "phone": "054-1234567",
         "linkedin_url": "https://linkedin.com/in/ahmed-fahoum",
-        "service_concept": "Served as base security NCO in the Home Front Command. Managed emergency drills and unit readiness.",
-        "salary_expectations": "18,000 - 22,000 NIS per month",
-        "military_service_details": "Home Front Command, Sergeant (Mashak Tash), 2014-2017",
-        "transportation": "Private car. Willing to travel up to 30 km.",
-        "personality_strength": "Calm under pressure and very methodical",
-        "personality_weakness": "Sometimes too detail-oriented, can slow down decision-making",
+        "service_concept": "שרת כקצין ביטחון בפיקוד העורף. ניהול תרגילים.",
+        "salary_expectations": "18,000–22,000 ₪ לחודש",
+        "military_service_details": "פיקוד העורף, סמל, 2014–2017",
+        "transportation": "רכב פרטי. מוכן עד 30 ק\"מ.",
+        "personality_strength": "רגוע תחת לחץ ומאוד שיטתי",
+        "personality_weakness": "לפעמים מרבה לעסוק בפרטים הקטנים",
     },
     {
-        "full_name": "Maya Ben-David",
+        "full_name": "מאיה בן-דוד",
         "email": "maya.bd@gmail.com",
         "phone": "052-2345678",
         "linkedin_url": "https://linkedin.com/in/maya-ben-david",
-        "service_concept": "Served as facility management officer at the Air Force. Managed maintenance schedules for hangars and support buildings.",
-        "salary_expectations": "23,000 - 28,000 NIS per month",
-        "military_service_details": "Israeli Air Force, Facilities Management Officer (Katzin Tafkidanut), 2016-2019",
-        "transportation": "Private car, valid driver's license",
-        "personality_strength": "Strong leadership and team coordination",
-        "personality_weakness": "Tends to take on too many tasks at once",
+        "service_concept": "קצינת מתקנים בחיל האוויר. ניהול לוחות תחזוקה.",
+        "salary_expectations": "23,000–28,000 ₪ לחודש",
+        "military_service_details": "חיל האוויר, קצינת מתקנים, 2016–2019",
+        "transportation": "רכב פרטי, רישיון נהיגה בתוקף",
+        "personality_strength": "מנהיגות חזקה ותיאום צוות",
+        "personality_weakness": "נוטה לקחת על עצמה יותר מדי משימות",
     },
     {
-        "full_name": "Yossi Maman",
+        "full_name": "יוסי ממן",
         "email": "yossi.maman@gmail.com",
         "phone": "053-3456789",
         "linkedin_url": None,
-        "service_concept": "Served as combat medic in the Givati Brigade. Responsible for equipment inventory and base maintenance during reserve duty.",
-        "salary_expectations": "12,000 - 15,000 NIS per month",
-        "military_service_details": "Givati Brigade, Combat Medic (Chovel), 2018-2021",
-        "transportation": "Public transportation. Lives near train station.",
-        "personality_strength": "Reliable, hardworking, great with people",
-        "personality_weakness": "Limited English proficiency",
+        "service_concept": "חובש קרבי בחטיבת גבעתי. ניהול מלאי ותחזוקת בסיס.",
+        "salary_expectations": "12,000–15,000 ₪ לחודש",
+        "military_service_details": "חטיבת גבעתי, חובש קרבי, 2018–2021",
+        "transportation": "תחבורה ציבורית. גר ליד תחנת רכבת.",
+        "personality_strength": "אמין, חרוץ, מצוין עם אנשים",
+        "personality_weakness": "אנגלית מוגבלת",
     },
     {
-        "full_name": "Rinat Shapira",
+        "full_name": "רינת שפירא",
         "email": "rinat.shapira@gmail.com",
         "phone": "050-4567890",
         "linkedin_url": "https://linkedin.com/in/rinat-shapira",
-        "service_concept": "Served in logistics at the Ministry of Defense. Managed supply chains and warehouse operations for a large military base.",
-        "salary_expectations": "16,000 - 20,000 NIS per month",
-        "military_service_details": "Ministry of Defense, Logistics NCO (Samal Logisti), 2015-2020",
-        "transportation": "Private car",
-        "personality_strength": "Excellent organizational and planning skills",
-        "personality_weakness": "Can be hesitant to delegate tasks",
+        "service_concept": "קצינת לוגיסטיקה במשרד הביטחון. ניהול שרשרת אספקה.",
+        "salary_expectations": "16,000–20,000 ₪ לחודש",
+        "military_service_details": "משרד הביטחון, סמלת לוגיסטיקה, 2015–2020",
+        "transportation": "רכב פרטי",
+        "personality_strength": "ארגון ותכנון מעולים",
+        "personality_weakness": "לעיתים מתקשה להאציל משימות",
     },
     {
-        "full_name": "Shlomo Avraham",
+        "full_name": "שלמה אברהם",
         "email": "shlomo.avraham@gmail.com",
         "phone": "055-5678901",
         "linkedin_url": "https://linkedin.com/in/shlomo-avraham",
-        "service_concept": "Served as electrician in the Navy. Maintained onboard electrical systems and generators.",
-        "salary_expectations": "14,000 - 18,000 NIS per month",
-        "military_service_details": "Israeli Navy, Electrical Technician (Technai Chashmal), 2017-2020",
-        "transportation": "Motorcycle. Willing to relocate.",
-        "personality_strength": "Hands-on problem solver, quick learner",
-        "personality_weakness": "Prefer working alone rather than in large teams",
+        "service_concept": "חשמלאי בחיל הים. תחזוקת מערכות חשמל ומחוללים.",
+        "salary_expectations": "14,000–18,000 ₪ לחודש",
+        "military_service_details": "חיל הים, טכנאי חשמל, 2017–2020",
+        "transportation": "אופנוע. מוכן לעבור דירה.",
+        "personality_strength": "פותר בעיות מעשי, לומד מהר",
+        "personality_weakness": "מעדיף עבודה עצמאית על פני צוות גדול",
     },
     {
-        "full_name": "Liat Ohana",
+        "full_name": "ליאת אוחנה",
         "email": "liat.ohana@gmail.com",
         "phone": "052-6789012",
         "linkedin_url": None,
-        "service_concept": "Served as administrative NCO at the Southern Command. Managed office operations, scheduling, and visitor coordination.",
-        "salary_expectations": "10,000 - 13,000 NIS per month",
-        "military_service_details": "Southern Command, Administrative NCO (Samlad Mintali), 2019-2021",
-        "transportation": "Public transportation only",
-        "personality_strength": "Friendly, organized, great phone presence",
-        "personality_weakness": "No technical background",
+        "service_concept": "סמלת מינהלה בפיקוד הדרום. ניהול לוח זמנים ואורחים.",
+        "salary_expectations": "10,000–13,000 ₪ לחודש",
+        "military_service_details": "פיקוד הדרום, סמלת מינהלה, 2019–2021",
+        "transportation": "תחבורה ציבורית בלבד",
+        "personality_strength": "ידידותית, מאורגנת, נוכחות טלפונית מצוינת",
+        "personality_weakness": "אין רקע טכני",
     },
     {
-        "full_name": "Amir Golan",
+        "full_name": "עמיר גולן",
         "email": "amir.golan@gmail.com",
         "phone": "054-7890123",
         "linkedin_url": "https://linkedin.com/in/amir-golan",
-        "service_concept": "Served as engineering officer in the Engineering Corps. Specialized in infrastructure maintenance and construction project management.",
-        "salary_expectations": "25,000 - 32,000 NIS per month",
-        "military_service_details": "Engineering Corps, Infrastructure Officer (Katzin Tatnua), 2013-2018",
-        "transportation": "Private car. Full driving license.",
-        "personality_strength": "Strategic thinker with strong technical knowledge",
-        "personality_weakness": "Can be impatient with slow processes",
+        "service_concept": "קצין הנדסה בחיל ההנדסה. ניהול פרויקטי תשתית.",
+        "salary_expectations": "25,000–32,000 ₪ לחודש",
+        "military_service_details": "חיל ההנדסה, קצין תשתיות, 2013–2018",
+        "transportation": "רכב פרטי. רישיון נהיגה מלא.",
+        "personality_strength": "חשיבה אסטרטגית וידע טכני רחב",
+        "personality_weakness": "חסר סבלנות לתהליכים איטיים",
     },
     {
-        "full_name": "Sami Jabarin",
+        "full_name": "סאמי ג'בארין",
         "email": "sami.jabarin@gmail.com",
         "phone": "050-8901234",
         "linkedin_url": None,
-        "service_concept": "No military service. Worked in family construction business for 8 years doing plumbing, tiling, and general maintenance.",
-        "salary_expectations": "11,000 - 14,000 NIS per month",
-        "military_service_details": "Not served (exemption)",
-        "transportation": "Private car",
-        "personality_strength": "Extremely hardworking and reliable",
-        "personality_weakness": "Limited formal education (10th grade)",
+        "service_concept": "עבד 8 שנים במשפחה בענף הבנייה: אינסטלציה ואריחים.",
+        "salary_expectations": "11,000–14,000 ₪ לחודש",
+        "military_service_details": "לא שירת (פטור)",
+        "transportation": "רכב פרטי",
+        "personality_strength": "עובד קשה ואמין ביותר",
+        "personality_weakness": "השכלה פורמלית מוגבלת (כיתה י')",
     },
 ]
 
@@ -277,19 +277,19 @@ def _print_result(entity: str, action: str, detail: str = "") -> None:
 
 
 async def seed() -> None:
-    """Main seed function."""
-    print("🌱 Seeding mock data for RS Recruitment\n")
+    """פונקציית הזרעה הראשית."""
+    print("🌱 מזריע נתוני בדיקה עבור RS Recruiting\n")
 
     await init_db()
 
     async with async_session() as session:
-        # ── Admin ──
+        # ── מנהל ──
         result = await session.execute(
             select(User).where(User.email == ADMIN_EMAIL)
         )
         admin = result.scalar_one_or_none()
         if admin:
-            _print_result("Admin", "skipped", ADMIN_EMAIL)
+            _print_result("מנהל", "skipped", ADMIN_EMAIL)
             admin_user = admin
         else:
             admin_user = User(
@@ -300,9 +300,9 @@ async def seed() -> None:
             )
             session.add(admin_user)
             await session.flush()
-            _print_result("Admin", "created", f"{ADMIN_EMAIL} / {ADMIN_PASSWORD}")
+            _print_result("מנהל", "created", f"{ADMIN_EMAIL} / {ADMIN_PASSWORD}")
 
-        # ── Companies + Users ──
+        # ── חברות + משתמשים ──
         company_users: list[User] = []
         company_profiles: list[CompanyProfile] = []
         for c in COMPANIES:
@@ -311,7 +311,7 @@ async def seed() -> None:
             )
             user = result.scalar_one_or_none()
             if user:
-                _print_result("Company user", "skipped", c["email"])
+                _print_result("משתמש חברה", "skipped", c["email"])
             else:
                 user = User(
                     email=c["email"],
@@ -321,14 +321,16 @@ async def seed() -> None:
                 )
                 session.add(user)
                 await session.flush()
-                _print_result("Company user", "created", f"{c['email']} / {c['password']}")
+                _print_result(
+                    "משתמש חברה", "created", f"{c['email']} / {c['password']}"
+                )
 
             result = await session.execute(
                 select(CompanyProfile).where(CompanyProfile.user_id == user.id)
             )
             profile = result.scalar_one_or_none()
             if profile:
-                _print_result("Company profile", "skipped", c["company_name"])
+                _print_result("פרופיל חברה", "skipped", c["company_name"])
             else:
                 profile = CompanyProfile(
                     user_id=user.id,
@@ -338,12 +340,12 @@ async def seed() -> None:
                 )
                 session.add(profile)
                 await session.flush()
-                _print_result("Company profile", "created", c["company_name"])
+                _print_result("פרופיל חברה", "created", c["company_name"])
 
             company_users.append(user)
             company_profiles.append(profile)
 
-        # ── Jobs ──
+        # ── משרות ──
         all_jobs: list[Job] = []
         for idx, jobs in enumerate(JOBS_BY_COMPANY):
             profile = company_profiles[idx]
@@ -356,7 +358,7 @@ async def seed() -> None:
                 )
                 job = result.scalar_one_or_none()
                 if job:
-                    _print_result("Job", "skipped", f"{j['title']} ({profile.name})")
+                    _print_result("משרה", "skipped", f"{j['title']} ({profile.name})")
                 else:
                     job = Job(
                         company_id=profile.id,
@@ -368,10 +370,12 @@ async def seed() -> None:
                     )
                     session.add(job)
                     await session.flush()
-                    _print_result("Job", "created", f"{j['title']} ({j['status'].value})")
+                    _print_result(
+                        "משרה", "created", f"{j['title']} ({j['status'].value})"
+                    )
                 all_jobs.append(job)
 
-        # ── Candidates ──
+        # ── מועמדים ──
         created_candidates: list[CandidateProfile] = []
         for cand in CANDIDATES:
             result = await session.execute(
@@ -381,7 +385,7 @@ async def seed() -> None:
             )
             existing = result.scalar_one_or_none()
             if existing:
-                _print_result("Candidate", "skipped", cand["full_name"])
+                _print_result("מועמד", "skipped", cand["full_name"])
                 created_candidates.append(existing)
             else:
                 profile = CandidateProfile(
@@ -398,11 +402,10 @@ async def seed() -> None:
                 )
                 session.add(profile)
                 await session.flush()
-                _print_result("Candidate", "created", cand["full_name"])
+                _print_result("מועמד", "created", cand["full_name"])
                 created_candidates.append(profile)
 
-        # ── Applications ──
-        # Pick PUBLISHED jobs and distribute candidates
+        # ── מועמדויות ──
         published_jobs = [j for j in all_jobs if j.status == JobStatus.PUBLISHED]
         statuses = [
             ApplicationStatus.NEW,
@@ -412,7 +415,6 @@ async def seed() -> None:
         ]
 
         for i, candidate in enumerate(created_candidates):
-            # Each candidate applies to 1-2 published jobs
             for offset in range(2):
                 job_idx = (i + offset) % len(published_jobs)
                 job = published_jobs[job_idx]
@@ -425,20 +427,19 @@ async def seed() -> None:
                 )
                 if result.scalar_one_or_none():
                     _print_result(
-                        "Application", "skipped",
+                        "מועמדות", "skipped",
                         f"{candidate.full_name} → {job.title}",
                     )
                     continue
 
-                # Distribute statuses
                 app_status = statuses[(i + offset) % len(statuses)]
                 admin_notes = None
                 if app_status == ApplicationStatus.APPROVED_BY_ADMIN:
-                    admin_notes = "Strong candidate, good experience in facilities management. Approved for interview."
+                    admin_notes = "מועמד מתאים, עם ניסיון רלוונטי. מאושר לראיון."
                 elif app_status == ApplicationStatus.REJECTED:
-                    admin_notes = "Experience does not meet minimum requirements for this role."
+                    admin_notes = "הניסיון אינו עומד בדרישות המינימום לתפקיד."
                 elif app_status == ApplicationStatus.HIRED:
-                    admin_notes = "Excellent fit. Candidate accepted offer, start date confirmed."
+                    admin_notes = "התאמה מעולה. המועמד קיבל את ההצעה ואישר תחילת עבודה."
 
                 app = Application(
                     job_id=job.id,
@@ -449,29 +450,27 @@ async def seed() -> None:
                 session.add(app)
                 await session.flush()
                 _print_result(
-                    "Application", "created",
+                    "מועמדות", "created",
                     f"{candidate.full_name} → {job.title} [{app_status.value}]",
                 )
 
         await session.commit()
 
     print(f"\n{'─' * 50}")
-    print(f"  {'Total':<30} {'Created':>8} {'Skipped':>8}")
+    print(f"  {'סה\"כ':<30} {'נוצר':>8} {'דולג':>8}")
     print(f"  {'─' * 46}")
-    print(f"  {'Admins':<30} {'1':>8} >")
-    print(f"  {'Companies':<30} {'3':>8} >")
-    print(f"  {'Jobs':<30} {'15':>8} >")
-    print(f"  {'Candidates':<30} {'8':>8} >")
-    print(f"  {'Applications':<30} {'~12-15':>8} >")
+    print(f"  {'מנהלים':<30} {'1':>8}")
+    print(f"  {'חברות':<30} {'3':>8}")
+    print(f"  {'משרות':<30} {'15':>8}")
+    print(f"  {'מועמדים':<30} {'8':>8}")
+    print(f"  {'מועמדויות':<30} {'~12–15':>8}")
     print(f"{'─' * 50}")
-    print(f"\n🔑 Admin login:     {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
-    print(f"🔑 Company logins:  admin@fmrecruit.com / Company123!")
-    print(f"                    (each company uses their own email)")
-    print(f"\n💡 Tip: Run with PYTHONPATH=. uv run python scripts/seed_mock_data.py")
+    print(f"\n🔑 כניסת מנהל:  {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
+    print("🔑 כניסת חברה:  (כל חברה עם האימייל שלה / Company123!)")
 
 
 def main() -> None:
-    """Entry point."""
+    """נקודת כניסה."""
     asyncio.run(seed())
 
 
