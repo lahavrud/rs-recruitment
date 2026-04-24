@@ -51,6 +51,7 @@ app.include_router(jobs_read.router)
 app.include_router(jobs_write.router)
 app.include_router(public.router)
 app.include_router(candidates.router)
+app.include_router(candidates.jobs_apply_router)
 
 
 @app.get("/health")
