@@ -22,13 +22,13 @@ export async function getPublicJob(id: number): Promise<JobPublicRead> {
  * resume is optional — pass null if not provided.
  */
 export async function submitApplication(
-  form: CandidateApplicationForm,
+  jobId: number,
+  form: Omit<CandidateApplicationForm, "job_id">,
   resume: File | null,
 ): Promise<CandidateProfileRead> {
   const data = new FormData();
 
   // Append all text fields
-  data.append("job_id", String(form.job_id));
   data.append("full_name", form.full_name);
   data.append("email", form.email);
   if (form.phone) data.append("phone", form.phone);
@@ -50,7 +50,7 @@ export async function submitApplication(
   }
 
   const response = await api.post<CandidateProfileRead>(
-    "/api/candidates/apply",
+    `/api/jobs/${jobId}/apply`,
     data,
   );
   return response.data;
