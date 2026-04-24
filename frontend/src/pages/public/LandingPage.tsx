@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
 import Logo from "@/components/ui/Logo";
+import LogoBanner from "@/components/ui/LogoBanner";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -79,24 +80,18 @@ export default function LandingPage() {
 
         {/* Centered hero content */}
         <div className="mx-auto max-w-3xl px-6 pb-24 pt-16 text-center sm:pb-32 sm:pt-20">
-          <div className="flex justify-center">
-            <Logo size={52} />
-          </div>
+          <LogoBanner />
 
           {/* Gold rule */}
           <div
-            className="mx-auto mt-7 h-px w-24"
+            className="mx-auto mt-8 h-px w-32"
             style={{
               background:
                 "linear-gradient(to right, transparent, #B87333, #C9A84C, #B87333, transparent)",
             }}
           />
 
-          <h1 className="font-display mt-8 text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            {t("landing.hero.title")}
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-white/45 sm:text-lg">
+          <p className="mx-auto mt-8 max-w-md text-base leading-relaxed text-white/45 sm:text-lg">
             {t("landing.hero.subtitle")}
           </p>
 
