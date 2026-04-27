@@ -6,7 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.error_handling import service_exception_to_http
-from src.core.infrastructure.invite_tokens import consume_invite_token, validate_invite_token
+from src.core.infrastructure.invite_tokens import (
+    consume_invite_token,
+    validate_invite_token,
+)
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.security import create_access_token
 from src.schemas import LoginRequest, TokenResponse, UserCreate, UserWithCompanyRead

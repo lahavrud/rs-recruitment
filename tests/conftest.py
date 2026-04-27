@@ -75,7 +75,9 @@ def mock_invite_tokens():
     is a no-op. Tests that want to test rejection pass the mock in via the fixture.
     """
     with (
-        patch("src.api.auth.validate_invite_token", new_callable=AsyncMock) as mock_validate,
+        patch(
+            "src.api.auth.validate_invite_token", new_callable=AsyncMock
+        ) as mock_validate,
         patch("src.api.auth.consume_invite_token", new_callable=AsyncMock),
         patch(
             "src.api.admin_companies.generate_invite_token",

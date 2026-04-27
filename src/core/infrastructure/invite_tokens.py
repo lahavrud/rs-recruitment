@@ -14,7 +14,9 @@ def _key(token: str) -> str:
 
 async def generate_invite_token() -> str:
     """Generate a cryptographically secure, single-use token stored in Redis."""
-    from src.core.tasks import get_redis_pool  # local import to avoid circular at load time
+    from src.core.tasks import (
+        get_redis_pool,  # local import to avoid circular at load time
+    )
 
     token = secrets.token_urlsafe(32)
     redis = await get_redis_pool()
