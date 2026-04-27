@@ -9,11 +9,13 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlmodel import SQLModel
+from unittest.mock import AsyncMock, patch
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import verify_password
 from src.main import app
 from src.models import User
+from src.services.exceptions import InvalidInviteTokenError
 from tests.conftest import enable_sqlite_foreign_keys
 
 # Use in-memory SQLite for tests
@@ -81,7 +83,7 @@ async def test_register_success(client: AsyncClient):
         },
     }
 
-    response = await client.post("/auth/register", json=registration_data)
+    response = await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
     assert response.status_code == 201
 
     data = response.json()
@@ -120,11 +122,11 @@ async def test_register_duplicate_email(client: AsyncClient):
     }
 
     # First registration should succeed
-    response1 = await client.post("/auth/register", json=registration_data)
+    response1 = await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
     assert response1.status_code == 201
 
     # Second registration with same email should fail
-    response2 = await client.post("/auth/register", json=registration_data)
+    response2 = await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
     assert response2.status_code == 400
     assert "already registered" in response2.json()["detail"].lower()
 
@@ -138,7 +140,7 @@ async def test_login_success(client: AsyncClient):
         "password": "mypassword123",
         "company_profile": {"name": "Login Test Company"},
     }
-    await client.post("/auth/register", json=registration_data)
+    await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
 
     # Activate the user (simulating admin approval)
     async with TestSessionLocal() as session:
@@ -184,7 +186,7 @@ async def test_login_invalid_password(client: AsyncClient):
         "password": "correctpassword",
         "company_profile": {"name": "Password Test Company"},
     }
-    await client.post("/auth/register", json=registration_data)
+    await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
 
     # Activate the user (simulating admin approval)
     async with TestSessionLocal() as session:
@@ -214,7 +216,7 @@ async def test_login_inactive_user(client: AsyncClient):
         "password": "password123",
         "company_profile": {"name": "Inactive Company"},
     }
-    await client.post("/auth/register", json=registration_data)
+    await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
 
     # Try to login with inactive user
     login_data = {
@@ -236,7 +238,7 @@ async def test_register_minimal_data(client: AsyncClient):
         "company_profile": {"name": "Minimal Company"},
     }
 
-    response = await client.post("/auth/register", json=registration_data)
+    response = await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
     assert response.status_code == 201
 
     data = response.json()
@@ -261,11 +263,11 @@ async def test_register_duplicate_returns_400_not_500(client: AsyncClient):
     }
 
     # First registration should succeed
-    response1 = await client.post("/auth/register", json=registration_data)
+    response1 = await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
     assert response1.status_code == 201
 
     # Second registration with same email should return 400 (not 500)
-    response2 = await client.post("/auth/register", json=registration_data)
+    response2 = await client.post("/auth/register", json=registration_data, params={"token": "valid-test-token"})
     assert response2.status_code == 400
     detail = response2.json()["detail"].lower()
     assert "already" in detail or "exists" in detail
@@ -277,3 +279,58 @@ async def test_register_duplicate_returns_400_not_500(client: AsyncClient):
         )
         users = result.scalars().all()
         assert len(users) == 1
+
+
+@pytest.mark.asyncio
+async def test_register_missing_token_returns_422(client: AsyncClient):
+    """Test that registration without a token returns 422 (missing required query param)."""
+    registration_data = {
+        "email": "notoken@example.com",
+        "password": "password123",
+        "company_profile": {"name": "No Token Co"},
+    }
+    response = await client.post("/auth/register", json=registration_data)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_invalid_token_returns_400(client: AsyncClient):
+    """Test that an invalid/expired invite token returns 400."""
+    registration_data = {
+        "email": "badtoken@example.com",
+        "password": "password123",
+        "company_profile": {"name": "Bad Token Co"},
+    }
+    with patch(
+        "src.api.auth.validate_invite_token",
+        new_callable=AsyncMock,
+        side_effect=InvalidInviteTokenError(),
+    ):
+        response = await client.post(
+            "/auth/register",
+            json=registration_data,
+            params={"token": "expired-or-fake-token"},
+        )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_register_token_consumed_on_success(client: AsyncClient):
+    """Test that the invite token is consumed after successful registration."""
+    registration_data = {
+        "email": "tokenconsumed@example.com",
+        "password": "password123",
+        "company_profile": {"name": "Consumed Token Co"},
+    }
+    with (
+        patch("src.api.auth.validate_invite_token", new_callable=AsyncMock) as mock_validate,
+        patch("src.api.auth.consume_invite_token", new_callable=AsyncMock) as mock_consume,
+    ):
+        response = await client.post(
+            "/auth/register",
+            json=registration_data,
+            params={"token": "one-time-token"},
+        )
+    assert response.status_code == 201
+    mock_validate.assert_awaited_once_with("one-time-token")
+    mock_consume.assert_awaited_once_with("one-time-token")

@@ -15,6 +15,11 @@ import type {
 
 // ── Companies ────────────────────────────────────────────────────────────────
 
+export async function generateInviteToken(): Promise<string> {
+  const res = await api.post<{ token: string }>("/api/admin/companies/invite");
+  return res.data.token;
+}
+
 export async function getPendingCompanies(): Promise<PendingCompanyRead[]> {
   const res = await api.get<PendingCompanyRead[]>("/api/admin/companies/pending");
   return res.data;

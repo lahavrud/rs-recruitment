@@ -175,14 +175,9 @@ export default function LandingPage() {
               <p className="mt-2 flex-1 text-sm leading-relaxed text-white/65">
                 {t("landing.hero.companiesBody")}
               </p>
-              {!isAuthenticated && (
-                <Link
-                  to="/register"
-                  className="mt-5 inline-block rounded-sm border border-white/25 px-5 py-2.5 text-center text-sm text-white/75 transition hover:border-white/45 hover:text-white/95"
-                >
-                  {t("landing.hero.companiesCta")}
-                </Link>
-              )}
+              <p className="mt-5 text-xs text-white/35">
+                {t("landing.hero.companiesInviteOnly")}
+              </p>
             </div>
           </div>
         </div>
@@ -388,11 +383,7 @@ export default function LandingPage() {
               <Link to="/login" className="transition hover:text-white/70">
                 {t("landing.footer.login")}
               </Link>
-              {!isAuthenticated && (
-                <Link to="/register" className="transition hover:text-white/70">
-                  {t("landing.footer.register")}
-                </Link>
-              )}
+              {/* register link removed — invite-only */}
             </nav>
             <p className="text-xs text-white/25">
               &copy; {new Date().getFullYear()} RS Recruiting.{" "}

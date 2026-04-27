@@ -67,6 +67,25 @@ def mock_enqueue_email():
         p.stop()
 
 
+@pytest.fixture(autouse=True)
+def mock_invite_tokens():
+    """Patch invite token functions for all tests to prevent Redis connections.
+
+    validate_invite_token is a no-op (any token is valid) and consume_invite_token
+    is a no-op. Tests that want to test rejection pass the mock in via the fixture.
+    """
+    with (
+        patch("src.api.auth.validate_invite_token", new_callable=AsyncMock) as mock_validate,
+        patch("src.api.auth.consume_invite_token", new_callable=AsyncMock),
+        patch(
+            "src.api.admin_companies.generate_invite_token",
+            new_callable=AsyncMock,
+            return_value="test-invite-token-abc123",
+        ),
+    ):
+        yield mock_validate
+
+
 def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
     """Enable foreign key constraint enforcement for SQLite.
 

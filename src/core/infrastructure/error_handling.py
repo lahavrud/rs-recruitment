@@ -11,6 +11,7 @@ from src.services.exceptions import (
     InactiveUserError,
     InvalidApplicationStatusTransitionError,
     InvalidCredentialsError,
+    InvalidInviteTokenError,
     JobCannotBeDeletedError,
     JobCannotBeUpdatedError,
     JobNotFoundError,
@@ -32,6 +33,7 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     # Unauthorized errors (401)
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
     # Bad request errors (400)
+    InvalidInviteTokenError: status.HTTP_400_BAD_REQUEST,
     JobCannotBeUpdatedError: status.HTTP_400_BAD_REQUEST,
     JobCannotBeDeletedError: status.HTTP_400_BAD_REQUEST,
     CompanyNotPendingError: status.HTTP_400_BAD_REQUEST,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { approveCompany, getPendingCompanies, rejectCompany } from "@/services/admin";
+import { approveCompany, generateInviteToken, getPendingCompanies, rejectCompany } from "@/services/admin";
 import type { PendingCompanyRead } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -18,6 +18,23 @@ export default function AdminCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<number | null>(null);
+  const [inviting, setInviting] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  async function handleGenerateInvite() {
+    setInviting(true);
+    try {
+      const token = await generateInviteToken();
+      const url = `${window.location.origin}/register?token=${token}`;
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 3000);
+    } catch {
+      setError(t("admin.companies.inviteError"));
+    } finally {
+      setInviting(false);
+    }
+  }
 
   useEffect(() => {
     getPendingCompanies()
@@ -57,11 +74,24 @@ export default function AdminCompaniesPage() {
         eyebrow={t("admin.companies.title")}
         subtitle={t("admin.companies.subtitle")}
         action={
-          !loading ? (
-            <span className="rounded-full bg-warning/10 px-3 py-1 text-sm font-medium text-warning">
-              {companies.length} {t("admin.companies.pending")}
-            </span>
-          ) : undefined
+          <div className="flex items-center gap-3">
+            {!loading && (
+              <span className="rounded-full bg-warning/10 px-3 py-1 text-sm font-medium text-warning">
+                {companies.length} {t("admin.companies.pending")}
+              </span>
+            )}
+            <button
+              onClick={handleGenerateInvite}
+              disabled={inviting}
+              className="rounded-sm bg-copper px-4 py-1.5 text-sm font-medium text-white transition hover:bg-gold disabled:opacity-40"
+            >
+              {inviting
+                ? "…"
+                : inviteCopied
+                  ? t("admin.companies.inviteCopied")
+                  : t("admin.companies.inviteButton")}
+            </button>
+          </div>
         }
       />
 
