@@ -53,6 +53,10 @@ export default function LandingPage() {
   useEffect(() => {
     const el = cardsRef.current;
     if (!el) return;
+    if (!window.IntersectionObserver) {
+      setCardsVisible(true);
+      return;
+    }
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setCardsVisible(true); obs.disconnect(); } },
       { threshold: 0.15 },
