@@ -132,7 +132,7 @@ export default function JobDetailPage() {
         <div className="mt-10 border-t border-white/8 pt-8">
           <Link
             to={`/jobs/${job.id}/apply`}
-            className="inline-block rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold"
+            className="inline-block rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             {t("publicJobs.detail.applyNow")}
           </Link>
