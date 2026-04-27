@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
+import { inputCls } from "@/styles/forms";
 import axios from "axios";
 
 export default function LoginPage() {
@@ -12,7 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
+  const [fieldErrors, setFieldErrors] = useState({ email: "", password: "" });
 
   function validateField(name: string, value: string): string {
     if (name === "email") {
@@ -38,44 +39,38 @@ export default function LoginPage() {
 
   function handleBlur(e: FocusEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    const error = validateField(name, value);
-    setFieldErrors(prev => ({ ...prev, [name]: error }));
+    setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
   }
 
   function handleEmailChange(e: ChangeEvent<HTMLInputElement>) {
     setEmail(e.target.value);
-    if (fieldErrors.email) {
-      setFieldErrors(prev => ({ ...prev, email: '' }));
-    }
+    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: "" }));
   }
 
   function handlePasswordChange(e: ChangeEvent<HTMLInputElement>) {
     setPassword(e.target.value);
-    if (fieldErrors.password) {
-      setFieldErrors(prev => ({ ...prev, password: '' }));
-    }
+    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: "" }));
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setSubmitting(true);
-
     try {
       await login({ email, password });
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const detail = err.response?.data?.detail;
-        setError(typeof detail === "string" ? detail : t("auth.login.errors.loginFailed"));
+        const status = err.response?.status;
+        if (status === 429) {
+          setError(t("auth.login.errors.tooManyAttempts"));
+        } else if (status === 403) {
+          setError(t("auth.login.errors.accountInactive"));
+        } else {
+          setError(t("auth.login.errors.loginFailed"));
+        }
       } else {
         setError(t("auth.login.errors.unexpectedError"));
       }
@@ -85,38 +80,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="texture-paper flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
-      <div className="w-full max-w-sm space-y-8 rounded-xl border border-line bg-surface shadow-sm sm:max-w-md" style={{ borderTop: "2px solid #B87333" }}>
+    <div className="flex min-h-screen items-center justify-center bg-void px-4 py-8">
+      <div className="w-full max-w-sm space-y-8 rounded-xl border border-white/10 border-t-copper/50 bg-card sm:max-w-md">
         <div className="px-6 pt-8 text-center sm:px-8">
           <div className="flex justify-center">
             <Logo size={36} />
           </div>
-          <h1 className="mt-4 text-xl font-semibold text-ink">
+          <h1 className="mt-4 text-lg font-semibold text-white/85">
             {t("auth.login.subtitle")}
           </h1>
         </div>
 
-        <form className="space-y-6 px-6 sm:px-8" onSubmit={handleSubmit}>
+        <form className="space-y-5 px-6 sm:px-8" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-danger/10 p-3 text-sm text-danger">{error}</div>
+            <div className="rounded-lg border border-danger/20 bg-danger/10 p-3 text-sm text-danger">
+              {error}
+            </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-ink-2"
-              >
+              <label htmlFor="email" className="block text-sm text-white/50">
                 {t("auth.login.emailLabel")}
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
                 required
                 value={email}
                 onChange={handleEmailChange}
                 onBlur={handleBlur}
-                className="mt-1 block w-full rounded-md border border-line-2 px-3 py-2 text-sm shadow-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none"
+                className={`mt-1 ${inputCls}`}
                 placeholder={t("auth.login.emailPlaceholder")}
                 autoComplete="email"
               />
@@ -126,20 +121,18 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-ink-2"
-              >
+              <label htmlFor="password" className="block text-sm text-white/50">
                 {t("auth.login.passwordLabel")}
               </label>
               <input
                 id="password"
+                name="password"
                 type="password"
                 required
                 value={password}
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
-                className="mt-1 block w-full rounded-md border border-line-2 px-3 py-2 shadow-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none"
+                className={`mt-1 ${inputCls}`}
                 placeholder={t("auth.login.passwordPlaceholder")}
                 autoComplete="current-password"
               />
@@ -152,15 +145,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? t("auth.login.submittingText") : t("auth.login.submitText")}
           </button>
         </form>
 
-        <p className="px-6 pb-8 text-center text-sm text-ink-2 sm:px-8">
+        <p className="px-6 pb-8 text-center text-sm text-white/35 sm:px-8">
           {t("auth.login.noAccount")}{" "}
-          <Link to="/register" className="font-medium text-copper hover:underline">
+          <Link to="/register" className="text-copper transition hover:text-gold">
             {t("auth.login.registerLink")}
           </Link>
         </p>

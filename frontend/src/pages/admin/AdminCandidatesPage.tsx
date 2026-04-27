@@ -5,11 +5,12 @@ export default function AdminCandidatesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">{t("admin.candidates.title")}</h1>
-      <p className="mt-1 text-sm text-ink-2">
-        {t("admin.candidates.subtitle")}
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        {t("admin.candidates.title")}
       </p>
-      <div className="mt-8 rounded-lg border border-dashed border-line-2 p-16 text-center text-ink-3">
+      <div className="mt-3 h-px w-8 bg-copper/40" />
+      <p className="mt-4 text-sm text-white/40">{t("admin.candidates.subtitle")}</p>
+      <div className="mt-8 rounded-xl border border-dashed border-white/10 p-16 text-center text-sm text-white/25">
         {t("admin.candidates.comingSoon")}
       </div>
     </div>

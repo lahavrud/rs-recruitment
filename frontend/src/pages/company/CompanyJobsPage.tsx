@@ -8,6 +8,8 @@ import {
 } from "@/services/companyJobs";
 import { JobStatus } from "@/types/api";
 import type { JobCreate, JobRead, JobUpdate } from "@/types/api";
+import PageHeader from "@/components/ui/PageHeader";
+import { inputCls, textareaCls } from "@/styles/forms";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -48,15 +50,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
     }
   }
 
-  const inputCls =
-    "mt-1 block w-full rounded-md border border-line-2 px-3 py-2 text-sm focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink-2">
-            {t("company.jobs.form.jobTitle")} <span className="text-danger">*</span>
+          <label className="block text-sm text-white/50">
+            {t("company.jobs.form.jobTitle")} <span className="text-copper/80">*</span>
           </label>
           <input
             type="text"
@@ -64,13 +63,13 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             maxLength={200}
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
-            className={inputCls}
+            className={`mt-1 ${inputCls}`}
             placeholder={t("company.jobs.placeholders.jobTitle")}
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink-2">
-            {t("company.jobs.form.location")} <span className="text-danger">*</span>
+          <label className="block text-sm text-white/50">
+            {t("company.jobs.form.location")} <span className="text-copper/80">*</span>
           </label>
           <input
             type="text"
@@ -78,13 +77,13 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             maxLength={100}
             value={form.location}
             onChange={(e) => set("location", e.target.value)}
-            className={inputCls}
+            className={`mt-1 ${inputCls}`}
             placeholder={t("company.jobs.placeholders.location")}
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink-2">
-            {t("company.jobs.form.description")} <span className="text-danger">*</span>
+          <label className="block text-sm text-white/50">
+            {t("company.jobs.form.description")} <span className="text-copper/80">*</span>
           </label>
           <textarea
             required
@@ -92,13 +91,13 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             rows={4}
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
-            className={inputCls + " resize-y"}
+            className={`mt-1 ${textareaCls}`}
             placeholder={t("company.jobs.placeholders.description")}
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink-2">
-            {t("company.jobs.form.requirements")} <span className="text-danger">*</span>
+          <label className="block text-sm text-white/50">
+            {t("company.jobs.form.requirements")} <span className="text-copper/80">*</span>
           </label>
           <textarea
             required
@@ -106,7 +105,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             rows={4}
             value={form.requirements}
             onChange={(e) => set("requirements", e.target.value)}
-            className={inputCls + " resize-y"}
+            className={`mt-1 ${textareaCls}`}
             placeholder={t("company.jobs.placeholders.requirements")}
           />
         </div>
@@ -119,14 +118,14 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="rounded-md px-4 py-2 text-sm text-ink-2 hover:bg-subtle disabled:opacity-50"
+          className="rounded-sm px-4 py-2 text-sm text-white/40 transition hover:bg-white/5 hover:text-white/70 disabled:opacity-40"
         >
           {t("company.jobs.cancel")}
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="rounded-md bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-50"
+          className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition hover:bg-gold disabled:opacity-40"
         >
           {saving ? t("company.jobs.saving") : submitLabel}
         </button>
@@ -154,7 +153,7 @@ export default function CompanyJobsPage() {
   const STATUS_COLOR: Record<string, string> = {
     PENDING_APPROVAL: "bg-warning/10 text-warning",
     PUBLISHED: "bg-success/10 text-success",
-    CLOSED: "bg-subtle text-ink-2",
+    CLOSED: "bg-white/8 text-white/40",
   };
 
   useEffect(() => {
@@ -194,32 +193,30 @@ export default function CompanyJobsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-        <h1 className="text-2xl font-bold text-ink">{t("company.jobs.title")}</h1>
-        <p className="mt-1 text-sm text-ink-2">
-            {t("company.jobs.subtitle")}
-          </p>
-        </div>
-        {!showForm && (
-          <button
-            onClick={() => setMode("create")}
-            className="rounded-md bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
-          >
-            {t("company.jobs.postJob")}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow={t("company.jobs.title")}
+        subtitle={t("company.jobs.subtitle")}
+        action={
+          !showForm ? (
+            <button
+              onClick={() => setMode("create")}
+              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition hover:bg-gold"
+            >
+              {t("company.jobs.postJob")}
+            </button>
+          ) : undefined
+        }
+      />
 
       {error && (
-        <div className="mb-4 rounded-md bg-danger/10 p-4 text-sm text-danger">{error}</div>
+        <div className="mb-4 rounded-lg border border-danger/20 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
       {showForm && (
-        <div className="mb-6 rounded-lg border border-copper/20 bg-surface p-6 shadow-sm">
-          <h2 className="mb-4 text-base font-semibold text-ink">
+        <div className="mb-6 rounded-xl border border-copper/20 bg-card p-6">
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
             {mode === "create" ? t("company.jobs.createTitle") : t("company.jobs.editTitle")}
-          </h2>
+          </p>
           <JobForm
             initial={
               typeof mode === "object" && mode.type === "edit"
@@ -243,9 +240,9 @@ export default function CompanyJobsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16 text-ink-3">{t("company.jobs.loading")}</div>
+        <div className="flex justify-center py-16 text-white/25">{t("company.jobs.loading")}</div>
       ) : jobs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line-2 py-20 text-center text-ink-3">
+        <div className="rounded-xl border border-dashed border-white/10 py-20 text-center text-sm text-white/25">
           {t("company.jobs.empty")}
         </div>
       ) : (
@@ -260,24 +257,20 @@ export default function CompanyJobsPage() {
             return (
               <div
                 key={job.id}
-                className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-5 sm:flex-row sm:items-start sm:justify-between"
+                className="flex flex-col gap-3 rounded-xl border border-white/8 bg-card p-5 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-ink">{job.title}</p>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[job.status]}`}
-                    >
+                    <p className="font-medium text-white/85">{job.title}</p>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[job.status]}`}>
                       {STATUS_LABEL[job.status]}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-sm text-ink-2">{job.location}</p>
-                  <p className="mt-1 text-xs text-ink-3">
+                  <p className="mt-0.5 text-sm text-white/45">{job.location}</p>
+                  <p className="mt-1 text-xs text-white/25">
                     {t("company.jobs.postedLabel")} {formatDate(job.created_at)}
                   </p>
-                  <p className="mt-2 line-clamp-2 text-sm text-ink-2">
-                    {job.description}
-                  </p>
+                  <p className="mt-2 line-clamp-2 text-sm text-white/50">{job.description}</p>
                 </div>
 
                 <div className="flex shrink-0 gap-2">
@@ -285,7 +278,7 @@ export default function CompanyJobsPage() {
                     <button
                       onClick={() => setMode({ type: "edit", job })}
                       disabled={showForm}
-                      className="rounded-md border border-line-2 px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-canvas disabled:opacity-40"
+                      className="rounded-sm border border-white/15 px-3 py-1.5 text-sm text-white/50 transition hover:border-white/30 hover:text-white/80 disabled:opacity-30"
                     >
                       {t("company.jobs.edit")}
                     </button>
@@ -294,7 +287,7 @@ export default function CompanyJobsPage() {
                     <button
                       onClick={() => handleDelete(job.id)}
                       disabled={busyDel || showForm}
-                      className="rounded-md border border-danger/20 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-40"
+                      className="rounded-sm border border-danger/20 px-3 py-1.5 text-sm text-danger transition hover:bg-danger/10 disabled:opacity-30"
                     >
                       {busyDel ? "…" : t("company.jobs.delete")}
                     </button>

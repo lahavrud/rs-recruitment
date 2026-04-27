@@ -34,6 +34,8 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const touchStartX = useRef<number | null>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const [cardsVisible, setCardsVisible] = useState(false);
 
   const goNext = () => setActiveIdx((i) => (i + 1) % jobs.length);
   const goPrev = () => setActiveIdx((i) => (i - 1 + jobs.length) % jobs.length);
@@ -47,6 +49,17 @@ export default function LandingPage() {
     if (Math.abs(dx) > 40) dx > 0 ? goNext() : goPrev();
     touchStartX.current = null;
   }
+
+  useEffect(() => {
+    const el = cardsRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setCardsVisible(true); obs.disconnect(); } },
+      { threshold: 0.15 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,14 +80,20 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-page">
       {/* ── Hero ──────────────────────────────────────── */}
       <section
-        className="texture-wave flex min-h-screen flex-col"
-        style={{ backgroundColor: "#1C1917" }}
+        className="texture-wave relative flex min-h-screen flex-col overflow-hidden bg-void"
+        style={{
+          backgroundImage: 'url("/hero-city.jpg")',
+          backgroundSize: "cover",
+          backgroundPosition: "center 60%",
+        }}
       >
+        {/* dark gradient overlay — ensures text stays readable */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/85 via-page/72 to-void/92" />
         {/* Nav */}
-        <div className="mx-auto w-full max-w-4xl px-6 py-5">
+        <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-5">
           <div className="flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-5">
@@ -104,7 +123,7 @@ export default function LandingPage() {
         </div>
 
         {/* Centered hero content — vertically fills remaining space */}
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
+        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
           <LogoBanner />
 
           {/* Gold rule */}
@@ -112,35 +131,63 @@ export default function LandingPage() {
             className="mx-auto mt-7 h-px w-28 sm:mt-9 sm:w-36"
             style={{
               background:
-                "linear-gradient(to right, transparent, #B87333, #C9A84C, #B87333, transparent)",
+                "linear-gradient(to right, transparent, var(--color-copper), var(--color-gold), var(--color-copper), transparent)",
             }}
           />
 
-          <p className="mx-auto mt-6 max-w-sm px-2 text-sm leading-relaxed text-white/45 sm:mt-8 sm:max-w-md sm:px-0 sm:text-base">
-            {t("landing.hero.subtitle")}
+          <p className="mx-auto mt-5 max-w-xs px-2 text-sm font-light tracking-wide text-white/70 sm:mt-7 sm:max-w-sm sm:px-0 sm:text-base">
+            {t("landing.hero.tagline")}
           </p>
 
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-3">
-            <Link
-              to="/jobs"
-              className="w-full rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold sm:w-auto"
-            >
-              {t("landing.hero.browseJobs")}
-            </Link>
-            {!isAuthenticated && (
+          {/* Two audience panels */}
+          <div className="mt-10 grid w-full max-w-xl gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5">
+            {/* For job seekers — primary */}
+            <div className="flex flex-col rounded-xl border border-copper/35 bg-black/35 p-6 text-start backdrop-blur-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+                {t("landing.hero.forSeekers")}
+              </p>
+              <h2 className="mt-2 text-base font-semibold leading-snug text-white/95 sm:text-lg">
+                {t("landing.hero.seekersHeadline")}
+              </h2>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-white/65">
+                {t("landing.hero.seekersBody")}
+              </p>
               <Link
-                to="/register"
-                className="w-full rounded-sm border border-white/20 px-8 py-3 text-sm text-white/55 transition hover:border-white/35 hover:text-white/80 sm:w-auto"
+                to="/jobs"
+                className="mt-5 inline-block rounded-sm bg-copper px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-gold"
               >
-                {t("landing.footer.register")}
+                {t("landing.hero.seekersCta")}
               </Link>
-            )}
+            </div>
+
+            {/* For companies — secondary */}
+            <div className="flex flex-col rounded-xl border border-white/15 bg-black/25 p-6 text-start backdrop-blur-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">
+                {t("landing.hero.forCompanies")}
+              </p>
+              <h2 className="mt-2 text-base font-semibold leading-snug text-white/95 sm:text-lg">
+                {t("landing.hero.companiesHeadline")}
+              </h2>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-white/65">
+                {t("landing.hero.companiesBody")}
+              </p>
+              {!isAuthenticated && (
+                <Link
+                  to="/register"
+                  className="mt-5 inline-block rounded-sm border border-white/25 px-5 py-2.5 text-center text-sm text-white/75 transition hover:border-white/45 hover:text-white/95"
+                >
+                  {t("landing.hero.companiesCta")}
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── About ─────────────────────────────────────── */}
-      <section className="texture-paper bg-canvas py-20 sm:py-28">
+      <section
+        className="texture-wave bg-card-raised py-20 sm:py-28"
+      >
         <div className="mx-auto max-w-4xl px-6">
           <div className="grid gap-10 sm:grid-cols-5 sm:gap-20">
             {/* Eyebrow + headline */}
@@ -149,31 +196,71 @@ export default function LandingPage() {
                 {t("landing.about.eyebrow")}
               </p>
               <div className="mt-3 h-px w-8 bg-copper/40" />
-              <p className="mt-5 text-xl font-semibold leading-snug text-ink sm:text-2xl">
+              <p className="mt-5 text-xl font-semibold leading-snug text-white/90 sm:text-2xl">
                 {t("landing.about.headline")}
               </p>
             </div>
 
             {/* Body + pillars */}
             <div className="flex flex-col justify-center sm:col-span-3">
-              <p className="text-base leading-relaxed text-ink-2">
+              <p className="text-base leading-relaxed text-white/60">
                 {t("landing.about.body")}
               </p>
-              <p className="mt-8 text-sm tracking-wide text-ink-3">
+              <p className="mt-4 text-base leading-relaxed text-white/60">
+                {t("landing.about.body2")}
+              </p>
+              <p className="mt-8 text-sm tracking-wide text-white/30">
                 {t("landing.about.pillars")}
               </p>
             </div>
+          </div>
+
+          {/* Feature cards — tilt-in on scroll */}
+          <div ref={cardsRef} className="mt-16 grid gap-5 sm:grid-cols-3">
+            {(
+              [
+                { titleKey: "landing.about.feature1Title", bodyKey: "landing.about.feature1Body" },
+                { titleKey: "landing.about.feature2Title", bodyKey: "landing.about.feature2Body" },
+                { titleKey: "landing.about.feature3Title", bodyKey: "landing.about.feature3Body" },
+              ] as const
+            ).map((f, idx) => (
+              <div
+                key={f.titleKey}
+                style={{
+                  animation: cardsVisible
+                    ? `card-tilt-in 0.55s ease-out ${idx * 160}ms both`
+                    : "none",
+                  opacity: cardsVisible ? undefined : 0,
+                }}
+              >
+                <div className="feature-card h-full rounded-lg border border-white/10 bg-card-raised p-6">
+                  <div
+                    className="mb-3 h-px bg-copper/70 transition-all duration-500"
+                    style={{
+                      width: cardsVisible ? "1.5rem" : "0",
+                      transitionDelay: cardsVisible ? `${idx * 160 + 380}ms` : "0ms",
+                    }}
+                  />
+                  <p className="font-semibold text-white/90">{t(f.titleKey)}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">
+                    {t(f.bodyKey)}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── Featured Jobs carousel ─────────────────────── */}
       {!loading && jobs.length > 0 && (
-        <section className="overflow-hidden border-t border-line bg-surface py-16 sm:py-20">
+        <section
+          className="overflow-hidden border-t border-white/10 bg-section py-16 sm:py-20"
+        >
           <div className="mx-auto max-w-4xl px-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-ink">
+              <h2 className="text-xl font-semibold text-white/90">
                 {t("landing.featuredJobs.title")}
               </h2>
               <Link
@@ -187,11 +274,18 @@ export default function LandingPage() {
             {/* 3D carousel — swipe on mobile, click side cards on desktop */}
             <div
               className="relative mt-10 select-none"
-              style={{ perspective: "900px", perspectiveOrigin: "50% 50%" }}
+              style={{ perspective: "1100px", perspectiveOrigin: "50% 50%" }}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
-              <div style={{ display: "grid", gridTemplateAreas: '"card"' }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateAreas: '"card"',
+                  maxWidth: "300px",
+                  margin: "0 auto",
+                }}
+              >
                 {jobs.map((job, idx) => {
                   const dist = circDist(activeIdx, idx, jobs.length);
                   const absDist = Math.abs(dist);
@@ -199,21 +293,21 @@ export default function LandingPage() {
                   const hidden = absDist > MAX_VISIBLE;
 
                   const cardCls =
-                    "block rounded-xl border border-line bg-canvas p-6";
+                    "block rounded-xl border border-white/10 bg-card p-5 flex flex-col min-h-[210px]";
 
                   const cardContent = (
                     <>
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-medium text-ink">{job.title}</h3>
-                        <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+                        <h3 className="font-medium text-white/90">{job.title}</h3>
+                        <span className="shrink-0 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
                           {t("landing.featuredJobs.open")}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-ink-3">{job.location}</p>
-                      <p className="mt-3 text-sm leading-relaxed text-ink-2">
-                        {truncate(job.description, 160)}
+                      <p className="mt-1 text-sm text-white/40">{job.location}</p>
+                      <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
+                        {truncate(job.description, 120)}
                       </p>
-                      <p className="mt-4 text-xs text-ink-3">
+                      <p className="mt-4 text-xs text-white/30">
                         {t("common.posted")} {formatDate(job.created_at)}
                       </p>
                     </>
@@ -266,7 +360,7 @@ export default function LandingPage() {
                     className={`h-1.5 rounded-full transition-all duration-300 ${
                       idx === activeIdx
                         ? "w-5 bg-copper"
-                        : "w-1.5 bg-line-2 hover:bg-line"
+                        : "w-1.5 bg-white/15 hover:bg-white/25"
                     }`}
                   />
                 ))}
@@ -277,24 +371,26 @@ export default function LandingPage() {
       )}
 
       {/* ── Footer ────────────────────────────────────── */}
-      <footer className="border-t border-line bg-canvas py-8">
+      <footer
+        className="border-t border-white/10 bg-page py-8"
+      >
         <div className="mx-auto max-w-4xl px-6">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <Logo size={26} />
-            <nav className="flex items-center gap-5 text-sm text-ink-3">
-              <Link to="/jobs" className="transition hover:text-ink">
+            <nav className="flex items-center gap-5 text-sm text-white/35">
+              <Link to="/jobs" className="transition hover:text-white/70">
                 {t("landing.footer.jobs")}
               </Link>
-              <Link to="/login" className="transition hover:text-ink">
+              <Link to="/login" className="transition hover:text-white/70">
                 {t("landing.footer.login")}
               </Link>
               {!isAuthenticated && (
-                <Link to="/register" className="transition hover:text-ink">
+                <Link to="/register" className="transition hover:text-white/70">
                   {t("landing.footer.register")}
                 </Link>
               )}
             </nav>
-            <p className="text-xs text-ink-3">
+            <p className="text-xs text-white/25">
               &copy; {new Date().getFullYear()} RS Recruiting.{" "}
               {t("landing.footer.copyright")}
             </p>

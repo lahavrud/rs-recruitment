@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { approveCompany, getPendingCompanies, rejectCompany } from "@/services/admin";
 import type { PendingCompanyRead } from "@/types/api";
+import PageHeader from "@/components/ui/PageHeader";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -52,28 +53,26 @@ export default function AdminCompaniesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-ink">{t("admin.companies.title")}</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            {t("admin.companies.subtitle")}
-          </p>
-        </div>
-        {!loading && (
-          <span className="rounded-full bg-warning/10 px-3 py-1 text-sm font-medium text-warning">
-            {companies.length} {t("admin.companies.pending")}
-          </span>
-        )}
-      </div>
+      <PageHeader
+        eyebrow={t("admin.companies.title")}
+        subtitle={t("admin.companies.subtitle")}
+        action={
+          !loading ? (
+            <span className="rounded-full bg-warning/10 px-3 py-1 text-sm font-medium text-warning">
+              {companies.length} {t("admin.companies.pending")}
+            </span>
+          ) : undefined
+        }
+      />
 
       {error && (
-        <div className="mb-4 rounded-md bg-danger/10 p-4 text-sm text-danger">{error}</div>
+        <div className="mb-4 rounded-lg border border-danger/20 bg-danger/10 p-4 text-sm text-danger">{error}</div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16 text-ink-3">{t("admin.companies.loading")}</div>
+        <div className="flex justify-center py-16 text-white/25">{t("admin.companies.loading")}</div>
       ) : companies.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line-2 py-20 text-center text-ink-3">
+        <div className="rounded-xl border border-dashed border-white/10 py-20 text-center text-sm text-white/25">
           {t("admin.companies.empty")}
         </div>
       ) : (
@@ -83,35 +82,33 @@ export default function AdminCompaniesPage() {
             return (
               <div
                 key={c.user.id}
-                className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-4 rounded-xl border border-white/8 bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <p className="font-semibold text-ink">{c.company_profile.name}</p>
-                  <p className="mt-0.5 text-sm text-ink-2">{c.user.email}</p>
+                  <p className="font-medium text-white/85">{c.company_profile.name}</p>
+                  <p className="mt-0.5 text-sm text-white/45">{c.user.email}</p>
                   {c.company_profile.contact_person && (
-                    <p className="text-sm text-ink-2">
+                    <p className="text-sm text-white/45">
                       {t("admin.companies.contactLabel")}: {c.company_profile.contact_person}
-                      {c.company_profile.contact_phone &&
-                        ` · ${c.company_profile.contact_phone}`}
+                      {c.company_profile.contact_phone && ` · ${c.company_profile.contact_phone}`}
                     </p>
                   )}
-                  <p className="mt-1 text-xs text-ink-3">
+                  <p className="mt-1 text-xs text-white/25">
                     {t("admin.companies.registeredLabel")} {formatDate(c.user.created_at)}
                   </p>
                 </div>
-
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => handleApprove(c.user.id)}
                     disabled={busy}
-                    className="rounded-md bg-success px-4 py-1.5 text-sm font-medium text-white hover:bg-success/80 disabled:opacity-50"
+                    className="rounded-sm bg-success/15 px-4 py-1.5 text-sm font-medium text-success transition hover:bg-success/25 disabled:opacity-40"
                   >
                     {busy ? "…" : t("admin.companies.approve")}
                   </button>
                   <button
                     onClick={() => handleReject(c.user.id)}
                     disabled={busy}
-                    className="rounded-md border border-danger/30 px-4 py-1.5 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+                    className="rounded-sm border border-danger/25 px-4 py-1.5 text-sm font-medium text-danger transition hover:bg-danger/10 disabled:opacity-40"
                   >
                     {busy ? "…" : t("admin.companies.reject")}
                   </button>

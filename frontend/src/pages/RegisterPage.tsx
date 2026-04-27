@@ -3,11 +3,9 @@ import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/ui/Logo";
+import { inputCls } from "@/styles/forms";
 import axios from "axios";
-
-const inputCls =
-  "mt-1 block w-full rounded-md border border-line-2 px-3 py-2 text-sm shadow-sm " +
-  "focus:border-copper focus:ring-1 focus:ring-copper focus:outline-none";
 
 function useValidation() {
   const { t } = useTranslation();
@@ -73,9 +71,7 @@ export default function RegisterPage() {
 
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
-    if (fieldErrors[field]) {
-      setFieldErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    if (fieldErrors[field]) setFieldErrors((prev) => ({ ...prev, [field]: "" }));
   }
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
@@ -131,11 +127,10 @@ export default function RegisterPage() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
-        const detail = err.response?.data?.detail;
         if (status === 429) {
           setSubmitError(t("auth.register.errors.tooManyAttempts"));
-        } else if (typeof detail === "string") {
-          setSubmitError(detail);
+        } else if (status === 400 || status === 409) {
+          setSubmitError(t("auth.register.errors.emailExists"));
         } else {
           setSubmitError(t("auth.register.errors.failed"));
         }
@@ -149,20 +144,20 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
-        <div className="w-full max-w-md rounded-lg border border-success/20 bg-success/10 p-8 text-center shadow">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/20 text-2xl">
+      <div className="flex min-h-screen items-center justify-center bg-void px-4 py-8">
+        <div className="w-full max-w-md rounded-xl border border-success/20 bg-success/8 p-10 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-success/30 bg-success/10 text-lg text-success">
             ✓
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-success">
+          <h2 className="mt-5 text-lg font-semibold text-white/90">
             {t("auth.register.success.title")}
           </h2>
-          <p className="mt-2 text-sm text-success">
+          <p className="mt-2 text-sm leading-relaxed text-white/50">
             {t("auth.register.success.message")}
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block rounded-md bg-success px-5 py-2 text-sm font-medium text-white hover:bg-success/80"
+            className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
           >
             {t("auth.register.success.backToLogin")}
           </Link>
@@ -172,30 +167,31 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
-      <div className="w-full max-w-md space-y-6 rounded-lg bg-surface p-6 shadow sm:p-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-ink">{t("auth.register.title")}</h1>
-          <p className="mt-1 text-sm text-ink-2">
-            {t("auth.register.subtitle")}
-          </p>
+    <div className="flex min-h-screen items-center justify-center bg-void px-4 py-8">
+      <div className="w-full max-w-md space-y-6 rounded-xl border border-white/10 border-t-copper/50 bg-card p-6 sm:p-8">
+        <div className="flex items-center gap-3">
+          <Logo size={30} />
+          <div>
+            <h1 className="text-lg font-semibold text-white/90">{t("auth.register.title")}</h1>
+            <p className="text-xs text-white/40">{t("auth.register.subtitle")}</p>
+          </div>
         </div>
 
         {submitError && (
-          <div className="rounded-md bg-danger/10 p-3 text-sm text-danger">
+          <div className="rounded-lg border border-danger/20 bg-danger/10 p-3 text-sm text-danger">
             {submitError}
           </div>
         )}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           <section>
-            <h2 className="mb-3 border-b border-line pb-1.5 text-sm font-semibold uppercase tracking-wide text-ink-2">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
               {t("auth.register.companySection")}
-            </h2>
+            </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-ink-2">
-                  {t("auth.register.companyName")} <span className="text-danger">*</span>
+                <label className="block text-sm text-white/50">
+                  {t("auth.register.companyName")} <span className="text-copper/80">*</span>
                 </label>
                 <input
                   name="companyName"
@@ -205,7 +201,7 @@ export default function RegisterPage() {
                   value={form.companyName}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={inputCls}
+                  className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.companyNamePlaceholder")}
                   autoComplete="organization"
                 />
@@ -215,7 +211,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-2">
+                <label className="block text-sm text-white/50">
                   {t("auth.register.contactPerson")}
                 </label>
                 <input
@@ -224,14 +220,14 @@ export default function RegisterPage() {
                   maxLength={100}
                   value={form.contactPerson}
                   onChange={handleChange}
-                  className={inputCls}
+                  className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.contactPersonPlaceholder")}
                   autoComplete="name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-2">
+                <label className="block text-sm text-white/50">
                   {t("auth.register.contactPhone")}
                 </label>
                 <input
@@ -241,7 +237,7 @@ export default function RegisterPage() {
                   value={form.contactPhone}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={inputCls}
+                  className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.contactPhonePlaceholder")}
                   autoComplete="tel"
                 />
@@ -253,13 +249,13 @@ export default function RegisterPage() {
           </section>
 
           <section>
-            <h2 className="mb-3 border-b border-line pb-1.5 text-sm font-semibold uppercase tracking-wide text-ink-2">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
               {t("auth.register.accountSection")}
-            </h2>
+            </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-ink-2">
-                  {t("auth.register.emailLabel")} <span className="text-danger">*</span>
+                <label className="block text-sm text-white/50">
+                  {t("auth.register.emailLabel")} <span className="text-copper/80">*</span>
                 </label>
                 <input
                   name="email"
@@ -269,7 +265,7 @@ export default function RegisterPage() {
                   value={form.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={inputCls}
+                  className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.emailPlaceholder")}
                   autoComplete="email"
                 />
@@ -279,8 +275,8 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-2">
-                  {t("auth.register.passwordLabel")} <span className="text-danger">*</span>
+                <label className="block text-sm text-white/50">
+                  {t("auth.register.passwordLabel")} <span className="text-copper/80">*</span>
                 </label>
                 <input
                   name="password"
@@ -289,7 +285,7 @@ export default function RegisterPage() {
                   value={form.password}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={inputCls}
+                  className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.passwordPlaceholder")}
                   autoComplete="new-password"
                 />
@@ -299,8 +295,8 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-2">
-                  {t("auth.register.confirmLabel")} <span className="text-danger">*</span>
+                <label className="block text-sm text-white/50">
+                  {t("auth.register.confirmLabel")} <span className="text-copper/80">*</span>
                 </label>
                 <input
                   name="confirm"
@@ -309,7 +305,7 @@ export default function RegisterPage() {
                   value={form.confirm}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className={inputCls}
+                  className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.confirmPlaceholder")}
                   autoComplete="new-password"
                 />
@@ -323,15 +319,15 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-copper px-4 py-2.5 text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? t("auth.register.submittingText") : t("auth.register.submitText")}
           </button>
         </form>
 
-        <p className="text-center text-sm text-ink-2">
+        <p className="text-center text-sm text-white/35">
           {t("auth.register.haveAccount")}{" "}
-          <Link to="/login" className="font-medium text-copper hover:underline">
+          <Link to="/login" className="text-copper transition hover:text-gold">
             {t("auth.register.loginLink")}
           </Link>
         </p>
