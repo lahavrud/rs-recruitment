@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/api";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -21,23 +22,22 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-ink">{t("dashboard.title")}</h1>
-      <p className="mt-1 text-sm text-ink-2">
-        {t("dashboard.welcomeBack")}{" "}
-        <span className="font-medium text-ink-2">{user?.email}</span>
-      </p>
+      <PageHeader
+        eyebrow={t("dashboard.title")}
+        subtitle={`${t("dashboard.welcomeBack")} ${user?.email ?? ""}`}
+      />
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {links.map((link) => (
           <Link
             key={link.to}
             to={link.to}
-            className="group rounded-lg border border-line bg-surface p-5 shadow-sm transition hover:border-copper/40 hover:shadow-md"
+            className="group block rounded-xl border border-white/8 bg-card p-5 transition duration-200 hover:border-copper/25 hover:bg-card-raised"
           >
-            <p className="font-semibold text-ink group-hover:text-copper">
+            <p className="font-medium text-white/80 transition group-hover:text-white/95">
               {link.label}
             </p>
-            <p className="mt-1 text-sm text-ink-2">{link.description}</p>
+            <p className="mt-1 text-sm text-white/40">{link.description}</p>
           </Link>
         ))}
       </div>

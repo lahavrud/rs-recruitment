@@ -42,7 +42,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, [onClose]);
 
   const navContent = (
-    <nav className="flex-1 space-y-1 p-4">
+    <nav className="flex-1 space-y-0.5 p-3">
       {navItems.map((item) => (
         <NavLink
           key={item.to}
@@ -50,10 +50,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           end={item.to === "/dashboard"}
           onClick={onClose}
           className={({ isActive }) =>
-            `block rounded-md px-3 py-2 text-sm font-medium ${
+            `block rounded-sm px-3 py-2 text-sm transition ${
               isActive
-                ? "bg-copper/10 text-copper"
-                : "text-ink-2 hover:bg-subtle hover:text-ink"
+                ? "bg-copper/12 text-copper"
+                : "text-white/40 hover:bg-white/5 hover:text-white/70"
             }`
           }
         >
@@ -67,39 +67,29 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/40 md:hidden"
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
       <aside
         className={`
-          fixed inset-y-0 start-0 z-30 flex w-56 flex-col border-e border-line
-          bg-surface transition-transform duration-200 ease-in-out
-          md:static md:translate-x-0 md:bg-canvas
+          fixed inset-y-0 start-0 z-30 flex w-52 flex-col border-e border-white/8
+          bg-void transition-transform duration-200 ease-in-out
+          md:static md:translate-x-0
           ${isOpen ? "translate-x-0" : "max-md:ltr:-translate-x-full max-md:rtl:translate-x-full"}
         `}
       >
-        <div className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
-          <span className="text-sm font-semibold text-ink-2">{t("nav.menu")}</span>
+        <div className="flex items-center justify-between border-b border-white/8 px-4 py-3 md:hidden">
+          <span className="text-sm text-white/45">{t("nav.menu")}</span>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-ink-3 hover:bg-subtle"
+            className="rounded-sm p-1 text-white/30 transition hover:bg-white/5 hover:text-white/60"
             aria-label={t("nav.closeNavigation")}
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>

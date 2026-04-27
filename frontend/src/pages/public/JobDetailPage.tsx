@@ -61,7 +61,7 @@ export default function JobDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-ink-3">{t("publicJobs.detail.loading")}</div>
+        <div className="text-white/30">{t("publicJobs.detail.loading")}</div>
       </div>
     );
   }
@@ -69,12 +69,12 @@ export default function JobDetailPage() {
   if (error || !job) {
     return (
       <div className="text-center">
-        <div className="rounded-md bg-danger/10 p-6 text-danger">
+        <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-sm text-danger">
           {error ?? t("publicJobs.detail.notFound")}
         </div>
         <Link
           to="/jobs"
-          className="mt-6 inline-block text-sm text-copper hover:underline"
+          className="mt-6 inline-block text-sm text-white/40 transition hover:text-copper"
         >
           {t("publicJobs.detail.backToJobs")}
         </Link>
@@ -83,51 +83,61 @@ export default function JobDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-2xl">
       <Link
         to="/jobs"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-copper hover:underline"
+        className="mb-8 inline-block text-sm text-white/35 transition hover:text-copper"
       >
         {t("publicJobs.detail.backToJobs")}
       </Link>
 
-      <div className="rounded-lg border border-line bg-surface p-5 shadow-sm sm:p-8">
+      <article className="rounded-xl border border-white/8 bg-card p-6 sm:p-10">
+        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-ink sm:text-2xl">{job.title}</h1>
-            <p className="mt-1 text-ink-2">{job.location}</p>
+            <h1 className="text-xl font-semibold text-white/95 sm:text-2xl">{job.title}</h1>
+            <p className="mt-1.5 text-sm text-white/45">{job.location}</p>
           </div>
-          <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">
+          <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
             {t("publicJobs.detail.open")}
           </span>
         </div>
-        <p className="mt-2 text-xs text-ink-3">
+        <p className="mt-2 text-xs text-white/25">
           {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
         </p>
 
-        <div className="mt-8">
-          <h2 className="text-base font-semibold text-ink">{t("publicJobs.detail.aboutRole")}</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink-2">
+        <div className="my-8 h-px bg-white/8" />
+
+        {/* About the role */}
+        <div>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+            {t("publicJobs.detail.aboutRole")}
+          </p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
             {job.description}
           </p>
         </div>
 
+        {/* Requirements */}
         <div className="mt-8">
-          <h2 className="text-base font-semibold text-ink">{t("publicJobs.detail.requirements")}</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink-2">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+            {t("publicJobs.detail.requirements")}
+          </p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
             {job.requirements}
           </p>
         </div>
 
-        <div className="mt-8 border-t border-line pt-6 sm:mt-10">
+        {/* CTA */}
+        <div className="mt-10 border-t border-white/8 pt-8">
           <Link
             to={`/jobs/${job.id}/apply`}
-            className="block rounded-md bg-copper px-6 py-3 text-center text-sm font-medium text-white hover:bg-gold focus:ring-2 focus:ring-copper focus:ring-offset-2 focus:outline-none sm:inline-block sm:py-2.5"
+            className="inline-block rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             {t("publicJobs.detail.applyNow")}
           </Link>
         </div>
-      </div>
+      </article>
     </div>
   );
 }
