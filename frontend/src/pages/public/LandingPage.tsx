@@ -35,6 +35,7 @@ export default function LandingPage() {
   const [activeIdx, setActiveIdx] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  const [heroLoaded, setHeroLoaded] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(false);
 
   const goNext = () => setActiveIdx((i) => (i + 1) % jobs.length);
@@ -86,14 +87,26 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-page">
       {/* ── Hero ──────────────────────────────────────── */}
-      <section
-        className="texture-wave relative flex min-h-screen flex-col overflow-hidden bg-void"
-        style={{
-          backgroundImage: 'url("/hero-city.jpg")',
-          backgroundSize: "cover",
-          backgroundPosition: "center 60%",
-        }}
-      >
+      <section className="texture-wave relative flex min-h-screen flex-col overflow-hidden bg-void">
+        {/* preload trigger — zero-size, tells browser to decode image before painting */}
+        <img
+          src="/hero-city.jpg"
+          alt=""
+          aria-hidden="true"
+          onLoad={() => setHeroLoaded(true)}
+          className="pointer-events-none absolute h-0 w-0 opacity-0"
+        />
+        {/* image layer — fades in only after the file is fully decoded */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: 'url("/hero-city.jpg")',
+            backgroundSize: "cover",
+            backgroundPosition: "center 60%",
+            opacity: heroLoaded ? 1 : 0,
+            transition: "opacity 0.9s ease",
+          }}
+        />
         {/* dark gradient overlay — ensures text stays readable */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/85 via-page/72 to-void/92" />
         {/* Nav */}
