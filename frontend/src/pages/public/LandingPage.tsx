@@ -219,33 +219,36 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Feature cards — tilt-in on scroll */}
+          {/* Numbered pillar cards */}
           <div ref={cardsRef} className="mt-16 grid gap-5 sm:grid-cols-3">
             {(
               [
-                { titleKey: "landing.about.feature1Title", bodyKey: "landing.about.feature1Body" },
-                { titleKey: "landing.about.feature2Title", bodyKey: "landing.about.feature2Body" },
-                { titleKey: "landing.about.feature3Title", bodyKey: "landing.about.feature3Body" },
+                { titleKey: "landing.about.feature1Title", bodyKey: "landing.about.feature1Body", num: "01" },
+                { titleKey: "landing.about.feature2Title", bodyKey: "landing.about.feature2Body", num: "02" },
+                { titleKey: "landing.about.feature3Title", bodyKey: "landing.about.feature3Body", num: "03" },
               ] as const
             ).map((f, idx) => (
               <div
                 key={f.titleKey}
                 style={{
                   animation: cardsVisible
-                    ? `card-tilt-in 0.55s ease-out ${idx * 160}ms both`
+                    ? `${["card-tilt-in", "card-rise-in", "card-swing-in"][idx]} 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 160}ms both`
                     : "none",
                   opacity: cardsVisible ? undefined : 0,
                 }}
               >
-                <div className="feature-card h-full rounded-lg border border-white/10 bg-card-raised p-6">
+                <div className="feature-card feature-card-shimmer h-full rounded-lg border border-white/10 bg-card-raised p-6">
+                  <p className="font-display text-4xl font-semibold leading-none text-copper/25 select-none">
+                    {f.num}
+                  </p>
                   <div
-                    className="mb-3 h-px bg-copper/70 transition-all duration-500"
+                    className="mt-4 h-px bg-copper/60 transition-all duration-500"
                     style={{
                       width: cardsVisible ? "1.5rem" : "0",
                       transitionDelay: cardsVisible ? `${idx * 160 + 380}ms` : "0ms",
                     }}
                   />
-                  <p className="font-semibold text-white/90">{t(f.titleKey)}</p>
+                  <p className="mt-3 font-semibold text-white/90">{t(f.titleKey)}</p>
                   <p className="mt-2 text-sm leading-relaxed text-white/55">
                     {t(f.bodyKey)}
                   </p>
