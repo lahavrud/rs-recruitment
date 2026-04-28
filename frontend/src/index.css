@@ -80,7 +80,8 @@ html {
     blur(calc(var(--abs-offset, 0) * 1.2px));
 }
 
-/* Feature card: tilt-forward entrance triggered by JS .visible class */
+/* ── Feature card entrance animations (one per card) ────────────────────────
+   Card 0 — TILT: tips forward on the X axis then snaps level, like a book opening toward you   */
 @keyframes card-tilt-in {
   from {
     opacity: 0;
@@ -96,15 +97,75 @@ html {
   }
 }
 
-.feature-card {
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+/* Card 1 — RISE: floats straight up from below with a soft spring overshoot */
+@keyframes card-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(44px) scale(0.96);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px color-mix(in srgb, var(--color-copper) 28%, transparent);
-  border-color: color-mix(in srgb, var(--color-copper) 32%, transparent) !important;
+/* Card 2 — SWING: rotates in around the Y axis from the side (depth reveal) */
+@keyframes card-swing-in {
+  from {
+    opacity: 0;
+    transform: perspective(700px) rotateY(-22deg) translateX(-18px);
+  }
+  65% {
+    opacity: 1;
+    transform: perspective(700px) rotateY(4deg) translateX(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
+
+.feature-card {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+/* SHIMMER: diagonal streak — copper lead, white flash at peak, gold trail */
+.feature-card-shimmer {
+  overflow: hidden;
+}
+.feature-card-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    108deg,
+    transparent 25%,
+    color-mix(in srgb, var(--color-copper) 18%, transparent) 38%,
+    color-mix(in srgb, var(--color-gold) 28%, transparent) 48%,
+    rgba(255, 255, 255, 0.11) 52%,
+    color-mix(in srgb, var(--color-gold) 22%, transparent) 57%,
+    color-mix(in srgb, var(--color-copper) 12%, transparent) 66%,
+    transparent 78%
+  );
+  transform: translateX(-120%);
+  transition: none;
+  pointer-events: none;
+  z-index: 1;
+}
+.feature-card-shimmer:hover::before {
+  transform: translateX(120%);
+  transition: transform 0.7s ease;
+}
+.feature-card-shimmer:hover {
+  border-color: color-mix(in srgb, var(--color-copper) 40%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-copper) 15%, transparent);
+}
+
 
 @keyframes page-in {
   from {
