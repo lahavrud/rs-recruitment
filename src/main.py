@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import (
     admin_applications,
+    admin_candidates,
     admin_companies,
     admin_jobs,
     auth,
@@ -13,6 +14,7 @@ from src.api import (
     jobs_read,
     jobs_write,
     public,
+    resumes,
 )
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import init_db
@@ -47,11 +49,13 @@ app.include_router(auth.router)
 app.include_router(admin_companies.router)
 app.include_router(admin_jobs.router)
 app.include_router(admin_applications.router)
+app.include_router(admin_candidates.router)
 app.include_router(jobs_read.router)
 app.include_router(jobs_write.router)
 app.include_router(public.router)
 app.include_router(candidates.router)
 app.include_router(candidates.jobs_apply_router)
+app.include_router(resumes.router)
 
 
 @app.get("/health")

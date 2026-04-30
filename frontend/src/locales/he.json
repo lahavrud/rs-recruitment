@@ -360,7 +360,25 @@
     "candidates": {
       "title": "מועמדים",
       "subtitle": "עיין ונהל פרופילי מועמדים.",
-      "comingSoon": "רשימת המועמדים תהיה זמינה בעדכון עתידי."
+      "loading": "טוען…",
+      "empty": "לא נמצאו מועמדים.",
+      "loadError": "טעינת המועמדים נכשלה.",
+      "searchPlaceholder": "חיפוש לפי שם או אימייל…",
+      "noFile": "לא הועלה",
+      "table": {
+        "name": "מועמד",
+        "phone": "טלפון",
+        "resume": "קורות חיים",
+        "linkedin": "LinkedIn",
+        "date": "תאריך"
+      },
+      "details": {
+        "serviceConcept": "תפיסת שירות",
+        "salaryExpectations": "ציפיות שכר",
+        "strength": "חוזקות",
+        "weakness": "נקודות לשיפור",
+        "noAnswers": "אין תשובות לשאלות הראיון."
+      }
     }
   },
   "company": {

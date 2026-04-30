@@ -80,10 +80,22 @@ function DetailsPanel({
             {t("admin.applications.details.linkedin")} ↗
           </a>
         )}
-        <span className="text-white/60">
-          <span className="text-white/35">{t("admin.applications.details.resume")}: </span>
-          {c.resume_path ? c.resume_path.split("/").pop() : t("admin.applications.details.noFile")}
-        </span>
+        {c.resume_path ? (
+          <a
+            href={`/api/resumes/${c.resume_path.split("/").pop()}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-copper hover:text-gold"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {t("admin.applications.details.resume")} ↗
+          </a>
+        ) : (
+          <span className="text-white/60">
+            <span className="text-white/35">{t("admin.applications.details.resume")}: </span>
+            {t("admin.applications.details.noFile")}
+          </span>
+        )}
       </div>
 
       {/* Interview answers */}
