@@ -14,11 +14,13 @@ export async function login(credentials: LoginRequest): Promise<TokenResponse> {
 }
 
 /**
- * Register a new company account.
- * The account is inactive until an admin approves it — no token is issued.
+ * Register a new company account using an admin-issued invite token.
+ * The account is inactive until an admin approves it — no auth token is issued.
  */
-export async function register(data: UserCreate): Promise<UserWithCompanyRead> {
-  const response = await api.post<UserWithCompanyRead>("/auth/register", data);
+export async function register(data: UserCreate, inviteToken: string): Promise<UserWithCompanyRead> {
+  const response = await api.post<UserWithCompanyRead>("/auth/register", data, {
+    params: { token: inviteToken },
+  });
   return response.data;
 }
 

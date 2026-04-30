@@ -42,6 +42,12 @@ def _validate_linkedin_url_value(v: str | None) -> str | None:
     return v
 
 
+class InviteTokenResponse(BaseModel):
+    """Response schema for admin invite token generation."""
+
+    token: str
+
+
 # Registration Schemas
 class CompanyProfileCreate(BaseModel):
     """Schema for creating a company profile."""

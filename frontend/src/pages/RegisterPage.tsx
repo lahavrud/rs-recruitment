@@ -1,5 +1,5 @@
 import { type ChangeEvent, type FormEvent, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,6 +61,9 @@ export default function RegisterPage() {
   const { t } = useTranslation();
   const val = useValidation();
   const { isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("token");
+
   const [form, setForm] = useState<FormState>(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<Partial<FormState>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -68,6 +71,30 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+
+  if (!inviteToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-void px-4">
+        <div className="w-full max-w-md rounded-xl border border-white/10 bg-card p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-warning/30 bg-warning/10 text-lg text-warning">
+            ✕
+          </div>
+          <h2 className="mt-5 text-lg font-semibold text-white/90">
+            {t("auth.register.noToken.title")}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-white/50">
+            {t("auth.register.noToken.message")}
+          </p>
+          <Link
+            to="/login"
+            className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
+          >
+            {t("auth.register.noToken.backToLogin")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -114,22 +141,32 @@ export default function RegisterPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await register({
-        email: form.email.trim(),
-        password: form.password,
-        company_profile: {
-          name: form.companyName.trim(),
-          contact_person: form.contactPerson.trim() || null,
-          contact_phone: form.contactPhone.trim() || null,
+      await register(
+        {
+          email: form.email.trim(),
+          password: form.password,
+          company_profile: {
+            name: form.companyName.trim(),
+            contact_person: form.contactPerson.trim() || null,
+            contact_phone: form.contactPhone.trim() || null,
+          },
         },
-      });
+        inviteToken!,
+      );
       setSuccess(true);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         if (status === 429) {
           setSubmitError(t("auth.register.errors.tooManyAttempts"));
-        } else if (status === 400 || status === 409) {
+        } else if (status === 400) {
+          const detail = (err.response?.data?.detail ?? "") as string;
+          if (detail.toLowerCase().includes("invite") || detail.toLowerCase().includes("token")) {
+            setSubmitError(t("auth.register.errors.invalidToken"));
+          } else {
+            setSubmitError(t("auth.register.errors.emailExists"));
+          }
+        } else if (status === 409) {
           setSubmitError(t("auth.register.errors.emailExists"));
         } else {
           setSubmitError(t("auth.register.errors.failed"));

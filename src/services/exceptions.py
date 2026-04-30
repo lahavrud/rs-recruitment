@@ -21,6 +21,12 @@ class InvalidCredentialsError(AuthError):
     pass
 
 
+class InvalidInviteTokenError(AuthError):
+    """Raised when a registration invite token is missing, invalid, or expired."""
+
+    pass
+
+
 class InactiveUserError(AuthError):
     """Raised when attempting to authenticate an inactive user."""
 

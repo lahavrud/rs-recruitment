@@ -221,3 +221,22 @@ async def test_admin_company_endpoints_require_admin_role(mock_enqueue_email, te
         assert "admin" in response.json()["detail"].lower()
 
     app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_generate_invite_token_returns_token(admin_client: AsyncClient):
+    """Test that admin can generate an invite token."""
+    response = await admin_client.post("/api/admin/companies/invite")
+    assert response.status_code == 201
+    data = response.json()
+    assert "token" in data
+    assert (
+        data["token"] == "test-invite-token-abc123"
+    )  # value set by mock_invite_tokens fixture
+
+
+@pytest.mark.asyncio
+async def test_generate_invite_token_requires_admin(public_client: AsyncClient):
+    """Test that the invite endpoint requires admin authentication."""
+    response = await public_client.post("/api/admin/companies/invite")
+    assert response.status_code == 401
