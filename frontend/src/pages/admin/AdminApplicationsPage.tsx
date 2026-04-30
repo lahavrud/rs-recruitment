@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getApplications, updateApplicationStatus } from "@/services/admin";
+import { getApplications, updateApplicationStatus, deleteApplication } from "@/services/admin";
 import { ApplicationStatus } from "@/types/api";
 import type { ApplicationStatusUpdate, ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
@@ -48,6 +48,11 @@ export default function AdminApplicationsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   useEffect(() => {
     getApplications()
       .then(setApplications)
@@ -66,6 +71,12 @@ export default function AdminApplicationsPage() {
     REJECTED: t("admin.applications.statusLabels.REJECTED"),
     HIRED: t("admin.applications.statusLabels.HIRED"),
   };
+
+  function toggleExpanded(id: number) {
+    setExpandedId((prev) => (prev === id ? null : id));
+    setConfirmDeleteId(null);
+    setDeleteError(null);
+  }
 
   function openModal(app: ApplicationWithDetails) {
     const nexts = NEXT_STATUSES[app.status] ?? [];
@@ -102,6 +113,20 @@ export default function AdminApplicationsPage() {
       setSaveError(t("admin.applications.errors.updateFailed"));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete(appId: number) {
+    setDeletingId(appId);
+    setDeleteError(null);
+    try {
+      await deleteApplication(appId);
+      setApplications((prev) => prev.filter((a) => a.id !== appId));
+      setExpandedId(null);
+      setConfirmDeleteId(null);
+    } catch {
+      setDeleteError(t("admin.applications.errors.deleteFailed"));
+      setDeletingId(null);
     }
   }
 
@@ -168,35 +193,149 @@ export default function AdminApplicationsPage() {
             <tbody className="divide-y divide-white/6">
               {filtered.map((app) => {
                 const canUpdate = (NEXT_STATUSES[app.status] ?? []).length > 0;
+                const isExpanded = expandedId === app.id;
+                const isConfirmingDelete = confirmDeleteId === app.id;
+                const isDeleting = deletingId === app.id;
+                const c = app.candidate;
+
                 return (
-                  <tr key={app.id} className="transition hover:bg-white/3">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-white/80">{app.candidate.full_name}</p>
-                      <p className="text-xs text-white/40">{app.candidate.email}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-white/80">{app.job.title}</p>
-                      <p className="text-xs text-white/40">{app.job.location}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status]}`}>
-                        {STATUS_LABELS[app.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-white/40">{formatDate(app.created_at)}</td>
-                    <td className="px-4 py-3">
-                      {canUpdate ? (
-                        <button
-                          onClick={() => openModal(app)}
-                          className="rounded-sm border border-white/15 px-3 py-1 text-xs text-white/50 transition hover:border-copper/30 hover:text-copper"
-                        >
-                          {t("common.edit")}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-white/20">—</span>
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={app.id}
+                      onClick={() => toggleExpanded(app.id)}
+                      className="cursor-pointer transition hover:bg-white/3"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-white/80">{c.full_name}</p>
+                        <p className="text-xs text-white/40">{c.email}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-white/80">{app.job.title}</p>
+                        <p className="text-xs text-white/40">{app.job.location}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status]}`}>
+                          {STATUS_LABELS[app.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-white/40">{formatDate(app.created_at)}</td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        {canUpdate ? (
+                          <button
+                            onClick={() => openModal(app)}
+                            className="rounded-sm border border-white/15 px-3 py-1 text-xs text-white/50 transition hover:border-copper/30 hover:text-copper"
+                          >
+                            {t("common.edit")}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-white/20">—</span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {isExpanded && (
+                      <tr key={`${app.id}-details`}>
+                        <td colSpan={5} className="border-t border-white/5 bg-card-raised px-5 py-4">
+                          <div className="space-y-4">
+                            {/* Contact strip */}
+                            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                              {c.phone && (
+                                <span className="text-white/60">
+                                  <span className="text-white/35">{t("admin.applications.details.phone")}: </span>
+                                  {c.phone}
+                                </span>
+                              )}
+                              {c.linkedin_url && (
+                                <a
+                                  href={c.linkedin_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-copper hover:text-gold"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {t("admin.applications.details.linkedin")} ↗
+                                </a>
+                              )}
+                              <span className="text-white/60">
+                                <span className="text-white/35">{t("admin.applications.details.resume")}: </span>
+                                {c.resume_path
+                                  ? c.resume_path.split("/").pop()
+                                  : t("admin.applications.details.noFile")}
+                              </span>
+                            </div>
+
+                            {/* Interview answers */}
+                            {(c.service_concept || c.salary_expectations || c.strength || c.weakness) && (
+                              <dl className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+                                {c.service_concept && (
+                                  <>
+                                    <dt className="text-white/35">{t("admin.applications.details.serviceConcept")}</dt>
+                                    <dd className="text-white/70">{c.service_concept}</dd>
+                                  </>
+                                )}
+                                {c.salary_expectations && (
+                                  <>
+                                    <dt className="text-white/35">{t("admin.applications.details.salaryExpectations")}</dt>
+                                    <dd className="text-white/70">{c.salary_expectations}</dd>
+                                  </>
+                                )}
+                                {c.strength && (
+                                  <>
+                                    <dt className="text-white/35">{t("admin.applications.details.strength")}</dt>
+                                    <dd className="text-white/70">{c.strength}</dd>
+                                  </>
+                                )}
+                                {c.weakness && (
+                                  <>
+                                    <dt className="text-white/35">{t("admin.applications.details.weakness")}</dt>
+                                    <dd className="text-white/70">{c.weakness}</dd>
+                                  </>
+                                )}
+                              </dl>
+                            )}
+
+                            {/* Admin notes (read-only display) */}
+                            {app.admin_notes && (
+                              <p className="text-xs text-white/40 italic">{app.admin_notes}</p>
+                            )}
+
+                            {/* Delete zone */}
+                            <div className="border-t border-white/5 pt-3">
+                              {deleteError && isExpanded && (
+                                <p className="mb-2 text-xs text-danger">{deleteError}</p>
+                              )}
+                              {isConfirmingDelete ? (
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-white/50">{t("admin.applications.deleteConfirm")}</span>
+                                  <button
+                                    onClick={() => handleDelete(app.id)}
+                                    disabled={isDeleting}
+                                    className="rounded-sm bg-danger/80 px-3 py-1 text-xs font-medium text-white transition hover:bg-danger disabled:opacity-40"
+                                  >
+                                    {isDeleting ? t("common.saving") : t("admin.applications.deleteConfirmYes")}
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    disabled={isDeleting}
+                                    className="text-xs text-white/40 transition hover:text-white/70 disabled:opacity-40"
+                                  >
+                                    {t("admin.applications.deleteCancel")}
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(app.id)}
+                                  className="text-xs text-danger/60 transition hover:text-danger"
+                                >
+                                  {t("admin.applications.deleteButton")}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>

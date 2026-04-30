@@ -199,3 +199,23 @@ async def update_application_status(
     ]
 
     return ApplicationRead.model_validate(application), email_payloads
+
+
+async def delete_application(
+    application_id: int,
+    session: AsyncSession,
+) -> None:
+    """Delete an application record.
+
+    Removes the job ↔ candidate link. The candidate profile is preserved.
+
+    Raises:
+        ApplicationNotFoundError: If application not found
+    """
+    application = await session.get(Application, application_id)
+    if application is None:
+        raise ApplicationNotFoundError(
+            f"Application with ID {application_id} not found"
+        )
+    await session.delete(application)
+    await session.commit()
