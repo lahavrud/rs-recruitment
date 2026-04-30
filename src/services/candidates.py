@@ -83,15 +83,6 @@ async def update_candidate_profile(
         candidate.salary_expectations = candidate_data.salary_expectations
 
     if (
-        candidate.military_service_details is None
-        and candidate_data.military_service_details is not None
-    ):
-        candidate.military_service_details = candidate_data.military_service_details
-
-    if candidate.transportation is None and candidate_data.transportation is not None:
-        candidate.transportation = candidate_data.transportation
-
-    if (
         candidate.personality_weakness is None
         and candidate_data.personality_weakness is not None
     ):
@@ -254,8 +245,6 @@ async def create_candidate_profile(
             linkedin_url=candidate_data.linkedin_url,
             service_concept=candidate_data.service_concept,
             salary_expectations=candidate_data.salary_expectations,
-            military_service_details=candidate_data.military_service_details,
-            transportation=candidate_data.transportation,
             personality_weakness=candidate_data.personality_weakness,
             personality_strength=candidate_data.personality_strength,
         )

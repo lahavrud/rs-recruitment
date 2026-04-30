@@ -14,6 +14,7 @@ from src.schemas import CandidateProfileCreate, CandidateProfileUpdate
             {
                 "full_name": "Test User",
                 "email": "test@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "uploads/resumes/test_resume.pdf",
             },
             "uploads/resumes/test_resume.pdf",
@@ -39,6 +40,7 @@ def test_valid_resume_path(schema_class, create_kwargs, expected_path):
             {
                 "full_name": "Test User",
                 "email": "test@example.com",
+                "phone": "050-000-0000",
                 "resume_path": None,
             },
         ),
@@ -59,6 +61,7 @@ def test_none_resume_path(schema_class, create_kwargs):
             {
                 "full_name": "Malicious User",
                 "email": "malicious@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "../../../../etc/passwd",
             },
         ),
@@ -81,6 +84,7 @@ def test_path_traversal_parent_directory(schema_class, create_kwargs):
             {
                 "full_name": "Malicious User",
                 "email": "malicious@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "../config.py",
             },
         ),
@@ -103,6 +107,7 @@ def test_path_traversal_relative_parent(schema_class, create_kwargs):
             {
                 "full_name": "Malicious User",
                 "email": "malicious@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "/root/sensitive_file",
             },
         ),
@@ -123,6 +128,7 @@ def test_absolute_path_rejected(schema_class, create_kwargs):
             {
                 "full_name": "Malicious User",
                 "email": "malicious@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "config/secrets.env",
             },
         ),
@@ -149,6 +155,7 @@ def test_path_outside_uploads_directory(schema_class, create_kwargs):
             {
                 "full_name": "Test User",
                 "email": "test@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "uploads/resumes/2026/01/resume.pdf",
             },
             "uploads/resumes/2026/01/resume.pdf",
@@ -170,7 +177,11 @@ def test_nested_valid_path(schema_class, create_kwargs, expected_path):
 # Phone validation tests
 # ---------------------------------------------------------------------------
 
-BASE_CREATE = {"full_name": "Test User", "email": "test@example.com"}
+BASE_CREATE = {
+    "full_name": "Test User",
+    "email": "test@example.com",
+    "phone": "050-000-0000",
+}
 
 
 @pytest.mark.parametrize(
@@ -179,17 +190,16 @@ BASE_CREATE = {"full_name": "Test User", "email": "test@example.com"}
         (CandidateProfileCreate, "+972 50 123 4567", "+972 50 123 4567"),
         (CandidateProfileCreate, "050-123-4567", "050-123-4567"),
         (CandidateProfileCreate, "(03) 123 4567", "(03) 123 4567"),
-        (CandidateProfileCreate, None, None),
-        (CandidateProfileCreate, "", None),
         (CandidateProfileUpdate, "+1 800 555 1234", "+1 800 555 1234"),
         (CandidateProfileUpdate, None, None),
     ],
 )
 def test_valid_phone(schema_class, phone, expected):
     """Test that valid phone numbers are accepted."""
-    kwargs = {"phone": phone}
     if schema_class is CandidateProfileCreate:
-        kwargs.update(BASE_CREATE)
+        kwargs = {**BASE_CREATE, "phone": phone}
+    else:
+        kwargs = {"phone": phone}
     schema = schema_class(**kwargs)
     assert schema.phone == expected
 
@@ -197,6 +207,7 @@ def test_valid_phone(schema_class, phone, expected):
 @pytest.mark.parametrize(
     "schema_class,phone,error_match",
     [
+        (CandidateProfileCreate, "", "required"),
         (CandidateProfileCreate, "abc", "digits, spaces"),
         (CandidateProfileCreate, "123", "at least 5 digits"),
         (CandidateProfileUpdate, "!@#$", "digits, spaces"),
@@ -205,9 +216,10 @@ def test_valid_phone(schema_class, phone, expected):
 )
 def test_invalid_phone(schema_class, phone, error_match):
     """Test that invalid phone numbers are rejected."""
-    kwargs = {"phone": phone}
     if schema_class is CandidateProfileCreate:
-        kwargs.update(BASE_CREATE)
+        kwargs = {**BASE_CREATE, "phone": phone}
+    else:
+        kwargs = {"phone": phone}
     with pytest.raises(ValidationError, match=error_match):
         schema_class(**kwargs)
 
@@ -242,9 +254,10 @@ def test_invalid_phone(schema_class, phone, error_match):
 )
 def test_valid_linkedin_url(schema_class, url, expected):
     """Test that valid LinkedIn URLs are accepted."""
-    kwargs = {"linkedin_url": url}
     if schema_class is CandidateProfileCreate:
-        kwargs.update(BASE_CREATE)
+        kwargs = {**BASE_CREATE, "linkedin_url": url}
+    else:
+        kwargs = {"linkedin_url": url}
     schema = schema_class(**kwargs)
     assert schema.linkedin_url == expected
 
@@ -268,8 +281,9 @@ def test_valid_linkedin_url(schema_class, url, expected):
 )
 def test_invalid_linkedin_url(schema_class, url, error_match):
     """Test that invalid LinkedIn URLs are rejected."""
-    kwargs = {"linkedin_url": url}
     if schema_class is CandidateProfileCreate:
-        kwargs.update(BASE_CREATE)
+        kwargs = {**BASE_CREATE, "linkedin_url": url}
+    else:
+        kwargs = {"linkedin_url": url}
     with pytest.raises(ValidationError, match=error_match):
         schema_class(**kwargs)

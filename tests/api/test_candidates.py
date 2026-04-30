@@ -144,6 +144,7 @@ async def test_apply_endpoint_invalid_file_type(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0001",
     }
 
     files = {
@@ -176,6 +177,7 @@ async def test_apply_endpoint_file_size_limit(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0002",
     }
 
     # Create file larger than 10MB
@@ -206,6 +208,7 @@ async def test_apply_endpoint_creates_application(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0003",
     }
 
     response = await public_client.post("/api/candidates/apply", data=form_data)
@@ -242,6 +245,7 @@ async def test_apply_endpoint_job_not_found(
         "job_id": 999,  # Non-existent job ID
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0004",
     }
 
     response = await public_client.post("/api/candidates/apply", data=form_data)
@@ -264,6 +268,7 @@ async def test_apply_endpoint_public_access(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0005",
     }
 
     # Should work without authentication
@@ -315,6 +320,7 @@ async def test_apply_endpoint_reuses_existing_profile(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0006",
     }
     response1 = await public_client.post("/api/candidates/apply", data=form_data1)
     assert response1.status_code == 201
@@ -326,6 +332,7 @@ async def test_apply_endpoint_reuses_existing_profile(
         "job_id": job2_id,
         "full_name": "John Smith",  # Different name
         "email": "john@example.com",  # Same email
+        "phone": "050-000-0006",
     }
     response2 = await public_client.post("/api/candidates/apply", data=form_data2)
     assert response2.status_code == 201  # Should succeed, not error
@@ -351,6 +358,7 @@ async def test_apply_endpoint_duplicate_application_conflict(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
+        "phone": "050-000-0007",
     }
     response1 = await public_client.post("/api/candidates/apply", data=form_data)
     assert response1.status_code == 201

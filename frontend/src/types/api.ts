@@ -141,8 +141,6 @@ export interface CandidateProfileRead {
   linkedin_url: string | null;
   service_concept: string | null;
   salary_expectations: string | null;
-  military_service_details: string | null;
-  transportation: string | null;
   personality_weakness: string | null;
   personality_strength: string | null;
   created_at: string;
@@ -161,8 +159,6 @@ export interface CandidateApplicationForm {
   // Interview questions
   service_concept: string;
   salary_expectations: string;
-  military_service_details: string;
-  transportation: string;
   personality_weakness: string;
   personality_strength: string;
   // File — handled separately as File | null

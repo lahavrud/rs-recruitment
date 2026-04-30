@@ -175,14 +175,12 @@ class CandidateProfileCreate(BaseModel):
 
     full_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr = Field(..., max_length=255)
-    phone: str | None = Field(None, max_length=30)
+    phone: str = Field(..., max_length=30)
     resume_path: str | None = None
     linkedin_url: str | None = Field(None, max_length=500)
     # Interview form fields
     service_concept: str | None = Field(None, max_length=2000)
     salary_expectations: str | None = Field(None, max_length=2000)
-    military_service_details: str | None = Field(None, max_length=2000)
-    transportation: str | None = Field(None, max_length=2000)
     personality_weakness: str | None = Field(None, max_length=2000)
     personality_strength: str | None = Field(None, max_length=2000)
 
@@ -235,9 +233,14 @@ class CandidateProfileCreate(BaseModel):
 
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: str | None) -> str | None:
+    def validate_phone(cls, v: str) -> str:
         """Validate phone number format."""
-        return _validate_phone_value(v)
+        if not v.strip():
+            raise ValueError("Phone number is required")
+        result = _validate_phone_value(v)
+        if result is None:
+            raise ValueError("Phone number is required")
+        return result
 
     @field_validator("linkedin_url")
     @classmethod
@@ -256,8 +259,6 @@ class CandidateProfileUpdate(BaseModel):
     linkedin_url: str | None = Field(None, max_length=500)
     service_concept: str | None = Field(None, max_length=2000)
     salary_expectations: str | None = Field(None, max_length=2000)
-    military_service_details: str | None = Field(None, max_length=2000)
-    transportation: str | None = Field(None, max_length=2000)
     personality_weakness: str | None = Field(None, max_length=2000)
     personality_strength: str | None = Field(None, max_length=2000)
 
@@ -306,8 +307,6 @@ class CandidateProfileRead(BaseModel):
     linkedin_url: str | None
     service_concept: str | None
     salary_expectations: str | None
-    military_service_details: str | None
-    transportation: str | None
     personality_weakness: str | None
     personality_strength: str | None
     created_at: datetime

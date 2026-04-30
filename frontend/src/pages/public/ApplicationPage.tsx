@@ -17,8 +17,6 @@ const EMPTY_FORM: Omit<CandidateApplicationForm, "job_id"> = {
   linkedin_url: "",
   service_concept: "",
   salary_expectations: "",
-  military_service_details: "",
-  transportation: "",
   personality_weakness: "",
   personality_strength: "",
 };
@@ -77,7 +75,8 @@ export default function ApplicationPage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value)) return v("publicJobs.application.validation.emailInvalid");
     }
-    if (name === "phone" && value.trim()) {
+    if (name === "phone") {
+      if (!value.trim()) return v("publicJobs.application.validation.phoneRequired");
       const phoneRegex = /^[+\d\s()-]*$/;
       if (!phoneRegex.test(value)) return v("publicJobs.application.validation.phoneInvalid");
       if (value.replace(/\D/g, "").length < 5) return v("publicJobs.application.validation.phoneMin");
@@ -96,7 +95,7 @@ export default function ApplicationPage() {
         return v("publicJobs.application.validation.urlLinkedin");
       }
     }
-    const textFields = ["service_concept", "salary_expectations", "military_service_details", "transportation", "personality_strength", "personality_weakness"];
+    const textFields = ["service_concept", "salary_expectations", "personality_strength", "personality_weakness"];
     if (textFields.includes(name) && value.length > 2000) {
       return v("publicJobs.application.validation.textMax");
     }
@@ -110,7 +109,10 @@ export default function ApplicationPage() {
       if (error) errors[key] = error;
     });
     setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    if (!resumeFile && !resumeError) {
+      setResumeError(t("publicJobs.application.resumeErrors.required"));
+    }
+    return Object.keys(errors).length === 0 && !!resumeFile && !resumeError;
   }
 
   function handleBlur(e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -193,10 +195,6 @@ export default function ApplicationPage() {
     if (!Number.isFinite(jobId)) return;
 
     if (!validateForm()) {
-      return;
-    }
-
-    if (resumeError) {
       return;
     }
 
@@ -335,7 +333,7 @@ export default function ApplicationPage() {
               )}
             </Field>
 
-            <Field label={t("publicJobs.application.phone")} id="phone">
+            <Field label={t("publicJobs.application.phone")} id="phone" required>
               <input
                 id="phone"
                 name="phone"
@@ -374,7 +372,7 @@ export default function ApplicationPage() {
           <h2 className="mb-5 border-b border-white/8 pb-3 text-sm font-semibold text-white/70">
             {t("publicJobs.application.resumeSection")}
           </h2>
-          <Field label={t("publicJobs.application.resumeUpload")} id="resume">
+          <Field label={t("publicJobs.application.resumeUpload")} id="resume" required>
             {resumeFile ? (
               <div className="flex items-center gap-3 rounded-sm border border-white/10 bg-well px-3 py-2">
                 <span className="flex-1 truncate text-sm text-white/65">
@@ -440,36 +438,6 @@ export default function ApplicationPage() {
               />
               {fieldErrors.salary_expectations && (
                 <p className="mt-1 text-xs text-danger">{fieldErrors.salary_expectations}</p>
-              )}
-            </Field>
-
-            <Field label={t("publicJobs.application.militaryService")} id="military_service_details">
-              <textarea
-                id="military_service_details"
-                name="military_service_details"
-                value={form.military_service_details}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={textareaCls}
-                placeholder={t("publicJobs.application.placeholders.militaryService")}
-              />
-              {fieldErrors.military_service_details && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.military_service_details}</p>
-              )}
-            </Field>
-
-            <Field label={t("publicJobs.application.transportation")} id="transportation">
-              <textarea
-                id="transportation"
-                name="transportation"
-                value={form.transportation}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={textareaCls}
-                placeholder={t("publicJobs.application.placeholders.transportation")}
-              />
-              {fieldErrors.transportation && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.transportation}</p>
               )}
             </Field>
 

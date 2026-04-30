@@ -189,6 +189,7 @@ async def test_create_candidate_profile_duplicate_email(
     candidate_data1 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate1 = await create_candidate_profile(
         candidate_data=candidate_data1,
@@ -203,6 +204,7 @@ async def test_create_candidate_profile_duplicate_email(
     candidate_data2 = CandidateProfileCreate(
         full_name="John Smith",  # Different name (should be updated)
         email="john@example.com",  # Same email
+        phone="050-000-0001",
     )
     candidate2 = await create_candidate_profile(
         candidate_data=candidate_data2,
@@ -255,6 +257,7 @@ async def test_create_candidate_profile_invalid_file(
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
 
     resume_file = b"fake content"
@@ -299,6 +302,7 @@ async def test_create_candidate_profile_file_size_limit(
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
 
     # Create file larger than 10MB
@@ -342,6 +346,7 @@ async def test_create_application_on_profile_creation(
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
 
     candidate = await create_candidate_profile(
@@ -431,6 +436,7 @@ async def test_create_candidate_profile_job_not_found(session: AsyncSession):
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
 
     with pytest.raises(JobNotFoundError, match="Job with ID 999 not found"):
@@ -447,6 +453,7 @@ async def test_create_candidate_profile_session_required():
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
 
     with pytest.raises(ValueError, match="Database session is required"):
@@ -494,6 +501,7 @@ async def test_create_candidate_profile_reuses_existing_profile(
     candidate_data1 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate1 = await create_candidate_profile(
         candidate_data=candidate_data1,
@@ -507,6 +515,7 @@ async def test_create_candidate_profile_reuses_existing_profile(
     candidate_data2 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate2 = await create_candidate_profile(
         candidate_data=candidate_data2,
@@ -562,10 +571,11 @@ async def test_create_candidate_profile_updates_existing_profile(
     assert job1.id is not None
     assert job2.id is not None
 
-    # Create candidate with minimal data (no phone, no linkedin)
+    # Create candidate with phone but no linkedin
     candidate_data1 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate1 = await create_candidate_profile(
         candidate_data=candidate_data1,
@@ -574,14 +584,14 @@ async def test_create_candidate_profile_updates_existing_profile(
     )
     candidate_id = candidate1.id
     assert candidate_id is not None
-    assert candidate1.phone is None
+    assert candidate1.phone == "050-000-0001"
     assert candidate1.linkedin_url is None
 
-    # Create second application with same email but more data (phone, linkedin)
+    # Create second application with same email, adding linkedin
     candidate_data2 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
-        phone="123-456-7890",
+        phone="050-000-0001",
         linkedin_url="https://linkedin.com/in/johndoe",
     )
     candidate2 = await create_candidate_profile(
@@ -590,9 +600,9 @@ async def test_create_candidate_profile_updates_existing_profile(
         session=session,
     )
 
-    # Verify: Profile updated with new data, same ID
+    # Verify: linkedin filled in on second application, same profile ID
     assert candidate2.id == candidate_id
-    assert candidate2.phone == "123-456-7890"
+    assert candidate2.phone == "050-000-0001"
     assert candidate2.linkedin_url == "https://linkedin.com/in/johndoe"
 
 
@@ -640,6 +650,7 @@ async def test_create_candidate_profile_does_not_overwrite_resume(
     candidate_data1 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     resume_file1 = b"fake pdf content 1"
     resume_filename1 = "resume1.pdf"
@@ -660,6 +671,7 @@ async def test_create_candidate_profile_does_not_overwrite_resume(
     candidate_data2 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     resume_file2 = b"fake pdf content 2"
     resume_filename2 = "resume2.pdf"
@@ -714,6 +726,7 @@ async def test_create_candidate_profile_always_updates_full_name(
     candidate_data1 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate1 = await create_candidate_profile(
         candidate_data=candidate_data1,
@@ -728,6 +741,7 @@ async def test_create_candidate_profile_always_updates_full_name(
     candidate_data2 = CandidateProfileCreate(
         full_name="John Smith",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate2 = await create_candidate_profile(
         candidate_data=candidate_data2,
@@ -767,6 +781,7 @@ async def test_create_candidate_profile_duplicate_application_raises_error(
     candidate_data1 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate1 = await create_candidate_profile(
         candidate_data=candidate_data1,
@@ -780,6 +795,7 @@ async def test_create_candidate_profile_duplicate_application_raises_error(
     candidate_data2 = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
 
     # Verify: Raises ApplicationAlreadyExistsError
@@ -899,6 +915,7 @@ async def test_one_profile_can_have_many_applications(
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0001",
     )
     candidate = await create_candidate_profile(
         candidate_data=candidate_data,
