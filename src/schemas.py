@@ -227,9 +227,14 @@ class CandidateProfileCreate(BaseModel):
 
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: str | None) -> str | None:
+    def validate_phone(cls, v: str) -> str:
         """Validate phone number format."""
-        return _validate_phone_value(v)
+        if not v.strip():
+            raise ValueError("Phone number is required")
+        result = _validate_phone_value(v)
+        if result is None:
+            raise ValueError("Phone number is required")
+        return result
 
     @field_validator("linkedin_url")
     @classmethod

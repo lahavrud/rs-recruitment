@@ -195,12 +195,12 @@ export default function ApplicationPage() {
       return;
     }
 
-    if (!resumeFile) {
-      setResumeError(t("publicJobs.application.resumeErrors.required"));
+    if (resumeError) {
       return;
     }
 
-    if (resumeError) {
+    if (!resumeFile) {
+      setResumeError(t("publicJobs.application.resumeErrors.required"));
       return;
     }
 
