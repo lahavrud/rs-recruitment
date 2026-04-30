@@ -109,7 +109,10 @@ export default function ApplicationPage() {
       if (error) errors[key] = error;
     });
     setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    if (!resumeFile && !resumeError) {
+      setResumeError(t("publicJobs.application.resumeErrors.required"));
+    }
+    return Object.keys(errors).length === 0 && !!resumeFile && !resumeError;
   }
 
   function handleBlur(e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -192,15 +195,6 @@ export default function ApplicationPage() {
     if (!Number.isFinite(jobId)) return;
 
     if (!validateForm()) {
-      return;
-    }
-
-    if (resumeError) {
-      return;
-    }
-
-    if (!resumeFile) {
-      setResumeError(t("publicJobs.application.resumeErrors.required"));
       return;
     }
 
