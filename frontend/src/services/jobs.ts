@@ -31,14 +31,11 @@ export async function submitApplication(
   // Append all text fields
   data.append("full_name", form.full_name);
   data.append("email", form.email);
-  if (form.phone) data.append("phone", form.phone);
+  data.append("phone", form.phone);
   if (form.linkedin_url) data.append("linkedin_url", form.linkedin_url);
   if (form.service_concept) data.append("service_concept", form.service_concept);
   if (form.salary_expectations)
     data.append("salary_expectations", form.salary_expectations);
-  if (form.military_service_details)
-    data.append("military_service_details", form.military_service_details);
-  if (form.transportation) data.append("transportation", form.transportation);
   if (form.personality_weakness)
     data.append("personality_weakness", form.personality_weakness);
   if (form.personality_strength)

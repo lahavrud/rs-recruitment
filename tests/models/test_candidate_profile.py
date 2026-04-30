@@ -75,8 +75,6 @@ async def test_candidate_profile_interview_fields(session: AsyncSession):
         email="interview@example.com",
         service_concept="I understand the role is about...",
         salary_expectations="15,000 - 20,000 ILS per month",
-        military_service_details="Completed military service in 2018",
-        transportation="Own car, can travel",
         personality_weakness="Sometimes too detail-oriented",
         personality_strength="Strong problem-solving skills",
     )
@@ -87,8 +85,6 @@ async def test_candidate_profile_interview_fields(session: AsyncSession):
     # Verify interview fields are stored correctly
     assert candidate.service_concept == "I understand the role is about..."
     assert candidate.salary_expectations == "15,000 - 20,000 ILS per month"
-    assert candidate.military_service_details == "Completed military service in 2018"
-    assert candidate.transportation == "Own car, can travel"
     assert candidate.personality_weakness == "Sometimes too detail-oriented"
     assert candidate.personality_strength == "Strong problem-solving skills"
 
