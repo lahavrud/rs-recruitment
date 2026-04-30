@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.invite_tokens import generate_invite_token
 from src.models import User
-from src.schemas import ApprovedCompanyRead, PendingCompanyRead
+from src.schemas import ApprovedCompanyRead, InviteTokenResponse, PendingCompanyRead
 from src.services.admin import approve_company, list_pending_companies, reject_company
 from src.services.exceptions import (
     CompanyNotFoundError,
@@ -15,6 +16,23 @@ from src.services.exceptions import (
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+@router.post(
+    "/companies/invite",
+    response_model=InviteTokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_company_invite(
+    current_admin: User = Depends(get_current_admin),
+) -> InviteTokenResponse:
+    """Generate a single-use invite token for company registration.
+
+    The token is stored in Redis with a 48-hour TTL.
+    The frontend constructs the full registration URL from the token.
+    """
+    token = await generate_invite_token()
+    return InviteTokenResponse(token=token)
 
 
 @router.get(
