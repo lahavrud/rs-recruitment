@@ -265,7 +265,7 @@ export default function AdminApplicationsPage() {
                             </div>
 
                             {/* Interview answers */}
-                            {(c.service_concept || c.salary_expectations || c.strength || c.weakness) && (
+                            {(c.service_concept || c.salary_expectations || c.personality_strength || c.personality_weakness) && (
                               <dl className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
                                 {c.service_concept && (
                                   <>
@@ -279,16 +279,16 @@ export default function AdminApplicationsPage() {
                                     <dd className="text-white/70">{c.salary_expectations}</dd>
                                   </>
                                 )}
-                                {c.strength && (
+                                {c.personality_strength && (
                                   <>
                                     <dt className="text-white/35">{t("admin.applications.details.strength")}</dt>
-                                    <dd className="text-white/70">{c.strength}</dd>
+                                    <dd className="text-white/70">{c.personality_strength}</dd>
                                   </>
                                 )}
-                                {c.weakness && (
+                                {c.personality_weakness && (
                                   <>
                                     <dt className="text-white/35">{t("admin.applications.details.weakness")}</dt>
-                                    <dd className="text-white/70">{c.weakness}</dd>
+                                    <dd className="text-white/70">{c.personality_weakness}</dd>
                                   </>
                                 )}
                               </dl>

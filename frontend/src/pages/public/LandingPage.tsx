@@ -36,8 +36,8 @@ export default function LandingPage() {
   const touchStartX = useRef<number | null>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const [heroLoaded, setHeroLoaded] = useState(false);
-  const [cardsVisible, setCardsVisible] = useState(
-    () => typeof window !== "undefined" && !window.IntersectionObserver,
+  const [cardsVisible, setCardsVisible] = useState<boolean>(
+    () => typeof window === "undefined" || !("IntersectionObserver" in window),
   );
 
   const goNext = () => setActiveIdx((i) => (i + 1) % jobs.length);
@@ -55,7 +55,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const el = cardsRef.current;
-    if (!el || !window.IntersectionObserver) return;
+    if (!el || !("IntersectionObserver" in window)) return;
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setCardsVisible(true); obs.disconnect(); } },
       { threshold: 0.15 },
