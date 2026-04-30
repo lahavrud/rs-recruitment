@@ -75,3 +75,7 @@ export async function updateApplicationStatus(
   );
   return res.data;
 }
+
+export async function deleteApplication(appId: number): Promise<void> {
+  await api.delete(`/api/admin/applications/${appId}`);
+}

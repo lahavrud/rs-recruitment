@@ -11,6 +11,7 @@ from src.enums import ApplicationStatus
 from src.models import User
 from src.schemas import ApplicationRead, ApplicationStatusUpdate, ApplicationWithDetails
 from src.services.applications_admin import (
+    delete_application,
     get_application,
     list_applications,
     update_application_status,
@@ -138,3 +139,31 @@ async def update_application_status_endpoint(
         await enqueue_email_task(**payload)
 
     return result
+
+
+@router.delete(
+    "/applications/{application_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_application_endpoint(
+    application_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Delete an application record.
+
+    Removes the job ↔ candidate link. The candidate profile is preserved.
+    Requires admin authentication.
+
+    Args:
+        application_id: ID of the application to delete
+        current_admin: Current authenticated admin user (from dependency)
+        session: Database session
+
+    Raises:
+        HTTPException: If application not found
+    """
+    try:
+        await delete_application(application_id, session)
+    except ApplicationNotFoundError as e:
+        raise service_exception_to_http(e) from e

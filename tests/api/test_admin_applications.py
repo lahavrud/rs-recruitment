@@ -234,3 +234,37 @@ async def test_terminal_state_cannot_transition(
         json={"status": "APPROVED_BY_ADMIN"},
     )
     assert response.status_code == 400
+
+
+# ==================== DELETE /api/admin/applications/{id} ====================
+
+
+@pytest.mark.asyncio
+async def test_delete_application_success(
+    admin_client: AsyncClient,
+    application: Application,
+):
+    """Admin can delete an application; the record is removed from the DB."""
+    response = await admin_client.delete(f"/api/admin/applications/{application.id}")
+    assert response.status_code == 204
+
+    # Confirm the record is gone
+    get_response = await admin_client.get(f"/api/admin/applications/{application.id}")
+    assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_application_not_found(admin_client: AsyncClient):
+    """Returns 404 when application does not exist."""
+    response = await admin_client.delete("/api/admin/applications/99999")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_application_requires_admin(
+    public_client: AsyncClient,
+    application: Application,
+):
+    """Unauthenticated clients cannot delete applications."""
+    response = await public_client.delete(f"/api/admin/applications/{application.id}")
+    assert response.status_code == 401

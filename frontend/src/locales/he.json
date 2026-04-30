@@ -338,8 +338,23 @@
         "save": "שמירה",
         "saving": "שומר…"
       },
+      "details": {
+        "phone": "טלפון",
+        "linkedin": "LinkedIn",
+        "resume": "קורות חיים",
+        "serviceConcept": "תפיסת שירות",
+        "salaryExpectations": "ציפיות שכר",
+        "strength": "חוזקות",
+        "weakness": "נקודות לשיפור",
+        "noFile": "לא הועלה קובץ"
+      },
+      "deleteButton": "מחיקת מועמדות",
+      "deleteConfirm": "למחוק את המועמדות? לא ניתן לבטל פעולה זו.",
+      "deleteConfirmYes": "כן, מחק",
+      "deleteCancel": "ביטול",
       "errors": {
-        "updateFailed": "עדכון הסטטוס נכשל. נסה שוב."
+        "updateFailed": "עדכון הסטטוס נכשל. נסה שוב.",
+        "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב."
       }
     },
     "candidates": {

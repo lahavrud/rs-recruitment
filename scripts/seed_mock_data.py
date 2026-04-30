@@ -177,10 +177,11 @@ CANDIDATES = [
         "email": "ahmed.fahoum@gmail.com",
         "phone": "054-1234567",
         "linkedin_url": "https://linkedin.com/in/ahmed-fahoum",
-        "service_concept": "שרת כקצין ביטחון בפיקוד העורף. ניהול תרגילים.",
+        "service_concept": (
+            "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
+            "אני מאמין בתקשורת יזומה — לעדכן לפני שמבקשים."
+        ),
         "salary_expectations": "18,000–22,000 ₪ לחודש",
-        "military_service_details": "פיקוד העורף, סמל, 2014–2017",
-        "transportation": 'רכב פרטי. מוכן עד 30 ק"מ.',
         "personality_strength": "רגוע תחת לחץ ומאוד שיטתי",
         "personality_weakness": "לפעמים מרבה לעסוק בפרטים הקטנים",
     },
@@ -189,10 +190,11 @@ CANDIDATES = [
         "email": "maya.bd@gmail.com",
         "phone": "052-2345678",
         "linkedin_url": "https://linkedin.com/in/maya-ben-david",
-        "service_concept": "קצינת מתקנים בחיל האוויר. ניהול לוחות תחזוקה.",
+        "service_concept": (
+            "הלקוח צריך להרגיש שיש מישהו שאחראי. "
+            "אני מגדירה ציפיות ברורות מהרגע הראשון ומעדכנת בכל שלב."
+        ),
         "salary_expectations": "23,000–28,000 ₪ לחודש",
-        "military_service_details": "חיל האוויר, קצינת מתקנים, 2016–2019",
-        "transportation": "רכב פרטי, רישיון נהיגה בתוקף",
         "personality_strength": "מנהיגות חזקה ותיאום צוות",
         "personality_weakness": "נוטה לקחת על עצמה יותר מדי משימות",
     },
@@ -201,10 +203,11 @@ CANDIDATES = [
         "email": "yossi.maman@gmail.com",
         "phone": "053-3456789",
         "linkedin_url": None,
-        "service_concept": "חובש קרבי בחטיבת גבעתי. ניהול מלאי ותחזוקת בסיס.",
+        "service_concept": (
+            "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. "
+            "אני לא עוזב אתר עד שהדבר תוקן לגמרי."
+        ),
         "salary_expectations": "12,000–15,000 ₪ לחודש",
-        "military_service_details": "חטיבת גבעתי, חובש קרבי, 2018–2021",
-        "transportation": "תחבורה ציבורית. גר ליד תחנת רכבת.",
         "personality_strength": "אמין, חרוץ, מצוין עם אנשים",
         "personality_weakness": "אנגלית מוגבלת",
     },
@@ -213,10 +216,11 @@ CANDIDATES = [
         "email": "rinat.shapira@gmail.com",
         "phone": "050-4567890",
         "linkedin_url": "https://linkedin.com/in/rinat-shapira",
-        "service_concept": "קצינת לוגיסטיקה במשרד הביטחון. ניהול שרשרת אספקה.",
+        "service_concept": (
+            "שירות טוב מבוסס על סדר ומעקב. "
+            "כל פנייה מקבלת מענה, כל הבטחה מתועדת ומקוימת."
+        ),
         "salary_expectations": "16,000–20,000 ₪ לחודש",
-        "military_service_details": "משרד הביטחון, סמלת לוגיסטיקה, 2015–2020",
-        "transportation": "רכב פרטי",
         "personality_strength": "ארגון ותכנון מעולים",
         "personality_weakness": "לעיתים מתקשה להאציל משימות",
     },
@@ -225,10 +229,11 @@ CANDIDATES = [
         "email": "shlomo.avraham@gmail.com",
         "phone": "055-5678901",
         "linkedin_url": "https://linkedin.com/in/shlomo-avraham",
-        "service_concept": "חשמלאי בחיל הים. תחזוקת מערכות חשמל ומחוללים.",
+        "service_concept": (
+            "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
+            "אנשים צריכים להבין את הבעיה כדי לסמוך על הפתרון."
+        ),
         "salary_expectations": "14,000–18,000 ₪ לחודש",
-        "military_service_details": "חיל הים, טכנאי חשמל, 2017–2020",
-        "transportation": "אופנוע. מוכן לעבור דירה.",
         "personality_strength": "פותר בעיות מעשי, לומד מהר",
         "personality_weakness": "מעדיף עבודה עצמאית על פני צוות גדול",
     },
@@ -237,10 +242,11 @@ CANDIDATES = [
         "email": "liat.ohana@gmail.com",
         "phone": "052-6789012",
         "linkedin_url": None,
-        "service_concept": "סמלת מינהלה בפיקוד הדרום. ניהול לוח זמנים ואורחים.",
+        "service_concept": (
+            "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. "
+            "הרושם הראשוני הוא כל הביקור."
+        ),
         "salary_expectations": "10,000–13,000 ₪ לחודש",
-        "military_service_details": "פיקוד הדרום, סמלת מינהלה, 2019–2021",
-        "transportation": "תחבורה ציבורית בלבד",
         "personality_strength": "ידידותית, מאורגנת, נוכחות טלפונית מצוינת",
         "personality_weakness": "אין רקע טכני",
     },
@@ -249,10 +255,11 @@ CANDIDATES = [
         "email": "amir.golan@gmail.com",
         "phone": "054-7890123",
         "linkedin_url": "https://linkedin.com/in/amir-golan",
-        "service_concept": "קצין הנדסה בחיל ההנדסה. ניהול פרויקטי תשתית.",
+        "service_concept": (
+            "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
+            "אני מעדיף תחזוקה מונעת על פני תיקון בשעת חירום."
+        ),
         "salary_expectations": "25,000–32,000 ₪ לחודש",
-        "military_service_details": "חיל ההנדסה, קצין תשתיות, 2013–2018",
-        "transportation": "רכב פרטי. רישיון נהיגה מלא.",
         "personality_strength": "חשיבה אסטרטגית וידע טכני רחב",
         "personality_weakness": "חסר סבלנות לתהליכים איטיים",
     },
@@ -261,10 +268,10 @@ CANDIDATES = [
         "email": "sami.jabarin@gmail.com",
         "phone": "050-8901234",
         "linkedin_url": None,
-        "service_concept": "עבד 8 שנים במשפחה בענף הבנייה: אינסטלציה ואריחים.",
+        "service_concept": (
+            "לקוח מרוצה מביא לקוח נוסף. אני עובד כאילו כל עבודה היא כרטיס הביקור שלי."
+        ),
         "salary_expectations": "11,000–14,000 ₪ לחודש",
-        "military_service_details": "לא שירת (פטור)",
-        "transportation": "רכב פרטי",
         "personality_strength": "עובד קשה ואמין ביותר",
         "personality_weakness": "השכלה פורמלית מוגבלת (כיתה י')",
     },
@@ -389,8 +396,6 @@ async def seed() -> None:
                     linkedin_url=cand["linkedin_url"],
                     service_concept=cand["service_concept"],
                     salary_expectations=cand["salary_expectations"],
-                    military_service_details=cand["military_service_details"],
-                    transportation=cand["transportation"],
                     personality_strength=cand["personality_strength"],
                     personality_weakness=cand["personality_weakness"],
                 )
