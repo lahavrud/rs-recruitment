@@ -1,11 +1,15 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.invite_tokens import (
+    consume_invite_token,
+    validate_invite_token,
+)
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.security import create_access_token
 from src.schemas import LoginRequest, TokenResponse, UserCreate, UserWithCompanyRead
@@ -14,6 +18,7 @@ from src.services.exceptions import (
     EmailAlreadyExistsError,
     InactiveUserError,
     InvalidCredentialsError,
+    InvalidInviteTokenError,
 )
 
 limiter = get_limiter()
@@ -29,17 +34,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(
     request: Request,
     user_data: UserCreate,
+    token: str = Query(..., description="Single-use invite token issued by an admin"),
     session: AsyncSession = Depends(get_session),
 ) -> UserWithCompanyRead:
     """Register a new company user.
 
+    Requires a valid single-use invite token issued by an admin.
     Creates a User with COMPANY role and associated CompanyProfile.
     User is inactive until Admin approves (is_active=False).
     """
     try:
+        await validate_invite_token(token)
         result = await register_company_user(user_data, session)
         await session.commit()
+        await consume_invite_token(token)
         return result
+    except InvalidInviteTokenError as e:
+        raise service_exception_to_http(e) from e
     except EmailAlreadyExistsError as e:
         await session.rollback()
         raise service_exception_to_http(e) from e
