@@ -177,7 +177,10 @@ CANDIDATES = [
         "email": "ahmed.fahoum@gmail.com",
         "phone": "054-1234567",
         "linkedin_url": "https://linkedin.com/in/ahmed-fahoum",
-        "service_concept": "שירות טוב הוא זמינות ועמידה בהתחייבויות. אני מאמין בתקשורת יזומה — לעדכן לפני שמבקשים.",
+        "service_concept": (
+            "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
+            "אני מאמין בתקשורת יזומה — לעדכן לפני שמבקשים."
+        ),
         "salary_expectations": "18,000–22,000 ₪ לחודש",
         "personality_strength": "רגוע תחת לחץ ומאוד שיטתי",
         "personality_weakness": "לפעמים מרבה לעסוק בפרטים הקטנים",
@@ -187,7 +190,10 @@ CANDIDATES = [
         "email": "maya.bd@gmail.com",
         "phone": "052-2345678",
         "linkedin_url": "https://linkedin.com/in/maya-ben-david",
-        "service_concept": "הלקוח צריך להרגיש שיש מישהו שאחראי. אני מגדירה ציפיות ברורות מהרגע הראשון ומעדכנת בכל שלב.",
+        "service_concept": (
+            "הלקוח צריך להרגיש שיש מישהו שאחראי. "
+            "אני מגדירה ציפיות ברורות מהרגע הראשון ומעדכנת בכל שלב."
+        ),
         "salary_expectations": "23,000–28,000 ₪ לחודש",
         "personality_strength": "מנהיגות חזקה ותיאום צוות",
         "personality_weakness": "נוטה לקחת על עצמה יותר מדי משימות",
@@ -197,7 +203,10 @@ CANDIDATES = [
         "email": "yossi.maman@gmail.com",
         "phone": "053-3456789",
         "linkedin_url": None,
-        "service_concept": "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. אני לא עוזב אתר עד שהדבר תוקן לגמרי.",
+        "service_concept": (
+            "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. "
+            "אני לא עוזב אתר עד שהדבר תוקן לגמרי."
+        ),
         "salary_expectations": "12,000–15,000 ₪ לחודש",
         "personality_strength": "אמין, חרוץ, מצוין עם אנשים",
         "personality_weakness": "אנגלית מוגבלת",
@@ -207,7 +216,10 @@ CANDIDATES = [
         "email": "rinat.shapira@gmail.com",
         "phone": "050-4567890",
         "linkedin_url": "https://linkedin.com/in/rinat-shapira",
-        "service_concept": "שירות טוב מבוסס על סדר ומעקב. כל פנייה מקבלת מענה, כל הבטחה מתועדת ומקוימת.",
+        "service_concept": (
+            "שירות טוב מבוסס על סדר ומעקב. "
+            "כל פנייה מקבלת מענה, כל הבטחה מתועדת ומקוימת."
+        ),
         "salary_expectations": "16,000–20,000 ₪ לחודש",
         "personality_strength": "ארגון ותכנון מעולים",
         "personality_weakness": "לעיתים מתקשה להאציל משימות",
@@ -217,7 +229,10 @@ CANDIDATES = [
         "email": "shlomo.avraham@gmail.com",
         "phone": "055-5678901",
         "linkedin_url": "https://linkedin.com/in/shlomo-avraham",
-        "service_concept": "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. אנשים צריכים להבין את הבעיה כדי לסמוך על הפתרון.",
+        "service_concept": (
+            "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
+            "אנשים צריכים להבין את הבעיה כדי לסמוך על הפתרון."
+        ),
         "salary_expectations": "14,000–18,000 ₪ לחודש",
         "personality_strength": "פותר בעיות מעשי, לומד מהר",
         "personality_weakness": "מעדיף עבודה עצמאית על פני צוות גדול",
@@ -227,7 +242,10 @@ CANDIDATES = [
         "email": "liat.ohana@gmail.com",
         "phone": "052-6789012",
         "linkedin_url": None,
-        "service_concept": "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. הרושם הראשוני הוא כל הביקור.",
+        "service_concept": (
+            "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. "
+            "הרושם הראשוני הוא כל הביקור."
+        ),
         "salary_expectations": "10,000–13,000 ₪ לחודש",
         "personality_strength": "ידידותית, מאורגנת, נוכחות טלפונית מצוינת",
         "personality_weakness": "אין רקע טכני",
@@ -237,7 +255,10 @@ CANDIDATES = [
         "email": "amir.golan@gmail.com",
         "phone": "054-7890123",
         "linkedin_url": "https://linkedin.com/in/amir-golan",
-        "service_concept": "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. אני מעדיף תחזוקה מונעת על פני תיקון בשעת חירום.",
+        "service_concept": (
+            "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
+            "אני מעדיף תחזוקה מונעת על פני תיקון בשעת חירום."
+        ),
         "salary_expectations": "25,000–32,000 ₪ לחודש",
         "personality_strength": "חשיבה אסטרטגית וידע טכני רחב",
         "personality_weakness": "חסר סבלנות לתהליכים איטיים",
@@ -247,7 +268,10 @@ CANDIDATES = [
         "email": "sami.jabarin@gmail.com",
         "phone": "050-8901234",
         "linkedin_url": None,
-        "service_concept": "לקוח מרוצה מביא לקוח נוסף. אני עובד כאילו כל עבודה היא כרטיס הביקור שלי.",
+        "service_concept": (
+            "לקוח מרוצה מביא לקוח נוסף. "
+            "אני עובד כאילו כל עבודה היא כרטיס הביקור שלי."
+        ),
         "salary_expectations": "11,000–14,000 ₪ לחודש",
         "personality_strength": "עובד קשה ואמין ביותר",
         "personality_weakness": "השכלה פורמלית מוגבלת (כיתה י')",
