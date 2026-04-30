@@ -177,7 +177,11 @@ def test_nested_valid_path(schema_class, create_kwargs, expected_path):
 # Phone validation tests
 # ---------------------------------------------------------------------------
 
-BASE_CREATE = {"full_name": "Test User", "email": "test@example.com", "phone": "050-000-0000"}
+BASE_CREATE = {
+    "full_name": "Test User",
+    "email": "test@example.com",
+    "phone": "050-000-0000",
+}
 
 
 @pytest.mark.parametrize(
