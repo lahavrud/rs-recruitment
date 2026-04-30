@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from "react";
 import { useTranslation } from "react-i18next";
-import { getApplications, updateApplicationStatus, deleteApplication } from "@/services/admin";
+import { getApplications, updateApplicationStatus, deleteApplication, fetchResumeBlob } from "@/services/admin";
 import { ApplicationStatus } from "@/types/api";
 import type { ApplicationStatusUpdate, ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
@@ -33,6 +33,29 @@ type FilterValue = string;
 
 interface UpdateModal {
   app: ApplicationWithDetails;
+}
+
+// ── Resume link — fetches via axios so the JWT is included ───────────────────
+
+function ResumeLink({ fileKey, label }: { fileKey: string; label: string }) {
+  async function open(e: React.MouseEvent) {
+    e.stopPropagation();
+    const win = window.open("", "_blank"); // open immediately to avoid popup-blocker
+    if (!win) return;
+    try {
+      const blob = await fetchResumeBlob(fileKey);
+      const url = URL.createObjectURL(blob);
+      win.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch {
+      win.close();
+    }
+  }
+  return (
+    <button onClick={open} className="text-copper hover:text-gold">
+      {label} ↗
+    </button>
+  );
 }
 
 // ── Shared expanded-details panel (used by both mobile cards and desktop table rows) ──
@@ -81,15 +104,7 @@ function DetailsPanel({
           </a>
         )}
         {c.resume_path ? (
-          <a
-            href={`/api/resumes/${c.resume_path.split("/").pop()}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-copper hover:text-gold"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {t("admin.applications.details.resume")} ↗
-          </a>
+          <ResumeLink fileKey={c.resume_path.split("/").pop() ?? c.resume_path} label={t("admin.applications.details.resume")} />
         ) : (
           <span className="text-white/60">
             <span className="text-white/35">{t("admin.applications.details.resume")}: </span>

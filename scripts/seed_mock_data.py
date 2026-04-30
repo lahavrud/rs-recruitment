@@ -18,10 +18,27 @@ import asyncio
 
 from sqlalchemy import select
 
+from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import async_session, init_db
 from src.core.infrastructure.security import get_password_hash
+from src.core.services.storage import LocalStorageProvider
 from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+
+# Minimal valid single-page PDF used as a placeholder resume in seed data
+_PLACEHOLDER_PDF = (
+    b"%PDF-1.4\n"
+    b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+    b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+    b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\n"
+    b"xref\n0 4\n"
+    b"0000000000 65535 f \n"
+    b"0000000009 00000 n \n"
+    b"0000000052 00000 n \n"
+    b"0000000101 00000 n \n"
+    b"trailer<</Size 4/Root 1 0 R>>\n"
+    b"startxref\n150\n%%EOF\n"
+)
 
 # ── מנהל ──
 ADMIN_EMAIL = "admin@rsrecruit.co.il"
@@ -177,6 +194,7 @@ CANDIDATES = [
         "email": "ahmed.fahoum@gmail.com",
         "phone": "054-1234567",
         "linkedin_url": "https://linkedin.com/in/ahmed-fahoum",
+        "resume": True,
         "service_concept": (
             "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
             "אני מאמין בתקשורת יזומה — לעדכן לפני שמבקשים."
@@ -190,6 +208,7 @@ CANDIDATES = [
         "email": "maya.bd@gmail.com",
         "phone": "052-2345678",
         "linkedin_url": "https://linkedin.com/in/maya-ben-david",
+        "resume": True,
         "service_concept": (
             "הלקוח צריך להרגיש שיש מישהו שאחראי. "
             "אני מגדירה ציפיות ברורות מהרגע הראשון ומעדכנת בכל שלב."
@@ -203,6 +222,7 @@ CANDIDATES = [
         "email": "yossi.maman@gmail.com",
         "phone": "053-3456789",
         "linkedin_url": None,
+        "resume": False,
         "service_concept": (
             "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. "
             "אני לא עוזב אתר עד שהדבר תוקן לגמרי."
@@ -216,6 +236,7 @@ CANDIDATES = [
         "email": "rinat.shapira@gmail.com",
         "phone": "050-4567890",
         "linkedin_url": "https://linkedin.com/in/rinat-shapira",
+        "resume": True,
         "service_concept": (
             "שירות טוב מבוסס על סדר ומעקב. "
             "כל פנייה מקבלת מענה, כל הבטחה מתועדת ומקוימת."
@@ -229,6 +250,7 @@ CANDIDATES = [
         "email": "shlomo.avraham@gmail.com",
         "phone": "055-5678901",
         "linkedin_url": "https://linkedin.com/in/shlomo-avraham",
+        "resume": True,
         "service_concept": (
             "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
             "אנשים צריכים להבין את הבעיה כדי לסמוך על הפתרון."
@@ -242,6 +264,7 @@ CANDIDATES = [
         "email": "liat.ohana@gmail.com",
         "phone": "052-6789012",
         "linkedin_url": None,
+        "resume": False,
         "service_concept": (
             "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. "
             "הרושם הראשוני הוא כל הביקור."
@@ -255,6 +278,7 @@ CANDIDATES = [
         "email": "amir.golan@gmail.com",
         "phone": "054-7890123",
         "linkedin_url": "https://linkedin.com/in/amir-golan",
+        "resume": True,
         "service_concept": (
             "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
             "אני מעדיף תחזוקה מונעת על פני תיקון בשעת חירום."
@@ -268,6 +292,7 @@ CANDIDATES = [
         "email": "sami.jabarin@gmail.com",
         "phone": "050-8901234",
         "linkedin_url": None,
+        "resume": False,
         "service_concept": (
             "לקוח מרוצה מביא לקוח נוסף. אני עובד כאילו כל עבודה היא כרטיס הביקור שלי."
         ),
@@ -379,6 +404,7 @@ async def seed() -> None:
                 all_jobs.append(job)
 
         # ── מועמדים ──
+        storage = LocalStorageProvider(storage_path=settings.local_storage_path)
         created_candidates: list[CandidateProfile] = []
         for cand in CANDIDATES:
             result = await session.execute(
@@ -389,6 +415,15 @@ async def seed() -> None:
                 _print_result("מועמד", "skipped", cand["full_name"])
                 created_candidates.append(existing)
             else:
+                resume_path: str | None = None
+                if cand["resume"]:
+                    file_name = (
+                        cand["full_name"].replace(" ", "_").replace("'", "") + ".pdf"
+                    )
+                    resume_path = await storage.upload_file(
+                        _PLACEHOLDER_PDF, file_name, "application/pdf"
+                    )
+
                 profile = CandidateProfile(
                     full_name=cand["full_name"],
                     email=cand["email"],
@@ -399,6 +434,7 @@ async def seed() -> None:
                     personality_strength=cand["personality_strength"],
                     personality_weakness=cand["personality_weakness"],
                 )
+                profile.resume_path = resume_path
                 session.add(profile)
                 await session.flush()
                 _print_result("מועמד", "created", cand["full_name"])

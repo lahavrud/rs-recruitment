@@ -13,7 +13,7 @@ from src.models import User
 
 router = APIRouter(prefix="/api/resumes", tags=["resumes"])
 
-# UUID key + extension — no slashes or traversal sequences allowed
+# UUID key + extension — no slashes allowed, only safe filename characters
 _SAFE_KEY = re.compile(r"^[\w.\-]+$")
 
 
@@ -37,8 +37,17 @@ async def download_resume(
     storage = get_storage_provider()
 
     if settings.storage_provider == "local":
-        file_path = Path(settings.local_storage_path) / file_key
-        if not file_path.exists() or not file_path.is_file():
+        storage_root = Path(settings.local_storage_path).resolve()
+        file_path = (storage_root / file_key).resolve()
+        # Ensure resolved path stays inside the storage directory
+        try:
+            file_path.relative_to(storage_root)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid file key",
+            )
+        if not file_path.is_file():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="File not found",

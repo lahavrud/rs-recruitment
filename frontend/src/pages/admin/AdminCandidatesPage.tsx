@@ -1,8 +1,29 @@
 import { useEffect, useState, Fragment } from "react";
 import { useTranslation } from "react-i18next";
-import { getCandidates } from "@/services/admin";
+import { getCandidates, fetchResumeBlob } from "@/services/admin";
 import type { CandidateProfileRead } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+
+function ResumeLink({ fileKey, label }: { fileKey: string; label: string }) {
+  async function open(e: React.MouseEvent) {
+    e.stopPropagation();
+    const win = window.open("", "_blank");
+    if (!win) return;
+    try {
+      const blob = await fetchResumeBlob(fileKey);
+      const url = URL.createObjectURL(blob);
+      win.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch {
+      win.close();
+    }
+  }
+  return (
+    <button onClick={open} className="text-copper hover:text-gold">
+      {label} ↗
+    </button>
+  );
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -94,15 +115,10 @@ export default function AdminCandidatesPage() {
                   <div className="flex items-center gap-4 border-t border-white/6 px-4 py-2.5 text-sm">
                     {c.phone && <span className="text-white/60">{c.phone}</span>}
                     {c.resume_path && (
-                      <a
-                        href={`/api/resumes/${c.resume_path.split("/").pop()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-copper hover:text-gold"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {t("admin.candidates.table.resume")} ↗
-                      </a>
+                      <ResumeLink
+                        fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
+                        label={t("admin.candidates.table.resume")}
+                      />
                     )}
                     {c.linkedin_url && (
                       <a
@@ -153,14 +169,10 @@ export default function AdminCandidatesPage() {
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           {c.resume_path ? (
-                            <a
-                              href={`/api/resumes/${c.resume_path.split("/").pop()}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-copper hover:text-gold"
-                            >
-                              {t("admin.candidates.table.resume")} ↗
-                            </a>
+                            <ResumeLink
+                              fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
+                              label={t("admin.candidates.table.resume")}
+                            />
                           ) : (
                             <span className="text-white/20">{t("admin.candidates.noFile")}</span>
                           )}
