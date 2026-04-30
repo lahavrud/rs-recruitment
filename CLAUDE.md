@@ -183,3 +183,27 @@ cd frontend && npm run dev
 ```
 
 The frontend proxies `/api/*` to `http://localhost:8000` (configured in `vite.config.ts`).
+
+---
+
+## Linting — MUST run before every commit
+
+**Always run both linters before committing. CI will fail if either fails.**
+
+```bash
+# Backend — ruff (lint + format check)
+uv run ruff check .
+uv run ruff format --check .
+
+# Auto-fix format
+uv run ruff format .
+
+# Frontend — TypeScript + ESLint
+cd frontend && npx tsc --noEmit && npm run lint
+```
+
+Common pitfalls:
+- `E501` line too long (88 char limit) — wrap long strings with implicit concatenation
+- `ruff format` must also pass (not just `ruff check`) — run `uv run ruff format .` to auto-fix
+- ESLint `no-unused-expressions` — use `if/else` instead of ternary side-effects
+- ESLint `react-hooks/set-state-in-effect` — don't call `setState` synchronously in `useEffect` body; use lazy `useState` initializer or a callback instead

@@ -1,4 +1,4 @@
-"""Resume download endpoint — serves files from local storage or redirects to S3 presigned URL."""
+"""Resume download endpoint — local FileResponse or S3 presigned-URL redirect."""
 
 import re
 from pathlib import Path
