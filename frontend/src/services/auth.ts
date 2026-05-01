@@ -1,25 +1,20 @@
 import api from "@/services/api";
-import type { LoginRequest, TokenResponse, UserCreate, UserWithCompanyRead } from "@/types/api";
+import type { LoginRequest, TokenResponse, UserWithCompanyRead } from "@/types/api";
 import { removeToken, setToken } from "@/utils/token";
 
-/**
- * Authenticate a user and store the JWT token.
- * Returns the token response on success.
- * Throws an AxiosError on failure (e.g., 401 invalid credentials, 403 inactive).
- */
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const response = await api.post<TokenResponse>("/auth/login", credentials);
   setToken(response.data.access_token);
   return response.data;
 }
 
-/**
- * Register a new company account using an admin-issued invite token.
- * The account is inactive until an admin approves it — no auth token is issued.
- */
-export async function register(data: UserCreate, inviteToken: string): Promise<UserWithCompanyRead> {
-  const response = await api.post<UserWithCompanyRead>("/auth/register", data, {
+export async function register(
+  formData: FormData,
+  inviteToken: string,
+): Promise<UserWithCompanyRead> {
+  const response = await api.post<UserWithCompanyRead>("/auth/register", formData, {
     params: { token: inviteToken },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 }

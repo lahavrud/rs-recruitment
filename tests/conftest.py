@@ -5,7 +5,7 @@ import asyncio
 import os
 import tempfile
 from collections.abc import AsyncGenerator
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Single source of truth for the test JWT secret.
 # Set with os.environ[] (not setdefault) so it always wins over any value that
@@ -86,6 +86,15 @@ def mock_invite_tokens():
         ),
     ):
         yield mock_validate
+
+
+@pytest.fixture(autouse=True)
+def mock_storage_provider():
+    """Patch storage provider for all tests — prevents real S3/disk uploads."""
+    mock = MagicMock()
+    mock.upload_file = AsyncMock(return_value="logos/test-logo.png")
+    with patch("src.services.auth.get_storage_provider", return_value=mock):
+        yield mock
 
 
 def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
@@ -207,6 +216,19 @@ def mock_s3_bucket():
 # ==================== User Fixtures ====================
 
 
+def _make_company_profile_create(name: str) -> CompanyProfileCreate:
+    return CompanyProfileCreate(
+        name=name,
+        company_id="123456789",
+        contact_first_name="ישראל",
+        contact_last_name="ישראלי",
+        contact_mobile_phone="0501234567",
+    )
+
+
+_FAKE_LOGO = b"fake-logo-bytes"
+
+
 @pytest.fixture
 async def company_user(test_db) -> User:
     """Create a pending (inactive) company user for testing."""
@@ -214,9 +236,11 @@ async def company_user(test_db) -> User:
         user_data = UserCreate(
             email="company@test.com",
             password="password",
-            company_profile=CompanyProfileCreate(name="Test Company"),
+            company_profile=_make_company_profile_create("Test Company"),
         )
-        result = await register_company_user(user_data, session)
+        result = await register_company_user(
+            user_data, session, _FAKE_LOGO, "logo.png", "image/png"
+        )
         await session.commit()
         return result.user
 
@@ -228,10 +252,11 @@ async def approved_company_user(test_db) -> User:
         user_data = UserCreate(
             email="approved@test.com",
             password="password",
-            company_profile=CompanyProfileCreate(name="Approved Company"),
+            company_profile=_make_company_profile_create("Approved Company"),
         )
-        result = await register_company_user(user_data, session)
-        # Activate the user (simulate admin approval)
+        result = await register_company_user(
+            user_data, session, _FAKE_LOGO, "logo.png", "image/png"
+        )
         result.user.is_active = True
         await session.commit()
         return result.user
@@ -281,8 +306,10 @@ async def company_with_user(session: AsyncSession) -> CompanyProfile:
     company = CompanyProfile(
         user_id=user.id,
         name="Test Company",
-        contact_person="John Doe",
-        contact_phone="123-456-7890",
+        company_id="123456789",
+        contact_first_name="ישראל",
+        contact_last_name="ישראלי",
+        contact_mobile_phone="0501234567",
     )
     session.add(company)
     await session.commit()

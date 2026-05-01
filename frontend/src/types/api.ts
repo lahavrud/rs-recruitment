@@ -43,15 +43,11 @@ export interface TokenResponse {
 
 export interface CompanyProfileCreate {
   name: string;
-  logo_url?: string | null;
-  contact_person?: string | null;
-  contact_phone?: string | null;
-}
-
-export interface UserCreate {
-  email: string;
-  password: string;
-  company_profile: CompanyProfileCreate;
+  company_id: string;
+  contact_first_name: string;
+  contact_last_name: string;
+  contact_mobile_phone: string;
+  contact_landline_phone?: string | null;
 }
 
 // --- Users ---
@@ -69,8 +65,11 @@ export interface CompanyProfileRead {
   user_id: number;
   name: string;
   logo_url: string | null;
-  contact_person: string | null;
-  contact_phone: string | null;
+  company_id: string | null;
+  contact_first_name: string | null;
+  contact_last_name: string | null;
+  contact_mobile_phone: string | null;
+  contact_landline_phone: string | null;
   created_at: string;
 }
 

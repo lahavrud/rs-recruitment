@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/services/auth";
@@ -12,7 +12,8 @@ function useValidation() {
   return {
     validateEmail(v: string): string {
       if (!v.trim()) return t("auth.register.validation.emailRequired");
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return t("auth.register.validation.emailInvalid");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+        return t("auth.register.validation.emailInvalid");
       return "";
     },
     validatePassword(v: string): string {
@@ -30,10 +31,27 @@ function useValidation() {
       if (v.length > 100) return t("auth.register.validation.companyNameMax");
       return "";
     },
-    validatePhone(v: string): string {
-      if (!v) return "";
-      if (!/^[+\d\s()-]*$/.test(v)) return t("auth.register.validation.phoneInvalid");
-      if (v.replace(/\D/g, "").length < 5) return t("auth.register.validation.phoneMin");
+    validateCompanyId(v: string): string {
+      if (!v.trim()) return t("auth.register.validation.companyIdRequired");
+      if (!/^\d{9}$/.test(v)) return t("auth.register.validation.companyIdInvalid");
+      return "";
+    },
+    validateContactFirstName(v: string): string {
+      if (!v.trim()) return t("auth.register.validation.contactFirstNameRequired");
+      return "";
+    },
+    validateContactLastName(v: string): string {
+      if (!v.trim()) return t("auth.register.validation.contactLastNameRequired");
+      return "";
+    },
+    validateMobilePhone(v: string): string {
+      if (!v.trim()) return t("auth.register.validation.mobilePhoneRequired");
+      if (!/^05[0-9]\d{7}$/.test(v.replace(/[-\s]/g, "")))
+        return t("auth.register.validation.mobilePhoneInvalid");
+      return "";
+    },
+    validateLogo(f: File | null): string {
+      if (!f) return t("auth.register.validation.logoRequired");
       return "";
     },
   };
@@ -44,8 +62,11 @@ interface FormState {
   password: string;
   confirm: string;
   companyName: string;
-  contactPerson: string;
-  contactPhone: string;
+  companyId: string;
+  contactFirstName: string;
+  contactLastName: string;
+  contactMobilePhone: string;
+  contactLandlinePhone: string;
 }
 
 const EMPTY: FormState = {
@@ -53,8 +74,11 @@ const EMPTY: FormState = {
   password: "",
   confirm: "",
   companyName: "",
-  contactPerson: "",
-  contactPhone: "",
+  companyId: "",
+  contactFirstName: "",
+  contactLastName: "",
+  contactMobilePhone: "",
+  contactLandlinePhone: "",
 };
 
 export default function RegisterPage() {
@@ -65,10 +89,12 @@ export default function RegisterPage() {
   const inviteToken = searchParams.get("token");
 
   const [form, setForm] = useState<FormState>(EMPTY);
-  const [fieldErrors, setFieldErrors] = useState<Partial<FormState>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<FormState & { logo: string }>>({});
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
@@ -111,24 +137,46 @@ export default function RegisterPage() {
     setFieldErrors((prev) => ({ ...prev, [name]: err }));
   }
 
+  function handleLogoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setLogoFile(file);
+    if (file) setFieldErrors((prev) => ({ ...prev, logo: "" }));
+  }
+
   function getFieldError(field: keyof FormState, value: string): string {
     switch (field) {
-      case "email":        return val.validateEmail(value);
-      case "password":     return val.validatePassword(value);
-      case "confirm":      return val.validateConfirm(value, form.password);
-      case "companyName":  return val.validateCompanyName(value);
-      case "contactPhone": return val.validatePhone(value);
-      default:             return "";
+      case "email":
+        return val.validateEmail(value);
+      case "password":
+        return val.validatePassword(value);
+      case "confirm":
+        return val.validateConfirm(value, form.password);
+      case "companyName":
+        return val.validateCompanyName(value);
+      case "companyId":
+        return val.validateCompanyId(value);
+      case "contactFirstName":
+        return val.validateContactFirstName(value);
+      case "contactLastName":
+        return val.validateContactLastName(value);
+      case "contactMobilePhone":
+        return val.validateMobilePhone(value);
+      default:
+        return "";
     }
   }
 
   function validateAll(): boolean {
-    const errors: Partial<FormState> = {
-      email:        val.validateEmail(form.email),
-      password:     val.validatePassword(form.password),
-      confirm:      val.validateConfirm(form.confirm, form.password),
-      companyName:  val.validateCompanyName(form.companyName),
-      contactPhone: val.validatePhone(form.contactPhone),
+    const errors: Partial<FormState & { logo: string }> = {
+      email: val.validateEmail(form.email),
+      password: val.validatePassword(form.password),
+      confirm: val.validateConfirm(form.confirm, form.password),
+      companyName: val.validateCompanyName(form.companyName),
+      companyId: val.validateCompanyId(form.companyId),
+      contactFirstName: val.validateContactFirstName(form.contactFirstName),
+      contactLastName: val.validateContactLastName(form.contactLastName),
+      contactMobilePhone: val.validateMobilePhone(form.contactMobilePhone),
+      logo: val.validateLogo(logoFile),
     };
     setFieldErrors(errors);
     return Object.values(errors).every((e) => !e);
@@ -138,21 +186,23 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!validateAll()) return;
 
+    const fd = new FormData();
+    fd.append("email", form.email.trim());
+    fd.append("password", form.password);
+    fd.append("company_name", form.companyName.trim());
+    fd.append("company_id", form.companyId.trim());
+    fd.append("contact_first_name", form.contactFirstName.trim());
+    fd.append("contact_last_name", form.contactLastName.trim());
+    fd.append("contact_mobile_phone", form.contactMobilePhone.trim());
+    if (form.contactLandlinePhone.trim()) {
+      fd.append("contact_landline_phone", form.contactLandlinePhone.trim());
+    }
+    fd.append("logo", logoFile!);
+
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await register(
-        {
-          email: form.email.trim(),
-          password: form.password,
-          company_profile: {
-            name: form.companyName.trim(),
-            contact_person: form.contactPerson.trim() || null,
-            contact_phone: form.contactPhone.trim() || null,
-          },
-        },
-        inviteToken!,
-      );
+      await register(fd, inviteToken!);
       setSuccess(true);
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -161,7 +211,10 @@ export default function RegisterPage() {
           setSubmitError(t("auth.register.errors.tooManyAttempts"));
         } else if (status === 400) {
           const detail = (err.response?.data?.detail ?? "") as string;
-          if (detail.toLowerCase().includes("invite") || detail.toLowerCase().includes("token")) {
+          if (
+            detail.toLowerCase().includes("invite") ||
+            detail.toLowerCase().includes("token")
+          ) {
             setSubmitError(t("auth.register.errors.invalidToken"));
           } else {
             setSubmitError(t("auth.register.errors.emailExists"));
@@ -221,6 +274,7 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
+          {/* Company details section */}
           <section>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
               {t("auth.register.companySection")}
@@ -249,42 +303,139 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm text-white/50">
-                  {t("auth.register.contactPerson")}
+                  {t("auth.register.companyIdLabel")} <span className="text-copper/80">*</span>
                 </label>
                 <input
-                  name="contactPerson"
+                  name="companyId"
                   type="text"
-                  maxLength={100}
-                  value={form.contactPerson}
+                  required
+                  maxLength={9}
+                  value={form.companyId}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   className={`mt-1 ${inputCls}`}
-                  placeholder={t("auth.register.contactPersonPlaceholder")}
-                  autoComplete="name"
+                  placeholder={t("auth.register.companyIdPlaceholder")}
+                  dir="ltr"
                 />
+                {fieldErrors.companyId && (
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.companyId}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm text-white/50">
-                  {t("auth.register.contactPhone")}
+                  {t("auth.register.logoLabel")} <span className="text-copper/80">*</span>
                 </label>
                 <input
-                  name="contactPhone"
-                  type="tel"
-                  maxLength={30}
-                  value={form.contactPhone}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`mt-1 ${inputCls}`}
-                  placeholder={t("auth.register.contactPhonePlaceholder")}
-                  autoComplete="tel"
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="mt-1 block w-full cursor-pointer rounded-sm border border-white/10 bg-well px-3 py-2 text-sm text-white/60 file:mr-4 file:rounded-sm file:border-0 file:bg-copper/20 file:px-3 file:py-1 file:text-xs file:font-medium file:text-copper hover:file:bg-copper/30"
                 />
-                {fieldErrors.contactPhone && (
-                  <p className="mt-1 text-xs text-danger">{fieldErrors.contactPhone}</p>
+                {logoFile && (
+                  <p className="mt-1 text-xs text-white/30">{logoFile.name}</p>
+                )}
+                {fieldErrors.logo && (
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.logo}</p>
                 )}
               </div>
             </div>
           </section>
 
+          {/* Contact person section */}
+          <section>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              {t("auth.register.contactSection", "פרטי איש קשר")}
+            </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-white/50">
+                    {t("auth.register.contactFirstName")}{" "}
+                    <span className="text-copper/80">*</span>
+                  </label>
+                  <input
+                    name="contactFirstName"
+                    type="text"
+                    required
+                    maxLength={100}
+                    value={form.contactFirstName}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`mt-1 ${inputCls}`}
+                    placeholder={t("auth.register.contactFirstNamePlaceholder")}
+                    autoComplete="given-name"
+                  />
+                  {fieldErrors.contactFirstName && (
+                    <p className="mt-1 text-xs text-danger">{fieldErrors.contactFirstName}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm text-white/50">
+                    {t("auth.register.contactLastName")}{" "}
+                    <span className="text-copper/80">*</span>
+                  </label>
+                  <input
+                    name="contactLastName"
+                    type="text"
+                    required
+                    maxLength={100}
+                    value={form.contactLastName}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`mt-1 ${inputCls}`}
+                    placeholder={t("auth.register.contactLastNamePlaceholder")}
+                    autoComplete="family-name"
+                  />
+                  {fieldErrors.contactLastName && (
+                    <p className="mt-1 text-xs text-danger">{fieldErrors.contactLastName}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-white/50">
+                  {t("auth.register.contactMobilePhone")}{" "}
+                  <span className="text-copper/80">*</span>
+                </label>
+                <input
+                  name="contactMobilePhone"
+                  type="tel"
+                  required
+                  maxLength={15}
+                  value={form.contactMobilePhone}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={`mt-1 ${inputCls}`}
+                  placeholder={t("auth.register.contactMobilePhonePlaceholder")}
+                  autoComplete="tel"
+                  dir="ltr"
+                />
+                {fieldErrors.contactMobilePhone && (
+                  <p className="mt-1 text-xs text-danger">{fieldErrors.contactMobilePhone}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm text-white/50">
+                  {t("auth.register.contactLandlinePhone")}
+                </label>
+                <input
+                  name="contactLandlinePhone"
+                  type="tel"
+                  maxLength={15}
+                  value={form.contactLandlinePhone}
+                  onChange={handleChange}
+                  className={`mt-1 ${inputCls}`}
+                  placeholder={t("auth.register.contactLandlinePhonePlaceholder")}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Account section */}
           <section>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
               {t("auth.register.accountSection")}
@@ -305,6 +456,7 @@ export default function RegisterPage() {
                   className={`mt-1 ${inputCls}`}
                   placeholder={t("auth.register.emailPlaceholder")}
                   autoComplete="email"
+                  dir="ltr"
                 />
                 {fieldErrors.email && (
                   <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>

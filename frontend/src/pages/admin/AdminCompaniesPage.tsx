@@ -117,10 +117,14 @@ export default function AdminCompaniesPage() {
                 <div className="min-w-0">
                   <p className="font-medium text-white/85">{c.company_profile.name}</p>
                   <p className="mt-0.5 text-sm text-white/45">{c.user.email}</p>
-                  {c.company_profile.contact_person && (
+                  {(c.company_profile.contact_first_name || c.company_profile.contact_last_name) && (
                     <p className="text-sm text-white/45">
-                      {t("admin.companies.contactLabel")}: {c.company_profile.contact_person}
-                      {c.company_profile.contact_phone && ` · ${c.company_profile.contact_phone}`}
+                      {t("admin.companies.contactLabel")}:{" "}
+                      {[c.company_profile.contact_first_name, c.company_profile.contact_last_name]
+                        .filter(Boolean)
+                        .join(" ")}
+                      {c.company_profile.contact_mobile_phone &&
+                        ` · ${c.company_profile.contact_mobile_phone}`}
                     </p>
                   )}
                   <p className="mt-1 text-xs text-white/25">

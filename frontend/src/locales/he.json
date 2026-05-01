@@ -65,14 +65,10 @@
       "companySection": "פרטי החברה",
       "accountSection": "חשבון",
       "companyName": "שם החברה",
-      "contactPerson": "איש קשר",
-      "contactPhone": "טלפון ליצירת קשר",
       "emailLabel": "כתובת אימייל",
       "passwordLabel": "סיסמה",
       "confirmLabel": "אימות סיסמה",
       "companyNamePlaceholder": "Acme Ltd.",
-      "contactPersonPlaceholder": "ישראל ישראלי",
-      "contactPhonePlaceholder": "050-000-0000",
       "emailPlaceholder": "you@company.com",
       "passwordPlaceholder": "לפחות 8 תווים",
       "confirmPlaceholder": "הזן שוב את הסיסמה",
@@ -94,8 +90,13 @@
         "confirmMismatch": "הסיסמאות אינן תואמות",
         "companyNameRequired": "שם החברה נדרש",
         "companyNameMax": "שם החברה לא יכול להכיל יותר מ-100 תווים",
-        "phoneInvalid": "טלפון יכול להכיל רק ספרות, רווחים, +, -, (, )",
-        "phoneMin": "לטלפון חייבות להיות לפחות 5 ספרות"
+        "companyIdRequired": "מספר ח.פ נדרש",
+        "companyIdInvalid": "מספר ח.פ חייב להכיל בדיוק 9 ספרות",
+        "contactFirstNameRequired": "שם פרטי של איש הקשר נדרש",
+        "contactLastNameRequired": "שם משפחה של איש הקשר נדרש",
+        "mobilePhoneRequired": "טלפון נייד נדרש",
+        "mobilePhoneInvalid": "יש להזין מספר טלפון נייד ישראלי תקין (05X-XXXXXXX)",
+        "logoRequired": "יש להעלות לוגו לחברה"
       },
       "errors": {
         "tooManyAttempts": "יותר מדי ניסיונות הרשמה. אנא המתן ונסה שוב מאוחר יותר.",
@@ -108,13 +109,23 @@
         "title": "דרוש קישור הזמנה",
         "message": "הרשמה לפלטפורמה מתבצעת בהזמנה בלבד. פנה אלינו כדי לקבל קישור.",
         "backToLogin": "חזרה להתחברות"
-      }
+      },
+      "companyIdLabel": "מספר ח.פ",
+      "companyIdPlaceholder": "123456789",
+      "contactFirstName": "שם פרטי של איש הקשר",
+      "contactFirstNamePlaceholder": "ישראל",
+      "contactLastName": "שם משפחה של איש הקשר",
+      "contactLastNamePlaceholder": "ישראלי",
+      "contactMobilePhone": "טלפון נייד",
+      "contactMobilePhonePlaceholder": "0501234567",
+      "contactLandlinePhone": "טלפון קווי",
+      "contactLandlinePhonePlaceholder": "036123456",
+      "logoLabel": "לוגו החברה"
     }
   },
   "dashboard": {
     "title": "לוח בקרה",
     "welcomeBack": "ברוך השב,",
-
     "adminLinks": {
       "pendingCompanies": "חברות ממתינות",
       "pendingCompaniesDesc": "בדוק ואשר רישומי חברות.",

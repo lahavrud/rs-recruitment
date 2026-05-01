@@ -78,24 +78,48 @@ async def test_list_pending_companies(mock_enqueue_email, session: AsyncSession)
     user_data1 = UserCreate(
         email="pending1@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="Pending Company 1"),
+        company_profile=CompanyProfileCreate(
+            name="Pending Company 1",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
     user_data2 = UserCreate(
         email="pending2@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="Pending Company 2"),
+        company_profile=CompanyProfileCreate(
+            name="Pending Company 2",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
-    await register_company_user(user_data1, session)
-    await register_company_user(user_data2, session)
+    await register_company_user(
+        user_data1, session, b"fake-logo", "logo.png", "image/png"
+    )
+    await register_company_user(
+        user_data2, session, b"fake-logo", "logo.png", "image/png"
+    )
     await session.commit()
 
     # Create an approved company (should not appear)
     user_data3 = UserCreate(
         email="approved@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="Approved Company"),
+        company_profile=CompanyProfileCreate(
+            name="Approved Company",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
-    await register_company_user(user_data3, session)
+    await register_company_user(
+        user_data3, session, b"fake-logo", "logo.png", "image/png"
+    )
     await session.commit()
 
     # Activate the approved company
@@ -137,9 +161,17 @@ async def test_approve_company_success(mock_enqueue_email, session: AsyncSession
     user_data = UserCreate(
         email="toapprove@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="To Approve Company"),
+        company_profile=CompanyProfileCreate(
+            name="To Approve Company",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
-    result = await register_company_user(user_data, session)
+    result = await register_company_user(
+        user_data, session, b"fake-logo", "logo.png", "image/png"
+    )
     await session.commit()
 
     company_user_id = result.user.id
@@ -176,9 +208,17 @@ async def test_approve_company_already_approved(session: AsyncSession):
     user_data = UserCreate(
         email="alreadyapproved@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="Already Approved"),
+        company_profile=CompanyProfileCreate(
+            name="Already Approved",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
-    result = await register_company_user(user_data, session)
+    result = await register_company_user(
+        user_data, session, b"fake-logo", "logo.png", "image/png"
+    )
     await session.commit()
 
     # Manually activate
@@ -223,9 +263,17 @@ async def test_reject_company_success(mock_enqueue_email, session: AsyncSession)
     user_data = UserCreate(
         email="toreject@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="To Reject Company"),
+        company_profile=CompanyProfileCreate(
+            name="To Reject Company",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
-    result = await register_company_user(user_data, session)
+    result = await register_company_user(
+        user_data, session, b"fake-logo", "logo.png", "image/png"
+    )
     await session.commit()
 
     company_user_id = result.user.id
@@ -265,9 +313,17 @@ async def test_reject_company_already_approved(session: AsyncSession):
     user_data = UserCreate(
         email="alreadyapproved2@example.com",
         password="password",
-        company_profile=CompanyProfileCreate(name="Already Approved 2"),
+        company_profile=CompanyProfileCreate(
+            name="Already Approved 2",
+            company_id="123456789",
+            contact_first_name="ישראל",
+            contact_last_name="ישראלי",
+            contact_mobile_phone="0501234567",
+        ),
     )
-    result = await register_company_user(user_data, session)
+    result = await register_company_user(
+        user_data, session, b"fake-logo", "logo.png", "image/png"
+    )
     await session.commit()
 
     # Manually activate
