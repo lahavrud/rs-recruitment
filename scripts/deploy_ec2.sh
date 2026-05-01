@@ -1,6 +1,7 @@
 #!/bin/bash
-# EC2 deploy script — downloaded from S3 and executed via SSM Run Command by CI.
-# Runs as root (SSM default). Derives all values from the EC2 IAM role; nothing hardcoded.
+# EC2 deploy script — fetches secrets from SSM Parameter Store, generates .env,
+# then deploys. Runs as root via SSM Run Command. Uses the EC2 IAM role for all
+# AWS access — no credentials are stored on the instance or in this script.
 set -e
 
 APP_DIR="/home/ec2-user/app"
@@ -12,6 +13,32 @@ S3_BUCKET="rs-recruitment-${ACCOUNT_ID}"
 
 echo "==> ECR registry: ${ECR_REGISTRY}"
 echo "==> S3 bucket:    ${S3_BUCKET}"
+
+echo "==> Fetching secrets from SSM Parameter Store"
+get_param() {
+  aws ssm get-parameter --name "$1" --with-decryption \
+    --query Parameter.Value --output text
+}
+
+JWT_SECRET_KEY=$(get_param /rs-recruitment/prod/jwt_secret_key)
+DATABASE_URL=$(get_param /rs-recruitment/prod/database_url)
+ALLOWED_ORIGINS=$(get_param /rs-recruitment/prod/allowed_origins)
+AWS_SES_FROM_EMAIL=$(get_param /rs-recruitment/prod/aws_ses_from_email)
+
+echo "==> Writing .env"
+mkdir -p "${APP_DIR}"
+# Use printf to safely handle values that contain special shell characters
+printf 'JWT_SECRET_KEY=%s\n'       "${JWT_SECRET_KEY}"     >  "${APP_DIR}/.env"
+printf 'DATABASE_URL=%s\n'         "${DATABASE_URL}"        >> "${APP_DIR}/.env"
+printf 'ALLOWED_ORIGINS=%s\n'      "${ALLOWED_ORIGINS}"     >> "${APP_DIR}/.env"
+printf 'AWS_SES_FROM_EMAIL=%s\n'   "${AWS_SES_FROM_EMAIL}"  >> "${APP_DIR}/.env"
+printf 'REDIS_URL=%s\n'            "redis://redis:6379/0"   >> "${APP_DIR}/.env"
+printf 'STORAGE_PROVIDER=%s\n'     "s3"                     >> "${APP_DIR}/.env"
+printf 'EMAIL_PROVIDER=%s\n'       "ses"                    >> "${APP_DIR}/.env"
+printf 'AWS_REGION=%s\n'           "us-east-1"              >> "${APP_DIR}/.env"
+printf 'AWS_S3_BUCKET_NAME=%s\n'   "${S3_BUCKET}"           >> "${APP_DIR}/.env"
+printf 'ENVIRONMENT=%s\n'          "production"             >> "${APP_DIR}/.env"
+chmod 600 "${APP_DIR}/.env"
 
 echo "==> Logging in to ECR"
 aws ecr get-login-password --region us-east-1 \
