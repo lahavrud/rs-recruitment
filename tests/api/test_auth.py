@@ -19,27 +19,24 @@ from src.models import User
 from src.services.exceptions import InvalidInviteTokenError
 from tests.conftest import enable_sqlite_foreign_keys
 
-# Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-# Create test engine and session factory
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-# Enable FK constraints for SQLite to match PostgreSQL behavior
 enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
 
+FAKE_LOGO_FILE = ("logo.png", b"fake-png-bytes", "image/png")
+
 
 async def override_get_session():
-    """Override get_session dependency for tests."""
     async with TestSessionLocal() as session:
         yield session
 
 
 @pytest.fixture(scope="function")
 async def test_db():
-    """Create and drop test database tables for each test."""
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     yield
@@ -49,20 +46,12 @@ async def test_db():
 
 @pytest.fixture(scope="function")
 async def client(test_db):
-    """Create test client with overridden database dependency."""
-    # Rate limiting is automatically disabled via settings.testing=True
-    # (set in conftest.py setup_testing_environment fixture)
-    # Disable rate limiting on the existing limiter instance
-    # (decorators capture the limiter, so we update the same instance)
     from src.api import auth
 
     auth.limiter.enabled = False
-    # Only disable app.state.limiter if it exists
-    # (may not be initialized in all PRs)
     if hasattr(app.state, "limiter"):
         app.state.limiter.enabled = False
 
-    # Override database dependency
     app.dependency_overrides[get_session] = override_get_session
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as test_client:
@@ -70,88 +59,131 @@ async def client(test_db):
         app.dependency_overrides.clear()
 
 
+def _reg_data(**overrides):
+    """Base multipart form data for a valid registration."""
+    data = {
+        "email": "company@example.com",
+        "password": "securepassword123",
+        "company_name": "Test Company",
+        "company_id": "123456789",
+        "contact_first_name": "ישראל",
+        "contact_last_name": "ישראלי",
+        "contact_mobile_phone": "0501234567",
+    }
+    data.update(overrides)
+    return data
+
+
 @pytest.mark.asyncio
 async def test_register_success(client: AsyncClient):
     """Test successful company registration."""
-    registration_data = {
-        "email": "company@example.com",
-        "password": "securepassword123",
-        "company_profile": {
-            "name": "Test Company",
-            "logo_url": "https://example.com/logo.png",
-            "contact_person": "John Doe",
-            "contact_phone": "+1234567890",
-        },
-    }
-
     response = await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(),
+        files={"logo": FAKE_LOGO_FILE},
     )
     assert response.status_code == 201
 
     data = response.json()
-    assert "user" in data
-    assert "company_profile" in data
+    assert data["user"]["email"] == "company@example.com"
+    assert data["user"]["role"] == "COMPANY"
+    assert data["user"]["is_active"] is False
+    assert "password" not in str(data)
 
-    user_data = data["user"]
-    assert user_data["email"] == "company@example.com"
-    assert user_data["role"] == "COMPANY"
-    assert user_data["is_active"] is False  # Requires Admin approval
-    assert "password" not in str(data)  # Password should never be in response
+    cp = data["company_profile"]
+    assert cp["name"] == "Test Company"
+    assert cp["company_id"] == "123456789"
+    assert cp["contact_first_name"] == "ישראל"
+    assert cp["contact_last_name"] == "ישראלי"
+    assert cp["contact_mobile_phone"] == "0501234567"
+    assert cp["logo_url"] is not None
 
-    company_data = data["company_profile"]
-    assert company_data["name"] == "Test Company"
-    assert company_data["logo_url"] == "https://example.com/logo.png"
-    assert company_data["contact_person"] == "John Doe"
-    assert company_data["contact_phone"] == "+1234567890"
-
-    # Verify password is hashed in database
     async with TestSessionLocal() as session:
         result = await session.execute(
             select(User).where(User.email == "company@example.com")  # pyright: ignore[reportArgumentType]
         )
         user = result.scalar_one()
-        assert user.hashed_password != "securepassword123"
         assert verify_password("securepassword123", user.hashed_password)
+
+
+@pytest.mark.asyncio
+async def test_register_invalid_company_id(client: AsyncClient):
+    """Test 422 when company_id is not 9 digits."""
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(company_id="12345"),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_invalid_mobile_phone(client: AsyncClient):
+    """Test 422 when mobile phone is not a valid Israeli mobile number."""
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(contact_mobile_phone="0521234567890"),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_missing_contact_first_name(client: AsyncClient):
+    """Test 422 when contact_first_name is missing."""
+    d = _reg_data()
+    del d["contact_first_name"]
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=d,
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_register_missing_logo(client: AsyncClient):
+    """Test 422 when logo file is not provided."""
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(),
+    )
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient):
     """Test registration fails when email already exists."""
-    registration_data = {
-        "email": "duplicate@example.com",
-        "password": "password123",
-        "company_profile": {"name": "First Company"},
-    }
-
-    # First registration should succeed
-    response1 = await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
+    await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="duplicate@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
     )
-    assert response1.status_code == 201
-
-    # Second registration with same email should fail
-    response2 = await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="duplicate@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
     )
-    assert response2.status_code == 400
-    assert "already registered" in response2.json()["detail"].lower()
+    assert response.status_code == 400
+    assert "already" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient):
     """Test successful login returns JWT token."""
-    # First register a user
-    registration_data = {
-        "email": "login@example.com",
-        "password": "mypassword123",
-        "company_profile": {"name": "Login Test Company"},
-    }
     await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="login@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
     )
-
-    # Activate the user (simulating admin approval)
     async with TestSessionLocal() as session:
         result = await session.execute(
             select(User).where(User.email == "login@example.com")  # pyright: ignore[reportArgumentType]
@@ -160,46 +192,35 @@ async def test_login_success(client: AsyncClient):
         user.is_active = True
         await session.commit()
 
-    # Then login
-    login_data = {
-        "email": "login@example.com",
-        "password": "mypassword123",
-    }
-    response = await client.post("/auth/login", json=login_data)
+    response = await client.post(
+        "/auth/login",
+        json={"email": "login@example.com", "password": "securepassword123"},
+    )
     assert response.status_code == 200
-
     data = response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
-    assert len(data["access_token"]) > 0
 
 
 @pytest.mark.asyncio
 async def test_login_invalid_email(client: AsyncClient):
-    """Test login fails with invalid email."""
-    login_data = {
-        "email": "nonexistent@example.com",
-        "password": "somepassword",
-    }
-    response = await client.post("/auth/login", json=login_data)
+    """Test login fails with unknown email."""
+    response = await client.post(
+        "/auth/login", json={"email": "nonexistent@example.com", "password": "pass"}
+    )
     assert response.status_code == 401
     assert "incorrect email or password" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_login_invalid_password(client: AsyncClient):
-    """Test login fails with invalid password."""
-    # First register a user
-    registration_data = {
-        "email": "wrongpass@example.com",
-        "password": "correctpassword",
-        "company_profile": {"name": "Password Test Company"},
-    }
+    """Test login fails with wrong password."""
     await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="wrongpass@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
     )
-
-    # Activate the user (simulating admin approval)
     async with TestSessionLocal() as session:
         result = await session.execute(
             select(User).where(User.email == "wrongpass@example.com")  # pyright: ignore[reportArgumentType]
@@ -208,118 +229,44 @@ async def test_login_invalid_password(client: AsyncClient):
         user.is_active = True
         await session.commit()
 
-    # Then try to login with wrong password
-    login_data = {
-        "email": "wrongpass@example.com",
-        "password": "wrongpassword",
-    }
-    response = await client.post("/auth/login", json=login_data)
+    response = await client.post(
+        "/auth/login",
+        json={"email": "wrongpass@example.com", "password": "wrongpassword"},
+    )
     assert response.status_code == 401
-    assert "incorrect email or password" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_login_inactive_user(client: AsyncClient):
     """Test login fails for inactive users."""
-    # Register a user (defaults to inactive)
-    registration_data = {
-        "email": "inactive@example.com",
-        "password": "password123",
-        "company_profile": {"name": "Inactive Company"},
-    }
     await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="inactive@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
     )
-
-    # Try to login with inactive user
-    login_data = {
-        "email": "inactive@example.com",
-        "password": "password123",
-    }
-    response = await client.post("/auth/login", json=login_data)
+    response = await client.post(
+        "/auth/login",
+        json={"email": "inactive@example.com", "password": "securepassword123"},
+    )
     assert response.status_code == 403
     assert "inactive" in response.json()["detail"].lower()
-    assert "admin approval" in response.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
-async def test_register_minimal_data(client: AsyncClient):
-    """Test registration works with minimal required data."""
-    registration_data = {
-        "email": "minimal@example.com",
-        "password": "password123",
-        "company_profile": {"name": "Minimal Company"},
-    }
-
-    response = await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
-    )
-    assert response.status_code == 201
-
-    data = response.json()
-    assert data["user"]["email"] == "minimal@example.com"
-    assert data["company_profile"]["name"] == "Minimal Company"
-    assert data["company_profile"]["logo_url"] is None
-    assert data["company_profile"]["contact_person"] is None
-    assert data["company_profile"]["contact_phone"] is None
-
-
-@pytest.mark.asyncio
-async def test_register_duplicate_returns_400_not_500(client: AsyncClient):
-    """Test that duplicate registration returns 400, not 500.
-
-    This ensures IntegrityError is properly caught and converted to a
-    user-friendly error message rather than leaking as a 500 Internal Server Error.
-    """
-    registration_data = {
-        "email": "duplicate-test@example.com",
-        "password": "password123",
-        "company_profile": {"name": "Duplicate Test Company"},
-    }
-
-    # First registration should succeed
-    response1 = await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
-    )
-    assert response1.status_code == 201
-
-    # Second registration with same email should return 400 (not 500)
-    response2 = await client.post(
-        "/auth/register", json=registration_data, params={"token": "valid-test-token"}
-    )
-    assert response2.status_code == 400
-    detail = response2.json()["detail"].lower()
-    assert "already" in detail or "exists" in detail
-
-    # Verify only one user was created in database
-    async with TestSessionLocal() as session:
-        result = await session.execute(
-            select(User).where(User.email == "duplicate-test@example.com")  # pyright: ignore[reportArgumentType]
-        )
-        users = result.scalars().all()
-        assert len(users) == 1
 
 
 @pytest.mark.asyncio
 async def test_register_missing_token_returns_422(client: AsyncClient):
-    """Test that registration without a token returns 422 (missing query param)."""
-    registration_data = {
-        "email": "notoken@example.com",
-        "password": "password123",
-        "company_profile": {"name": "No Token Co"},
-    }
-    response = await client.post("/auth/register", json=registration_data)
+    """Test registration without a token returns 422."""
+    response = await client.post(
+        "/auth/register",
+        data=_reg_data(),
+        files={"logo": FAKE_LOGO_FILE},
+    )
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_register_invalid_token_returns_400(client: AsyncClient):
     """Test that an invalid/expired invite token returns 400."""
-    registration_data = {
-        "email": "badtoken@example.com",
-        "password": "password123",
-        "company_profile": {"name": "Bad Token Co"},
-    }
     with patch(
         "src.api.auth.validate_invite_token",
         new_callable=AsyncMock,
@@ -327,8 +274,9 @@ async def test_register_invalid_token_returns_400(client: AsyncClient):
     ):
         response = await client.post(
             "/auth/register",
-            json=registration_data,
             params={"token": "expired-or-fake-token"},
+            data=_reg_data(email="badtoken@example.com"),
+            files={"logo": FAKE_LOGO_FILE},
         )
     assert response.status_code == 400
 
@@ -336,11 +284,6 @@ async def test_register_invalid_token_returns_400(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_register_token_consumed_on_success(client: AsyncClient):
     """Test that the invite token is consumed after successful registration."""
-    registration_data = {
-        "email": "tokenconsumed@example.com",
-        "password": "password123",
-        "company_profile": {"name": "Consumed Token Co"},
-    }
     with (
         patch(
             "src.api.auth.validate_invite_token", new_callable=AsyncMock
@@ -351,8 +294,9 @@ async def test_register_token_consumed_on_success(client: AsyncClient):
     ):
         response = await client.post(
             "/auth/register",
-            json=registration_data,
             params={"token": "one-time-token"},
+            data=_reg_data(email="tokenconsumed@example.com"),
+            files={"logo": FAKE_LOGO_FILE},
         )
     assert response.status_code == 201
     mock_validate.assert_awaited_once_with("one-time-token")

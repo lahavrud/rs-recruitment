@@ -1,6 +1,19 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+import json
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +25,13 @@ from src.core.infrastructure.invite_tokens import (
 )
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.security import create_access_token
-from src.schemas import LoginRequest, TokenResponse, UserCreate, UserWithCompanyRead
+from src.schemas import (
+    CompanyProfileCreate,
+    LoginRequest,
+    TokenResponse,
+    UserCreate,
+    UserWithCompanyRead,
+)
 from src.services.auth import authenticate_user, register_company_user
 from src.services.exceptions import (
     EmailAlreadyExistsError,
@@ -33,19 +52,52 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @limiter.limit("3/hour")
 async def register(
     request: Request,
-    user_data: UserCreate,
     token: str = Query(..., description="Single-use invite token issued by an admin"),
+    email: str = Form(...),
+    password: str = Form(...),
+    company_name: str = Form(...),
+    company_id: str = Form(...),
+    contact_first_name: str = Form(...),
+    contact_last_name: str = Form(...),
+    contact_mobile_phone: str = Form(...),
+    contact_landline_phone: str | None = Form(None),
+    logo: UploadFile = File(...),
     session: AsyncSession = Depends(get_session),
 ) -> UserWithCompanyRead:
     """Register a new company user.
 
+    Accepts multipart/form-data with company fields + logo file.
     Requires a valid single-use invite token issued by an admin.
     Creates a User with COMPANY role and associated CompanyProfile.
     User is inactive until Admin approves (is_active=False).
     """
     try:
+        profile_data = CompanyProfileCreate(
+            name=company_name,
+            company_id=company_id,
+            contact_first_name=contact_first_name,
+            contact_last_name=contact_last_name,
+            contact_mobile_phone=contact_mobile_phone,
+            contact_landline_phone=contact_landline_phone,
+        )
+        user_create = UserCreate(
+            email=email, password=password, company_profile=profile_data
+        )
+    except PydanticValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=json.loads(exc.json()),
+        ) from exc
+
+    logo_content = await logo.read()
+    logo_filename = logo.filename or "logo"
+    logo_content_type = logo.content_type
+
+    try:
         await validate_invite_token(token)
-        result = await register_company_user(user_data, session)
+        result = await register_company_user(
+            user_create, session, logo_content, logo_filename, logo_content_type
+        )
         await session.commit()
         await consume_invite_token(token)
         return result
@@ -54,16 +106,19 @@ async def register(
     except EmailAlreadyExistsError as e:
         await session.rollback()
         raise service_exception_to_http(e) from e
+    except ValueError as e:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
     except sqlalchemy_exc.IntegrityError as e:
         await session.rollback()
-        # Check if it's a unique constraint violation on email
         error_str = str(e.orig) if e.orig else str(e)
         if "email" in error_str.lower() or "unique" in error_str.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"User with email '{user_data.email}' already exists.",
+                detail=f"User with email '{email}' already exists.",
             ) from e
-        # Re-raise for other integrity errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error occurred during registration",

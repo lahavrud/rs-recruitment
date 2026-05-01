@@ -53,9 +53,27 @@ class CompanyProfileCreate(BaseModel):
     """Schema for creating a company profile."""
 
     name: str = Field(..., max_length=100)
-    logo_url: str | None = None
-    contact_person: str | None = Field(None, max_length=100)
-    contact_phone: str | None = Field(None, max_length=30, pattern=r"^[+\d\s()-]*$")
+    company_id: str  # ח.פ — 9-digit Israeli company registration number
+    contact_first_name: str = Field(..., min_length=2, max_length=100)
+    contact_last_name: str = Field(..., min_length=2, max_length=100)
+    contact_mobile_phone: str
+    contact_landline_phone: str | None = None
+
+    @field_validator("company_id")
+    @classmethod
+    def validate_company_id(cls, v: str) -> str:
+        if not re.fullmatch(r"\d{9}", v):
+            raise ValueError("Company ID must be exactly 9 digits")
+        return v
+
+    @field_validator("contact_mobile_phone")
+    @classmethod
+    def validate_mobile_phone(cls, v: str) -> str:
+        if not re.fullmatch(r"05[0-9]\d{7}", v):
+            raise ValueError(
+                "Mobile phone must be a valid Israeli mobile number (05X-XXXXXXX)"
+            )
+        return v
 
 
 class UserCreate(BaseModel):
@@ -87,8 +105,11 @@ class CompanyProfileRead(BaseModel):
     user_id: int
     name: str
     logo_url: str | None
-    contact_person: str | None
-    contact_phone: str | None
+    company_id: str | None
+    contact_first_name: str | None
+    contact_last_name: str | None
+    contact_mobile_phone: str | None
+    contact_landline_phone: str | None
     created_at: datetime
 
 

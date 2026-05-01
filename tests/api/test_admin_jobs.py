@@ -256,9 +256,17 @@ async def test_admin_job_endpoints_require_admin_role(mock_enqueue_email, test_d
         user_data = UserCreate(
             email="company@test.com",
             password="password",
-            company_profile=CompanyProfileCreate(name="Company"),
+            company_profile=CompanyProfileCreate(
+                name="Company",
+                company_id="123456789",
+                contact_first_name="ישראל",
+                contact_last_name="ישראלי",
+                contact_mobile_phone="0501234567",
+            ),
         )
-        result = await register_company_user(user_data, session)
+        result = await register_company_user(
+            user_data, session, b"fake-logo", "logo.png", "image/png"
+        )
         await session.commit()
         company_user = result.user
 

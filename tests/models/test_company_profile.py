@@ -32,9 +32,12 @@ async def test_company_profile_creation_with_required_fields(session: AsyncSessi
     assert company.id is not None
     assert company.user_id == user.id
     assert company.name == "Test Company"
-    assert company.logo_url is None  # Optional field
-    assert company.contact_person is None  # Optional field
-    assert company.contact_phone is None  # Optional field
+    assert company.logo_url is None
+    assert company.company_id is None
+    assert company.contact_first_name is None
+    assert company.contact_last_name is None
+    assert company.contact_mobile_phone is None
+    assert company.contact_landline_phone is None
     assert company.created_at is not None
 
 

@@ -46,8 +46,11 @@ class CompanyProfile(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", unique=True, index=True)
     name: str
     logo_url: str | None = None
-    contact_person: str | None = None
-    contact_phone: str | None = None
+    company_id: str | None = None  # ח.פ — 9-digit Israeli company registration number
+    contact_first_name: str | None = None
+    contact_last_name: str | None = None
+    contact_mobile_phone: str | None = None
+    contact_landline_phone: str | None = None
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
