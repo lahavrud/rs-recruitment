@@ -9,6 +9,7 @@ import type {
   ApplicationStatusUpdate,
   ApplicationWithDetails,
   ApplicationStatus,
+  CandidateProfileRead,
   JobRead,
   PendingCompanyRead,
 } from "@/types/api";
@@ -78,4 +79,18 @@ export async function updateApplicationStatus(
 
 export async function deleteApplication(appId: number): Promise<void> {
   await api.delete(`/api/admin/applications/${appId}`);
+}
+
+// ── Candidates ────────────────────────────────────────────────────────────────
+
+export async function getCandidates(): Promise<CandidateProfileRead[]> {
+  const res = await api.get<CandidateProfileRead[]>("/api/admin/candidates");
+  return res.data;
+}
+
+export async function fetchResumeBlob(fileKey: string): Promise<Blob> {
+  const res = await api.get<Blob>(`/api/resumes/${fileKey}`, {
+    responseType: "blob",
+  });
+  return res.data;
 }
