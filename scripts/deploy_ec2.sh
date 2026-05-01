@@ -27,14 +27,14 @@ get_param() {
     --query Parameter.Value --output text 2>/dev/null
 }
 
-JWT_SECRET_KEY=$(get_param /rs-recruitment/prod/jwt_secret_key) \
-  || { echo "WARNING: SSM parameter not found: jwt_secret_key" >&2; SSM_OK=false; }
-DATABASE_URL=$(get_param /rs-recruitment/prod/database_url) \
-  || { echo "WARNING: SSM parameter not found: database_url" >&2; SSM_OK=false; }
-ALLOWED_ORIGINS=$(get_param /rs-recruitment/prod/allowed_origins) \
-  || { echo "WARNING: SSM parameter not found: allowed_origins" >&2; SSM_OK=false; }
-AWS_SES_FROM_EMAIL=$(get_param /rs-recruitment/prod/aws_ses_from_email) \
-  || { echo "WARNING: SSM parameter not found: aws_ses_from_email" >&2; SSM_OK=false; }
+JWT_SECRET_KEY=$(get_param /rs-recruitment/prod/JWT_SECRET_KEY) \
+  || { echo "WARNING: SSM parameter not found: JWT_SECRET_KEY" >&2; SSM_OK=false; }
+DATABASE_URL=$(get_param /rs-recruitment/prod/DATABASE_URL) \
+  || { echo "WARNING: SSM parameter not found: DATABASE_URL" >&2; SSM_OK=false; }
+ALLOWED_ORIGINS=$(get_param /rs-recruitment/prod/ALLOWED_ORIGINS) \
+  || { echo "WARNING: SSM parameter not found: ALLOWED_ORIGINS" >&2; SSM_OK=false; }
+AWS_SES_FROM_EMAIL=$(get_param /rs-recruitment/prod/AWS_SES_FROM_EMAIL) \
+  || { echo "WARNING: SSM parameter not found: AWS_SES_FROM_EMAIL" >&2; SSM_OK=false; }
 
 if [ "$SSM_OK" = "true" ]; then
   echo "==> Writing .env from SSM"
