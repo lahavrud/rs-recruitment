@@ -75,7 +75,7 @@
       "confirmLabel": "אימות סיסמה",
       "companyNamePlaceholder": "Acme Ltd.",
       "emailPlaceholder": "you@company.com",
-      "passwordPlaceholder": "לפחות 8 תווים",
+      "passwordPlaceholder": "לפחות 8 תווים, אות גדולה, ספרה ותו מיוחד",
       "confirmPlaceholder": "הזן שוב את הסיסמה",
       "submitText": "יצירת חשבון",
       "submittingText": "שולח…",
