@@ -33,8 +33,9 @@ services:
       # CORS Configuration: Comma-separated list of allowed origins
       # Example: ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
-      # Redis Configuration for Arq task queue
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      # Hardcoded to Docker service name — .env value (localhost) must not override this
+      - REDIS_URL=redis://redis:6379/0
+      - FRONTEND_BASE_URL=${FRONTEND_BASE_URL:-http://localhost:3000}
       # Set TESTING=true to disable rate limiting in local dev
       - TESTING=${TESTING:-false}
     depends_on:
@@ -64,15 +65,18 @@ services:
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-      # Email configuration
+      # Hardcoded to Docker service name — .env value (localhost) must not override this
+      - REDIS_URL=redis://redis:6379/0
+      # Email: host.docker.internal resolves to the host machine (where smtp_debug.py runs)
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
-      - SMTP_HOST=${SMTP_HOST:-localhost}
-      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_HOST=host.docker.internal
+      - SMTP_PORT=${SMTP_PORT:-1025}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
-      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_TLS=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
     depends_on:

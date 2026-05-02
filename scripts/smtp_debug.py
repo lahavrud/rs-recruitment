@@ -14,9 +14,9 @@ from aiosmtpd.handlers import Debugging
 
 async def main() -> None:
     handler = Debugging()
-    controller = Controller(handler, hostname="localhost", port=1025)
+    controller = Controller(handler, hostname="0.0.0.0", port=1025)
     controller.start()
-    print("Debug SMTP server running on localhost:1025 — press Ctrl+C to stop")
+    print("Debug SMTP server running on 0.0.0.0:1025 — press Ctrl+C to stop")
     try:
         await asyncio.Event().wait()
     except KeyboardInterrupt:
