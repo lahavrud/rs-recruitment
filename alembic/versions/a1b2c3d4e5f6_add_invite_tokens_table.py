@@ -28,25 +28,28 @@ def upgrade() -> None:
             DECLARE
                 existing_labels text[];
             BEGIN
-                SELECT array_agg(e.enumlabel ORDER BY e.enumsortorder)
-                INTO existing_labels
-                FROM pg_type t
-                JOIN pg_namespace n ON n.oid = t.typnamespace
-                LEFT JOIN pg_enum e ON e.enumtypid = t.oid
-                WHERE t.typname = 'invitetokenstatus'
-                  AND n.nspname = current_schema()
-                GROUP BY t.oid;
-
-                IF existing_labels IS NULL THEN
+                BEGIN
                     CREATE TYPE invitetokenstatus
                         AS ENUM ('pending', 'used', 'expired', 'revoked');
-                ELSIF existing_labels !=
-                    ARRAY['pending', 'used', 'expired', 'revoked'] THEN
-                    RAISE EXCEPTION
-                        'Existing enum type invitetokenstatus has labels %, expected %',
-                        existing_labels,
-                        ARRAY['pending', 'used', 'expired', 'revoked'];
-                END IF;
+                EXCEPTION
+                    WHEN duplicate_object THEN
+                        SELECT array_agg(e.enumlabel ORDER BY e.enumsortorder)
+                        INTO existing_labels
+                        FROM pg_type t
+                        JOIN pg_namespace n ON n.oid = t.typnamespace
+                        LEFT JOIN pg_enum e ON e.enumtypid = t.oid
+                        WHERE t.typname = 'invitetokenstatus'
+                          AND n.nspname = current_schema()
+                        GROUP BY t.oid;
+
+                        IF existing_labels IS DISTINCT FROM
+                            ARRAY['pending', 'used', 'expired', 'revoked'] THEN
+                            RAISE EXCEPTION
+                                'Existing enum type invitetokenstatus has labels %, expected %',
+                                existing_labels,
+                                ARRAY['pending', 'used', 'expired', 'revoked'];
+                        END IF;
+                END;
             END $$;
             """
         )
