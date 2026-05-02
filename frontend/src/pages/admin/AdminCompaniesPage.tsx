@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -140,8 +141,17 @@ export default function AdminCompaniesPage() {
       setShowInviteForm(false);
       setInviteFormSuccess(true);
       setTimeout(() => setInviteFormSuccess(false), 3000);
-    } catch {
-      setInviteFormError(t("admin.companies.inviteForm.errorMessage"));
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        const detail = err.response.data?.detail ?? "";
+        if (detail.toLowerCase().includes("pending invite")) {
+          setInviteFormError(t("admin.companies.inviteForm.errorPendingInvite"));
+        } else {
+          setInviteFormError(t("admin.companies.inviteForm.errorEmailExists"));
+        }
+      } else {
+        setInviteFormError(t("admin.companies.inviteForm.errorMessage"));
+      }
     } finally {
       setSubmittingInvite(false);
     }

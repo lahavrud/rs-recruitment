@@ -114,6 +114,14 @@ class InviteAlreadyRevokedError(Exception):
     pass
 
 
+class InvitePendingForEmailError(Exception):
+    """Raised when a pending invite already exists for the given email."""
+
+    def __init__(self, email: str) -> None:
+        self.email = email
+        super().__init__(f"A pending invite already exists for {email}")
+
+
 class InvalidApplicationStatusTransitionError(Exception):
     """Raised when attempting an invalid application status transition."""
 

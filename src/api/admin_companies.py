@@ -25,8 +25,10 @@ from src.services.admin import (
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
+    EmailAlreadyExistsError,
     InviteAlreadyRevokedError,
     InviteNotFoundError,
+    InvitePendingForEmailError,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -48,6 +50,9 @@ async def create_company_invite(
         result = await create_invite(current_admin.id, data, session)
         await session.commit()
         return result
+    except (InvitePendingForEmailError, EmailAlreadyExistsError) as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
     except Exception:
         await session.rollback()
         raise
