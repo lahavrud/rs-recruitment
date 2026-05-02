@@ -253,7 +253,10 @@ async def test_admin_company_endpoints_require_admin_role(mock_enqueue_email, te
 @pytest.mark.asyncio
 async def test_generate_invite_token_returns_token(admin_client: AsyncClient):
     """Test that admin can generate an invite token."""
-    response = await admin_client.post("/api/admin/companies/invite")
+    response = await admin_client.post(
+        "/api/admin/companies/invite",
+        json={"email": "invite@example.com"},
+    )
     assert response.status_code == 201
     data = response.json()
     assert "token" in data

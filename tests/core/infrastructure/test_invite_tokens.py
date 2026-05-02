@@ -36,20 +36,21 @@ class TestKeyHelper:
 
 class TestGenerateInviteToken:
     @pytest.mark.asyncio
-    async def test_returns_nonempty_string(self, mock_redis):
-        token = await generate_invite_token()
+    async def test_returns_token_and_expiry(self, mock_redis):
+        token, expires_at = await generate_invite_token()
         assert isinstance(token, str)
         assert len(token) > 0
+        assert expires_at is not None
 
     @pytest.mark.asyncio
     async def test_stores_token_in_redis_with_ttl(self, mock_redis):
-        token = await generate_invite_token()
+        token, _ = await generate_invite_token()
         mock_redis.set.assert_called_once_with(_key(token), "1", ex=TOKEN_TTL_SECONDS)
 
     @pytest.mark.asyncio
     async def test_each_call_generates_unique_token(self, mock_redis):
-        token_a = await generate_invite_token()
-        token_b = await generate_invite_token()
+        token_a, _ = await generate_invite_token()
+        token_b, _ = await generate_invite_token()
         assert token_a != token_b
 
 
