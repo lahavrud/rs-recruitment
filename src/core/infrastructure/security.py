@@ -84,4 +84,4 @@ async def is_access_token_blacklisted(jti: str) -> bool:
     from src.core.tasks import get_redis_pool
 
     redis = await get_redis_pool()
-    return bool(await redis.exists(f"{_BLACKLIST_PREFIX}{jti}"))
+    return await redis.get(f"{_BLACKLIST_PREFIX}{jti}") is not None

@@ -233,11 +233,10 @@ async def test_login_invalid_password(client: AsyncClient):
         user.is_active = True
         await session.commit()
 
-    with patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock):
-        response = await client.post(
-            "/auth/login",
-            json={"email": "wrongpass@example.com", "password": "WrongPass1!"},
-        )
+    response = await client.post(
+        "/auth/login",
+        json={"email": "wrongpass@example.com", "password": "WrongPass1!"},
+    )
     assert response.status_code == 401
 
 
@@ -250,11 +249,10 @@ async def test_login_inactive_user(client: AsyncClient):
         data=_reg_data(email="inactive@example.com"),
         files={"logo": FAKE_LOGO_FILE},
     )
-    with patch("src.services.auth._check_lockout", new_callable=AsyncMock):
-        response = await client.post(
-            "/auth/login",
-            json={"email": "inactive@example.com", "password": _STRONG_PASSWORD},
-        )
+    response = await client.post(
+        "/auth/login",
+        json={"email": "inactive@example.com", "password": _STRONG_PASSWORD},
+    )
     assert response.status_code == 403
     assert "inactive" in response.json()["detail"].lower()
 
@@ -378,14 +376,10 @@ async def _create_active_user(client: AsyncClient, email: str) -> dict:
         user.is_active = True
         await session.commit()
 
-    with (
-        patch("src.services.auth._check_lockout", new_callable=AsyncMock),
-        patch("src.services.auth._clear_failed_attempts", new_callable=AsyncMock),
-    ):
-        login_resp = await client.post(
-            "/auth/login",
-            json={"email": email, "password": _STRONG_PASSWORD},
-        )
+    login_resp = await client.post(
+        "/auth/login",
+        json={"email": email, "password": _STRONG_PASSWORD},
+    )
     assert login_resp.status_code == 200
     return login_resp.json()
 
@@ -465,10 +459,7 @@ async def test_account_lockout_after_failed_attempts(client: AsyncClient):
         if attempt_count > 5:
             raise AccountLockedError(minutes_remaining=15)
 
-    with (
-        patch("src.services.auth._check_lockout", side_effect=fake_check_lockout),
-        patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock),
-    ):
+    with patch("src.services.auth._check_lockout", side_effect=fake_check_lockout):
         for _ in range(5):
             await client.post(
                 "/auth/login",

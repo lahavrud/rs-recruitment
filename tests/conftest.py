@@ -68,6 +68,27 @@ def mock_enqueue_email():
 
 
 @pytest.fixture(autouse=True)
+def mock_auth_redis():
+    """Patch Redis-backed auth helpers for all tests (no Redis in CI).
+
+    Mocks:
+    - lockout check / record / clear (no-ops — any login succeeds)
+    - access token blacklist check (always returns False — no token is revoked)
+    """
+    with (
+        patch("src.services.auth._check_lockout", new_callable=AsyncMock),
+        patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock),
+        patch("src.services.auth._clear_failed_attempts", new_callable=AsyncMock),
+        patch(
+            "src.core.infrastructure.security.is_access_token_blacklisted",
+            new_callable=AsyncMock,
+            return_value=False,
+        ),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def mock_invite_tokens():
     """Patch invite token functions for all tests to prevent Redis connections.
 
