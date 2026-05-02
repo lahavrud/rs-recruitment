@@ -11,6 +11,7 @@ from src.api import (
     admin_jobs,
     auth,
     candidates,
+    invites,
     jobs_read,
     jobs_write,
     public,
@@ -46,6 +47,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(invites.router)
 app.include_router(admin_companies.router)
 app.include_router(admin_jobs.router)
 app.include_router(admin_applications.router)
