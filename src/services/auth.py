@@ -1,6 +1,7 @@
 """Authentication service layer for business logic."""
 
 import base64
+import logging
 import math
 from datetime import datetime, timezone
 
@@ -17,8 +18,8 @@ from src.core.infrastructure.security import (
 )
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
-from src.enums import UserRole
-from src.models import CompanyProfile, RefreshToken, User
+from src.enums import InviteTokenStatus, UserRole
+from src.models import CompanyProfile, InviteToken, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin import get_all_admin_emails
 from src.services.exceptions import (
@@ -27,6 +28,8 @@ from src.services.exceptions import (
     InactiveUserError,
     InvalidCredentialsError,
 )
+
+logger = logging.getLogger(__name__)
 
 _ALLOWED_LOGO_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 _MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5 MB
@@ -49,33 +52,45 @@ async def _check_lockout(email: str) -> None:
     """Raise AccountLockedError if the email is currently locked out."""
     from src.core.tasks import get_redis_pool
 
-    redis = await get_redis_pool()
-    ttl = await redis.ttl(_lockout_key(email))
-    if ttl > 0:
-        raise AccountLockedError(minutes_remaining=math.ceil(ttl / 60))
+    try:
+        redis = await get_redis_pool()
+        ttl = await redis.ttl(_lockout_key(email))
+        if ttl > 0:
+            raise AccountLockedError(minutes_remaining=math.ceil(ttl / 60))
+    except AccountLockedError:
+        raise
+    except Exception:
+        logger.warning("Redis unavailable; skipping lockout check for %s", email)
 
 
 async def _record_failed_attempt(email: str) -> None:
     """Increment the failure counter; lock the account after threshold."""
     from src.core.tasks import get_redis_pool
 
-    redis = await get_redis_pool()
-    key = _attempts_key(email)
-    count = await redis.incr(key)
-    # Reset attempts TTL on each failure (sliding window)
-    await redis.expire(key, _LOCKOUT_SECONDS)
-    if count >= _MAX_FAILED_ATTEMPTS:
-        await redis.set(_lockout_key(email), "1", ex=_LOCKOUT_SECONDS)
-        await redis.delete(key)
+    try:
+        redis = await get_redis_pool()
+        key = _attempts_key(email)
+        count = await redis.incr(key)
+        await redis.expire(key, _LOCKOUT_SECONDS)
+        if count >= _MAX_FAILED_ATTEMPTS:
+            await redis.set(_lockout_key(email), "1", ex=_LOCKOUT_SECONDS)
+            await redis.delete(key)
+    except Exception:
+        logger.warning("Redis unavailable; failed attempt for %s not recorded", email)
 
 
 async def _clear_failed_attempts(email: str) -> None:
     """Clear the failure counter after a successful login."""
     from src.core.tasks import get_redis_pool
 
-    redis = await get_redis_pool()
-    await redis.delete(_attempts_key(email))
-    await redis.delete(_lockout_key(email))
+    try:
+        redis = await get_redis_pool()
+        await redis.delete(_attempts_key(email))
+        await redis.delete(_lockout_key(email))
+    except Exception:
+        logger.warning(
+            "Redis unavailable; could not clear failed attempts for %s", email
+        )
 
 
 _MAX_SIGNATURE_SIZE = 2 * 1024 * 1024  # 2 MB decoded
@@ -291,3 +306,15 @@ async def logout_user(
         if db_token and not db_token.is_revoked:
             db_token.is_revoked = True
             session.add(db_token)
+
+
+async def mark_invite_used(token: str, session: AsyncSession) -> None:
+    """Mark the invite DB record as used after successful registration."""
+    result = await session.execute(
+        select(InviteToken).where(InviteToken.token == token)  # type: ignore[arg-type]
+    )
+    record = result.scalar_one_or_none()
+    if record and record.status == InviteTokenStatus.PENDING:
+        record.status = InviteTokenStatus.USED
+        record.used_at = datetime.now(timezone.utc)
+        session.add(record)

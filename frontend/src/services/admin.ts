@@ -10,15 +10,32 @@ import type {
   ApplicationWithDetails,
   ApplicationStatus,
   CandidateProfileRead,
+  InviteTokenCreate,
+  InviteTokenRead,
   JobRead,
   PendingCompanyRead,
 } from "@/types/api";
 
 // ── Companies ────────────────────────────────────────────────────────────────
 
-export async function generateInviteToken(): Promise<string> {
-  const res = await api.post<{ token: string }>("/api/admin/companies/invite");
-  return res.data.token;
+export async function createInvite(
+  data: InviteTokenCreate,
+): Promise<InviteTokenRead> {
+  const res = await api.post<InviteTokenRead>("/api/admin/companies/invite", data);
+  return res.data;
+}
+
+export async function getInvites(): Promise<InviteTokenRead[]> {
+  const res = await api.get<InviteTokenRead[]>("/api/admin/companies/invites");
+  return res.data;
+}
+
+export async function revokeInvite(tokenId: number): Promise<void> {
+  await api.delete(`/api/admin/companies/invites/${tokenId}`);
+}
+
+export async function resendInvite(tokenId: number): Promise<void> {
+  await api.post(`/api/admin/companies/invites/${tokenId}/resend`);
 }
 
 export async function getPendingCompanies(): Promise<PendingCompanyRead[]> {

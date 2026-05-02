@@ -102,6 +102,18 @@ class ApplicationNotFoundError(Exception):
     pass
 
 
+class InviteNotFoundError(Exception):
+    """Raised when an invite token record is not found."""
+
+    pass
+
+
+class InviteAlreadyRevokedError(Exception):
+    """Raised when attempting to revoke or resend a non-pending invite."""
+
+    pass
+
+
 class InvalidApplicationStatusTransitionError(Exception):
     """Raised when attempting an invalid application status transition."""
 

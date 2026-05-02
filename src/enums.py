@@ -29,3 +29,12 @@ class ApplicationStatus(str, Enum):
     APPROVED_BY_ADMIN = "APPROVED_BY_ADMIN"
     REJECTED = "REJECTED"
     HIRED = "HIRED"
+
+
+class InviteTokenStatus(str, Enum):
+    """Invite token lifecycle status."""
+
+    PENDING = "pending"
+    USED = "used"
+    EXPIRED = "expired"
+    REVOKED = "revoked"

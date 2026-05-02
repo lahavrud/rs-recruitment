@@ -10,7 +10,6 @@ from typing import List, Optional
 
 import aioboto3
 from botocore.exceptions import ClientError
-from email_validator import EmailNotValidError, validate_email
 
 from src.core.infrastructure.config import settings
 
@@ -79,15 +78,6 @@ class SESEmailProvider(EmailProvider):
         # Normalize recipients to list
         recipients = [to] if isinstance(to, str) else to
         sender = from_email or self.from_email
-
-        # Validate email addresses (format only, no DNS check)
-        try:
-            validate_email(sender, check_deliverability=False)
-            for recipient in recipients:
-                validate_email(recipient, check_deliverability=False)
-        except EmailNotValidError as e:
-            logger.error(f"Invalid email address: {e}")
-            return False
 
         async with self.session.client(  # type: ignore[attr-defined]
             "ses",
@@ -182,15 +172,6 @@ class SMTPEmailProvider(EmailProvider):
 
         if not sender:
             raise ValueError("No sender email address configured")
-
-        # Validate email addresses (format only, no DNS check)
-        try:
-            validate_email(sender, check_deliverability=False)
-            for recipient in recipients:
-                validate_email(recipient, check_deliverability=False)
-        except EmailNotValidError as e:
-            logger.error(f"Invalid email address: {e}")
-            return False
 
         # Run synchronous SMTP operations in executor to avoid blocking event loop
         loop = asyncio.get_event_loop()

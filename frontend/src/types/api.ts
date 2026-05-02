@@ -211,3 +211,44 @@ export interface HealthResponse {
   status: string;
   environment: string;
 }
+
+// --- Invite Tokens ---
+
+export const InviteTokenStatus = {
+  PENDING: "pending",
+  USED: "used",
+  EXPIRED: "expired",
+  REVOKED: "revoked",
+} as const;
+export type InviteTokenStatus =
+  (typeof InviteTokenStatus)[keyof typeof InviteTokenStatus];
+
+export interface InviteTokenCreate {
+  email: string;
+  company_name?: string | null;
+  contact_first_name?: string | null;
+  contact_last_name?: string | null;
+  note?: string | null;
+}
+
+export interface InviteTokenRead {
+  id: number;
+  token: string;
+  email: string;
+  company_name: string | null;
+  contact_first_name: string | null;
+  contact_last_name: string | null;
+  note: string | null;
+  status: InviteTokenStatus;
+  created_by_admin_id: number;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+}
+
+export interface InviteMetadataPublic {
+  email: string;
+  company_name: string | null;
+  contact_first_name: string | null;
+  contact_last_name: string | null;
+}

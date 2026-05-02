@@ -6,6 +6,7 @@ import base64
 import os
 import tempfile
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Single source of truth for the test JWT secret.
@@ -101,10 +102,14 @@ def mock_invite_tokens():
             "src.api.auth.validate_invite_token", new_callable=AsyncMock
         ) as mock_validate,
         patch("src.api.auth.consume_invite_token", new_callable=AsyncMock),
+        patch("src.api.invites.validate_invite_token", new_callable=AsyncMock),
         patch(
-            "src.api.admin_companies.generate_invite_token",
+            "src.services.admin.generate_invite_token",
             new_callable=AsyncMock,
-            return_value="test-invite-token-abc123",
+            return_value=(
+                "test-invite-token-abc123",
+                datetime(2099, 1, 1, tzinfo=timezone.utc),
+            ),
         ),
     ):
         yield mock_validate

@@ -1,5 +1,10 @@
 import api from "@/services/api";
-import type { LoginRequest, TokenResponse, UserWithCompanyRead } from "@/types/api";
+import type {
+  InviteMetadataPublic,
+  LoginRequest,
+  TokenResponse,
+  UserWithCompanyRead,
+} from "@/types/api";
 import {
   getRefreshToken,
   removeRefreshToken,
@@ -37,6 +42,13 @@ export async function refreshTokens(): Promise<TokenResponse> {
   setToken(response.data.access_token);
   setRefreshToken(response.data.refresh_token);
   return response.data;
+}
+
+export async function getInviteMetadata(
+  token: string,
+): Promise<InviteMetadataPublic> {
+  const res = await api.get<InviteMetadataPublic>(`/auth/invite/${token}`);
+  return res.data;
 }
 
 export async function logout(): Promise<void> {

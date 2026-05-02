@@ -7,7 +7,35 @@ from pydantic import field_validator
 from sqlalchemy import DateTime, Text, UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
-from src.enums import ApplicationStatus, JobStatus, UserRole
+from src.enums import ApplicationStatus, InviteTokenStatus, JobStatus, UserRole
+
+
+class InviteToken(SQLModel, table=True):
+    """Admin-issued invite tokens for gated company registration.
+
+    Metadata is persisted here; Redis stores the live TTL/validity signal.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    token: str = Field(unique=True, index=True)
+    email: str
+    company_name: str | None = None
+    contact_first_name: str | None = None
+    contact_last_name: str | None = None
+    note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    status: InviteTokenStatus = Field(default=InviteTokenStatus.PENDING)
+    created_by_admin_id: int = Field(foreign_key="user.id", index=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    used_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
 
 
 class RefreshToken(SQLModel, table=True):

@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from src.enums import ApplicationStatus, JobStatus, UserRole
+from src.enums import ApplicationStatus, InviteTokenStatus, JobStatus, UserRole
 
 
 def _validate_phone_value(v: str | None) -> str | None:
@@ -42,10 +42,44 @@ def _validate_linkedin_url_value(v: str | None) -> str | None:
     return v
 
 
-class InviteTokenResponse(BaseModel):
-    """Response schema for admin invite token generation."""
+class InviteTokenCreate(BaseModel):
+    """Admin input for creating an invite."""
 
+    email: EmailStr = Field(..., max_length=255)
+    company_name: str | None = Field(None, max_length=100)
+    contact_first_name: str | None = Field(None, max_length=100)
+    contact_last_name: str | None = Field(None, max_length=100)
+    note: str | None = Field(None, max_length=500)
+
+
+class InviteTokenRead(BaseModel):
+    """Full invite record returned to admin."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     token: str
+    email: str
+    company_name: str | None
+    contact_first_name: str | None
+    contact_last_name: str | None
+    note: str | None
+    status: InviteTokenStatus
+    created_by_admin_id: int
+    created_at: datetime
+    expires_at: datetime
+    used_at: datetime | None
+
+
+class InviteMetadataPublic(BaseModel):
+    """Safe pre-fill data returned to the registration page."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    email: str
+    company_name: str | None
+    contact_first_name: str | None
+    contact_last_name: str | None
 
 
 # Registration Schemas

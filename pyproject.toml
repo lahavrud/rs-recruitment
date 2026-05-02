@@ -20,3 +20,8 @@ filterwarnings = [
     "ignore::DeprecationWarning:pytest_asyncio.*",
     "ignore::pytest.PytestConfigWarning:pytest.*",
 ]
+
+[dependency-groups]
+dev = [
+    "aiosmtpd>=1.4.6",
+]

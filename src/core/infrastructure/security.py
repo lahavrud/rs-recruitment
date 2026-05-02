@@ -1,6 +1,7 @@
 """Security utilities for password hashing and JWT tokens."""
 
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -9,6 +10,8 @@ import bcrypt
 from jose import JWTError, jwt
 
 from src.core.infrastructure.config import get_jwt_secret_key, settings
+
+logger = logging.getLogger(__name__)
 
 _BLACKLIST_PREFIX = "blacklist:jti:"
 
@@ -75,13 +78,23 @@ async def blacklist_access_token(jti: str, exp: int) -> None:
     ttl = exp - int(datetime.now(timezone.utc).timestamp())
     if ttl <= 0:
         return
-    redis = await get_redis_pool()
-    await redis.set(f"{_BLACKLIST_PREFIX}{jti}", "1", ex=ttl)
+    try:
+        redis = await get_redis_pool()
+        await redis.set(f"{_BLACKLIST_PREFIX}{jti}", "1", ex=ttl)
+    except Exception:
+        logger.warning("Redis unavailable; access token JTI %s not blacklisted", jti)
 
 
 async def is_access_token_blacklisted(jti: str) -> bool:
-    """Return True if the JTI has been blacklisted (i.e. logged out)."""
+    """Return True if the JTI has been blacklisted (i.e. logged out).
+
+    Returns False when Redis is unavailable — tokens are assumed valid.
+    """
     from src.core.tasks import get_redis_pool
 
-    redis = await get_redis_pool()
-    return await redis.get(f"{_BLACKLIST_PREFIX}{jti}") is not None
+    try:
+        redis = await get_redis_pool()
+        return await redis.get(f"{_BLACKLIST_PREFIX}{jti}") is not None
+    except Exception:
+        logger.warning("Redis unavailable; skipping blacklist check for JTI %s", jti)
+        return False

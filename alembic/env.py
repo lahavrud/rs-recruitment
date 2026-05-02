@@ -9,7 +9,7 @@ from alembic import context
 from src.core.infrastructure.config import settings
 
 # Import all models to ensure they're registered with SQLModel.metadata
-from src.models import CompanyProfile, SQLModel, User  # noqa: F401
+from src.models import CompanyProfile, InviteToken, SQLModel, User  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

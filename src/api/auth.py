@@ -37,6 +37,7 @@ from src.services.auth import (
     authenticate_user,
     create_user_tokens,
     logout_user,
+    mark_invite_used,
     refresh_user_tokens,
     register_company_user,
 )
@@ -73,11 +74,7 @@ async def register(
     logo: UploadFile = File(...),
     session: AsyncSession = Depends(get_session),
 ) -> UserWithCompanyRead:
-    """Register a new company user.
-
-    Requires a valid single-use invite token. Password must be at least 8 characters
-    and contain uppercase, lowercase, digit, and special character.
-    """
+    """Register a new company user with a valid single-use invite token."""
     try:
         profile_data = CompanyProfileCreate(
             name=company_name,
@@ -110,6 +107,7 @@ async def register(
             logo_content_type,
             agreement_signature,
         )
+        await mark_invite_used(token, session)
         await session.commit()
         await consume_invite_token(token)
         return result
@@ -164,10 +162,7 @@ async def refresh(
     body: RefreshRequest,
     session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
-    """Exchange a valid refresh token for a new access + refresh token pair.
-
-    The old refresh token is revoked on use (single-use rotation).
-    """
+    """Exchange a valid refresh token for a new access + refresh token pair."""
     try:
         access_token, new_refresh_token = await refresh_user_tokens(
             body.refresh_token, session
@@ -185,11 +180,7 @@ async def logout(
     payload: dict = Depends(get_token_payload),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Revoke the current session.
-
-    Blacklists the access token JTI in Redis and revokes the refresh token in DB.
-    Optionally pass the refresh_token in the body to revoke it too.
-    """
+    """Revoke the current session (blacklist JTI, revoke refresh token)."""
     jti = payload.get("jti")
     exp = payload.get("exp")
     if jti and exp:
