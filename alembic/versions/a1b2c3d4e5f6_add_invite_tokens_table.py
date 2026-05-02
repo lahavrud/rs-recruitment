@@ -23,8 +23,14 @@ def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         op.execute(
-            "CREATE TYPE IF NOT EXISTS invitetokenstatus "
-            "AS ENUM ('pending', 'used', 'expired', 'revoked')"
+            """
+            DO $$ BEGIN
+                CREATE TYPE invitetokenstatus
+                    AS ENUM ('pending', 'used', 'expired', 'revoked');
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END $$;
+            """
         )
     op.create_table(
         "invitetoken",
