@@ -107,13 +107,17 @@ export default function AdminCompaniesPage() {
   const [invitesVersion, setInvitesVersion] = useState(0);
 
   function reloadInvites() {
+    setInvitesLoading(true);
     setInvitesVersion((v) => v + 1);
   }
 
   useEffect(() => {
     if (activeTab !== "invites") return;
     getInvites()
-      .then(setInvites)
+      .then((data) => {
+        setInvites(data);
+        setInvitesError(null);
+      })
       .catch(() => setInvitesError(t("admin.companies.inviteList.loadError")))
       .finally(() => setInvitesLoading(false));
   }, [activeTab, invitesVersion, t]);
@@ -197,7 +201,10 @@ export default function AdminCompaniesPage() {
           )}
         </button>
         <button
-          onClick={() => setActiveTab("invites")}
+          onClick={() => {
+            setActiveTab("invites");
+            setInvitesLoading(true);
+          }}
           className={`px-4 py-2 text-sm font-medium transition ${
             activeTab === "invites"
               ? "border-b-2 border-copper text-copper"
@@ -313,6 +320,11 @@ export default function AdminCompaniesPage() {
               <p className="mb-4 text-sm font-medium text-white/75">
                 {t("admin.companies.inviteForm.title")}
               </p>
+              {inviteFormError && (
+                <div className="mb-4 rounded-lg border border-danger/25 bg-danger/10 px-4 py-3 text-sm text-danger">
+                  {inviteFormError}
+                </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs text-white/50">
@@ -396,9 +408,6 @@ export default function AdminCompaniesPage() {
                   />
                 </div>
               </div>
-              {inviteFormError && (
-                <p className="mt-3 text-sm text-danger">{inviteFormError}</p>
-              )}
               <div className="mt-4 flex justify-end">
                 <button
                   type="submit"
