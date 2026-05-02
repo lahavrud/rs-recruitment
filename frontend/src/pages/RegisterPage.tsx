@@ -132,9 +132,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (agreementOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [agreementOpen]);
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
