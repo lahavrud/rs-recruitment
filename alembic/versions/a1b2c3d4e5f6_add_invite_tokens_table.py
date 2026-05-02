@@ -20,6 +20,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            "CREATE TYPE IF NOT EXISTS invitetokenstatus "
+            "AS ENUM ('pending', 'used', 'expired', 'revoked')"
+        )
     op.create_table(
         "invitetoken",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -31,7 +37,14 @@ def upgrade() -> None:
         sa.Column("note", sa.Text(), nullable=True),
         sa.Column(
             "status",
-            sa.Enum("pending", "used", "expired", "revoked", name="invitetokenstatus"),
+            sa.Enum(
+                "pending",
+                "used",
+                "expired",
+                "revoked",
+                name="invitetokenstatus",
+                create_type=False,
+            ),
             nullable=False,
         ),
         sa.Column("created_by_admin_id", sa.Integer(), nullable=False),

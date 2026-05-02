@@ -15,6 +15,7 @@ from src.services.exceptions import (
     InvalidInviteTokenError,
     InviteAlreadyRevokedError,
     InviteNotFoundError,
+    InvitePendingForEmailError,
     JobCannotBeDeletedError,
     JobCannotBeUpdatedError,
     JobNotFoundError,
@@ -30,6 +31,8 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     ApplicationNotFoundError: status.HTTP_404_NOT_FOUND,
     # Conflict errors (409)
     ApplicationAlreadyExistsError: status.HTTP_409_CONFLICT,
+    InvitePendingForEmailError: status.HTTP_409_CONFLICT,
+    EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
     # Forbidden errors (403)
     JobNotOwnedByCompanyError: status.HTTP_403_FORBIDDEN,
     InactiveUserError: status.HTTP_403_FORBIDDEN,
@@ -46,7 +49,6 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     JobCannotBeDeletedError: status.HTTP_400_BAD_REQUEST,
     CompanyNotPendingError: status.HTTP_400_BAD_REQUEST,
     JobNotPendingError: status.HTTP_400_BAD_REQUEST,
-    EmailAlreadyExistsError: status.HTTP_400_BAD_REQUEST,
     InvalidApplicationStatusTransitionError: status.HTTP_400_BAD_REQUEST,
 }
 

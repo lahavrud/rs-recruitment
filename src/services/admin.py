@@ -17,8 +17,10 @@ from src.schemas import CompanyProfileRead, InviteTokenCreate, InviteTokenRead, 
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
+    EmailAlreadyExistsError,
     InviteAlreadyRevokedError,
     InviteNotFoundError,
+    InvitePendingForEmailError,
 )
 
 
@@ -59,6 +61,19 @@ async def create_invite(
     session: AsyncSession,
 ) -> InviteTokenRead:
     """Generate a token, store metadata in DB, send invite email."""
+    existing_user = await session.execute(select(User).where(User.email == data.email))
+    if existing_user.scalar_one_or_none() is not None:
+        raise EmailAlreadyExistsError(data.email)
+
+    pending_invite = await session.execute(
+        select(InviteToken).where(
+            InviteToken.email == data.email,
+            InviteToken.status == InviteTokenStatus.PENDING,  # type: ignore[arg-type]
+        )
+    )
+    if pending_invite.scalar_one_or_none() is not None:
+        raise InvitePendingForEmailError(data.email)
+
     token, expires_at = await generate_invite_token()
 
     record = InviteToken(

@@ -340,7 +340,9 @@
         "submitButton": "שלח הזמנה",
         "submittingButton": "שולח…",
         "successMessage": "ההזמנה נשלחה בהצלחה!",
-        "errorMessage": "שליחת ההזמנה נכשלה."
+        "errorMessage": "שליחת ההזמנה נכשלה.",
+        "errorPendingInvite": "כבר קיימת הזמנה פעילה לכתובת אימייל זו.",
+        "errorEmailExists": "כתובת אימייל זו כבר רשומה במערכת."
       },
       "inviteList": {
         "title": "הזמנות שנשלחו",
