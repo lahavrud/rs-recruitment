@@ -17,8 +17,8 @@ from src.core.infrastructure.security import (
 )
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
-from src.enums import UserRole
-from src.models import CompanyProfile, RefreshToken, User
+from src.enums import InviteTokenStatus, UserRole
+from src.models import CompanyProfile, InviteToken, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin import get_all_admin_emails
 from src.services.exceptions import (
@@ -291,3 +291,15 @@ async def logout_user(
         if db_token and not db_token.is_revoked:
             db_token.is_revoked = True
             session.add(db_token)
+
+
+async def mark_invite_used(token: str, session: AsyncSession) -> None:
+    """Mark the invite DB record as used after successful registration."""
+    result = await session.execute(
+        select(InviteToken).where(InviteToken.token == token)  # type: ignore[arg-type]
+    )
+    record = result.scalar_one_or_none()
+    if record and record.status == InviteTokenStatus.PENDING:
+        record.status = InviteTokenStatus.USED
+        record.used_at = datetime.now(timezone.utc)
+        session.add(record)

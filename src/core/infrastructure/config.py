@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_from_email: Optional[str] = None
 
+    # Frontend
+    frontend_base_url: str = "http://localhost:3000"
+
     # Environment
     environment: Literal["development", "production"] = "development"
 

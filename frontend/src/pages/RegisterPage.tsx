@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { register } from "@/services/auth";
+import { getInviteMetadata, register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import SignatureCanvas, { type SignatureCanvasRef } from "@/components/ui/SignatureCanvas";
@@ -106,37 +106,67 @@ export default function RegisterPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [metadataLoading, setMetadataLoading] = useState(() => !!inviteToken);
+  const [tokenInvalid, setTokenInvalid] = useState(false);
+  const [emailPreFilled, setEmailPreFilled] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const sigCanvasRef = useRef<SignatureCanvasRef>(null);
 
   useEffect(() => {
+    if (!inviteToken) return;
+    getInviteMetadata(inviteToken)
+      .then((meta) => {
+        setForm((prev) => ({
+          ...prev,
+          email: meta.email ?? prev.email,
+          companyName: meta.company_name ?? prev.companyName,
+          contactFirstName: meta.contact_first_name ?? prev.contactFirstName,
+          contactLastName: meta.contact_last_name ?? prev.contactLastName,
+        }));
+        if (meta.email) setEmailPreFilled(true);
+      })
+      .catch(() => setTokenInvalid(true))
+      .finally(() => setMetadataLoading(false));
+  }, [inviteToken]);
+
+  useEffect(() => {
     if (agreementOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [agreementOpen]);
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
-  if (!inviteToken) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-void px-4">
-        <div className="w-full max-w-md rounded-xl border border-white/10 bg-card p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-warning/30 bg-warning/10 text-lg text-warning">
-            ✕
-          </div>
-          <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("auth.register.noToken.title")}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("auth.register.noToken.message")}
-          </p>
-          <Link
-            to="/login"
-            className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
-          >
-            {t("auth.register.noToken.backToLogin")}
-          </Link>
+  const invalidTokenScreen = (
+    <div className="flex min-h-screen items-center justify-center bg-void px-4">
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-card p-8 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-warning/30 bg-warning/10 text-lg text-warning">
+          ✕
         </div>
+        <h2 className="mt-5 text-lg font-semibold text-white/90">
+          {t("auth.register.noToken.title")}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-white/50">
+          {t("auth.register.noToken.message")}
+        </p>
+        <Link
+          to="/login"
+          className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
+        >
+          {t("auth.register.noToken.backToLogin")}
+        </Link>
+      </div>
+    </div>
+  );
+
+  if (!inviteToken || tokenInvalid) return invalidTokenScreen;
+
+  if (metadataLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-void">
+        <p className="text-sm text-white/30">{t("common.loading")}</p>
       </div>
     );
   }
@@ -497,7 +527,8 @@ export default function RegisterPage() {
                       value={form.email}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      className={`mt-1 ${inputCls}`}
+                      readOnly={emailPreFilled}
+                      className={`mt-1 ${inputCls} ${emailPreFilled ? "cursor-not-allowed opacity-60" : ""}`}
                       placeholder={t("auth.register.emailPlaceholder")}
                       autoComplete="email"
                       dir="ltr"

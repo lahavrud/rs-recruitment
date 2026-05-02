@@ -15,6 +15,7 @@ from fastapi import (
 )
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import exc as sqlalchemy_exc
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
@@ -25,8 +26,10 @@ from src.core.infrastructure.invite_tokens import (
     validate_invite_token,
 )
 from src.core.infrastructure.limiter import get_limiter
+from src.models import InviteToken
 from src.schemas import (
     CompanyProfileCreate,
+    InviteMetadataPublic,
     LoginRequest,
     RefreshRequest,
     TokenResponse,
@@ -37,6 +40,7 @@ from src.services.auth import (
     authenticate_user,
     create_user_tokens,
     logout_user,
+    mark_invite_used,
     refresh_user_tokens,
     register_company_user,
 )
@@ -50,6 +54,29 @@ from src.services.exceptions import (
 
 limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/invite/{token}", response_model=InviteMetadataPublic)
+async def get_invite_metadata(
+    token: str,
+    session: AsyncSession = Depends(get_session),
+) -> InviteMetadataPublic:
+    """Return public pre-fill data for a valid invite token (no auth required)."""
+    try:
+        await validate_invite_token(token)
+    except InvalidInviteTokenError as e:
+        raise service_exception_to_http(e) from e
+
+    result = await session.execute(
+        select(InviteToken).where(InviteToken.token == token)  # type: ignore[arg-type]
+    )
+    record = result.scalar_one_or_none()
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invite token not found",
+        )
+    return InviteMetadataPublic.model_validate(record)
 
 
 @router.post(
@@ -110,6 +137,7 @@ async def register(
             logo_content_type,
             agreement_signature,
         )
+        await mark_invite_used(token, session)
         await session.commit()
         await consume_invite_token(token)
         return result

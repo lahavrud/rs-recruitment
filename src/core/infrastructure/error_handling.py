@@ -13,6 +13,8 @@ from src.services.exceptions import (
     InvalidApplicationStatusTransitionError,
     InvalidCredentialsError,
     InvalidInviteTokenError,
+    InviteAlreadyRevokedError,
+    InviteNotFoundError,
     JobCannotBeDeletedError,
     JobCannotBeUpdatedError,
     JobNotFoundError,
@@ -37,6 +39,9 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     AccountLockedError: status.HTTP_429_TOO_MANY_REQUESTS,
     # Bad request errors (400)
     InvalidInviteTokenError: status.HTTP_400_BAD_REQUEST,
+    InviteAlreadyRevokedError: status.HTTP_400_BAD_REQUEST,
+    # Not found (404)
+    InviteNotFoundError: status.HTTP_404_NOT_FOUND,
     JobCannotBeUpdatedError: status.HTTP_400_BAD_REQUEST,
     JobCannotBeDeletedError: status.HTTP_400_BAD_REQUEST,
     CompanyNotPendingError: status.HTTP_400_BAD_REQUEST,

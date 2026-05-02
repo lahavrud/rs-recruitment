@@ -6,13 +6,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
-from src.core.infrastructure.invite_tokens import generate_invite_token
 from src.models import User
-from src.schemas import ApprovedCompanyRead, InviteTokenResponse, PendingCompanyRead
-from src.services.admin import approve_company, list_pending_companies, reject_company
+from src.schemas import (
+    ApprovedCompanyRead,
+    InviteTokenCreate,
+    InviteTokenRead,
+    PendingCompanyRead,
+)
+from src.services.admin import (
+    approve_company,
+    create_invite,
+    list_invites,
+    list_pending_companies,
+    reject_company,
+    resend_invite,
+    revoke_invite,
+)
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
+    InviteAlreadyRevokedError,
+    InviteNotFoundError,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -20,19 +34,79 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 @router.post(
     "/companies/invite",
-    response_model=InviteTokenResponse,
+    response_model=InviteTokenRead,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_company_invite(
+    data: InviteTokenCreate,
     current_admin: User = Depends(get_current_admin),
-) -> InviteTokenResponse:
-    """Generate a single-use invite token for company registration.
+    session: AsyncSession = Depends(get_session),
+) -> InviteTokenRead:
+    """Generate a single-use invite token and send it via email."""
+    assert current_admin.id is not None
+    try:
+        result = await create_invite(current_admin.id, data, session)
+        await session.commit()
+        return result
+    except Exception:
+        await session.rollback()
+        raise
 
-    The token is stored in Redis with a 48-hour TTL.
-    The frontend constructs the full registration URL from the token.
-    """
-    token = await generate_invite_token()
-    return InviteTokenResponse(token=token)
+
+@router.get(
+    "/companies/invites",
+    response_model=list[InviteTokenRead],
+)
+async def get_company_invites(
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> list[InviteTokenRead]:
+    """List all invite tokens with their current status."""
+    result = await list_invites(session)
+    await session.commit()
+    return result
+
+
+@router.delete(
+    "/companies/invites/{token_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def revoke_company_invite(
+    token_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Revoke a pending invite token."""
+    try:
+        await revoke_invite(token_id, session)
+        await session.commit()
+    except (InviteNotFoundError, InviteAlreadyRevokedError) as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
+    except Exception:
+        await session.rollback()
+        raise
+
+
+@router.post(
+    "/companies/invites/{token_id}/resend",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def resend_company_invite(
+    token_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Regenerate and resend an invite email for an existing invite record."""
+    try:
+        await resend_invite(token_id, session)
+        await session.commit()
+    except (InviteNotFoundError, InviteAlreadyRevokedError) as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
+    except Exception:
+        await session.rollback()
+        raise
 
 
 @router.get(
@@ -43,18 +117,7 @@ async def get_pending_companies(
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> list[PendingCompanyRead]:
-    """List all pending company registrations.
-
-    Returns inactive COMPANY users with their associated company profiles.
-    Requires admin authentication.
-
-    Args:
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Returns:
-        List of pending company registrations
-    """
+    """List all pending company registrations."""
     companies = await list_pending_companies(session)
     return [PendingCompanyRead.model_validate(c) for c in companies]
 
@@ -69,22 +132,7 @@ async def approve_company_registration(
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> ApprovedCompanyRead:
-    """Approve a company registration.
-
-    Activates the company user (sets is_active=True) and sends email notification.
-    Requires admin authentication.
-
-    Args:
-        company_user_id: ID of the company user to approve
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Returns:
-        Approved company with user and profile information
-
-    Raises:
-        HTTPException: If company not found or not pending
-    """
+    """Approve a company registration."""
     try:
         result = await approve_company(company_user_id, session)
         await session.commit()
@@ -106,19 +154,7 @@ async def reject_company_registration(
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Reject a company registration.
-
-    Deletes the company user and profile, and sends email notification.
-    Requires admin authentication.
-
-    Args:
-        company_user_id: ID of the company user to reject
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Raises:
-        HTTPException: If company not found or not pending
-    """
+    """Reject a company registration."""
     try:
         await reject_company(company_user_id, session)
         await session.commit()

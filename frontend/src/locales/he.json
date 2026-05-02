@@ -306,8 +306,8 @@
   },
   "admin": {
     "companies": {
-      "title": "חברות ממתינות",
-      "subtitle": "בדוק ואשר רישומי חברות.",
+      "title": "חברות",
+      "subtitle": "ניהול רישומי חברות והזמנות.",
       "pending": "ממתין",
       "loading": "טוען…",
       "empty": "אין חברות ממתינות לאישור.",
@@ -319,9 +319,54 @@
       "rejectError": "דחיית החברה נכשלה.",
       "rejectConfirm": "לדחות ולמחוק לצמיתות את רישום החברה?",
       "loadError": "טעינת החברות הממתינות נכשלה.",
-      "inviteButton": "יצירת קישור הזמנה",
-      "inviteCopied": "הקישור הועתק!",
-      "inviteError": "יצירת קישור ההזמנה נכשלה."
+      "tabs": {
+        "pending": "ממתינים לאישור",
+        "invites": "הזמנות"
+      },
+      "inviteForm": {
+        "title": "הזמנה חדשה",
+        "newInviteButton": "הזמנה חדשה",
+        "cancelButton": "ביטול",
+        "emailLabel": "כתובת אימייל",
+        "emailPlaceholder": "contact@company.com",
+        "companyNameLabel": "שם החברה",
+        "companyNamePlaceholder": "Acme Ltd.",
+        "contactFirstNameLabel": "שם פרטי של איש קשר",
+        "contactFirstNamePlaceholder": "ישראל",
+        "contactLastNameLabel": "שם משפחה של איש קשר",
+        "contactLastNamePlaceholder": "ישראלי",
+        "noteLabel": "הודעה אישית",
+        "notePlaceholder": "הוסף הודעה שתשלח למוזמן...",
+        "submitButton": "שלח הזמנה",
+        "submittingButton": "שולח…",
+        "successMessage": "ההזמנה נשלחה בהצלחה!",
+        "errorMessage": "שליחת ההזמנה נכשלה."
+      },
+      "inviteList": {
+        "title": "הזמנות שנשלחו",
+        "empty": "לא נשלחו הזמנות עדיין.",
+        "loadError": "טעינת ההזמנות נכשלה.",
+        "columnEmail": "אימייל",
+        "columnCompany": "חברה",
+        "columnContact": "איש קשר",
+        "columnStatus": "סטטוס",
+        "columnCreated": "נוצר",
+        "columnExpires": "תפוגה",
+        "columnActions": "פעולות",
+        "revokeButton": "ביטול",
+        "resendButton": "שלח מחדש",
+        "revokeConfirm": "לבטל הזמנה זו? הקישור ישבות מיד.",
+        "revokeSuccess": "ההזמנה בוטלה.",
+        "revokeError": "ביטול ההזמנה נכשל.",
+        "resendSuccess": "ההזמנה נשלחה מחדש.",
+        "resendError": "שליחה מחדש נכשלה."
+      },
+      "inviteStatusLabels": {
+        "pending": "ממתין",
+        "used": "נוצל",
+        "expired": "פג תוקף",
+        "revoked": "בוטל"
+      }
     },
     "jobs": {
       "title": "משרות ממתינות",
