@@ -18,22 +18,30 @@ from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
+from src.core.infrastructure.dependencies import get_token_payload
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.invite_tokens import (
     consume_invite_token,
     validate_invite_token,
 )
 from src.core.infrastructure.limiter import get_limiter
-from src.core.infrastructure.security import create_access_token
 from src.schemas import (
     CompanyProfileCreate,
     LoginRequest,
+    RefreshRequest,
     TokenResponse,
     UserCreate,
     UserWithCompanyRead,
 )
-from src.services.auth import authenticate_user, register_company_user
+from src.services.auth import (
+    authenticate_user,
+    create_user_tokens,
+    logout_user,
+    refresh_user_tokens,
+    register_company_user,
+)
 from src.services.exceptions import (
+    AccountLockedError,
     EmailAlreadyExistsError,
     InactiveUserError,
     InvalidCredentialsError,
@@ -66,10 +74,8 @@ async def register(
 ) -> UserWithCompanyRead:
     """Register a new company user.
 
-    Accepts multipart/form-data with company fields + logo file.
-    Requires a valid single-use invite token issued by an admin.
-    Creates a User with COMPANY role and associated CompanyProfile.
-    User is inactive until Admin approves (is_active=False).
+    Requires a valid single-use invite token. Password must be at least 8 characters
+    and contain uppercase, lowercase, digit, and special character.
     """
     try:
         profile_data = CompanyProfileCreate(
@@ -135,18 +141,52 @@ async def login(
     login_data: LoginRequest,
     session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
-    """Login and receive JWT access token.
-
-    Validates email and password, returns JWT token if credentials are correct.
-    """
+    """Login and receive JWT access + refresh tokens."""
     try:
         user = await authenticate_user(login_data.email, login_data.password, session)
-    except (InvalidCredentialsError, InactiveUserError) as e:
+    except (InvalidCredentialsError, InactiveUserError, AccountLockedError) as e:
         raise service_exception_to_http(e) from e
 
-    # Create access token
-    access_token = create_access_token(
-        data={"sub": str(user.id), "email": user.email, "role": user.role.value}
-    )
+    access_token, refresh_token = await create_user_tokens(user, session)
+    await session.commit()
 
-    return TokenResponse(access_token=access_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh(
+    body: RefreshRequest,
+    session: AsyncSession = Depends(get_session),
+) -> TokenResponse:
+    """Exchange a valid refresh token for a new access + refresh token pair.
+
+    The old refresh token is revoked on use (single-use rotation).
+    """
+    try:
+        access_token, new_refresh_token = await refresh_user_tokens(
+            body.refresh_token, session
+        )
+        await session.commit()
+    except InvalidCredentialsError as e:
+        raise service_exception_to_http(e) from e
+
+    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    body: RefreshRequest | None = None,
+    payload: dict = Depends(get_token_payload),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Revoke the current session.
+
+    Blacklists the access token JTI in Redis and revokes the refresh token in DB.
+    Optionally pass the refresh_token in the body to revoke it too.
+    """
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti and exp:
+        raw_refresh = body.refresh_token if body else None
+        await logout_user(jti, int(exp), raw_refresh, session)
+        await session.commit()

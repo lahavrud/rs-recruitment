@@ -229,13 +229,16 @@ def _make_company_profile_create(name: str) -> CompanyProfileCreate:
 _FAKE_LOGO = b"fake-logo-bytes"
 
 
+_STRONG_PASSWORD = "SecurePass1!"
+
+
 @pytest.fixture
 async def company_user(test_db) -> User:
     """Create a pending (inactive) company user for testing."""
     async with TestSessionLocal() as session:
         user_data = UserCreate(
             email="company@test.com",
-            password="password",
+            password=_STRONG_PASSWORD,
             company_profile=_make_company_profile_create("Test Company"),
         )
         result = await register_company_user(
@@ -251,7 +254,7 @@ async def approved_company_user(test_db) -> User:
     async with TestSessionLocal() as session:
         user_data = UserCreate(
             email="approved@test.com",
-            password="password",
+            password=_STRONG_PASSWORD,
             company_profile=_make_company_profile_create("Approved Company"),
         )
         result = await register_company_user(

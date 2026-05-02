@@ -1,5 +1,7 @@
 """Security utilities for password hashing and JWT tokens."""
 
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -8,17 +10,10 @@ from jose import JWTError, jwt
 
 from src.core.infrastructure.config import get_jwt_secret_key, settings
 
+_BLACKLIST_PREFIX = "blacklist:jti:"
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password.
-
-    Args:
-        plain_password: The plain text password to verify
-        hashed_password: The hashed password to verify against
-
-    Returns:
-        True if password matches, False otherwise
-    """
     return bcrypt.checkpw(
         plain_password.encode("utf-8"),
         hashed_password.encode("utf-8"),
@@ -26,32 +21,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt.
-
-    Args:
-        password: The plain text password to hash
-
-    Returns:
-        The hashed password
-    """
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed.decode("utf-8")
 
 
+def hash_token(token: str) -> str:
+    """SHA-256 hash a token for safe DB/Redis storage."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def create_access_token(
     data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
-    """Create a JWT access token.
-
-    Args:
-        data: The data to encode in the token (typically user_id, email, role)
-        expires_delta: Optional custom expiration time.
-            If None, uses default from settings
-
-    Returns:
-        The encoded JWT token
-    """
+    """Create a JWT access token with an embedded JTI for blacklisting."""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -59,26 +42,46 @@ def create_access_token(
         expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.jwt_access_token_expire_minutes
         )
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode, get_jwt_secret_key(), algorithm=settings.jwt_algorithm
-    )
-    return encoded_jwt
+    to_encode.update({"exp": expire, "jti": secrets.token_urlsafe(16)})
+    return jwt.encode(to_encode, get_jwt_secret_key(), algorithm=settings.jwt_algorithm)
 
 
 def decode_access_token(token: str) -> dict[str, Any] | None:
-    """Decode and verify a JWT access token.
-
-    Args:
-        token: The JWT token to decode
-
-    Returns:
-        The decoded token payload if valid, None otherwise
-    """
     try:
-        payload = jwt.decode(
+        return jwt.decode(
             token, get_jwt_secret_key(), algorithms=[settings.jwt_algorithm]
         )
-        return payload
     except JWTError:
         return None
+
+
+def create_refresh_token() -> tuple[str, str, datetime]:
+    """Generate a cryptographically secure refresh token.
+
+    Returns:
+        (raw_token, hashed_token, expires_at)
+    """
+    raw = secrets.token_urlsafe(48)
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        days=settings.jwt_refresh_token_expire_days
+    )
+    return raw, hash_token(raw), expires_at
+
+
+async def blacklist_access_token(jti: str, exp: int) -> None:
+    """Store a JTI in Redis so it is rejected until the token would have expired."""
+    from src.core.tasks import get_redis_pool  # local import avoids circular
+
+    ttl = exp - int(datetime.now(timezone.utc).timestamp())
+    if ttl <= 0:
+        return
+    redis = await get_redis_pool()
+    await redis.set(f"{_BLACKLIST_PREFIX}{jti}", "1", ex=ttl)
+
+
+async def is_access_token_blacklisted(jti: str) -> bool:
+    """Return True if the JTI has been blacklisted (i.e. logged out)."""
+    from src.core.tasks import get_redis_pool
+
+    redis = await get_redis_pool()
+    return bool(await redis.exists(f"{_BLACKLIST_PREFIX}{jti}"))

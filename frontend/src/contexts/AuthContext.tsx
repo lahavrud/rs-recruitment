@@ -14,7 +14,7 @@ export interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -61,9 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(payloadToUser(payload));
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     setUser(null);
-    logoutService();
+    await logoutService();
   }, []);
 
   const value = useMemo(

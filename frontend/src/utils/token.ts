@@ -1,18 +1,31 @@
 import { jwtDecode } from "jwt-decode";
 import type { JwtPayload } from "@/types/api";
 
-const TOKEN_KEY = "access_token";
+const ACCESS_TOKEN_KEY = "access_token";
+const REFRESH_TOKEN_KEY = "refresh_token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
 }
 
 export function removeToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function setRefreshToken(token: string): void {
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+}
+
+export function removeRefreshToken(): void {
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 /**

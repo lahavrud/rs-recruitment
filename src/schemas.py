@@ -76,12 +76,32 @@ class CompanyProfileCreate(BaseModel):
         return v
 
 
+def _validate_password_complexity(v: str) -> str:
+    """Enforce password complexity: min 8 chars, upper, lower, digit, special."""
+    if len(v) < 8:
+        raise ValueError("Password must be at least 8 characters long")
+    if not re.search(r"[A-Z]", v):
+        raise ValueError("Password must contain at least one uppercase letter")
+    if not re.search(r"[a-z]", v):
+        raise ValueError("Password must contain at least one lowercase letter")
+    if not re.search(r"\d", v):
+        raise ValueError("Password must contain at least one digit")
+    if not re.search(r"[^A-Za-z0-9]", v):
+        raise ValueError("Password must contain at least one special character")
+    return v
+
+
 class UserCreate(BaseModel):
     """Schema for creating a user (registration)."""
 
     email: EmailStr = Field(..., max_length=255)
     password: str = Field(..., min_length=8)
     company_profile: CompanyProfileCreate
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return _validate_password_complexity(v)
 
 
 class UserRead(BaseModel):
@@ -132,7 +152,14 @@ class TokenResponse(BaseModel):
     """Schema for token response."""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    """Schema for requesting a new access token using a refresh token."""
+
+    refresh_token: str
 
 
 # Job Schemas

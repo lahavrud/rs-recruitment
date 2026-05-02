@@ -1,36 +1,29 @@
 """FastAPI dependencies for authentication and authorization."""
 
+from typing import Any
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
-from src.core.infrastructure.security import decode_access_token
+from src.core.infrastructure.security import (
+    decode_access_token,
+    is_access_token_blacklisted,
+)
 from src.enums import UserRole
 from src.models import CompanyProfile, User
 
 security = HTTPBearer()
 
 
-async def get_current_user(
+async def get_token_payload(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    session: AsyncSession = Depends(get_session),
-) -> User:
-    """Get current authenticated user from JWT token.
+) -> dict[str, Any]:
+    """Decode and validate an access token, returning the payload.
 
-    This dependency extracts and validates the JWT token from the Authorization header,
-    then fetches the corresponding User from the database.
-
-    Args:
-        credentials: HTTPBearer credentials containing the JWT token
-        session: Database session
-
-    Returns:
-        Authenticated User object
-
-    Raises:
-        HTTPException: If token is invalid, user not found, or user is inactive
+    Raises 401 if the token is invalid or blacklisted.
     """
     token = credentials.credentials
     payload = decode_access_token(token)
@@ -41,6 +34,22 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    jti = payload.get("jti")
+    if jti and await is_access_token_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return payload
+
+
+async def get_current_user(
+    payload: dict[str, Any] = Depends(get_token_payload),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    """Get current authenticated user from the validated JWT payload."""
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
@@ -49,7 +58,6 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Convert user_id to int, handle invalid types
     try:
         user_id_int = int(user_id)
     except (ValueError, TypeError):

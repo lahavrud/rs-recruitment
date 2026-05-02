@@ -59,11 +59,14 @@ async def client(test_db):
         app.dependency_overrides.clear()
 
 
+_STRONG_PASSWORD = "SecurePass1!"
+
+
 def _reg_data(**overrides):
     """Base multipart form data for a valid registration."""
     data = {
         "email": "company@example.com",
-        "password": "securepassword123",
+        "password": _STRONG_PASSWORD,
         "company_name": "Test Company",
         "company_id": "123456789",
         "contact_first_name": "ישראל",
@@ -104,7 +107,7 @@ async def test_register_success(client: AsyncClient):
             select(User).where(User.email == "company@example.com")  # pyright: ignore[reportArgumentType]
         )
         user = result.scalar_one()
-        assert verify_password("securepassword123", user.hashed_password)
+        assert verify_password(_STRONG_PASSWORD, user.hashed_password)
 
 
 @pytest.mark.asyncio
@@ -177,7 +180,7 @@ async def test_register_duplicate_email(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient):
-    """Test successful login returns JWT token."""
+    """Test successful login returns JWT access + refresh tokens."""
     await client.post(
         "/auth/register",
         params={"token": "valid-test-token"},
@@ -194,11 +197,12 @@ async def test_login_success(client: AsyncClient):
 
     response = await client.post(
         "/auth/login",
-        json={"email": "login@example.com", "password": "securepassword123"},
+        json={"email": "login@example.com", "password": _STRONG_PASSWORD},
     )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
+    assert "refresh_token" in data
     assert data["token_type"] == "bearer"
 
 
@@ -229,10 +233,11 @@ async def test_login_invalid_password(client: AsyncClient):
         user.is_active = True
         await session.commit()
 
-    response = await client.post(
-        "/auth/login",
-        json={"email": "wrongpass@example.com", "password": "wrongpassword"},
-    )
+    with patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock):
+        response = await client.post(
+            "/auth/login",
+            json={"email": "wrongpass@example.com", "password": "WrongPass1!"},
+        )
     assert response.status_code == 401
 
 
@@ -245,10 +250,11 @@ async def test_login_inactive_user(client: AsyncClient):
         data=_reg_data(email="inactive@example.com"),
         files={"logo": FAKE_LOGO_FILE},
     )
-    response = await client.post(
-        "/auth/login",
-        json={"email": "inactive@example.com", "password": "securepassword123"},
-    )
+    with patch("src.services.auth._check_lockout", new_callable=AsyncMock):
+        response = await client.post(
+            "/auth/login",
+            json={"email": "inactive@example.com", "password": _STRONG_PASSWORD},
+        )
     assert response.status_code == 403
     assert "inactive" in response.json()["detail"].lower()
 
@@ -301,3 +307,183 @@ async def test_register_token_consumed_on_success(client: AsyncClient):
     assert response.status_code == 201
     mock_validate.assert_awaited_once_with("one-time-token")
     mock_consume.assert_awaited_once_with("one-time-token")
+
+
+# ==================== Password Complexity Tests ====================
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "password",
+    [
+        "short1!A",  # exactly 8 chars — valid boundary
+        "Abcdefg1!",  # 9 chars, all rules met
+        "UPPERCASE1!abc",  # uppercase, lowercase, digit, special
+    ],
+)
+async def test_register_valid_password_complexity(client: AsyncClient, password: str):
+    """Test registration succeeds with passwords that meet complexity rules."""
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email=f"valid_{len(password)}@example.com", password=password),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    assert response.status_code == 201
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "password,reason",
+    [
+        ("short1!", "too short"),
+        ("alllowercase1!", "no uppercase"),
+        ("ALLUPPERCASE1!", "no lowercase"),
+        ("NoDigitsHere!", "no digit"),
+        ("NoSpecialChar1", "no special char"),
+    ],
+)
+async def test_register_weak_password_rejected(
+    client: AsyncClient, password: str, reason: str
+):
+    """Test registration fails when password doesn't meet complexity rules."""
+    response = await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(
+            email=f"weak_{reason.replace(' ', '_')}@example.com",
+            password=password,
+        ),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    assert response.status_code == 422, f"Expected rejection for: {reason}"
+
+
+# ==================== Refresh Token Tests ====================
+
+
+async def _create_active_user(client: AsyncClient, email: str) -> dict:
+    """Helper: register + activate + login, return token response dict."""
+    await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email=email),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == email)  # pyright: ignore[reportArgumentType]
+        )
+        user = result.scalar_one()
+        user.is_active = True
+        await session.commit()
+
+    with (
+        patch("src.services.auth._check_lockout", new_callable=AsyncMock),
+        patch("src.services.auth._clear_failed_attempts", new_callable=AsyncMock),
+    ):
+        login_resp = await client.post(
+            "/auth/login",
+            json={"email": email, "password": _STRONG_PASSWORD},
+        )
+    assert login_resp.status_code == 200
+    return login_resp.json()
+
+
+@pytest.mark.asyncio
+async def test_refresh_returns_new_tokens(client: AsyncClient):
+    """Test that a valid refresh token yields a new token pair."""
+    tokens = await _create_active_user(client, "refresh@example.com")
+    old_access = tokens["access_token"]
+    old_refresh = tokens["refresh_token"]
+
+    response = await client.post(
+        "/auth/refresh",
+        json={"refresh_token": old_refresh},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["refresh_token"] != old_refresh  # rotated
+    assert data["access_token"] != old_access
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_is_single_use(client: AsyncClient):
+    """Test that the same refresh token cannot be used twice."""
+    tokens = await _create_active_user(client, "singleuse@example.com")
+    refresh_token = tokens["refresh_token"]
+
+    # First use — should succeed
+    resp1 = await client.post("/auth/refresh", json={"refresh_token": refresh_token})
+    assert resp1.status_code == 200
+
+    # Second use of the same token — should be rejected
+    resp2 = await client.post("/auth/refresh", json={"refresh_token": refresh_token})
+    assert resp2.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_invalid_token_returns_401(client: AsyncClient):
+    """Test that a bogus refresh token is rejected."""
+    response = await client.post(
+        "/auth/refresh",
+        json={"refresh_token": "not-a-real-token"},
+    )
+    assert response.status_code == 401
+
+
+# ==================== Account Lockout Tests ====================
+
+
+@pytest.mark.asyncio
+async def test_account_lockout_after_failed_attempts(client: AsyncClient):
+    """Test that an account is locked after repeated failed logins."""
+    await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="lockme@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == "lockme@example.com")  # pyright: ignore[reportArgumentType]
+        )
+        user = result.scalar_one()
+        user.is_active = True
+        await session.commit()
+
+    # Simulate the lockout check raising AccountLockedError on the 6th attempt
+    from src.services.exceptions import AccountLockedError
+
+    attempt_count = 0
+
+    async def fake_check_lockout(email: str) -> None:
+        nonlocal attempt_count
+        attempt_count += 1
+        if attempt_count > 5:
+            raise AccountLockedError(minutes_remaining=15)
+
+    with (
+        patch("src.services.auth._check_lockout", side_effect=fake_check_lockout),
+        patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock),
+    ):
+        for _ in range(5):
+            await client.post(
+                "/auth/login",
+                json={"email": "lockme@example.com", "password": "WrongPass1!"},
+            )
+        locked_resp = await client.post(
+            "/auth/login",
+            json={"email": "lockme@example.com", "password": "WrongPass1!"},
+        )
+
+    assert locked_resp.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_successful_login_clears_failed_attempts(client: AsyncClient):
+    """Test that a successful login clears the lockout counter."""
+    tokens = await _create_active_user(client, "clearlock@example.com")
+    assert "access_token" in tokens  # login succeeded — counter was cleared

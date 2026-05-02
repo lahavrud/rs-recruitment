@@ -255,7 +255,7 @@ async def test_admin_job_endpoints_require_admin_role(mock_enqueue_email, test_d
     async with TestSessionLocal() as session:
         user_data = UserCreate(
             email="company@test.com",
-            password="password",
+            password="SecurePass1!",
             company_profile=CompanyProfileCreate(
                 name="Company",
                 company_id="123456789",

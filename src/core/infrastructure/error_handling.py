@@ -3,6 +3,7 @@
 from fastapi import HTTPException, status
 
 from src.services.exceptions import (
+    AccountLockedError,
     ApplicationAlreadyExistsError,
     ApplicationNotFoundError,
     CompanyNotFoundError,
@@ -32,6 +33,8 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     InactiveUserError: status.HTTP_403_FORBIDDEN,
     # Unauthorized errors (401)
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
+    # Too many requests (429)
+    AccountLockedError: status.HTTP_429_TOO_MANY_REQUESTS,
     # Bad request errors (400)
     InvalidInviteTokenError: status.HTTP_400_BAD_REQUEST,
     JobCannotBeUpdatedError: status.HTTP_400_BAD_REQUEST,
