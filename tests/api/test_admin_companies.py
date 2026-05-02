@@ -31,7 +31,7 @@ async def test_get_pending_companies(
     async with TestSessionLocal() as session:
         user_data = UserCreate(
             email="company2@test.com",
-            password="password",
+            password="SecurePass1!",
             company_profile=CompanyProfileCreate(
                 name="Company 2",
                 company_id="123456789",
@@ -204,7 +204,7 @@ async def test_admin_company_endpoints_require_admin_role(mock_enqueue_email, te
     async with TestSessionLocal() as session:
         user_data = UserCreate(
             email="company@test.com",
-            password="password",
+            password="SecurePass1!",
             company_profile=CompanyProfileCreate(
                 name="Company",
                 company_id="123456789",

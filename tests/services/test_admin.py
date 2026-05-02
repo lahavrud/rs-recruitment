@@ -77,7 +77,7 @@ async def test_list_pending_companies(mock_enqueue_email, session: AsyncSession)
     # Create pending companies
     user_data1 = UserCreate(
         email="pending1@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="Pending Company 1",
             company_id="123456789",
@@ -88,7 +88,7 @@ async def test_list_pending_companies(mock_enqueue_email, session: AsyncSession)
     )
     user_data2 = UserCreate(
         email="pending2@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="Pending Company 2",
             company_id="123456789",
@@ -108,7 +108,7 @@ async def test_list_pending_companies(mock_enqueue_email, session: AsyncSession)
     # Create an approved company (should not appear)
     user_data3 = UserCreate(
         email="approved@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="Approved Company",
             company_id="123456789",
@@ -160,7 +160,7 @@ async def test_approve_company_success(mock_enqueue_email, session: AsyncSession
     # Create a pending company
     user_data = UserCreate(
         email="toapprove@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="To Approve Company",
             company_id="123456789",
@@ -207,7 +207,7 @@ async def test_approve_company_already_approved(session: AsyncSession):
     # Create and approve a company
     user_data = UserCreate(
         email="alreadyapproved@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="Already Approved",
             company_id="123456789",
@@ -262,7 +262,7 @@ async def test_reject_company_success(mock_enqueue_email, session: AsyncSession)
     # Create a pending company
     user_data = UserCreate(
         email="toreject@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="To Reject Company",
             company_id="123456789",
@@ -312,7 +312,7 @@ async def test_reject_company_already_approved(session: AsyncSession):
     # Create and approve a company
     user_data = UserCreate(
         email="alreadyapproved2@example.com",
-        password="password",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="Already Approved 2",
             company_id="123456789",

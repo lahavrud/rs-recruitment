@@ -33,6 +33,16 @@ class InactiveUserError(AuthError):
     pass
 
 
+class AccountLockedError(AuthError):
+    """Raised when an account is locked after too many failed login attempts."""
+
+    def __init__(self, minutes_remaining: int) -> None:
+        self.minutes_remaining = minutes_remaining
+        super().__init__(
+            f"Account temporarily locked. Try again in {minutes_remaining} minute(s)."
+        )
+
+
 class CompanyNotFoundError(Exception):
     """Raised when a company user is not found."""
 

@@ -35,7 +35,7 @@ FAKE_LOGO_TYPE = "image/png"
 def _make_user_create(email: str = "company@example.com") -> UserCreate:
     return UserCreate(
         email=email,
-        password="securepassword123",
+        password="SecurePass1!",
         company_profile=CompanyProfileCreate(
             name="Test Company",
             company_id="123456789",
@@ -84,7 +84,7 @@ async def test_register_company_user_full_data(session: AsyncSession):
         select(User).where(User.email == "company@example.com")  # pyright: ignore[reportArgumentType]
     )
     db_user = db_result.scalar_one()
-    assert verify_password("securepassword123", db_user.hashed_password)
+    assert verify_password("SecurePass1!", db_user.hashed_password)
 
     db_profile_result = await session.execute(
         select(CompanyProfile).where(CompanyProfile.user_id == db_user.id)  # pyright: ignore[reportArgumentType]
@@ -143,7 +143,7 @@ async def test_authenticate_user_success(session: AsyncSession):
     await session.commit()
 
     authenticated_user = await authenticate_user(
-        "login@example.com", "securepassword123", session
+        "login@example.com", "SecurePass1!", session
     )
     assert authenticated_user.email == "login@example.com"
     assert authenticated_user.is_active is True
@@ -182,4 +182,4 @@ async def test_authenticate_user_inactive(session: AsyncSession):
     await session.commit()
 
     with pytest.raises(InactiveUserError):
-        await authenticate_user("inactive@example.com", "securepassword123", session)
+        await authenticate_user("inactive@example.com", "SecurePass1!", session)

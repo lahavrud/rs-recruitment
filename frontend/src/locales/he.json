@@ -50,13 +50,18 @@
         "emailRequired": "נדרשת כתובת אימייל",
         "emailInvalid": "נא להזין כתובת אימייל תקינה",
         "passwordRequired": "נדרשת סיסמה",
-        "passwordMin": "הסיסמה חייבת להכיל לפחות 8 תווים"
+        "passwordMin": "הסיסמה חייבת להכיל לפחות 8 תווים",
+        "passwordUppercase": "הסיסמה חייבת להכיל לפחות אות גדולה אחת באנגלית",
+        "passwordLowercase": "הסיסמה חייבת להכיל לפחות אות קטנה אחת באנגלית",
+        "passwordDigit": "הסיסמה חייבת להכיל לפחות ספרה אחת",
+        "passwordSpecial": "הסיסמה חייבת להכיל לפחות תו מיוחד אחד"
       },
       "errors": {
         "loginFailed": "כתובת האימייל או הסיסמה שגויים",
         "tooManyAttempts": "יותר מדי ניסיונות התחברות. אנא המתן מספר דקות ונסה שוב.",
         "accountInactive": "החשבון ממתין לאישור מנהל.",
-        "unexpectedError": "אירעה שגיאה. אנא נסה שוב."
+        "unexpectedError": "אירעה שגיאה. אנא נסה שוב.",
+        "accountLocked": "החשבון נעול זמנית עקב ניסיונות התחברות מרובים. נסה שוב בעוד {{minutes}} דקות."
       }
     },
     "register": {
@@ -70,7 +75,7 @@
       "confirmLabel": "אימות סיסמה",
       "companyNamePlaceholder": "Acme Ltd.",
       "emailPlaceholder": "you@company.com",
-      "passwordPlaceholder": "לפחות 8 תווים",
+      "passwordPlaceholder": "לפחות 8 תווים, אות גדולה, ספרה ותו מיוחד",
       "confirmPlaceholder": "הזן שוב את הסיסמה",
       "submitText": "יצירת חשבון",
       "submittingText": "שולח…",
@@ -96,7 +101,11 @@
         "contactLastNameRequired": "שם משפחה של איש הקשר נדרש",
         "mobilePhoneRequired": "טלפון נייד נדרש",
         "mobilePhoneInvalid": "יש להזין מספר טלפון נייד ישראלי תקין (05X-XXXXXXX)",
-        "logoRequired": "יש להעלות לוגו לחברה"
+        "logoRequired": "יש להעלות לוגו לחברה",
+        "passwordUppercase": "הסיסמה חייבת להכיל לפחות אות גדולה אחת באנגלית",
+        "passwordLowercase": "הסיסמה חייבת להכיל לפחות אות קטנה אחת באנגלית",
+        "passwordDigit": "הסיסמה חייבת להכיל לפחות ספרה אחת",
+        "passwordSpecial": "הסיסמה חייבת להכיל לפחות תו מיוחד אחד"
       },
       "errors": {
         "tooManyAttempts": "יותר מדי ניסיונות הרשמה. אנא המתן ונסה שוב מאוחר יותר.",

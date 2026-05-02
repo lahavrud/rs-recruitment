@@ -10,6 +10,26 @@ from sqlmodel import Column, Field, Relationship, SQLModel
 from src.enums import ApplicationStatus, JobStatus, UserRole
 
 
+class RefreshToken(SQLModel, table=True):
+    """Stored refresh tokens for the auth rotation flow.
+
+    Tokens are stored as SHA-256 hashes. Each token is single-use:
+    it is revoked and replaced on every refresh.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    token_hash: str = Field(unique=True, index=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    is_revoked: bool = Field(default=False)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
 class User(SQLModel, table=True):
     """Authenticated user entity (Admins & Companies).
 

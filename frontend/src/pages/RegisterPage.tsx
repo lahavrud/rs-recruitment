@@ -19,6 +19,10 @@ function useValidation() {
     validatePassword(v: string): string {
       if (!v) return t("auth.register.validation.passwordRequired");
       if (v.length < 8) return t("auth.register.validation.passwordMin");
+      if (!/[A-Z]/.test(v)) return t("auth.register.validation.passwordUppercase");
+      if (!/[a-z]/.test(v)) return t("auth.register.validation.passwordLowercase");
+      if (!/\d/.test(v)) return t("auth.register.validation.passwordDigit");
+      if (!/[^A-Za-z0-9]/.test(v)) return t("auth.register.validation.passwordSpecial");
       return "";
     },
     validateConfirm(v: string, pw: string): string {
@@ -207,7 +211,19 @@ export default function RegisterPage() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
-        if (status === 429) {
+        if (status === 422) {
+          // Extract the first validation error message and show it on the relevant field
+          const detail = err.response?.data?.detail;
+          const errors = Array.isArray(detail) ? detail : [];
+          const passwordError = errors.find(
+            (e: { loc?: string[] }) => e.loc?.includes("password"),
+          );
+          if (passwordError) {
+            setFieldErrors((prev) => ({ ...prev, password: passwordError.msg }));
+          } else {
+            setSubmitError(t("auth.register.errors.failed"));
+          }
+        } else if (status === 429) {
           setSubmitError(t("auth.register.errors.tooManyAttempts"));
         } else if (status === 400) {
           const detail = (err.response?.data?.detail ?? "") as string;

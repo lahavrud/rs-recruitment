@@ -1,12 +1,18 @@
 """Tests for authentication dependencies."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
-from src.core.infrastructure.dependencies import get_current_admin, get_current_user
-from src.core.infrastructure.security import create_access_token
+from src.core.infrastructure.dependencies import (
+    get_current_admin,
+    get_current_user,
+    get_token_payload,
+)
+from src.core.infrastructure.security import create_access_token, decode_access_token
 from src.enums import UserRole
 from src.models import User
 from tests.conftest import enable_sqlite_foreign_keys
@@ -14,9 +20,7 @@ from tests.conftest import enable_sqlite_foreign_keys
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-# Create test engine and session factory
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-# Enable FK constraints for SQLite to match PostgreSQL behavior
 enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
@@ -64,20 +68,25 @@ class MockCredentials:
         self.credentials = token
 
 
+def _make_payload(token: str) -> dict:
+    """Decode a token and return the payload (no blacklist check)."""
+    payload = decode_access_token(token)
+    assert payload is not None, "Token must be valid to build payload"
+    return payload
+
+
 @pytest.mark.asyncio
 async def test_get_current_user_invalid_user_id_type(
     session: AsyncSession, active_user: User
 ):
     """Test that invalid user_id type in JWT token returns 401, not 500."""
-    # Create token with non-integer user_id (string that can't be converted)
     invalid_token = create_access_token(
         data={"sub": "not_a_number", "email": "test@example.com", "role": "COMPANY"}
     )
-
-    credentials = MockCredentials(invalid_token)
+    payload = _make_payload(invalid_token)
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(credentials=credentials, session=session)
+        await get_current_user(payload=payload, session=session)
 
     assert exc_info.value.status_code == 401
     assert "invalid" in exc_info.value.detail.lower()
@@ -86,15 +95,15 @@ async def test_get_current_user_invalid_user_id_type(
 @pytest.mark.asyncio
 async def test_get_current_user_none_user_id(session: AsyncSession):
     """Test that None user_id in JWT token returns 401."""
-    # Create token with None user_id (missing sub)
     invalid_token = create_access_token(
         data={"email": "test@example.com", "role": "COMPANY"}
     )
-
-    credentials = MockCredentials(invalid_token)
+    payload = _make_payload(invalid_token)
+    # Remove 'sub' to simulate missing user_id
+    payload.pop("sub", None)
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(credentials=credentials, session=session)
+        await get_current_user(payload=payload, session=session)
 
     assert exc_info.value.status_code == 401
     assert "invalid" in exc_info.value.detail.lower()
@@ -103,7 +112,6 @@ async def test_get_current_user_none_user_id(session: AsyncSession):
 @pytest.mark.asyncio
 async def test_get_current_user_valid_token(session: AsyncSession, active_user: User):
     """Test that valid JWT token with correct user_id type works."""
-    # Create valid token with integer user_id
     valid_token = create_access_token(
         data={
             "sub": str(active_user.id),
@@ -111,10 +119,15 @@ async def test_get_current_user_valid_token(session: AsyncSession, active_user: 
             "role": active_user.role.value,
         }
     )
+    payload = _make_payload(valid_token)
 
-    credentials = MockCredentials(valid_token)
+    with patch(
+        "src.core.infrastructure.dependencies.is_access_token_blacklisted",
+        new_callable=AsyncMock,
+        return_value=False,
+    ):
+        user = await get_current_user(payload=payload, session=session)
 
-    user = await get_current_user(credentials=credentials, session=session)
     assert user.id == active_user.id
     assert user.email == active_user.email
     assert user.is_active is True
@@ -125,7 +138,6 @@ async def test_get_current_user_inactive_user(session: AsyncSession):
     """Test that inactive user cannot authenticate."""
     from src.core.infrastructure.security import get_password_hash
 
-    # Create inactive user
     inactive_user = User(
         email="inactive@example.com",
         hashed_password=get_password_hash("testpassword"),
@@ -136,7 +148,6 @@ async def test_get_current_user_inactive_user(session: AsyncSession):
     await session.commit()
     await session.refresh(inactive_user)
 
-    # Create valid token for inactive user
     token = create_access_token(
         data={
             "sub": str(inactive_user.id),
@@ -144,14 +155,44 @@ async def test_get_current_user_inactive_user(session: AsyncSession):
             "role": inactive_user.role.value,
         }
     )
-
-    credentials = MockCredentials(token)
+    payload = _make_payload(token)
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(credentials=credentials, session=session)
+        await get_current_user(payload=payload, session=session)
 
     assert exc_info.value.status_code == 403
     assert "inactive" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_get_token_payload_invalid_token():
+    """Test that get_token_payload raises 401 for an invalid token."""
+    credentials = MockCredentials("invalid.token.here")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await get_token_payload(credentials=credentials)
+
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_token_payload_blacklisted_token():
+    """Test that get_token_payload raises 401 for a blacklisted token."""
+    token = create_access_token(
+        data={"sub": "1", "email": "test@example.com", "role": "COMPANY"}
+    )
+    credentials = MockCredentials(token)
+
+    with patch(
+        "src.core.infrastructure.dependencies.is_access_token_blacklisted",
+        new_callable=AsyncMock,
+        return_value=True,
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await get_token_payload(credentials=credentials)
+
+    assert exc_info.value.status_code == 401
+    assert "revoked" in exc_info.value.detail.lower()
 
 
 @pytest.fixture
@@ -203,17 +244,11 @@ class TestGetCurrentAdmin:
                 "role": admin_user.role.value,
             }
         )
-
-        credentials = MockCredentials(token)
-
-        # First get current user (which get_current_admin depends on)
-        current_user = await get_current_user(credentials=credentials, session=session)
-
-        # Then test get_current_admin
+        payload = _make_payload(token)
+        current_user = await get_current_user(payload=payload, session=session)
         admin = await get_current_admin(current_user=current_user)
 
         assert admin.id == admin_user.id
-        assert admin.email == admin_user.email
         assert admin.role == UserRole.ADMIN
 
     @pytest.mark.asyncio
@@ -228,13 +263,9 @@ class TestGetCurrentAdmin:
                 "role": company_user.role.value,
             }
         )
+        payload = _make_payload(token)
+        current_user = await get_current_user(payload=payload, session=session)
 
-        credentials = MockCredentials(token)
-
-        # Get current user first
-        current_user = await get_current_user(credentials=credentials, session=session)
-
-        # Try to get admin - should fail
         with pytest.raises(HTTPException) as exc_info:
             await get_current_admin(current_user=current_user)
 
@@ -246,13 +277,10 @@ class TestGetCurrentAdmin:
         self, session: AsyncSession, admin_user: User
     ):
         """Test that invalid token raises appropriate error."""
-        invalid_token = "invalid.token.here"
+        credentials = MockCredentials("invalid.token.here")
 
-        credentials = MockCredentials(invalid_token)
-
-        # Should fail at get_current_user level
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_user(credentials=credentials, session=session)
+            await get_token_payload(credentials=credentials)
 
         assert exc_info.value.status_code == 401
 
@@ -278,12 +306,10 @@ class TestGetCurrentAdmin:
                 "role": inactive_admin.role.value,
             }
         )
+        payload = _make_payload(token)
 
-        credentials = MockCredentials(token)
-
-        # Should fail at get_current_user level (inactive user)
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_user(credentials=credentials, session=session)
+            await get_current_user(payload=payload, session=session)
 
         assert exc_info.value.status_code == 403
         assert "inactive" in exc_info.value.detail.lower()

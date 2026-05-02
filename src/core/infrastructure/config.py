@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_secret_key: Optional[str] = None  # Must be set via environment variable
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
+    jwt_refresh_token_expire_days: int = 7
 
     # CORS Configuration (infra8 requirement)
     # Can be set via ALLOWED_ORIGINS env var as comma-separated list

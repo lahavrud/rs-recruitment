@@ -1,16 +1,27 @@
 """Authentication service layer for business logic."""
 
+import math
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.infrastructure.security import get_password_hash, verify_password
+from src.core.infrastructure.security import (
+    blacklist_access_token,
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+    hash_token,
+    verify_password,
+)
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
-from src.models import CompanyProfile, User
+from src.models import CompanyProfile, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin import get_all_admin_emails
 from src.services.exceptions import (
+    AccountLockedError,
     EmailAlreadyExistsError,
     InactiveUserError,
     InvalidCredentialsError,
@@ -18,6 +29,52 @@ from src.services.exceptions import (
 
 _ALLOWED_LOGO_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 _MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5 MB
+
+_MAX_FAILED_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 15 * 60  # 15 minutes
+_ATTEMPTS_PREFIX = "login:attempts:"
+_LOCKOUT_PREFIX = "login:locked:"
+
+
+def _attempts_key(email: str) -> str:
+    return f"{_ATTEMPTS_PREFIX}{email}"
+
+
+def _lockout_key(email: str) -> str:
+    return f"{_LOCKOUT_PREFIX}{email}"
+
+
+async def _check_lockout(email: str) -> None:
+    """Raise AccountLockedError if the email is currently locked out."""
+    from src.core.tasks import get_redis_pool
+
+    redis = await get_redis_pool()
+    ttl = await redis.ttl(_lockout_key(email))
+    if ttl > 0:
+        raise AccountLockedError(minutes_remaining=math.ceil(ttl / 60))
+
+
+async def _record_failed_attempt(email: str) -> None:
+    """Increment the failure counter; lock the account after threshold."""
+    from src.core.tasks import get_redis_pool
+
+    redis = await get_redis_pool()
+    key = _attempts_key(email)
+    count = await redis.incr(key)
+    # Reset attempts TTL on each failure (sliding window)
+    await redis.expire(key, _LOCKOUT_SECONDS)
+    if count >= _MAX_FAILED_ATTEMPTS:
+        await redis.set(_lockout_key(email), "1", ex=_LOCKOUT_SECONDS)
+        await redis.delete(key)
+
+
+async def _clear_failed_attempts(email: str) -> None:
+    """Clear the failure counter after a successful login."""
+    from src.core.tasks import get_redis_pool
+
+    redis = await get_redis_pool()
+    await redis.delete(_attempts_key(email))
+    await redis.delete(_lockout_key(email))
 
 
 async def register_company_user(
@@ -27,31 +84,12 @@ async def register_company_user(
     logo_filename: str,
     logo_content_type: str | None = None,
 ) -> UserWithCompanyRead:
-    """Register a new company user with associated company profile.
-
-    Creates a User with COMPANY role and associated CompanyProfile.
-    User is inactive until Admin approves (is_active=False).
-
-    Args:
-        user_data: User creation data including email, password, and company profile
-        session: Database session
-        logo_content: Raw bytes of the logo image file
-        logo_filename: Original filename (used to derive extension)
-        logo_content_type: MIME type of the logo file
-
-    Returns:
-        UserWithCompanyRead containing the created user and company profile
-
-    Raises:
-        EmailAlreadyExistsError: If email is already registered
-        ValueError: If logo file is invalid (wrong type or too large)
-    """
+    """Register a new company user with associated company profile."""
     if logo_content_type and logo_content_type not in _ALLOWED_LOGO_TYPES:
         raise ValueError("Logo must be an image file (JPEG, PNG, GIF, or WebP)")
     if len(logo_content) > _MAX_LOGO_SIZE:
         raise ValueError("Logo file size exceeds 5 MB limit")
 
-    # Check if user with email already exists
     result = await session.execute(
         select(User).where(User.email == user_data.email)  # pyright: ignore[reportArgumentType]
     )
@@ -64,18 +102,16 @@ async def register_company_user(
         logo_content, logo_filename, logo_content_type
     )
 
-    # Create User with hashed password
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
         role=UserRole.COMPANY,
-        is_active=False,  # Requires Admin approval
+        is_active=False,
     )
     session.add(new_user)
     await session.flush()
 
-    # Create CompanyProfile (new_user.id is set after flush)
     profile = user_data.company_profile
     new_company_profile = CompanyProfile(
         user_id=new_user.id,
@@ -90,7 +126,6 @@ async def register_company_user(
     session.add(new_company_profile)
     await session.flush()
 
-    # Send email notification to all admins about new company registration
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
         contact_name = (
@@ -122,21 +157,9 @@ async def register_company_user(
 async def authenticate_user(email: str, password: str, session: AsyncSession) -> User:
     """Authenticate a user by email and password.
 
-    Validates email and password, checks if user is active.
-
-    Args:
-        email: User email address
-        password: Plain text password
-        session: Database session
-
-    Returns:
-        Authenticated User object
-
-    Raises:
-        InvalidCredentialsError: If email or password is incorrect
-        InactiveUserError: If user exists but is inactive
+    Checks for account lockout before attempting credential validation.
+    Tracks failed attempts and locks the account after too many failures.
     """
-    # Find user by email
     result = await session.execute(
         select(User).where(User.email == email)  # pyright: ignore[reportArgumentType]
     )
@@ -144,12 +167,101 @@ async def authenticate_user(email: str, password: str, session: AsyncSession) ->
     if not user:
         raise InvalidCredentialsError("Incorrect email or password")
 
-    # Verify password
+    await _check_lockout(email)
+
     if not verify_password(password, user.hashed_password):
+        await _record_failed_attempt(email)
         raise InvalidCredentialsError("Incorrect email or password")
 
-    # Check if user is active
     if not user.is_active:
         raise InactiveUserError("Account is inactive. Please wait for admin approval.")
 
+    await _clear_failed_attempts(email)
     return user
+
+
+async def create_user_tokens(user: User, session: AsyncSession) -> tuple[str, str]:
+    """Issue a new access + refresh token pair for the given user.
+
+    Returns:
+        (access_token, raw_refresh_token)
+    """
+    assert user.id is not None
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email, "role": user.role.value}
+    )
+
+    raw_refresh, hashed_refresh, expires_at = create_refresh_token()
+    db_token = RefreshToken(
+        token_hash=hashed_refresh,
+        user_id=user.id,
+        expires_at=expires_at,
+    )
+    session.add(db_token)
+
+    return access_token, raw_refresh
+
+
+async def refresh_user_tokens(
+    raw_refresh_token: str, session: AsyncSession
+) -> tuple[str, str]:
+    """Validate a refresh token and issue a rotated pair.
+
+    The old refresh token is revoked on use (single-use rotation).
+
+    Returns:
+        (new_access_token, new_raw_refresh_token)
+
+    Raises:
+        InvalidCredentialsError: If the token is missing, expired, or revoked.
+    """
+    token_hash = hash_token(raw_refresh_token)
+    result = await session.execute(
+        select(RefreshToken).where(
+            RefreshToken.token_hash == token_hash  # pyright: ignore[reportArgumentType]
+        )
+    )
+    db_token = result.scalar_one_or_none()
+
+    if (
+        db_token is None
+        or db_token.is_revoked
+        or db_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc)
+    ):
+        raise InvalidCredentialsError("Invalid or expired refresh token")
+
+    # Revoke the used token
+    db_token.is_revoked = True
+    session.add(db_token)
+
+    user_result = await session.execute(
+        select(User).where(User.id == db_token.user_id)  # pyright: ignore[reportArgumentType]
+    )
+    user = user_result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise InvalidCredentialsError("Invalid or expired refresh token")
+
+    return await create_user_tokens(user, session)
+
+
+async def logout_user(
+    jti: str,
+    exp: int,
+    raw_refresh_token: str | None,
+    session: AsyncSession,
+) -> None:
+    """Revoke the session: blacklist the access token JTI and revoke the refresh
+    token."""
+    await blacklist_access_token(jti, exp)
+
+    if raw_refresh_token:
+        token_hash = hash_token(raw_refresh_token)
+        result = await session.execute(
+            select(RefreshToken).where(
+                RefreshToken.token_hash == token_hash  # pyright: ignore[reportArgumentType]
+            )
+        )
+        db_token = result.scalar_one_or_none()
+        if db_token and not db_token.is_revoked:
+            db_token.is_revoked = True
+            session.add(db_token)

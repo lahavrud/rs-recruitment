@@ -1,10 +1,17 @@
 import api from "@/services/api";
 import type { LoginRequest, TokenResponse, UserWithCompanyRead } from "@/types/api";
-import { removeToken, setToken } from "@/utils/token";
+import {
+  getRefreshToken,
+  removeRefreshToken,
+  removeToken,
+  setRefreshToken,
+  setToken,
+} from "@/utils/token";
 
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const response = await api.post<TokenResponse>("/auth/login", credentials);
   setToken(response.data.access_token);
+  setRefreshToken(response.data.refresh_token);
   return response.data;
 }
 
@@ -19,10 +26,28 @@ export async function register(
   return response.data;
 }
 
-/**
- * Clear the stored token and redirect to login.
- */
-export function logout(): void {
-  removeToken();
-  window.location.href = "/login";
+export async function refreshTokens(): Promise<TokenResponse> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+  const response = await api.post<TokenResponse>("/auth/refresh", {
+    refresh_token: refreshToken,
+  });
+  setToken(response.data.access_token);
+  setRefreshToken(response.data.refresh_token);
+  return response.data;
+}
+
+export async function logout(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  try {
+    await api.post("/auth/logout", refreshToken ? { refresh_token: refreshToken } : null);
+  } catch {
+    // Best-effort server-side revocation — always clear local state
+  } finally {
+    removeToken();
+    removeRefreshToken();
+    window.location.href = "/login";
+  }
 }
