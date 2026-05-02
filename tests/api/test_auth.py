@@ -179,7 +179,7 @@ async def test_register_duplicate_email(client: AsyncClient):
         data=_reg_data(email="duplicate@example.com"),
         files={"logo": FAKE_LOGO_FILE},
     )
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert "already" in response.json()["detail"].lower()
 
 

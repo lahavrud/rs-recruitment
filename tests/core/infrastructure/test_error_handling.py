@@ -101,13 +101,13 @@ class TestServiceExceptionToHttp:
         assert http_exception.status_code == status.HTTP_400_BAD_REQUEST
         assert http_exception.detail == "Job is not pending"
 
-    def test_email_already_exists_error_maps_to_400(self):
-        """Test that EmailAlreadyExistsError maps to 400."""
+    def test_email_already_exists_error_maps_to_409(self):
+        """Test that EmailAlreadyExistsError maps to 409."""
         exception = EmailAlreadyExistsError("test@example.com")
         http_exception = service_exception_to_http(exception)
 
         assert isinstance(http_exception, HTTPException)
-        assert http_exception.status_code == status.HTTP_400_BAD_REQUEST
+        assert http_exception.status_code == status.HTTP_409_CONFLICT
         # EmailAlreadyExistsError includes email in message
         assert "test@example.com" in http_exception.detail
 
