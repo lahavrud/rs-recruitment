@@ -255,6 +255,9 @@ _FAKE_SIGNATURE_B64 = base64.b64encode(b"fake-png-signature-bytes").decode()
 _STRONG_PASSWORD = "SecurePass1!"
 
 
+_STRONG_PASSWORD = "SecurePass1!"
+
+
 @pytest.fixture
 async def company_user(test_db) -> User:
     """Create a pending (inactive) company user for testing."""
