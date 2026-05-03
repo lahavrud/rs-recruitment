@@ -14,14 +14,16 @@ from src.schemas import (
     InviteTokenRead,
     PendingCompanyRead,
 )
-from src.services.admin import (
+from src.services.admin_companies import (
     approve_company,
-    create_invite,
     delete_active_company,
     list_active_companies,
-    list_invites,
     list_pending_companies,
     reject_company,
+)
+from src.services.admin_invites import (
+    create_invite,
+    list_invites,
     resend_invite,
     revoke_invite,
 )
