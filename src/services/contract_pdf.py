@@ -38,7 +38,7 @@ _ADDR_RECT = fitz.Rect(193, 174, 264, 188)  # address blank
 
 # ── Signatures ────────────────────────────────────────────────────────────────
 # Lines are drawn at y=672.  Images positioned so they sit on those lines
-# (bottom of image rect ≈ y=672, giving ~40pt height above the line).
+# (bottom of image rect = y=672, giving ~40pt height above the line).
 _RS_SIG_RECT = fitz.Rect(358, 632, 518, 672)  # right side — רוני רודיק
 _COMPANY_SIG_RECT = fitz.Rect(54, 632, 232, 672)  # left side  — נציג החברה
 
