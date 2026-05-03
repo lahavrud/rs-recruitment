@@ -36,6 +36,7 @@ async def test_get_pending_companies(
             company_profile=CompanyProfileCreate(
                 name="Company 2",
                 company_id="123456789",
+                address="רח׳ הדוגמה 1, תל אביב",
                 contact_first_name="ישראל",
                 contact_last_name="ישראלי",
                 contact_mobile_phone="0501234567",
@@ -79,16 +80,17 @@ async def test_approve_company_success(
 
     data = response.json()
     assert data["user"]["id"] == company_user.id
-    assert data["user"]["is_active"] is True
+    # Approval creates an ActivationToken but does NOT set is_active=True yet
+    assert data["user"]["is_active"] is False
     assert data["company_profile"]["name"] == "Test Company"
 
-    # Verify in database
+    # Verify in database — still inactive until company clicks the link
     async with TestSessionLocal() as session:
         result = await session.execute(
             select(User).where(User.id == company_user.id)  # pyright: ignore[reportArgumentType]
         )
         user = result.scalar_one()
-        assert user.is_active is True
+        assert user.is_active is False
 
 
 @pytest.mark.asyncio
@@ -214,6 +216,7 @@ async def test_admin_company_endpoints_require_admin_role(mock_enqueue_email, te
             company_profile=CompanyProfileCreate(
                 name="Company",
                 company_id="123456789",
+                address="רח׳ הדוגמה 1, תל אביב",
                 contact_first_name="ישראל",
                 contact_last_name="ישראלי",
                 contact_mobile_phone="0501234567",

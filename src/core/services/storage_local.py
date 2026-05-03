@@ -63,10 +63,7 @@ class LocalStorageProvider(StorageProvider):
         return await loop.run_in_executor(None, file_path.read_bytes)
 
     async def delete_file(self, file_identifier: str) -> bool:
-        try:
-            file_path = self._safe_path(file_identifier)
-        except ValueError:
-            return False
+        file_path = self._safe_path(file_identifier)  # raises ValueError on traversal
         loop = asyncio.get_event_loop()
         try:
             exists = await loop.run_in_executor(None, file_path.exists)

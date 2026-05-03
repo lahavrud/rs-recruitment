@@ -16,11 +16,17 @@ async def test_generate_signed_contract_returns_pdf_bytes():
     fake_pdf.save(buf)
     pdf_bytes = buf.getvalue()
 
-    fake_sig_png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
+    import base64
+
+    # Minimal valid 1×1 PNG (all image operations need a real PNG header + IHDR)
+    fake_sig_png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+        "+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    )
 
     with (
         patch(
-            "src.services.contract_pdf._download_s3_bytes",
+            "src.services.contract_pdf._fetch_asset",
             new_callable=AsyncMock,
             side_effect=[pdf_bytes, fake_sig_png],
         ),

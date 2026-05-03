@@ -32,7 +32,28 @@ _RS_SIG_RECT = fitz.Rect(345, 641, 490, 690)  # right side (רוני רודיק)
 _COMPANY_SIG_RECT = fitz.Rect(75, 641, 290, 690)  # left side (נציג החברה)
 
 
-async def _download_s3_bytes(key: str) -> bytes:
+async def _fetch_asset(key: str) -> bytes:
+    """Download an asset by key.
+
+    In local-storage mode the key is resolved as a relative path under
+    the configured local_storage_path, so developers can drop the template
+    and RS signature there without S3 credentials.
+
+    In S3 mode the key is fetched from the configured bucket.
+    """
+    if settings.storage_provider != "s3":
+        import asyncio
+        from pathlib import Path
+
+        local_path = Path(settings.local_storage_path) / key
+        if not local_path.exists():
+            raise FileNotFoundError(
+                f"Asset not found at {local_path}. "
+                f"Copy {key} into {settings.local_storage_path}/ for local dev."
+            )
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, local_path.read_bytes)
+
     session = aioboto3.Session()
     bucket = settings.aws_s3_bucket_name
     async with session.client(  # type: ignore[attr-defined]
@@ -57,14 +78,14 @@ async def generate_signed_contract(
 
     Returns raw PDF bytes suitable for email attachment.
     """
-    template_bytes = await _download_s3_bytes(settings.rs_contract_template_s3_key)
-    rs_sig_bytes = await _download_s3_bytes(settings.rs_signature_s3_key)
+    template_bytes = await _fetch_asset(settings.rs_contract_template_s3_key)
+    rs_sig_bytes = await _fetch_asset(settings.rs_signature_s3_key)
 
     doc = fitz.open(stream=template_bytes, filetype="pdf")
     page = doc[0]
 
-    white = fitz.Color(1, 1, 1)
-    black = fitz.Color(0, 0, 0)
+    white = (1, 1, 1)
+    black = (0, 0, 0)
 
     # ── Date ──────────────────────────────────────────────────────────────────
     date_str = signed_at.strftime("%-d/%-m/%Y")
@@ -75,12 +96,10 @@ async def generate_signed_contract(
         fontsize=10,
         fontname="helv",
         color=black,
-        right_to_left=False,
     )
 
     # ── Company info (name · ח.פ · address) ──────────────────────────────────
     page.draw_rect(_INFO_WHITEBOX, color=white, fill=white)
-    # Build the info string in Hebrew display order (RTL text, LTR numbers)
     info_line = f"{company_name}  ח.פ. {company_id}  מרח׳: {address}"
     page.insert_text(
         _INFO_INSERT,
@@ -88,7 +107,6 @@ async def generate_signed_contract(
         fontsize=9,
         fontname="helv",
         color=black,
-        right_to_left=True,
     )
 
     # ── RS agency signature ───────────────────────────────────────────────────

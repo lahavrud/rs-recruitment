@@ -77,6 +77,18 @@ async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
             f"Company user {company_user_id} is already approved (active)"
         )
 
+    # Prevent double-approval: check for an existing unused activation token
+    existing_token = await session.execute(
+        select(ActivationToken).where(
+            ActivationToken.company_user_id == company_user_id,  # type: ignore[arg-type]
+            ActivationToken.used == False,  # noqa: E712
+        )
+    )
+    if existing_token.scalar_one_or_none() is not None:
+        raise CompanyNotPendingError(
+            f"Company user {company_user_id} is already approved (awaiting activation)"
+        )
+
     result = await session.execute(
         select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
             CompanyProfile.user_id == company_user_id
@@ -196,6 +208,17 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
     if user.is_active:
         raise CompanyNotPendingError(
             f"Company user {company_user_id} is already approved (active)"
+        )
+
+    existing_token = await session.execute(
+        select(ActivationToken).where(
+            ActivationToken.company_user_id == company_user_id,  # type: ignore[arg-type]
+            ActivationToken.used == False,  # noqa: E712
+        )
+    )
+    if existing_token.scalar_one_or_none() is not None:
+        raise CompanyNotPendingError(
+            f"Company user {company_user_id} is already approved (awaiting activation)"
         )
 
     result = await session.execute(
