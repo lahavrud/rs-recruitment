@@ -6,7 +6,7 @@
 #          --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
 #
 #   2. Ensure the EC2 IAM role (rs-recruitment-app-role) has permissions for:
-#        ssm:GetParameter + ssm:GetParameters on /rs-recruitment/prod/*
+#        ssm:GetParametersByPath on /rs-recruitment/prod/*
 #        kms:Decrypt via SSM (for SecureString params, uses aws/ssm key)
 #        s3:GetObject + s3:PutObject on rs-recruitment-<account-id>
 #        ecr:GetAuthorizationToken + ecr:BatchGetImage (already set)
@@ -25,13 +25,13 @@
 #        /rs-recruitment/prod/AWS_REGION          — us-east-1
 #        /rs-recruitment/prod/AWS_S3_BUCKET_NAME  — rs-recruitment-<account-id>
 #        /rs-recruitment/prod/STORAGE_PROVIDER    — s3
+#        /rs-recruitment/prod/FRONTEND_BASE_URL   — https://your-domain
 #      SSM Parameter Store (us-east-1) — required (SecureString):
 #        /rs-recruitment/prod/SMTP_PASSWORD       — <resend-api-key>
 #
-#      The deploy script (deploy_ec2.sh) generates .env automatically from SSM.
-#      No manual .env file management required — rotation = update SSM + redeploy.
+#      The app fetches all config directly from SSM at startup — no .env file needed.
+#      Secret rotation = update SSM parameter + redeploy.
 #      NOTE: JWT_SECRET_KEY, DATABASE_URL, and SMTP_PASSWORD must be SecureString (not String).
-#      NOTE: All 13 params are required — deploy fails if any are missing.
 #
 #   3. Sync frontend build from S3 to EC2:
 #        aws s3 sync s3://<bucket>/deploy/dist/ ~/app/frontend/dist/ --delete
@@ -60,7 +60,8 @@ services:
 
   api:
     image: ${ECR_REGISTRY}/rs-recruitment/api:latest
-    env_file: .env
+    environment:
+      - ENVIRONMENT=production
     volumes:
       - app-data:/app/data
     depends_on:
@@ -77,7 +78,8 @@ services:
   worker:
     image: ${ECR_REGISTRY}/rs-recruitment/api:latest
     command: ["arq", "src.core.tasks.WorkerSettings"]
-    env_file: .env
+    environment:
+      - ENVIRONMENT=production
     depends_on:
       redis:
         condition: service_healthy
