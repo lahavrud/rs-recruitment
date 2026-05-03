@@ -107,7 +107,12 @@ async def generate_signed_contract(
     page = doc[0]
 
     # ── Date (right-aligned, LTR numbers flush against "מתאריך") ──────────────
-    date_str = signed_at.strftime("%-d/%-m/%Y")
+    # Convert UTC timestamp to Israel time (UTC+3 in summer, UTC+2 in winter)
+    # before formatting so the printed date matches what the user saw locally.
+    from zoneinfo import ZoneInfo
+
+    israel = ZoneInfo("Asia/Jerusalem")
+    date_str = signed_at.astimezone(israel).strftime("%-d/%-m/%Y")
     page.insert_htmlbox(
         _DATE_RECT,
         f'<div style="font-family:Helvetica,Arial,sans-serif;font-size:11pt;'
