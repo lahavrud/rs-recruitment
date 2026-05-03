@@ -62,16 +62,16 @@ async def create_job(
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
         job_info = (
-            f"A new job posting has been created and is pending approval.\n\n"
-            f"Job Title: {new_job.title}\n"
-            f"Company: {company.name}\n"
-            f"Location: {new_job.location}\n"
-            f"Job ID: {new_job.id}\n\n"
-            "Please review and approve or reject the job posting."
+            f"משרה חדשה נוצרה וממתינה לאישור.\n\n"
+            f"כותרת: {new_job.title}\n"
+            f"חברה: {company.name}\n"
+            f"מיקום: {new_job.location}\n"
+            f"מזהה משרה: {new_job.id}\n\n"
+            "אנא בדקו ואשרו או דחו את הפרסום."
         )
         await enqueue_email_task(
             to=admin_emails,
-            subject="New Job Posting Pending Approval",
+            subject="משרה חדשה ממתינה לאישור – RS Recruiting",
             body=job_info,
         )
 
@@ -194,17 +194,17 @@ async def update_job(
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
         job_info = (
-            f"A job posting has been updated.\n\n"
-            f"Job Title: {job.title}\n"
-            f"Company: {company.name}\n"
-            f"Location: {job.location}\n"
-            f"Job ID: {job.id}\n"
-            f"Status: {job.status}\n\n"
-            "Please review the changes."
+            f"פרסום משרה עודכן.\n\n"
+            f"כותרת: {job.title}\n"
+            f"חברה: {company.name}\n"
+            f"מיקום: {job.location}\n"
+            f"מזהה משרה: {job.id}\n"
+            f"סטטוס: {job.status}\n\n"
+            "אנא בדקו את השינויים."
         )
         await enqueue_email_task(
             to=admin_emails,
-            subject="Job Posting Updated",
+            subject="פרסום משרה עודכן – RS Recruiting",
             body=job_info,
         )
 

@@ -46,6 +46,11 @@ class StorageProvider(ABC):
         pass
 
     @abstractmethod
+    async def download_file(self, file_identifier: str) -> bytes:
+        """Download a file and return its raw bytes."""
+        pass
+
+    @abstractmethod
     async def delete_file(self, file_identifier: str) -> bool:
         """
         Delete a file.
@@ -164,6 +169,25 @@ class S3StorageProvider(StorageProvider):
                 return url
             except ClientError as e:
                 raise ValueError(f"Failed to generate URL for {file_identifier}: {e}")
+
+    async def download_file(self, file_identifier: str) -> bytes:
+        """Download file from S3 and return raw bytes."""
+        client_kwargs = {
+            "region_name": self.region,
+            "aws_access_key_id": self.access_key_id,
+            "aws_secret_access_key": self.secret_access_key,
+        }
+        if self.endpoint_url:
+            client_kwargs["endpoint_url"] = self.endpoint_url
+
+        async with self.session.client(  # type: ignore[attr-defined]
+            "s3", **client_kwargs
+        ) as s3:
+            try:
+                resp = await s3.get_object(Bucket=self.bucket_name, Key=file_identifier)
+                return await resp["Body"].read()
+            except ClientError as e:
+                raise ValueError(f"Failed to download {file_identifier}: {e}") from e
 
     async def delete_file(self, file_identifier: str) -> bool:
         """
@@ -293,6 +317,12 @@ class LocalStorageProvider(StorageProvider):
         # Return HTTP URL that will be served by FastAPI static file serving
         # The actual static file mount will be configured in main.py
         return f"/static/{file_identifier}"
+
+    async def download_file(self, file_identifier: str) -> bytes:
+        """Download file from local storage and return raw bytes."""
+        file_path = self._validate_file_path(file_identifier)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, file_path.read_bytes)
 
     async def delete_file(self, file_identifier: str) -> bool:
         """

@@ -19,14 +19,15 @@ from src.core.infrastructure.security import (
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import InviteTokenStatus, UserRole
-from src.models import CompanyProfile, InviteToken, RefreshToken, User
+from src.models import ActivationToken, CompanyProfile, InviteToken, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin_companies import get_all_admin_emails
 from src.services.exceptions import (
     AccountLockedError,
     EmailAlreadyExistsError,
-    InactiveUserError,
     InvalidCredentialsError,
+    PendingActivationError,
+    PendingApprovalError,
 )
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,7 @@ async def register_company_user(
     logo_filename: str,
     logo_content_type: str | None = None,
     agreement_signature: str = "",
+    privacy_accepted: bool = False,
 ) -> UserWithCompanyRead:
     """Register a new company user with associated company profile."""
     if logo_content_type and logo_content_type not in _ALLOWED_LOGO_TYPES:
@@ -152,17 +154,20 @@ async def register_company_user(
     await session.flush()
 
     profile = user_data.company_profile
+    now = datetime.now(timezone.utc)
     new_company_profile = CompanyProfile(
         user_id=new_user.id,
         name=profile.name,
         logo_url=logo_identifier,
         company_id=profile.company_id,
+        address=profile.address,
         contact_first_name=profile.contact_first_name,
         contact_last_name=profile.contact_last_name,
         contact_mobile_phone=profile.contact_mobile_phone,
         contact_landline_phone=profile.contact_landline_phone,
         agreement_signature_url=sig_identifier,
-        agreement_signed_at=datetime.now(timezone.utc),
+        agreement_signed_at=now,
+        privacy_accepted_at=now if privacy_accepted else None,
     )
     session.add(new_company_profile)
     await session.flush()
@@ -174,18 +179,18 @@ async def register_company_user(
             f"{new_company_profile.contact_last_name}"
         )
         company_info = (
-            f"A new company '{new_company_profile.name}' has registered "
-            "and is pending approval.\n\n"
-            f"Company: {new_company_profile.name}\n"
+            f"חברה חדשה '{new_company_profile.name}' נרשמה וממתינה לאישור.\n\n"
+            f"שם חברה: {new_company_profile.name}\n"
             f"ח.פ: {new_company_profile.company_id}\n"
-            f"Contact: {contact_name}\n"
-            f"Email: {new_user.email}\n"
-            f"Mobile: {new_company_profile.contact_mobile_phone or 'N/A'}\n\n"
-            "Please review and approve or reject the registration."
+            f"כתובת: {new_company_profile.address or '—'}\n"
+            f"איש קשר: {contact_name}\n"
+            f'דוא"ל: {new_user.email}\n'
+            f"נייד: {new_company_profile.contact_mobile_phone or '—'}\n\n"
+            "אנא בדקו ואשרו או דחו את הבקשה."
         )
         await enqueue_email_task(
             to=admin_emails,
-            subject="New Company Registration Pending Approval",
+            subject="בקשת הרשמה חדשה ממתינה לאישור – RS Recruiting",
             body=company_info,
         )
 
@@ -215,7 +220,17 @@ async def authenticate_user(email: str, password: str, session: AsyncSession) ->
         raise InvalidCredentialsError("Incorrect email or password")
 
     if not user.is_active:
-        raise InactiveUserError("Account is inactive. Please wait for admin approval.")
+        # Distinguish: has a pending activation token → admin approved but company
+        # hasn't clicked the link yet.  No token → still awaiting admin review.
+        activation_result = await session.execute(
+            select(ActivationToken).where(
+                ActivationToken.company_user_id == user.id,  # type: ignore[arg-type]
+                ActivationToken.used == False,  # noqa: E712
+            )
+        )
+        if activation_result.scalar_one_or_none() is not None:
+            raise PendingActivationError("account_pending_activation")
+        raise PendingApprovalError("account_pending_approval")
 
     await _clear_failed_attempts(email)
     return user

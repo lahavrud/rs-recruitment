@@ -168,32 +168,40 @@ async def update_application_status(
     )
     company_user = user_result.scalar_one()
 
-    notes_line = f"\nAdmin notes: {admin_notes}\n" if admin_notes else ""
+    _STATUS_HE = {
+        "NEW": "חדש",
+        "APPROVED_BY_ADMIN": "אושר על-ידי מנהל",
+        "REJECTED": "נדחה",
+        "HIRED": "התקבל לעבודה",
+    }
+    new_status_he = _STATUS_HE.get(str(new_status), str(new_status))
+    old_status_he = _STATUS_HE.get(str(old_status), str(old_status))
+    notes_line = f"\nהערות מנהל: {admin_notes}\n" if admin_notes else ""
 
     email_payloads: list[dict[str, str]] = [
         {
             "to": candidate.email,
-            "subject": f"Your application status has been updated: {new_status}",
+            "subject": f"עדכון סטטוס מועמדות למשרת '{job.title}'",
             "body": (
-                f"Dear {candidate.full_name},\n\n"
-                f"Your application for '{job.title}' has been updated.\n\n"
-                f"Previous status: {old_status}\n"
-                f"New status: {new_status}\n"
+                f"שלום {candidate.full_name},\n\n"
+                f"סטטוס מועמדותך למשרת '{job.title}' עודכן.\n\n"
+                f"סטטוס קודם: {old_status_he}\n"
+                f"סטטוס חדש: {new_status_he}\n"
                 f"{notes_line}"
-                "\nThank you for your interest."
+                "\nבברכה,\nצוות RS Recruiting"
             ),
         },
         {
             "to": company_user.email,
-            "subject": f"Application status updated for '{job.title}'",
+            "subject": f"עדכון סטטוס מועמדות למשרת '{job.title}'",
             "body": (
-                f"Dear {company.name},\n\n"
-                f"An application for your job posting '{job.title}' "
-                "has been updated.\n\n"
-                f"Candidate: {candidate.full_name}\n"
-                f"Previous status: {old_status}\n"
-                f"New status: {new_status}\n"
+                f"שלום {company.name},\n\n"
+                f"סטטוס מועמדות למשרת '{job.title}' עודכן.\n\n"
+                f"מועמד: {candidate.full_name}\n"
+                f"סטטוס קודם: {old_status_he}\n"
+                f"סטטוס חדש: {new_status_he}\n"
                 f"{notes_line}"
+                "\nבברכה,\nצוות RS Recruiting"
             ),
         },
     ]
