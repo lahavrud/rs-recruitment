@@ -18,6 +18,7 @@ class SsmSettingsSource(PydanticBaseSettingsSource):
 
     Fetches all parameters under the given path prefix at construction time.
     Parameter names are lowercased and matched to Settings field names.
+    Used in production so secrets are never written to disk.
     """
 
     def __init__(self, settings_cls: type, path_prefix: str) -> None:
@@ -45,7 +46,6 @@ class SsmSettingsSource(PydanticBaseSettingsSource):
 
 
 def _ssm_path_prefix() -> str:
-    """Derive SSM path from ENVIRONMENT env var."""
     env = os.environ.get("ENVIRONMENT", "development")
     return f"/rs-recruitment/{env}/"
 
