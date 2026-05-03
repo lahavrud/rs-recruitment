@@ -77,17 +77,19 @@ async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
             f"Company user {company_user_id} is already approved (active)"
         )
 
-    # Prevent double-approval: check for an existing unused activation token
-    existing_token = await session.execute(
+    # Revoke any previous (unused, possibly expired) activation token before
+    # issuing a new one.  This allows re-approval after a token expires or after
+    # the admin rejects and later changes their mind.
+    stale_result = await session.execute(
         select(ActivationToken).where(
             ActivationToken.company_user_id == company_user_id,  # type: ignore[arg-type]
             ActivationToken.used == False,  # noqa: E712
         )
     )
-    if existing_token.scalar_one_or_none() is not None:
-        raise CompanyNotPendingError(
-            f"Company user {company_user_id} is already approved (awaiting activation)"
-        )
+    stale = stale_result.scalar_one_or_none()
+    if stale is not None:
+        await session.delete(stale)
+        await session.flush()
 
     result = await session.execute(
         select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
@@ -210,16 +212,17 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
             f"Company user {company_user_id} is already approved (active)"
         )
 
-    existing_token = await session.execute(
+    # Revoke any outstanding activation token (admin may reject after approving).
+    token_result = await session.execute(
         select(ActivationToken).where(
             ActivationToken.company_user_id == company_user_id,  # type: ignore[arg-type]
             ActivationToken.used == False,  # noqa: E712
         )
     )
-    if existing_token.scalar_one_or_none() is not None:
-        raise CompanyNotPendingError(
-            f"Company user {company_user_id} is already approved (awaiting activation)"
-        )
+    token_to_revoke = token_result.scalar_one_or_none()
+    if token_to_revoke is not None:
+        await session.delete(token_to_revoke)
+        await session.flush()
 
     result = await session.execute(
         select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
