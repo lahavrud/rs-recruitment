@@ -8,6 +8,7 @@ from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.models import User
 from src.schemas import (
+    ActiveCompanyRead,
     ApprovedCompanyRead,
     InviteTokenCreate,
     InviteTokenRead,
@@ -16,6 +17,8 @@ from src.schemas import (
 from src.services.admin import (
     approve_company,
     create_invite,
+    delete_active_company,
+    list_active_companies,
     list_invites,
     list_pending_companies,
     reject_company,
@@ -107,6 +110,39 @@ async def resend_company_invite(
         await resend_invite(token_id, session)
         await session.commit()
     except (InviteNotFoundError, InviteAlreadyRevokedError) as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
+    except Exception:
+        await session.rollback()
+        raise
+
+
+@router.get(
+    "/companies",
+    response_model=list[ActiveCompanyRead],
+)
+async def get_active_companies(
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> list[ActiveCompanyRead]:
+    """List all active companies."""
+    return await list_active_companies(session)
+
+
+@router.delete(
+    "/companies/{company_user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_company(
+    company_user_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Hard-delete a company and all its jobs and applications."""
+    try:
+        await delete_active_company(company_user_id, session)
+        await session.commit()
+    except CompanyNotFoundError as e:
         await session.rollback()
         raise service_exception_to_http(e) from e
     except Exception:

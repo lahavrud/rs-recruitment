@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.config import settings
@@ -12,8 +12,14 @@ from src.core.infrastructure.invite_tokens import (
 )
 from src.core.tasks import enqueue_email_task
 from src.enums import InviteTokenStatus, UserRole
-from src.models import CompanyProfile, InviteToken, User
-from src.schemas import CompanyProfileRead, InviteTokenCreate, InviteTokenRead, UserRead
+from src.models import Application, CompanyProfile, InviteToken, Job, User
+from src.schemas import (
+    ActiveCompanyRead,
+    CompanyProfileRead,
+    InviteTokenCreate,
+    InviteTokenRead,
+    UserRead,
+)
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
@@ -352,4 +358,71 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
     await session.flush()
 
     # Delete user
+    await session.delete(user)
+
+
+async def list_active_companies(session: AsyncSession) -> list[ActiveCompanyRead]:
+    """List all approved (active) companies.
+
+    Args:
+        session: Database session
+
+    Returns:
+        List of active companies ordered by join date (newest first)
+    """
+    result = await session.execute(
+        select(User, CompanyProfile)
+        .join(CompanyProfile, User.id == CompanyProfile.user_id)  # pyright: ignore[reportArgumentType]
+        .where(User.role == UserRole.COMPANY, User.is_active == True)  # noqa: E712
+        .order_by(User.created_at.desc())
+    )
+    return [
+        ActiveCompanyRead(
+            user=UserRead.model_validate(user),
+            company_profile=CompanyProfileRead.model_validate(cp),
+        )
+        for user, cp in result.all()
+    ]
+
+
+async def delete_active_company(company_user_id: int, session: AsyncSession) -> None:
+    """Hard-delete an active company and cascade to its jobs and applications.
+
+    Deletes in order: Applications → Jobs → CompanyProfile → User.
+
+    Args:
+        company_user_id: ID of the company's User record
+        session: Database session
+
+    Raises:
+        CompanyNotFoundError: If no active COMPANY user with that ID exists
+    """
+    result = await session.execute(
+        select(User, CompanyProfile)
+        .join(CompanyProfile, User.id == CompanyProfile.user_id)  # pyright: ignore[reportArgumentType]
+        .where(User.id == company_user_id, User.role == UserRole.COMPANY)
+    )
+    row = result.one_or_none()
+    if not row:
+        raise CompanyNotFoundError(
+            f"Active company user with ID {company_user_id} not found"
+        )
+    user, cp = row
+
+    # Cascade: delete applications for all company jobs
+    job_ids_result = await session.execute(
+        select(Job.id).where(Job.company_id == cp.id)  # pyright: ignore[reportArgumentType]
+    )
+    job_ids = [row[0] for row in job_ids_result.all()]
+    if job_ids:
+        await session.execute(
+            delete(Application).where(Application.job_id.in_(job_ids))  # pyright: ignore[reportAttributeAccessIssue]
+        )
+        await session.execute(
+            delete(Job).where(Job.id.in_(job_ids))  # pyright: ignore[reportAttributeAccessIssue]
+        )
+        await session.flush()
+
+    await session.delete(cp)
+    await session.flush()
     await session.delete(user)
