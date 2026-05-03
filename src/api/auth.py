@@ -33,7 +33,6 @@ from src.schemas import (
     UserCreate,
     UserWithCompanyRead,
 )
-from src.services.admin_companies import activate_company
 from src.services.auth import (
     authenticate_user,
     create_user_tokens,
@@ -46,7 +45,6 @@ from src.services.exceptions import (
     AccountLockedError,
     EmailAlreadyExistsError,
     InactiveUserError,
-    InvalidActivationTokenError,
     InvalidCredentialsError,
     InvalidInviteTokenError,
     PendingActivationError,
@@ -174,22 +172,6 @@ async def login(
     await session.commit()
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
-
-
-@router.post("/activate", status_code=status.HTTP_200_OK)
-async def activate(
-    token: str = Query(
-        ..., description="One-time activation token from approval email"
-    ),
-    session: AsyncSession = Depends(get_session),
-) -> dict:
-    """Activate a company account using the one-time token from the approval email."""
-    try:
-        await activate_company(token, session)
-        await session.commit()
-    except InvalidActivationTokenError as e:
-        raise service_exception_to_http(e) from e
-    return {"message": "החשבון הופעל בהצלחה"}
 
 
 @router.post("/refresh", response_model=TokenResponse)

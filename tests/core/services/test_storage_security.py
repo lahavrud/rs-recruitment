@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.services.storage import LocalStorageProvider
+from src.core.services.storage_local import LocalStorageProvider
 
 
 class TestLocalStorageProviderSecurity:
