@@ -46,12 +46,13 @@ async def _fetch_asset(key: str) -> bytes:
         from pathlib import Path
 
         local_path = Path(settings.local_storage_path) / key
-        if not local_path.exists():
+        loop = asyncio.get_event_loop()
+        exists = await loop.run_in_executor(None, local_path.exists)
+        if not exists:
             raise FileNotFoundError(
                 f"Asset not found at {local_path}. "
                 f"Copy {key} into {settings.local_storage_path}/ for local dev."
             )
-        loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, local_path.read_bytes)
 
     session = aioboto3.Session()
