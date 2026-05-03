@@ -147,7 +147,7 @@ class SMTPEmailProvider(EmailProvider):
             msg.attach(MIMEText(body, "plain"))
 
             # Send email via synchronous SMTP
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
                 if self.use_tls:
                     server.starttls()
                 if self.smtp_user and self.smtp_password:
