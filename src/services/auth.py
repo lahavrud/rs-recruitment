@@ -113,6 +113,48 @@ def _decode_signature(agreement_signature: str) -> bytes:
     return sig_bytes
 
 
+async def _notify_admins_new_registration(
+    profile: "CompanyProfile",
+    email: str,
+    sig_bytes: bytes,
+    signed_at: "datetime",
+    admin_emails: list[str],
+) -> None:
+    from src.core.infrastructure.config import settings
+
+    admin_url = f"{settings.frontend_base_url}/admin/companies"
+    html = build_new_registration_html(
+        company_name=profile.name or "",
+        company_id=profile.company_id or "—",
+        address=profile.address or "—",
+        contact_name=f"{profile.contact_first_name} {profile.contact_last_name}",
+        email=email,
+        mobile=profile.contact_mobile_phone or "—",
+        admin_url=admin_url,
+    )
+    pdf_bytes: bytes | None = None
+    try:
+        from src.services.contract_pdf import generate_signed_contract
+
+        pdf_bytes = await generate_signed_contract(
+            company_name=profile.name or "",
+            company_id=profile.company_id or "",
+            address=profile.address or "",
+            signed_at=signed_at,
+            company_signature_png_bytes=sig_bytes,
+        )
+    except Exception:
+        logger.exception("Failed to generate contract PDF for %s", email)
+    attachments = [("חוזה-RS.pdf", pdf_bytes, "application/pdf")] if pdf_bytes else None
+    await enqueue_email_task(
+        to=admin_emails,
+        subject="בקשת הרשמה חדשה ממתינה לאישור – RS Recruiting",
+        body=f"חברה חדשה '{profile.name}' נרשמה וממתינה לאישור.\nכתובת: {admin_url}",
+        html_body=html,
+        attachments=attachments,
+    )
+
+
 async def register_company_user(
     user_data: UserCreate,
     session: AsyncSession,
@@ -175,31 +217,8 @@ async def register_company_user(
 
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
-        contact_name = (
-            f"{new_company_profile.contact_first_name} "
-            f"{new_company_profile.contact_last_name}"
-        )
-        from src.core.infrastructure.config import settings
-
-        admin_url = f"{settings.frontend_base_url}/admin/companies"
-        plain = (
-            f"חברה חדשה '{new_company_profile.name}' נרשמה וממתינה לאישור.\n"
-            f"כתובת: {admin_url}"
-        )
-        html = build_new_registration_html(
-            company_name=new_company_profile.name or "",
-            company_id=new_company_profile.company_id or "—",
-            address=new_company_profile.address or "—",
-            contact_name=contact_name,
-            email=new_user.email,
-            mobile=new_company_profile.contact_mobile_phone or "—",
-            admin_url=admin_url,
-        )
-        await enqueue_email_task(
-            to=admin_emails,
-            subject="בקשת הרשמה חדשה ממתינה לאישור – RS Recruiting",
-            body=plain,
-            html_body=html,
+        await _notify_admins_new_registration(
+            new_company_profile, new_user.email, sig_bytes, now, admin_emails
         )
 
     return UserWithCompanyRead(

@@ -245,6 +245,7 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
     await session.delete(company_profile)
     await session.flush()
     await session.delete(user)
+    await session.flush()
 
 
 async def list_active_companies(session: AsyncSession) -> list[ActiveCompanyRead]:
@@ -298,3 +299,4 @@ async def delete_active_company(company_user_id: int, session: AsyncSession) -> 
     await session.delete(cp)
     await session.flush()
     await session.delete(user)
+    await session.flush()
