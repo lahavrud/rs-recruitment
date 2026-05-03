@@ -13,7 +13,7 @@ from src.enums import UserRole
 from src.models import ActivationToken, Application, CompanyProfile, Job, User
 from src.schemas import ActiveCompanyRead, CompanyProfileRead, UserRead
 from src.services.contract_pdf import generate_signed_contract
-from src.services.email_templates import build_approval_html
+from src.services.email_templates import build_approval_html, build_rejection_html
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
@@ -228,14 +228,15 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
     )
     company_profile = result.scalar_one()
 
-    rejected_body = (
+    rejected_plain = (
         f"בקשת ההרשמה של '{company_profile.name}' נדחתה. "
-        "אם לדעתכם מדובר בטעות, אנא צרו קשר עם התמיכה."
+        "אם לדעתכם מדובר בטעות, אנא צרו קשר עם support@rs-recruiting.com"
     )
     await enqueue_email_task(
         to=user.email,
         subject="בקשת ההרשמה נדחתה – RS Recruiting",
-        body=rejected_body,
+        body=rejected_plain,
+        html_body=build_rejection_html(company_profile.name or ""),
     )
 
     await session.delete(company_profile)

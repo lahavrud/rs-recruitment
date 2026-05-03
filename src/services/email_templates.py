@@ -41,19 +41,22 @@ _BASE = """\
 
           <!-- header band -->
           <tr>
-            <td bgcolor="{well}" style="background:{well};padding:24px 36px;
+            <td bgcolor="{well}" dir="ltr"
+                style="background:{well};padding:20px 36px;
                        border-bottom:1px solid {border};">
-              <table cellpadding="0" cellspacing="0">
+              <table cellpadding="0" cellspacing="0" dir="ltr">
                 <tr>
-                  <td style="vertical-align:middle;padding-left:0;padding-right:12px;">
-                    <img src="{logo_url}"
-                         alt="RS" width="32" height="32"
-                         style="display:block;border-radius:2px;">
+                  <td style="vertical-align:middle;padding-right:14px;">
+                    <div style="width:34px;height:34px;border-radius:50%;
+                                background:{copper};text-align:center;
+                                line-height:34px;font-family:Georgia,serif;
+                                font-size:14px;font-weight:700;color:#ffffff;
+                                letter-spacing:-0.5px;">RS</div>
                   </td>
                   <td style="vertical-align:middle;">
-                    <span style="font-size:11px;font-weight:600;
-                                 letter-spacing:4px;text-transform:uppercase;
-                                 color:{copper};">RS Recruiting</span>
+                    <span style="font-size:11px;font-weight:600;letter-spacing:4px;
+                                 text-transform:uppercase;color:{copper};
+                                 font-family:Arial,sans-serif;">RS Recruiting</span>
                   </td>
                 </tr>
               </table>
@@ -87,9 +90,6 @@ _BASE = """\
 
 
 def _wrap(subject: str, body_html: str) -> str:
-    from src.core.infrastructure.config import settings
-
-    logo_url = f"{settings.frontend_base_url}/logo.png"
     return _BASE.format(
         subject=subject,
         void=_VOID,
@@ -98,7 +98,6 @@ def _wrap(subject: str, body_html: str) -> str:
         border=_BORDER,
         copper=_COPPER,
         lo=_TEXT_LO,
-        logo_url=logo_url,
         body_html=body_html,
     )
 
@@ -166,3 +165,125 @@ def build_approval_html(company_name: str, activation_url: str) -> str:
         + _p("לאחר הלחיצה תוכלו להתחבר ולהתחיל לפרסם משרות.", muted=True)
     )
     return _wrap("הבקשה שלכם אושרה — RS Recruiting", body)
+
+
+def build_rejection_html(company_name: str) -> str:
+    """HTML rejection email sent when admin rejects a company registration."""
+    body = (
+        _h("בקשת ההרשמה נדחתה")
+        + _p(f"בקשת ההרשמה של <strong>{company_name}</strong> לא אושרה.")
+        + _p(
+            "אם אתם סבורים שמדובר בטעות, אנא צרו קשר עם צוות RS Recruiting.",
+            muted=True,
+        )
+    )
+    return _wrap("עדכון בנושא בקשת ההרשמה — RS Recruiting", body)
+
+
+def build_new_registration_html(
+    company_name: str,
+    company_id: str,
+    address: str,
+    contact_name: str,
+    email: str,
+    mobile: str,
+    admin_url: str,
+) -> str:
+    """HTML notification sent to admins when a new company registers."""
+    body = (
+        _h("חברה חדשה ממתינה לאישור")
+        + _p(f"<strong>{company_name}</strong> השלימה את תהליך ההרשמה.")
+        + _rule()
+        + _p(f"שם חברה: <strong>{company_name}</strong>")
+        + _p(f"ח.פ: {company_id}")
+        + _p(f"כתובת: {address}")
+        + _p(f"איש קשר: {contact_name}")
+        + _p(f'דוא"ל: {email}')
+        + _p(f"נייד: {mobile}")
+        + _cta(admin_url, "מעבר לניהול חברות")
+    )
+    return _wrap("בקשת הרשמה חדשה — RS Recruiting", body)
+
+
+def build_new_job_html(
+    job_title: str,
+    company_name: str,
+    location: str,
+    job_id: int,
+    admin_url: str,
+) -> str:
+    """HTML notification sent to admins when a new job is submitted for approval."""
+    body = (
+        _h("משרה חדשה ממתינה לאישור")
+        + _rule()
+        + _p(f"כותרת: <strong>{job_title}</strong>")
+        + _p(f"חברה: {company_name}")
+        + _p(f"מיקום: {location}")
+        + _p(f"מזהה משרה: #{job_id}")
+        + _cta(admin_url, "מעבר לניהול משרות")
+    )
+    return _wrap("משרה חדשה לאישור — RS Recruiting", body)
+
+
+def build_job_updated_html(
+    job_title: str,
+    company_name: str,
+    location: str,
+    job_id: int,
+    status: str,
+    admin_url: str,
+) -> str:
+    """HTML notification sent to admins when a job posting is updated."""
+    body = (
+        _h("פרסום משרה עודכן")
+        + _rule()
+        + _p(f"כותרת: <strong>{job_title}</strong>")
+        + _p(f"חברה: {company_name}")
+        + _p(f"מיקום: {location}")
+        + _p(f"מזהה משרה: #{job_id}")
+        + _p(f"סטטוס: {status}")
+        + _cta(admin_url, "מעבר לניהול משרות")
+    )
+    return _wrap("עדכון פרסום משרה — RS Recruiting", body)
+
+
+def build_application_status_candidate_html(
+    candidate_name: str,
+    job_title: str,
+    old_status: str,
+    new_status: str,
+    notes: str | None,
+) -> str:
+    """HTML status update email sent to the candidate."""
+    body = (
+        _h("עדכון סטטוס מועמדות")
+        + _p(f"שלום {candidate_name},")
+        + _p(f"סטטוס מועמדותך למשרת <strong>{job_title}</strong> עודכן.")
+        + _rule()
+        + _p(f"סטטוס קודם: {old_status}")
+        + _p(f"סטטוס חדש: <strong>{new_status}</strong>")
+        + (_p(f"הערות: {notes}", muted=True) if notes else "")
+    )
+    return _wrap(f"עדכון מועמדות — {job_title}", body)
+
+
+def build_application_status_company_html(
+    company_name: str,
+    job_title: str,
+    candidate_name: str,
+    old_status: str,
+    new_status: str,
+    notes: str | None,
+) -> str:
+    """HTML status update email sent to the company."""
+    body = (
+        _h("עדכון סטטוס מועמדות")
+        + _p(f"שלום {company_name},")
+        + _p(f"סטטוס מועמדות למשרת <strong>{job_title}</strong> עודכן.")
+        + _rule()
+        + _p(f"מועמד: {candidate_name}")
+        + _p(f"סטטוס קודם: {old_status}")
+        + _p(f"סטטוס חדש: <strong>{new_status}</strong>")
+        + (_p(f"הערות: {notes}", muted=True) if notes else "")
+    )
+    return _wrap(f"עדכון מועמדות — {job_title}", body)

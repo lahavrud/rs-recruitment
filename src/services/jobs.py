@@ -10,6 +10,7 @@ from src.enums import JobStatus
 from src.models import CompanyProfile, Job
 from src.schemas import JobCreate, JobRead, JobUpdate
 from src.services.admin_companies import get_all_admin_emails
+from src.services.email_templates import build_job_updated_html, build_new_job_html
 from src.services.exceptions import (
     CompanyNotFoundError,
     JobCannotBeDeletedError,
@@ -61,18 +62,22 @@ async def create_job(
     # Send email notification to all admins
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
-        job_info = (
-            f"משרה חדשה נוצרה וממתינה לאישור.\n\n"
-            f"כותרת: {new_job.title}\n"
-            f"חברה: {company.name}\n"
-            f"מיקום: {new_job.location}\n"
-            f"מזהה משרה: {new_job.id}\n\n"
-            "אנא בדקו ואשרו או דחו את הפרסום."
+        from src.core.infrastructure.config import settings
+
+        admin_url = f"{settings.frontend_base_url}/admin/jobs"
+        plain = f"משרה חדשה ממתינה לאישור: {new_job.title} ({company.name})"
+        html = build_new_job_html(
+            job_title=new_job.title,
+            company_name=company.name or "",
+            location=new_job.location,
+            job_id=new_job.id or 0,
+            admin_url=admin_url,
         )
         await enqueue_email_task(
             to=admin_emails,
             subject="משרה חדשה ממתינה לאישור – RS Recruiting",
-            body=job_info,
+            body=plain,
+            html_body=html,
         )
 
     return JobRead.model_validate(new_job)
@@ -193,19 +198,23 @@ async def update_job(
     # Send email notification to all admins
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
-        job_info = (
-            f"פרסום משרה עודכן.\n\n"
-            f"כותרת: {job.title}\n"
-            f"חברה: {company.name}\n"
-            f"מיקום: {job.location}\n"
-            f"מזהה משרה: {job.id}\n"
-            f"סטטוס: {job.status}\n\n"
-            "אנא בדקו את השינויים."
+        from src.core.infrastructure.config import settings
+
+        admin_url = f"{settings.frontend_base_url}/admin/jobs"
+        plain = f"פרסום משרה עודכן: {job.title} ({company.name})"
+        html = build_job_updated_html(
+            job_title=job.title,
+            company_name=company.name or "",
+            location=job.location,
+            job_id=job.id or 0,
+            status=str(job.status),
+            admin_url=admin_url,
         )
         await enqueue_email_task(
             to=admin_emails,
             subject="פרסום משרה עודכן – RS Recruiting",
-            body=job_info,
+            body=plain,
+            html_body=html,
         )
 
     return JobRead.model_validate(job)

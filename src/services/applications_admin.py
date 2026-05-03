@@ -168,6 +168,11 @@ async def update_application_status(
     )
     company_user = user_result.scalar_one()
 
+    from src.services.email_templates import (
+        build_application_status_candidate_html,
+        build_application_status_company_html,
+    )
+
     _STATUS_HE = {
         "NEW": "חדש",
         "APPROVED_BY_ADMIN": "אושר על-ידי מנהל",
@@ -176,32 +181,37 @@ async def update_application_status(
     }
     new_status_he = _STATUS_HE.get(str(new_status), str(new_status))
     old_status_he = _STATUS_HE.get(str(old_status), str(old_status))
-    notes_line = f"\nהערות מנהל: {admin_notes}\n" if admin_notes else ""
 
-    email_payloads: list[dict[str, str]] = [
+    email_payloads: list[dict] = [
         {
             "to": candidate.email,
             "subject": f"עדכון סטטוס מועמדות למשרת '{job.title}'",
             "body": (
-                f"שלום {candidate.full_name},\n\n"
-                f"סטטוס מועמדותך למשרת '{job.title}' עודכן.\n\n"
-                f"סטטוס קודם: {old_status_he}\n"
-                f"סטטוס חדש: {new_status_he}\n"
-                f"{notes_line}"
-                "\nבברכה,\nצוות RS Recruiting"
+                f"שלום {candidate.full_name},\n"
+                f"סטטוס מועמדותך למשרת '{job.title}' עודכן ל-{new_status_he}."
+            ),
+            "html_body": build_application_status_candidate_html(
+                candidate_name=candidate.full_name,
+                job_title=job.title,
+                old_status=old_status_he,
+                new_status=new_status_he,
+                notes=admin_notes,
             ),
         },
         {
             "to": company_user.email,
             "subject": f"עדכון סטטוס מועמדות למשרת '{job.title}'",
             "body": (
-                f"שלום {company.name},\n\n"
-                f"סטטוס מועמדות למשרת '{job.title}' עודכן.\n\n"
-                f"מועמד: {candidate.full_name}\n"
-                f"סטטוס קודם: {old_status_he}\n"
-                f"סטטוס חדש: {new_status_he}\n"
-                f"{notes_line}"
-                "\nבברכה,\nצוות RS Recruiting"
+                f"שלום {company.name},\n"
+                f"סטטוס מועמדות למשרת '{job.title}' עודכן ל-{new_status_he}."
+            ),
+            "html_body": build_application_status_company_html(
+                company_name=company.name or "",
+                job_title=job.title,
+                candidate_name=candidate.full_name,
+                old_status=old_status_he,
+                new_status=new_status_he,
+                notes=admin_notes,
             ),
         },
     ]

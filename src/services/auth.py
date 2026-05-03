@@ -22,6 +22,7 @@ from src.enums import InviteTokenStatus, UserRole
 from src.models import ActivationToken, CompanyProfile, InviteToken, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin_companies import get_all_admin_emails
+from src.services.email_templates import build_new_registration_html
 from src.services.exceptions import (
     AccountLockedError,
     EmailAlreadyExistsError,
@@ -178,20 +179,27 @@ async def register_company_user(
             f"{new_company_profile.contact_first_name} "
             f"{new_company_profile.contact_last_name}"
         )
-        company_info = (
-            f"חברה חדשה '{new_company_profile.name}' נרשמה וממתינה לאישור.\n\n"
-            f"שם חברה: {new_company_profile.name}\n"
-            f"ח.פ: {new_company_profile.company_id}\n"
-            f"כתובת: {new_company_profile.address or '—'}\n"
-            f"איש קשר: {contact_name}\n"
-            f'דוא"ל: {new_user.email}\n'
-            f"נייד: {new_company_profile.contact_mobile_phone or '—'}\n\n"
-            "אנא בדקו ואשרו או דחו את הבקשה."
+        from src.core.infrastructure.config import settings
+
+        admin_url = f"{settings.frontend_base_url}/admin/companies"
+        plain = (
+            f"חברה חדשה '{new_company_profile.name}' נרשמה וממתינה לאישור.\n"
+            f"כתובת: {admin_url}"
+        )
+        html = build_new_registration_html(
+            company_name=new_company_profile.name or "",
+            company_id=new_company_profile.company_id or "—",
+            address=new_company_profile.address or "—",
+            contact_name=contact_name,
+            email=new_user.email,
+            mobile=new_company_profile.contact_mobile_phone or "—",
+            admin_url=admin_url,
         )
         await enqueue_email_task(
             to=admin_emails,
             subject="בקשת הרשמה חדשה ממתינה לאישור – RS Recruiting",
-            body=company_info,
+            body=plain,
+            html_body=html,
         )
 
     return UserWithCompanyRead(

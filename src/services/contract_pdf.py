@@ -11,35 +11,43 @@ from src.core.infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
 
-# PDF page is 596 × 842 points (A4).
-# Coordinates found via page.get_text("dict") span analysis.
+# PDF page: 596 × 842 pt (A4).  All coordinates verified via get_text("dict").
+#
+# Document fonts (from get_fonts()):
+#   Arial-BoldMT  14pt — title
+#   ArialMT       11pt — body / לבין labels
+#   Calibri       11pt — blank underlines and body
+#   Arial-BoldMT  10pt — signature labels
+#
+# Drawn signature lines: y=672  (RS: x=358–518 | Company: x=54–232)
+#
+# Strategy: insert text DIRECTLY ON the underlines (no white-box erasure).
+# This is how typewritten contracts look — the typed characters sit on top
+# of the underline, which is the professional expected appearance.
 
-# Date blank:  x=131-213, y=77-88  (top title line)
-_DATE_RECT = fitz.Rect(131, 74, 214, 90)
-_DATE_INSERT = (214, 87)  # right-align end-point for date text
+# ── Date ─────────────────────────────────────────────────────────────────────
+# Blank "_______________" at x=131–213, y=77–88 (just left of "מתאריך")
+# We use a textbox so right-alignment pushes the date flush against "מתאריך".
+_DATE_RECT = fitz.Rect(131, 76, 213, 90)
 
-# Company info blanks on the "לבין" line (y=174-187):
-#   company name blank  x=417-499
-#   ח.פ blank          x=309-381
-#   address blank       x=193-264
-# We white-out the entire info zone and re-insert formatted text.
-_INFO_WHITEBOX = fitz.Rect(113, 172, 520, 190)
-_INFO_INSERT = (520, 186)  # right-align start (RTL)
+# ── Company info — each blank targeted individually ───────────────────────────
+# These rects cover the underline spans precisely so text sits on them.
+_NAME_RECT = fitz.Rect(417, 174, 499, 188)  # company name blank
+_ID_RECT = fitz.Rect(309, 174, 381, 188)  # ח.פ number blank
+_ADDR_RECT = fitz.Rect(193, 174, 264, 188)  # address blank
 
-# Signature labels are at y=630-641.
-# Signature image areas are placed above the drawn underline ~y=660.
-_RS_SIG_RECT = fitz.Rect(345, 641, 490, 690)  # right side (רוני רודיק)
-_COMPANY_SIG_RECT = fitz.Rect(75, 641, 290, 690)  # left side (נציג החברה)
+# ── Signatures ────────────────────────────────────────────────────────────────
+# Lines are drawn at y=672.  Images positioned so they sit on those lines
+# (bottom of image rect ≈ y=672, giving ~40pt height above the line).
+_RS_SIG_RECT = fitz.Rect(358, 632, 518, 672)  # right side — רוני רודיק
+_COMPANY_SIG_RECT = fitz.Rect(54, 632, 232, 672)  # left side  — נציג החברה
 
 
 async def _fetch_asset(key: str) -> bytes:
-    """Download an asset by key.
+    """Fetch a static asset.
 
-    In local-storage mode the key is resolved as a relative path under
-    the configured local_storage_path, so developers can drop the template
-    and RS signature there without S3 credentials.
-
-    In S3 mode the key is fetched from the configured bucket.
+    Local mode: resolves relative to local_storage_path (copy files there for dev).
+    S3 mode: fetches from the configured S3 bucket.
     """
     if settings.storage_provider != "s3":
         import asyncio
@@ -68,6 +76,15 @@ async def _fetch_asset(key: str) -> bytes:
         return await resp["Body"].read()
 
 
+def _htmlbox_rtl(page: fitz.Page, rect: fitz.Rect, text: str, size: float = 11) -> None:
+    """Insert Hebrew RTL text via htmlbox — handles BiDi correctly."""
+    html = (
+        f'<div style="font-family:Helvetica,Arial,sans-serif;font-size:{size}pt;'
+        f'color:#000000;direction:rtl;text-align:right;">{text}</div>'
+    )
+    page.insert_htmlbox(rect, html)
+
+
 async def generate_signed_contract(
     company_name: str,
     company_id: str,
@@ -75,7 +92,11 @@ async def generate_signed_contract(
     signed_at: datetime,
     company_signature_png_bytes: bytes,
 ) -> bytes:
-    """Overlay company details and signatures on the RS contract PDF template.
+    """Overlay company details and signatures on the RS contract template.
+
+    Text is inserted DIRECTLY on the printed underlines (no white-box
+    erasure), matching the appearance of a typewritten contract.
+    Signatures are placed so their baseline sits on the drawn signature lines.
 
     Returns raw PDF bytes suitable for email attachment.
     """
@@ -85,37 +106,35 @@ async def generate_signed_contract(
     doc = fitz.open(stream=template_bytes, filetype="pdf")
     page = doc[0]
 
-    white = (1, 1, 1)
-    black = (0, 0, 0)
-
-    # ── Date ──────────────────────────────────────────────────────────────────
+    # ── Date (right-aligned, LTR numbers flush against "מתאריך") ──────────────
     date_str = signed_at.strftime("%-d/%-m/%Y")
-    page.draw_rect(_DATE_RECT, color=white, fill=white)
-    page.insert_text(
-        _DATE_INSERT,
-        date_str,
-        fontsize=10,
-        fontname="helv",
-        color=black,
+    page.insert_htmlbox(
+        _DATE_RECT,
+        f'<div style="font-family:Helvetica,Arial,sans-serif;font-size:11pt;'
+        f'color:#000000;direction:ltr;text-align:right;">{date_str}</div>',
     )
 
-    # ── Company info (name · ח.פ · address) ──────────────────────────────────
-    page.draw_rect(_INFO_WHITEBOX, color=white, fill=white)
-    info_line = f"{company_name}  ח.פ. {company_id}  מרח׳: {address}"
-    page.insert_text(
-        _INFO_INSERT,
-        info_line,
-        fontsize=9,
-        fontname="helv",
-        color=black,
+    # ── Company name (right-aligned Hebrew/LTR in its blank) ─────────────────
+    _htmlbox_rtl(page, _NAME_RECT, company_name, size=10)
+
+    # ── ח.פ number (LTR numeric, right-aligned to flush with blank edge) ──────
+    page.insert_htmlbox(
+        _ID_RECT,
+        f'<div style="font-family:Helvetica,Arial,sans-serif;font-size:10pt;'
+        f'color:#000000;direction:ltr;text-align:right;">{company_id}</div>',
     )
 
-    # ── RS agency signature ───────────────────────────────────────────────────
+    # ── Address (right-aligned in its blank, smaller to fit) ──────────────────
+    _htmlbox_rtl(page, _ADDR_RECT, address, size=9)
+
+    # ── RS agency signature (sits on the drawn line at y=672) ─────────────────
     page.insert_image(_RS_SIG_RECT, stream=rs_sig_bytes, keep_proportion=True)
 
-    # ── Company signature ─────────────────────────────────────────────────────
+    # ── Company signature (sits on the drawn line at y=672) ───────────────────
     page.insert_image(
-        _COMPANY_SIG_RECT, stream=company_signature_png_bytes, keep_proportion=True
+        _COMPANY_SIG_RECT,
+        stream=company_signature_png_bytes,
+        keep_proportion=True,
     )
 
     buf = io.BytesIO()
