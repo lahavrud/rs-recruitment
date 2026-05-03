@@ -51,6 +51,8 @@ AWS_S3_BUCKET_NAME=$(get_param /rs-recruitment/prod/AWS_S3_BUCKET_NAME) \
   || { echo "ERROR: SSM parameter not found: AWS_S3_BUCKET_NAME" >&2; SSM_OK=false; }
 STORAGE_PROVIDER=$(get_param /rs-recruitment/prod/STORAGE_PROVIDER) \
   || { echo "ERROR: SSM parameter not found: STORAGE_PROVIDER" >&2; SSM_OK=false; }
+FRONTEND_BASE_URL=$(get_param /rs-recruitment/prod/FRONTEND_BASE_URL) \
+  || { echo "ERROR: SSM parameter not found: FRONTEND_BASE_URL" >&2; SSM_OK=false; }
 
 if [ "$SSM_OK" = "false" ]; then
   echo "ERROR: One or more required SSM parameters are missing — cannot deploy" >&2
@@ -73,6 +75,7 @@ printf 'REDIS_URL=%s\n'            "${REDIS_URL}"             >> "${APP_DIR}/.en
 printf 'AWS_REGION=%s\n'           "${AWS_REGION}"            >> "${APP_DIR}/.env"
 printf 'AWS_S3_BUCKET_NAME=%s\n'   "${AWS_S3_BUCKET_NAME}"    >> "${APP_DIR}/.env"
 printf 'STORAGE_PROVIDER=%s\n'     "${STORAGE_PROVIDER}"      >> "${APP_DIR}/.env"
+printf 'FRONTEND_BASE_URL=%s\n'    "${FRONTEND_BASE_URL}"     >> "${APP_DIR}/.env"
 printf 'ENVIRONMENT=%s\n'          "production"               >> "${APP_DIR}/.env"
 chmod 600 "${APP_DIR}/.env"
 
