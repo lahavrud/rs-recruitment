@@ -1,11 +1,11 @@
 """Tests for authentication dependencies."""
 
+import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
 
 from src.core.infrastructure.dependencies import (
     get_current_admin,
@@ -15,30 +15,20 @@ from src.core.infrastructure.dependencies import (
 from src.core.infrastructure.security import create_access_token, decode_access_token
 from src.enums import UserRole
 from src.models import User
-from tests.conftest import enable_sqlite_foreign_keys
 
-# Use in-memory SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
+)
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
 
 
 @pytest.fixture(scope="function")
-async def test_db():
-    """Create and drop test database tables for each test."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture(scope="function")
-async def session(test_db):
+async def session():
     """Create test database session."""
     async with TestSessionLocal() as session:
         yield session

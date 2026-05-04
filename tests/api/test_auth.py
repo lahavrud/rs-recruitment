@@ -1,6 +1,7 @@
 """Tests for authentication endpoints."""
 
 import base64
+import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,19 +12,19 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlmodel import SQLModel
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import verify_password
 from src.main import app
 from src.models import User
 from src.services.exceptions import InvalidInviteTokenError
-from tests.conftest import enable_sqlite_foreign_keys
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
+)
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -38,16 +39,7 @@ async def override_get_session():
 
 
 @pytest.fixture(scope="function")
-async def test_db():
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture(scope="function")
-async def client(test_db):
+async def client():
     from src.api import auth
 
     auth.limiter.enabled = False

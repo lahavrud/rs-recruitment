@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: rs-recruitment-db
+    environment:
+      POSTGRES_DB: rs_recruitment
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres # pragma: allowlist secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   mailpit:
     image: axllent/mailpit:latest
     container_name: rs-recruitment-mailpit
@@ -31,7 +49,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/rs_recruitment.db}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/rs_recruitment}
       # WARNING: JWT_SECRET_KEY must be set to a secure value (min 32 chars)
       # Generate with: python -c 'import secrets; print(secrets.token_urlsafe(32))'
       # If not set, validation will fail at startup (by design for security)
@@ -47,10 +65,10 @@ services:
       # Set TESTING=true to disable rate limiting in local dev
       - TESTING=${TESTING:-false}
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 10s
@@ -68,7 +86,7 @@ services:
       # Example: args: { APP_UID: "1000", APP_GID: "1000" }
     container_name: rs-recruitment-worker
     environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/rs_recruitment.db}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/rs_recruitment}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
@@ -83,9 +101,9 @@ services:
       - SMTP_PASSWORD=
       - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@rsrecruit.local}
       - SMTP_USE_TLS=false
-    volumes:
-      - ./data:/app/data
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
       api:
@@ -96,4 +114,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  postgres-data:
   redis-data:
