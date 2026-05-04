@@ -1,5 +1,6 @@
 """Tests for authentication dependencies."""
 
+import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -15,13 +16,13 @@ from src.core.infrastructure.dependencies import (
 from src.core.infrastructure.security import create_access_token, decode_access_token
 from src.enums import UserRole
 from src.models import User
-from tests.conftest import enable_sqlite_foreign_keys
 
-# Use in-memory SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
+)
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

@@ -17,12 +17,8 @@ from src.models import SQLModel  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
-# Idempotent ALTER TABLE statements for columns added after initial schema creation.
-# Each entry is applied at startup; errors are swallowed so they are safe to re-run.
-_MIGRATIONS: list[str] = [
-    "ALTER TABLE companyprofile ADD COLUMN address TEXT",
-    "ALTER TABLE companyprofile ADD COLUMN privacy_accepted_at DATETIME",
-]
+# Reserved for future ad-hoc column migrations; schema changes are handled by Alembic.
+_MIGRATIONS: list[str] = []
 
 # Database URL - uses config which reads from environment variables
 DATABASE_URL = settings.database_url

@@ -1,5 +1,6 @@
 """Tests for the company account activation endpoint."""
 
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
@@ -14,11 +15,12 @@ from src.core.infrastructure.security import get_password_hash
 from src.enums import UserRole
 from src.main import app
 from src.models import ActivationToken, CompanyProfile, User
-from tests.conftest import enable_sqlite_foreign_keys
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
+)
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
-enable_sqlite_foreign_keys(test_engine)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

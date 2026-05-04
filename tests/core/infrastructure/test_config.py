@@ -153,12 +153,12 @@ class TestSettingsInitialization:
             os.environ,
             {
                 "JWT_SECRET_KEY": "test_secret_key_32_chars_long_!!",
-                "DATABASE_URL": "sqlite+aiosqlite:///test.db",
+                "DATABASE_URL": "postgresql+asyncpg://localhost/test",
             },
         ):
             settings = Settings()
             assert settings.jwt_secret_key == "test_secret_key_32_chars_long_!!"
-            assert settings.database_url == "sqlite+aiosqlite:///test.db"
+            assert settings.database_url == "postgresql+asyncpg://localhost/test"
 
     def test_settings_initialization_defaults(self):
         """Test Settings initialization with defaults."""

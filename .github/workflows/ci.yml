@@ -148,7 +148,6 @@ jobs:
     needs: [lint, test, frontend-lint] # Only run if lint, test, and frontend type check pass
     env:
       JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long" # pragma: allowlist secret
-      DATABASE_URL: "sqlite+aiosqlite:///./data/test.db"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -167,14 +166,26 @@ jobs:
           cache-to: type=gha,mode=max
           load: true
 
+      - name: Start test network and postgres
+        run: |
+          docker network create test-net
+          docker run -d --name test-db --network test-net \
+            -e POSTGRES_DB=rs_recruitment_test \
+            -e POSTGRES_USER=test \
+            -e POSTGRES_PASSWORD=test \
+            postgres:16-alpine
+          for i in {1..10}; do
+            docker exec test-db pg_isready -U test && break || sleep 2
+          done
+
       - name: Start container
         run: |
           docker run -d \
             --name rs-recruitment-test \
+            --network test-net \
             -p 8000:8000 \
-            -e DATABASE_URL="$DATABASE_URL" \
+            -e DATABASE_URL="postgresql+asyncpg://test:test@test-db:5432/rs_recruitment_test" \
             -e JWT_SECRET_KEY="$JWT_SECRET_KEY" \
-            -v /tmp/rs-recruitment-test-data:/app/data \
             rs-recruitment:test
 
       - name: Wait for service to be ready
@@ -217,6 +228,9 @@ jobs:
         run: |
           docker stop rs-recruitment-test || true
           docker rm rs-recruitment-test || true
+          docker stop test-db || true
+          docker rm test-db || true
+          docker network rm test-net || true
 
   deploy:
     name: Deploy to Production

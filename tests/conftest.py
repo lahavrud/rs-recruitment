@@ -4,7 +4,6 @@
 import asyncio
 import base64
 import os
-import tempfile
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -18,9 +17,8 @@ os.environ["JWT_SECRET_KEY"] = _TEST_JWT_SECRET
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -124,46 +122,14 @@ def mock_storage_provider():
         yield mock
 
 
-def enable_sqlite_foreign_keys(engine: AsyncEngine) -> None:
-    """Enable foreign key constraint enforcement for SQLite.
+TEST_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
+)
 
-    This function should be called after creating a SQLite async engine to ensure
-    foreign key constraints are enforced during tests, matching PostgreSQL
-    behavior in production.
-
-    Args:
-        engine: SQLAlchemy AsyncEngine instance
-    """
-
-    @event.listens_for(engine.sync_engine, "connect")
-    def _set_sqlite_pragma(dbapi_connection, connection_record):
-        """Execute PRAGMA foreign_keys=ON for each connection."""
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-
-# Use DATABASE_URL from the environment when it is a PostgreSQL URL (CI),
-# otherwise fall back to a temporary SQLite file (local development).
-# PostgreSQL tests run sequentially (-n 0) to avoid workers sharing one DB.
-_env_db_url = os.environ.get("DATABASE_URL", "")
-
-if _env_db_url.startswith("postgresql"):
-    TEST_DATABASE_URL = _env_db_url
-    test_engine = create_async_engine(
-        TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
-    )
-    # No SQLite FK pragma needed — PostgreSQL enforces FKs natively
-else:
-    # File-based SQLite: faster than :memory: for multiple tests, and each
-    # xdist worker gets its own temp file (process-level isolation).
-    _test_db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
-    _test_db_file.close()
-    TEST_DATABASE_URL = f"sqlite+aiosqlite:///{_test_db_file.name}"
-    test_engine = create_async_engine(
-        TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
-    )
-    enable_sqlite_foreign_keys(test_engine)
+test_engine = create_async_engine(
+    TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
+)
 
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False

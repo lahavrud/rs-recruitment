@@ -1,11 +1,18 @@
 """Unit tests for database module initialization."""
 
+import os
+
 import pytest
 from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.core.infrastructure.database import engine
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+
+TEST_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
+)
 
 
 class TestInitDB:
@@ -14,9 +21,7 @@ class TestInitDB:
     @pytest.mark.asyncio
     async def test_init_db_creates_tables(self):
         """Test that init_db creates database tables."""
-        # Use a separate test database
-        test_db_url = "sqlite+aiosqlite:///:memory:"
-        test_engine = create_async_engine(test_db_url, echo=False, future=True)
+        test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
 
         # Initialize database
         async with test_engine.begin() as conn:
@@ -40,8 +45,7 @@ class TestInitDB:
     @pytest.mark.asyncio
     async def test_init_db_all_models_registered(self):
         """Test that all models are registered with SQLModel.metadata."""
-        test_db_url = "sqlite+aiosqlite:///:memory:"
-        test_engine = create_async_engine(test_db_url, echo=False, future=True)
+        test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
 
         # Initialize database
         async with test_engine.begin() as conn:
@@ -73,8 +77,7 @@ class TestInitDB:
     @pytest.mark.asyncio
     async def test_init_db_tables_can_be_queried(self):
         """Test that tables can be queried after initialization."""
-        test_db_url = "sqlite+aiosqlite:///:memory:"
-        test_engine = create_async_engine(test_db_url, echo=False, future=True)
+        test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
         test_session_factory = async_sessionmaker(
             test_engine, class_=AsyncSession, expire_on_commit=False
         )
