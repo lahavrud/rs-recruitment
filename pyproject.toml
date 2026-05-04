@@ -17,8 +17,6 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore::DeprecationWarning:jose.*",
-    "ignore::DeprecationWarning:pytest_asyncio.*",
-    "ignore::pytest.PytestConfigWarning:pytest.*",
 ]
 
 [dependency-groups]
