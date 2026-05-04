@@ -130,7 +130,7 @@ async def register(
     except ValueError as e:
         await session.rollback()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         ) from e
     except sqlalchemy_exc.IntegrityError as e:
         await session.rollback()
