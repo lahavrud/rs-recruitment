@@ -7,6 +7,7 @@ import typing
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 from sqlmodel import SQLModel
 
 from src.core.infrastructure.security import verify_password
@@ -25,7 +26,9 @@ TEST_DATABASE_URL = os.environ.get(
     "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
 )
 
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
+test_engine = create_async_engine(
+    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
+)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 from sqlmodel import SQLModel
 
 from src.core.infrastructure.config import settings
@@ -127,7 +128,7 @@ TEST_DATABASE_URL = os.environ.get(
 )
 
 test_engine = create_async_engine(
-    TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
+    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
 )
 
 TestSessionLocal = async_sessionmaker(

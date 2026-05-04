@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import get_password_hash
@@ -19,7 +20,9 @@ TEST_DATABASE_URL = os.environ.get(
     "DATABASE_URL",
     "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
 )
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
+test_engine = create_async_engine(
+    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
+)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
