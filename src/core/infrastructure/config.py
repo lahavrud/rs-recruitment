@@ -70,9 +70,7 @@ class Settings(BaseSettings):
     allowed_origins: str = Field(default="http://localhost:3000")
 
     # Database
-    database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment"
-    )
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment"  # pragma: allowlist secret  # noqa: E501
     database_echo: bool = False  # Enable SQL query logging (for debugging only)
 
     # Redis Configuration (for Arq task queue)
