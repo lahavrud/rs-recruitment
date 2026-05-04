@@ -1,7 +1,6 @@
 # ruff: noqa: E402  -- env var must be set before src imports (see _TEST_JWT_SECRET below)
 """Shared pytest fixtures for all tests."""
 
-import asyncio
 import base64
 import os
 from collections.abc import AsyncGenerator
@@ -23,6 +22,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 from sqlmodel import SQLModel
 
 from src.core.infrastructure.config import settings
@@ -128,29 +128,12 @@ TEST_DATABASE_URL = os.environ.get(
 )
 
 test_engine = create_async_engine(
-    TEST_DATABASE_URL, echo=False, future=True, pool_pre_ping=True
+    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
 )
 
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create a session-scoped event loop for async fixtures.
-
-    This allows session-scoped async fixtures to work properly.
-    Only used when session-scoped async fixtures are needed.
-
-    Note: This triggers a deprecation warning from pytest-asyncio, which is suppressed
-    in pyproject.toml filterwarnings. The warning is expected when using session-scoped
-    async fixtures and will be addressed when pytest-asyncio provides better support.
-    """
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
