@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlmodel import SQLModel
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import verify_password
@@ -40,16 +39,7 @@ async def override_get_session():
 
 
 @pytest.fixture(scope="function")
-async def test_db():
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture(scope="function")
-async def client(test_db):
+async def client():
     from src.api import auth
 
     auth.limiter.enabled = False

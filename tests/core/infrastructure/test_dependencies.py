@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
 
 from src.core.infrastructure.dependencies import (
     get_current_admin,
@@ -29,17 +28,7 @@ TestSessionLocal = async_sessionmaker(
 
 
 @pytest.fixture(scope="function")
-async def test_db():
-    """Create and drop test database tables for each test."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture(scope="function")
-async def session(test_db):
+async def session():
     """Create test database session."""
     async with TestSessionLocal() as session:
         yield session

@@ -8,7 +8,6 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import get_password_hash
@@ -24,15 +23,6 @@ test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
 TestSessionLocal = async_sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )
-
-
-@pytest.fixture(autouse=True)
-async def setup_db():
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
 
 
 async def _override_session():
