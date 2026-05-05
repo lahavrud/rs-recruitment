@@ -1,6 +1,6 @@
 """Unit tests for admin_companies service layer."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy import select
@@ -117,13 +117,14 @@ async def test_list_pending_companies(mock_email, session: AsyncSession):
 @pytest.mark.asyncio
 @patch("src.services.admin_companies.enqueue_email_task")
 @patch("src.services.admin_companies.generate_signed_contract")
-@patch("src.core.services.storage.get_storage_provider")
+@patch("src.services.admin_companies.get_storage_provider")
 async def test_approve_company_success(
     mock_storage, mock_pdf, mock_email, session: AsyncSession
 ):
     mock_email.return_value = "job-id"
     mock_pdf.return_value = b"%PDF-fake"
-    mock_storage.return_value.download_file = lambda _: b"fake-sig-bytes"
+    mock_storage.return_value.download_file = AsyncMock(return_value=b"fake-sig-bytes")
+    mock_storage.return_value.upload_file = AsyncMock(return_value="contract-key.pdf")
 
     user = await _register(
         _company_create("approve@example.com", "Approve Co"), session
@@ -139,6 +140,15 @@ async def test_approve_company_success(
         await session.execute(select(User).where(User.id == user.id))  # pyright: ignore[reportArgumentType]
     ).scalar_one()
     assert db_user.is_active is False
+
+    # Contract PDF should be persisted to storage
+    cp = (
+        await session.execute(
+            select(CompanyProfile).where(CompanyProfile.user_id == user.id)  # pyright: ignore[reportArgumentType]
+        )
+    ).scalar_one()
+    assert cp.contract_pdf_url == "contract-key.pdf"
+    mock_storage.return_value.upload_file.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -208,6 +218,25 @@ async def test_reject_company_success(mock_email, session: AsyncSession):
 
 
 @pytest.mark.asyncio
+@patch("src.services.admin_companies.enqueue_email_task")
+@patch("src.services.admin_companies.get_storage_provider")
+async def test_reject_company_deletes_s3_files(
+    mock_storage, mock_email, session: AsyncSession
+):
+    """S3 files (logo + signature) are deleted when a company is rejected."""
+    mock_email.return_value = "job-id"
+    mock_storage.return_value.delete_file = AsyncMock(return_value=True)
+    user = await _register(
+        _company_create("reject2@example.com", "Reject2 Co"), session
+    )
+
+    await reject_company(user.id, session)
+    await session.commit()
+
+    assert mock_storage.return_value.delete_file.call_count >= 1
+
+
+@pytest.mark.asyncio
 async def test_reject_company_not_found(session: AsyncSession):
     with pytest.raises(CompanyNotFoundError):
         await reject_company(99999, session)
@@ -262,6 +291,30 @@ async def test_list_active_companies(mock_email, session: AsyncSession):
 
 
 # ── delete_active_company ─────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.enqueue_email_task")
+@patch("src.services.admin_companies.get_storage_provider")
+async def test_delete_active_company_deletes_s3_files(
+    mock_storage, mock_email, session: AsyncSession
+):
+    """S3 files (logo + signature) are deleted when a company is hard-deleted."""
+    mock_email.return_value = "job-id"
+    mock_storage.return_value.delete_file = AsyncMock(return_value=True)
+    user = await _register(
+        _company_create("delfiles@example.com", "DelFiles Co"), session
+    )
+    db_user = (
+        await session.execute(select(User).where(User.id == user.id))  # pyright: ignore[reportArgumentType]
+    ).scalar_one()
+    db_user.is_active = True
+    await session.commit()
+
+    await delete_active_company(user.id, session)
+    await session.commit()
+
+    assert mock_storage.return_value.delete_file.call_count >= 1
 
 
 @pytest.mark.asyncio

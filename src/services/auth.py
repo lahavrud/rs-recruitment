@@ -184,10 +184,12 @@ async def register_company_user(
 
     storage = get_storage_provider()
     logo_identifier = await storage.upload_file(
-        logo_content, logo_filename, logo_content_type
+        logo_content, f"logos/{logo_filename}", logo_content_type
     )
     sig_filename = f"{user_data.company_profile.company_id}_agreement.png"
-    sig_identifier = await storage.upload_file(sig_bytes, sig_filename, "image/png")
+    sig_identifier = await storage.upload_file(
+        sig_bytes, f"signatures/{sig_filename}", "image/png"
+    )
 
     hashed_password = get_password_hash(user_data.password)
     new_user = User(

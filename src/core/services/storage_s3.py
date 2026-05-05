@@ -42,7 +42,12 @@ class S3StorageProvider(StorageProvider):
         self, file_content: bytes, file_name: str, content_type: Optional[str] = None
     ) -> str:
         """Upload file to S3 and return the object key."""
-        file_key = f"{uuid4()}{Path(file_name).suffix}"
+        parent = Path(file_name).parent
+        suffix = Path(file_name).suffix
+        if str(parent) != ".":
+            file_key = f"{parent}/{uuid4()}{suffix}"
+        else:
+            file_key = f"{uuid4()}{suffix}"
         async with self.session.client("s3", **self._client_kwargs()) as s3:  # type: ignore[attr-defined]
             upload_kwargs: dict = {
                 "Bucket": self.bucket_name,

@@ -1,5 +1,6 @@
 """Admin service layer for company management."""
 
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -21,6 +22,22 @@ from src.services.exceptions import (
 from src.templates.email import build_approval_html, build_rejection_html
 
 _ACTIVATION_TTL_HOURS = 48
+_logger = logging.getLogger(__name__)
+
+
+async def _delete_company_files(company_profile: CompanyProfile) -> None:
+    """Delete all S3 files associated with a company profile (best-effort)."""
+    storage = get_storage_provider()
+    for key in [
+        company_profile.logo_url,
+        company_profile.agreement_signature_url,
+        company_profile.contract_pdf_url,
+    ]:
+        if key:
+            try:
+                await storage.delete_file(key)
+            except Exception:
+                _logger.exception("Failed to delete storage file %s", key)
 
 
 async def get_all_admin_emails(session: AsyncSession) -> list[str]:
@@ -111,7 +128,7 @@ async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
 
     activation_url = f"{settings.frontend_base_url}/activate?token={raw_token}"
 
-    # Fetch company signature bytes for PDF
+    # Generate signed contract PDF and persist it to storage
     pdf_bytes: bytes | None = None
     try:
         storage = get_storage_provider()
@@ -129,12 +146,18 @@ async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
                 signed_at=signed_at,
                 company_signature_png_bytes=sig_bytes,
             )
+            if pdf_bytes:
+                pdf_key = await storage.upload_file(
+                    pdf_bytes,
+                    f"contracts/{company_profile.company_id}_contract.pdf",
+                    "application/pdf",
+                )
+                company_profile.contract_pdf_url = pdf_key
+                await session.flush()
     except Exception:
-        # PDF generation is best-effort — email is still sent without attachment
-        import logging
-
-        logging.getLogger(__name__).exception(
-            "Failed to generate signed contract for company %s", company_user_id
+        # PDF generation/upload is best-effort — approval proceeds without it
+        _logger.exception(
+            "Failed to generate/store signed contract for company %s", company_user_id
         )
 
     plain = (
@@ -242,6 +265,8 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
         html_body=build_rejection_html(company_profile.name or ""),
     )
 
+    await _delete_company_files(company_profile)
+
     await session.delete(company_profile)
     await session.flush()
     await session.delete(user)
@@ -295,6 +320,8 @@ async def delete_active_company(company_user_id: int, session: AsyncSession) -> 
             delete(Job).where(Job.id.in_(job_ids))  # pyright: ignore[reportAttributeAccessIssue]
         )
         await session.flush()
+
+    await _delete_company_files(cp)
 
     await session.delete(cp)
     await session.flush()

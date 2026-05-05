@@ -193,7 +193,7 @@ async def create_candidate_profile(
 
             file_identifier = await storage_provider.upload_file(
                 file_content=resume_file,
-                file_name=resume_filename,
+                file_name=f"resumes/{resume_filename}",
                 content_type=content_type,
             )
 

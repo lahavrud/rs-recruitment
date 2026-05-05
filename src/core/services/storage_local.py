@@ -41,9 +41,18 @@ class LocalStorageProvider(StorageProvider):
     async def upload_file(
         self, file_content: bytes, file_name: str, content_type: Optional[str] = None
     ) -> str:
-        file_key = f"{uuid4()}{Path(file_name).suffix}"
+        parent = Path(file_name).parent
+        suffix = Path(file_name).suffix
+        if str(parent) != ".":
+            file_key = f"{parent}/{uuid4()}{suffix}"
+        else:
+            file_key = f"{uuid4()}{suffix}"
         file_path = self.storage_path / file_key
         loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None,
+            lambda: file_path.parent.mkdir(parents=True, exist_ok=True),
+        )
         await loop.run_in_executor(None, file_path.write_bytes, file_content)
         return file_key
 

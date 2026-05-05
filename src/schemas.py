@@ -161,6 +161,7 @@ class CompanyProfileRead(BaseModel):
     contact_landline_phone: str | None
     agreement_signed_at: datetime | None
     agreement_signature_url: str | None
+    contract_pdf_url: str | None
     privacy_accepted_at: datetime | None
     created_at: datetime
 
