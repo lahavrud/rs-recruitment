@@ -14,8 +14,8 @@
 * **Admin as Gatekeeper**: Companies, Jobs, and Matches require Admin approval. Public input is never auto-trusted.
 * **Hybrid Auth Model**:
 * Admins & Companies are authenticated `Users`.
-* Candidates are unauthenticated `CandidateProfile` leads.
-* Do NOT add Candidate authentication unless explicitly requested.
+* Candidates are unauthenticated `CandidateProfile` leads in MVP.
+* Candidate authentication is **planned post-MVP** as an optional "claim" flow (match-by-email links past applications to a new account). Schema must keep this path open: nullable `user_id` on `CandidateProfile`, unique `email`. Do NOT add Candidate authentication endpoints in MVP unless explicitly requested.
 
 * **MVP First**: Prefer simple, explicit solutions over abstractions. Avoid over-engineering and premature optimization.
 
@@ -61,10 +61,10 @@
 ## 3. Domain Model (Source of Truth)
 
 * **User**: Authenticated entity (Roles: `ADMIN`, `COMPANY`).
-* **CompanyProfile**: 1:1 with User.
-* **CandidateProfile**: Unauthenticated lead containing interview-related fields.
+* **CompanyProfile**: 1:1 with User today; `user_id` will become nullable to support admin-posted jobs against companies that have no user yet.
+* **CandidateProfile**: Unauthenticated lead containing interview-related fields. One profile per email (planned constraint), many `Application` rows per profile.
 * **Job**: Linked to Company (Status: `PENDING_APPROVAL` → `PUBLISHED` → `CLOSED`).
-* **Application**: Links Candidate ↔ Job (Status: `NEW` → `APPROVED_BY_ADMIN` → `REJECTED` → `HIRED`).
+* **Application**: Links Candidate ↔ Job (Status: `NEW` → `APPROVED_BY_ADMIN` → `REJECTED` → `HIRED`). Carries `admin_notes` (internal). Resume is per-application snapshot; the candidate profile holds the latest.
 
 ---
 

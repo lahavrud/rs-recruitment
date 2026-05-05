@@ -235,49 +235,64 @@ These principles guide all architectural decisions:
 **API Structure:** All endpoints return JSON. Frontend consumes REST API with JWT authentication.
 
 **Implementation:**
-- **Framework:** React 19 + TypeScript (via Vite 8)
+- **Framework:** React 19 + TypeScript (via Vite)
 - **Styling:** Tailwind CSS v4
 - **Routing:** React Router v7
 - **API Client:** Axios with JWT interceptors
-- **Auth Flow:** JWT token stored in localStorage, decoded client-side for user info (role, email), verified server-side on every request
-- **Dev Server:** Vite on port 3000 with proxy to backend at :8000
+- **Auth Flow:** JWT access token in `localStorage`, refresh token in HttpOnly cookie issued by backend. `AuthContext` resolves initial state synchronously from `localStorage` then verifies via `/api/auth/me`. Verified server-side on every request.
+- **Dev Server:** Vite with proxy `/api/* → http://localhost:8000`
 
 **Routes:**
-| Path | Component | Auth | Description |
-|------|-----------|------|-------------|
-| `/login` | LoginPage | Public | JWT login form |
-| `/jobs` | JobBoardPage | Public | Published job listings |
-| `/jobs/:id` | JobDetailPage | Public | Single job detail |
-| `/jobs/:id/apply` | ApplicationPage | Public | Candidate application form (multipart upload) |
-| `/` | DashboardPage | Protected | Authenticated user dashboard |
+| Path | Component | Guard | Description |
+|------|-----------|-------|-------------|
+| `/` | LandingPage | — | Public landing page |
+| `/login` | LoginPage | — | JWT login form |
+| `/register` | RegisterPage | — | Company self-registration (pending approval) |
+| `/activate` | ActivatePage | — | Invite-token activation (set password) |
+| `/jobs` | JobBoardPage | — | Published job listings |
+| `/jobs/:id` | JobDetailPage | — | Single job detail |
+| `/jobs/:id/apply` | ApplicationPage | — | Candidate application form (multipart upload) |
+| `/dashboard` | DashboardPage | `ProtectedRoute` | Role-aware authenticated landing |
+| `/admin/companies` | AdminCompaniesPage | `AdminRoute` | Manage companies + invites |
+| `/admin/jobs` | AdminJobsPage | `AdminRoute` | Pending-job approval queue |
+| `/admin/applications` | AdminApplicationsPage | `AdminRoute` | Application management |
+| `/admin/candidates` | AdminCandidatesPage | `AdminRoute` | Candidate directory |
+| `/company/jobs` | CompanyJobsPage | `CompanyRoute` | Company's own jobs |
 
 **Project Structure:**
 ```
 frontend/
 ├── src/
 │   ├── components/
-│   │   ├── layout/       # AppShell (root wrapper), Header, Sidebar (auth), PublicHeader (public, inside AppShell)
-│   │   └── ProtectedRoute.tsx
+│   │   ├── AdminRoute.tsx      # Role guard: ADMIN
+│   │   ├── CompanyRoute.tsx    # Role guard: COMPANY
+│   │   ├── ProtectedRoute.tsx  # Auth guard
+│   │   ├── layout/             # AppShell, Header, Sidebar, PublicHeader
+│   │   └── ui/                 # Logo, LogoBanner, PageHeader
 │   ├── pages/
-│   │   ├── public/       # JobBoardPage, JobDetailPage, ApplicationPage
+│   │   ├── admin/              # 4 admin pages (Companies, Jobs, Applications, Candidates)
+│   │   ├── company/            # CompanyJobsPage
+│   │   ├── public/             # LandingPage, JobBoardPage, JobDetailPage, ApplicationPage
+│   │   ├── ActivatePage.tsx
+│   │   ├── DashboardPage.tsx
 │   │   ├── LoginPage.tsx
-│   │   └── DashboardPage.tsx
-│   ├── services/         # api.ts (Axios), auth.ts, jobs.ts
-│   ├── contexts/         # AuthContext
-│   ├── hooks/            # useAuth
-│   ├── types/            # api.ts (all TS types mirroring backend)
-│   └── utils/            # token.ts (localStorage helpers)
-├── vite.config.ts        # Vite config (Tailwind, proxy, path aliases)
-├── .env.example          # Environment variable template
+│   │   ├── NotFoundPage.tsx
+│   │   └── RegisterPage.tsx
+│   ├── contexts/               # AuthContext
+│   ├── styles/                 # forms.ts (shared input class strings)
+│   ├── locales/                # he.json (Hebrew UI strings)
+│   └── index.css               # Tailwind @theme tokens
+├── vite.config.ts              # Vite config (Tailwind, proxy, path aliases)
+├── .env.example
 └── package.json
 ```
 
 **Related Issues:**
 - [#91](https://github.com/lahavrud/rs-recruitment/issues/91) - frontend1: Frontend Structure & Setup ✅ CLOSED
 - [#92](https://github.com/lahavrud/rs-recruitment/issues/92) - frontend2: Public Pages ✅ CLOSED
-- [#93](https://github.com/lahavrud/rs-recruitment/issues/93) - frontend3: Admin/Company dashboards (pending)
+- [#93](https://github.com/lahavrud/rs-recruitment/issues/93) - frontend3: Admin/Company dashboards (in progress)
 
-**Status:** ✅ Implemented (structure, auth, public pages), 🔄 Pending (dashboards)
+**Status:** ✅ Implemented (structure, auth, public pages, admin + company pages scaffolded), 🔄 In progress (admin polish, modal detail views, full CRUD wiring — see local PLAN.md)
 
 ---
 

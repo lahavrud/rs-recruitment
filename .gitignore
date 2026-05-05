@@ -235,3 +235,6 @@ data/
 # Frontend build artifacts
 frontend/node_modules/
 frontend/dist/
+
+# Local-only working notes, plans, scratch (not pushed)
+.local/

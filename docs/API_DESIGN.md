@@ -1,11 +1,13 @@
 # API Design
 
-This document outlines the REST API contract for the RS Recruitment platform. 
+This document outlines the REST API contract for the RS Recruitment platform.
+
+> **Note:** This file documents the contract for the most stable, externally-facing endpoints. The authoritative source for every endpoint (request/response schemas, status codes, examples) is the FastAPI OpenAPI schema served at `/docs` and `/openapi.json`. When a discrepancy exists, treat the OpenAPI schema as canonical and update this file.
 
 ## General Constraints
 * **Base URL:** `/api` (for all domain routes). System routes sit at the root `/`.
 * **Content-Type:** JSON by default (`application/json`), except for authentication (form-data) and file uploads (multipart).
-* **Authentication:** JWT Bearer tokens passed in the `Authorization` header (`Bearer <token>`).
+* **Authentication:** JWT Bearer access token passed in `Authorization: Bearer <token>`. A refresh token is set as an HttpOnly cookie by `/api/auth/login` and consumed by `/api/auth/refresh`.
 
 ---
 
@@ -61,7 +63,7 @@ Register a new company user and profile. Places the company in a `PENDING_APPROV
     ```
 
 ### `POST /api/auth/login`
-Authenticate a user and receive a JWT access token.
+Authenticate a user and receive a JWT access token. Sets an HttpOnly refresh-token cookie.
 * **Auth Required:** No
 * **Content-Type:** `application/json`
 * **Request Body:**
@@ -71,7 +73,7 @@ Authenticate a user and receive a JWT access token.
       "password": "string"
     }
     ```
-* **Response:** `200 OK` | `401 Unauthorized` | `422 Validation Error`
+* **Response:** `200 OK` | `401 Unauthorized` | `422 Validation Error` | `429 Too Many Requests` (rate-limited)
 * **Response Body:**
     ```json
     {
@@ -80,10 +82,31 @@ Authenticate a user and receive a JWT access token.
     }
     ```
 
+### `POST /api/auth/refresh`
+Exchange the HttpOnly refresh-token cookie for a new access token.
+* **Auth Required:** No (cookie-based)
+* **Response:** `200 OK` (`TokenResponse`) | `401 Unauthorized`
+
+### `POST /api/auth/logout`
+Invalidate the current refresh token and clear the cookie.
+* **Auth Required:** No (cookie-based)
+* **Response:** `204 No Content`
+
+### `POST /api/activate`
+Set a password for an invited user via an activation token.
+* **Auth Required:** No
+* **Request Body:** `{ "token": "string", "password": "string" }`
+* **Response:** `200 OK` | `400 Bad Request` | `404 Not Found`
+
+### `GET /api/invite/{token}`
+Public metadata for an invite token (used by the activation page to show context before password entry).
+* **Auth Required:** No
+* **Response:** `200 OK` (`InviteMetadataPublic`) | `404 Not Found`
+
 ---
 
 ## Admin Endpoints
-Operations exclusively for users with `is_admin=True`.
+Operations exclusively for users with role `ADMIN`.
 
 ### `GET /api/admin/companies/pending`
 List all companies awaiting approval.
@@ -124,6 +147,43 @@ Reject a pending job posting (Deletes the object from the DB).
 * **Parameters:** `job_id` (Integer, Path)
 * **Response:** `204 No Content` | `404 Not Found` | `400 Bad Request` (Not pending)
 * **Response Body:** None
+
+### `POST /api/admin/jobs/{job_id}/contact`
+Send the agency-contact email to the company associated with a pending job.
+* **Auth Required:** Yes (Admin)
+* **Response:** `200 OK` | `404 Not Found`
+
+### Company invites & active companies
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/admin/companies/invites` | Create a new company invite (sends email) |
+| `GET` | `/api/admin/companies/invites` | List existing invites |
+| `DELETE` | `/api/admin/companies/invites/{invite_id}` | Revoke a pending invite |
+| `POST` | `/api/admin/companies/invites/{invite_id}/resend` | Resend an invite email |
+| `GET` | `/api/admin/companies/active` | List active (approved) companies |
+| `DELETE` | `/api/admin/companies/{company_user_id}` | Delete a company (also removes uploaded files) |
+
+### Candidates & Applications
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/admin/candidates` | List all candidate profiles |
+| `GET` | `/api/admin/applications` | List all applications |
+| `GET` | `/api/admin/applications/{application_id}` | Application detail |
+| `PUT` | `/api/admin/applications/{application_id}/status` | Update application status |
+| `DELETE` | `/api/admin/applications/{application_id}` | Delete an application |
+
+> Schemas for the above (request bodies, response shapes, error codes) are defined in `src/schemas.py` and surfaced via the OpenAPI schema. The polish-pass plan (local) tracks the per-entity full-CRUD endpoints still to add.
+
+---
+
+## Resumes
+
+### `GET /api/resumes/{file_key}`
+Download a resume file. Authorization is enforced server-side: only the candidate's owning admin (or the candidate themselves, when accounts ship) may fetch.
+* **Auth Required:** Yes
+* **Response:** `200 OK` (binary) | `403 Forbidden` | `404 Not Found`
 
 ---
 
