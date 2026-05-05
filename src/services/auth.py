@@ -16,6 +16,7 @@ from src.core.infrastructure.security import (
     hash_token,
     verify_password,
 )
+from src.core.services.file_validation import validate_image_magic_bytes
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import InviteTokenStatus, UserRole
@@ -110,6 +111,8 @@ def _decode_signature(agreement_signature: str) -> bytes:
         raise ValueError("Agreement signature is required")
     if len(sig_bytes) > _MAX_SIGNATURE_SIZE:
         raise ValueError("Signature image exceeds maximum allowed size")
+    if not sig_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("Signature must be a PNG image")
     return sig_bytes
 
 
@@ -169,6 +172,10 @@ async def register_company_user(
         raise ValueError("Logo must be an image file (JPEG, PNG, GIF, or WebP)")
     if len(logo_content) > _MAX_LOGO_SIZE:
         raise ValueError("Logo file size exceeds 5 MB limit")
+    if logo_content_type and not validate_image_magic_bytes(
+        logo_content, logo_content_type
+    ):
+        raise ValueError("Logo file content does not match the declared image type")
 
     sig_bytes = _decode_signature(agreement_signature)
 
