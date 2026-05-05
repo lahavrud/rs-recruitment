@@ -7,9 +7,14 @@ from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.models import User
-from src.schemas import JobRead
+from src.schemas import JobContactEmailRequest, JobRead
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
-from src.services.jobs_admin import approve_job, list_pending_jobs, reject_job
+from src.services.jobs_admin import (
+    approve_job,
+    contact_job,
+    list_pending_jobs,
+    reject_job,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -107,3 +112,33 @@ async def reject_job_posting(
     except Exception:
         await session.rollback()
         raise
+
+
+@router.post(
+    "/jobs/{job_id}/contact",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def contact_job_posting(
+    job_id: int,
+    body: JobContactEmailRequest,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Send a contextual email to the company that owns a job posting.
+
+    Can be used for any job status — intended for pre-decision communication.
+    Requires admin authentication.
+
+    Args:
+        job_id: ID of the job being discussed
+        body: Request body containing the optional admin note
+        current_admin: Current authenticated admin user (from dependency)
+        session: Database session
+
+    Raises:
+        HTTPException: If job not found
+    """
+    try:
+        await contact_job(job_id, body.admin_note, session)
+    except JobNotFoundError as e:
+        raise service_exception_to_http(e) from e

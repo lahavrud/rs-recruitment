@@ -428,7 +428,15 @@
       "approveError": "אישור המשרה נכשל.",
       "rejectError": "דחיית המשרה נכשלה.",
       "rejectConfirm": "לדחות פרסום משרה זה? הוא יסומן כסגור.",
-      "loadError": "טעינת המשרות הממתינות נכשלה."
+      "loadError": "טעינת המשרות הממתינות נכשלה.",
+      "email": "אימייל",
+      "emailModalTitle": "שליחת הודעה לחברה",
+      "emailModalLabel": "הודעה (אופציונלי)",
+      "emailModalPlaceholder": "הוסף הערות לחברה לגבי המשרה…",
+      "emailSend": "שליחה",
+      "emailSending": "שולח…",
+      "emailSuccess": "ההודעה נשלחה.",
+      "emailError": "שליחת ההודעה נכשלה."
     },
     "applications": {
       "title": "מועמדויות",

@@ -7,6 +7,8 @@ Color references match the Tailwind token system in index.css.
 import base64 as _b64
 from pathlib import Path as _Path
 
+from src.core.infrastructure.config import settings as _settings
+
 # Dark surfaces
 _VOID = "#0D0B09"  # outer background
 _CARD = "#1A1816"  # card surface
@@ -54,9 +56,7 @@ _BASE = """\
               <table cellpadding="0" cellspacing="0" dir="ltr">
                 <tr>
                   <td style="vertical-align:middle;padding-right:12px;width:40px;">
-                    <img src="data:image/svg+xml;base64,{logo_b64}"
-                         alt="RS" width="40" height="40"
-                         style="display:block;width:40px;height:40px;">
+                    {logo_img_tag}
                   </td>
                   <td style="vertical-align:middle;">
                     <span style="font-size:11px;font-weight:600;letter-spacing:4px;
@@ -94,6 +94,17 @@ _BASE = """\
 </html>"""
 
 
+def _logo_img_tag() -> str:
+    if _settings.logo_public_url:
+        src = _settings.logo_public_url
+    else:
+        src = f"data:image/svg+xml;base64,{_LOGO_B64}"
+    return (
+        f'<img src="{src}" alt="RS" width="40" height="40"'
+        f' style="display:block;width:40px;height:40px;">'
+    )
+
+
 def _wrap(subject: str, body_html: str) -> str:
     return _BASE.format(
         subject=subject,
@@ -103,7 +114,7 @@ def _wrap(subject: str, body_html: str) -> str:
         border=_BORDER,
         copper=_COPPER,
         lo=_TEXT_LO,
-        logo_b64=_LOGO_B64,
+        logo_img_tag=_logo_img_tag(),
         body_html=body_html,
     )
 
@@ -293,3 +304,21 @@ def build_application_status_company_html(
         + (_p(f"הערות: {notes}", muted=True) if notes else "")
     )
     return _wrap(f"עדכון מועמדות — {job_title}", body)
+
+
+def build_job_contact_html(
+    job_title: str,
+    company_name: str,
+    admin_note: str,
+) -> str:
+    """HTML email sent by admin to a company regarding a specific job posting."""
+    body = (
+        _h("פנייה ממנהל המערכת")
+        + _p(f"שלום {company_name},")
+        + _p(f"פנייה זו נשלחה בנוגע למשרת <strong>{job_title}</strong>.")
+        + _rule()
+        + (_p(admin_note) if admin_note else "")
+        + _rule()
+        + _p("לשאלות ופניות נוספות, אנא צרו קשר עם צוות RS Recruiting.", muted=True)
+    )
+    return _wrap("פנייה בנוגע למשרה — RS Recruiting", body)

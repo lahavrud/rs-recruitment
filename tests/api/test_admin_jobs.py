@@ -206,6 +206,91 @@ async def test_reject_job_already_published(
 
 
 @pytest.mark.asyncio
+@patch("src.services.jobs_admin.enqueue_email_task")
+async def test_contact_job_success(
+    mock_enqueue_email, admin_client: AsyncClient, pending_job: Job
+):
+    """Test successfully sending a contact email for a job."""
+    mock_enqueue_email.return_value = "test-job-id"
+    response = await admin_client.post(
+        f"/api/admin/jobs/{pending_job.id}/contact",
+        json={"admin_note": "נא לעדכן את דרישות המשרה."},
+    )
+    assert response.status_code == 204
+    mock_enqueue_email.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("src.services.jobs_admin.enqueue_email_task")
+async def test_contact_job_no_note(
+    mock_enqueue_email, admin_client: AsyncClient, pending_job: Job
+):
+    """Test contact email with empty admin note (optional field)."""
+    mock_enqueue_email.return_value = "test-job-id"
+    response = await admin_client.post(
+        f"/api/admin/jobs/{pending_job.id}/contact",
+        json={"admin_note": ""},
+    )
+    assert response.status_code == 204
+    mock_enqueue_email.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("src.services.jobs_admin.enqueue_email_task")
+async def test_contact_job_no_body(
+    mock_enqueue_email, admin_client: AsyncClient, pending_job: Job
+):
+    """Test contact email with no request body (admin_note defaults to empty string)."""
+    mock_enqueue_email.return_value = "test-job-id"
+    response = await admin_client.post(
+        f"/api/admin/jobs/{pending_job.id}/contact",
+        json={},
+    )
+    assert response.status_code == 204
+    mock_enqueue_email.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_contact_job_not_found(admin_client: AsyncClient):
+    """Test contacting a non-existent job returns 404."""
+    response = await admin_client.post(
+        "/api/admin/jobs/99999/contact",
+        json={"admin_note": "test"},
+    )
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+@patch("src.services.jobs_admin.enqueue_email_task")
+async def test_contact_job_works_for_published_job(
+    mock_enqueue_email, admin_client: AsyncClient, company_profile: CompanyProfile
+):
+    """Test contact email works for any job status (not just pending)."""
+    assert company_profile.id is not None
+    async with TestSessionLocal() as session:
+        job = Job(
+            company_id=company_profile.id,
+            title="Published Job",
+            description="Description",
+            requirements="Requirements",
+            location="Tel Aviv",
+            status=JobStatus.PUBLISHED,
+        )
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+
+    mock_enqueue_email.return_value = "test-job-id"
+    response = await admin_client.post(
+        f"/api/admin/jobs/{job.id}/contact",
+        json={"admin_note": "Follow-up on published job."},
+    )
+    assert response.status_code == 204
+    mock_enqueue_email.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_admin_job_endpoints_require_auth(test_db):
     """Test that admin job endpoints require authentication."""
     from httpx import ASGITransport, AsyncClient
@@ -228,6 +313,11 @@ async def test_admin_job_endpoints_require_auth(test_db):
         assert response.status_code == 401
 
         response = await client.post("/api/admin/jobs/1/reject")
+        assert response.status_code == 401
+
+        response = await client.post(
+            "/api/admin/jobs/1/contact", json={"admin_note": ""}
+        )
         assert response.status_code == 401
 
     app.dependency_overrides.clear()
@@ -299,6 +389,11 @@ async def test_admin_job_endpoints_require_admin_role(mock_enqueue_email, test_d
         assert response.status_code == 403
 
         response = await client.post("/api/admin/jobs/1/reject")
+        assert response.status_code == 403
+
+        response = await client.post(
+            "/api/admin/jobs/1/contact", json={"admin_note": ""}
+        )
         assert response.status_code == 403
 
     app.dependency_overrides.clear()

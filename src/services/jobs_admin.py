@@ -9,6 +9,7 @@ from src.core.tasks import enqueue_email_task
 from src.enums import JobStatus
 from src.models import CompanyProfile, Job, User
 from src.schemas import JobRead
+from src.services.email_templates import build_job_contact_html
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
 
 
@@ -150,5 +151,51 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
             f"Job ID: {job_id}\n\n"
             "If you believe this is an error, please contact support "
             "or update the job posting and resubmit for approval."
+        ),
+    )
+
+
+async def contact_job(job_id: int, admin_note: str, session: AsyncSession) -> None:
+    """Send a contextual email from admin to the company owning a job posting.
+
+    The job may be in any status — this is a pre-decision communication tool.
+
+    Args:
+        job_id: ID of the job being discussed
+        admin_note: Optional message body from the admin
+        session: Database session
+
+    Raises:
+        JobNotFoundError: If job not found
+    """
+    result = await session.execute(
+        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    )
+    job = result.scalar_one_or_none()
+    if not job:
+        raise JobNotFoundError(f"Job with ID {job_id} not found")
+
+    result = await session.execute(
+        select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
+    )
+    company = result.scalar_one()
+    result = await session.execute(
+        select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
+    )
+    user = result.scalar_one()
+
+    plain = (
+        f"פנייה ממנהל המערכת בנוגע למשרת '{job.title}'.\n\n"
+        f"{admin_note}\n\n"
+        "לשאלות ופניות נוספות, אנא צרו קשר עם צוות RS Recruiting."
+    )
+    await enqueue_email_task(
+        to=user.email,
+        subject="פנייה בנוגע למשרה — RS Recruiting",
+        body=plain,
+        html_body=build_job_contact_html(
+            job_title=job.title,
+            company_name=company.name,
+            admin_note=admin_note,
         ),
     )
