@@ -80,6 +80,10 @@ export async function rejectJob(jobId: number): Promise<void> {
   await api.post(`/api/admin/jobs/${jobId}/reject`);
 }
 
+export async function contactJob(jobId: number, note: string): Promise<void> {
+  await api.post(`/api/admin/jobs/${jobId}/contact`, { admin_note: note });
+}
+
 // ── Applications ─────────────────────────────────────────────────────────────
 
 export async function getApplications(params?: {

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { approveJob, getPendingJobs, rejectJob } from "@/services/admin";
+import { approveJob, contactJob, getPendingJobs, rejectJob } from "@/services/admin";
 import type { JobRead } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import { textareaCls } from "@/styles/forms";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -18,6 +19,12 @@ export default function AdminJobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<number | null>(null);
+
+  const [composingJob, setComposingJob] = useState<JobRead | null>(null);
+  const [contactNote, setContactNote] = useState("");
+  const [contacting, setContacting] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [contactSuccess, setContactSuccess] = useState(false);
 
   useEffect(() => {
     getPendingJobs()
@@ -48,6 +55,34 @@ export default function AdminJobsPage() {
       setError(t("admin.jobs.rejectError"));
     } finally {
       setActing(null);
+    }
+  }
+
+  function openComposeModal(job: JobRead) {
+    setComposingJob(job);
+    setContactNote("");
+    setContactError(null);
+    setContactSuccess(false);
+  }
+
+  function closeComposeModal() {
+    setComposingJob(null);
+    setContactNote("");
+    setContactError(null);
+    setContactSuccess(false);
+  }
+
+  async function handleContact() {
+    if (!composingJob) return;
+    setContacting(true);
+    setContactError(null);
+    try {
+      await contactJob(composingJob.id, contactNote);
+      setContactSuccess(true);
+    } catch {
+      setContactError(t("admin.jobs.emailError"));
+    } finally {
+      setContacting(false);
     }
   }
 
@@ -94,6 +129,13 @@ export default function AdminJobsPage() {
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <button
+                    onClick={() => openComposeModal(job)}
+                    disabled={busy}
+                    className="rounded-sm border border-white/20 px-4 py-1.5 text-sm font-medium text-white/60 transition hover:border-white/40 hover:text-white/90 disabled:opacity-40"
+                  >
+                    {t("admin.jobs.email")}
+                  </button>
+                  <button
                     onClick={() => handleApprove(job.id)}
                     disabled={busy}
                     className="rounded-sm bg-success/15 px-4 py-1.5 text-sm font-medium text-success transition hover:bg-success/25 disabled:opacity-40"
@@ -111,6 +153,59 @@ export default function AdminJobsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Compose modal */}
+      {composingJob && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-void/80 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeComposeModal(); }}
+        >
+          <div className="w-full max-w-md rounded-xl border border-white/8 bg-card p-6 shadow-xl">
+            <h2 className="mb-1 font-medium text-white/85">{t("admin.jobs.emailModalTitle")}</h2>
+            <p className="mb-4 text-sm text-white/40">{composingJob.title}</p>
+
+            {contactSuccess ? (
+              <div className="mb-4 rounded-lg border border-success/20 bg-success/10 p-3 text-sm text-success">
+                {t("admin.jobs.emailSuccess")}
+              </div>
+            ) : (
+              <>
+                <label className="mb-1 block text-xs font-medium text-white/50">
+                  {t("admin.jobs.emailModalLabel")}
+                </label>
+                <textarea
+                  className={`${textareaCls} mb-4 min-h-[120px]`}
+                  placeholder={t("admin.jobs.emailModalPlaceholder")}
+                  value={contactNote}
+                  onChange={(e) => setContactNote(e.target.value)}
+                  disabled={contacting}
+                />
+                {contactError && (
+                  <p className="mb-3 text-sm text-danger">{contactError}</p>
+                )}
+              </>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={closeComposeModal}
+                className="rounded-sm border border-white/20 px-4 py-1.5 text-sm font-medium text-white/60 hover:border-white/40 hover:text-white/90"
+              >
+                {t("common.close")}
+              </button>
+              {!contactSuccess && (
+                <button
+                  onClick={handleContact}
+                  disabled={contacting}
+                  className="rounded-sm bg-copper px-4 py-1.5 text-sm font-medium text-white hover:bg-gold disabled:opacity-40"
+                >
+                  {contacting ? t("admin.jobs.emailSending") : t("admin.jobs.emailSend")}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

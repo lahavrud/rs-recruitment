@@ -448,6 +448,12 @@ class ApplicationWithDetails(BaseModel):
     candidate: CandidateProfileRead
 
 
+class JobContactEmailRequest(BaseModel):
+    """Schema for admin sending a contextual email to a company about a job."""
+
+    admin_note: str = Field(default="", max_length=2000)
+
+
 # Admin Schemas
 class PendingCompanyRead(BaseModel):
     """Schema for pending company registration (user + company profile)."""
