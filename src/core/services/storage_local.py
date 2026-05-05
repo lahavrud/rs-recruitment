@@ -11,9 +11,13 @@ from src.core.services.storage import StorageProvider
 class LocalStorageProvider(StorageProvider):
     """Stores files on the local filesystem under a configurable directory."""
 
+    _SUBDIRS = ("logos", "signatures", "contracts", "resumes")
+
     def __init__(self, storage_path: str = "./storage"):
         self.storage_path = Path(storage_path).resolve()
         self.storage_path.mkdir(parents=True, exist_ok=True)
+        for subdir in self._SUBDIRS:
+            (self.storage_path / subdir).mkdir(exist_ok=True)
 
     def _safe_path(self, file_identifier: str) -> Path:
         """Resolve and validate that the path stays inside storage_path."""
@@ -41,7 +45,12 @@ class LocalStorageProvider(StorageProvider):
     async def upload_file(
         self, file_content: bytes, file_name: str, content_type: Optional[str] = None
     ) -> str:
-        file_key = f"{uuid4()}{Path(file_name).suffix}"
+        parent = Path(file_name).parent
+        suffix = Path(file_name).suffix
+        if str(parent) != ".":
+            file_key = f"{parent}/{uuid4()}{suffix}"
+        else:
+            file_key = f"{uuid4()}{suffix}"
         file_path = self.storage_path / file_key
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, file_path.write_bytes, file_content)

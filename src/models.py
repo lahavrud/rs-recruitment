@@ -128,6 +128,9 @@ class CompanyProfile(SQLModel, table=True):
     agreement_signature_url: str | None = Field(
         default=None, sa_column=Column(Text, nullable=True)
     )
+    contract_pdf_url: str | None = Field(
+        default=None, sa_column=Column(Text, nullable=True)
+    )
     privacy_accepted_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),

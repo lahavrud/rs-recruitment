@@ -140,7 +140,7 @@ async def test_create_candidate_profile_with_resume(
     mock_storage.upload_file.assert_called_once()
     call_args = mock_storage.upload_file.call_args
     assert call_args[1]["file_content"] == resume_file
-    assert call_args[1]["file_name"] == resume_filename
+    assert call_args[1]["file_name"] == f"resumes/{resume_filename}"
 
     # Verify Application was created
     result = await session.execute(
