@@ -209,6 +209,50 @@ The frontend proxies `/api/*` to `http://localhost:8000` (configured in `vite.co
 
 ---
 
+## GitHub workflow conventions — MUST follow
+
+This project has its own templates and naming conventions. **Always use them; do not fall back to generic GitHub defaults.**
+
+### Branch names
+Format: `<type>/<short-kebab-summary>`. Types observed in `git log`: `feat`, `fix`, `chore`, `docs`, `hotfix`, `feature`, `refactor`. Match an existing type rather than inventing one.
+
+### Commit messages
+**Conventional Commits**, with optional scope. Examples from `main`:
+- `feat(auth): refresh tokens, account lockout, password rules`
+- `fix(email): SMTP timeout + production config from SSM`
+- `docs: refresh CLAUDE.md and docs/* to match current state`
+- `chore: bump python-jose for security patches`
+
+Do **not** add `Co-Authored-By:` trailers — they don't appear on commits in this repo.
+
+### Pull requests
+Title matches the commit message style (Conventional Commits). Body **must** follow `.github/pull_request_template.md`:
+
+```
+## Summary
+Short description of the change.
+
+## Why
+What problem does this PR solve?
+
+## Changes
+-
+-
+
+## How to Test
+Steps to verify the changes.
+
+## Related Issue
+Closes #
+```
+
+If there is no related issue, write `N/A` — don't omit the section. Don't add other top-level sections (no "Test plan", no "Generated with…" footers).
+
+### Issues
+Three templates exist in `.github/ISSUE_TEMPLATE/`: `bug_report.md`, `feature_request.md`, `task.md`. Pick the matching one and fill every section. Each template includes a `🎯 Milestone` selector — pick from the listed phases (Infrastructure / Company / Job / Candidate / Match / Frontend / Deployment).
+
+---
+
 ## Linting — MUST run before every commit
 
 **Always run both linters before committing. CI will fail if either fails.**
