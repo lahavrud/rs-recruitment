@@ -23,7 +23,6 @@ from src.enums import InviteTokenStatus, UserRole
 from src.models import ActivationToken, CompanyProfile, InviteToken, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin_companies import get_all_admin_emails
-from src.services.email_templates import build_new_registration_html
 from src.services.exceptions import (
     AccountLockedError,
     EmailAlreadyExistsError,
@@ -31,6 +30,7 @@ from src.services.exceptions import (
     PendingActivationError,
     PendingApprovalError,
 )
+from src.templates.email import build_new_registration_html
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,6 @@ def _lockout_key(email: str) -> str:
 
 
 async def _check_lockout(email: str) -> None:
-    """Raise AccountLockedError if the email is currently locked out."""
     from src.core.tasks import get_redis_pool
 
     try:
@@ -67,7 +66,6 @@ async def _check_lockout(email: str) -> None:
 
 
 async def _record_failed_attempt(email: str) -> None:
-    """Increment the failure counter; lock the account after threshold."""
     from src.core.tasks import get_redis_pool
 
     try:
@@ -83,7 +81,6 @@ async def _record_failed_attempt(email: str) -> None:
 
 
 async def _clear_failed_attempts(email: str) -> None:
-    """Clear the failure counter after a successful login."""
     from src.core.tasks import get_redis_pool
 
     try:
@@ -100,7 +97,6 @@ _MAX_SIGNATURE_SIZE = 2 * 1024 * 1024  # 2 MB decoded
 
 
 def _decode_signature(agreement_signature: str) -> bytes:
-    """Decode and validate a base64 PNG signature string."""
     if not agreement_signature.strip():
         raise ValueError("Agreement signature is required")
     try:
@@ -271,10 +267,9 @@ async def authenticate_user(email: str, password: str, session: AsyncSession) ->
 
 
 async def create_user_tokens(user: User, session: AsyncSession) -> tuple[str, str]:
-    """Issue a new access + refresh token pair for the given user.
+    """Issue a new access + refresh token pair.
 
-    Returns:
-        (access_token, raw_refresh_token)
+    Returns (access_token, raw_refresh_token).
     """
     assert user.id is not None
     access_token = create_access_token(
@@ -295,15 +290,9 @@ async def create_user_tokens(user: User, session: AsyncSession) -> tuple[str, st
 async def refresh_user_tokens(
     raw_refresh_token: str, session: AsyncSession
 ) -> tuple[str, str]:
-    """Validate a refresh token and issue a rotated pair.
+    """Validate and rotate a refresh token.
 
-    The old refresh token is revoked on use (single-use rotation).
-
-    Returns:
-        (new_access_token, new_raw_refresh_token)
-
-    Raises:
-        InvalidCredentialsError: If the token is missing, expired, or revoked.
+    Returns (new_access_token, new_raw_refresh_token).
     """
     token_hash = hash_token(raw_refresh_token)
     result = await session.execute(
