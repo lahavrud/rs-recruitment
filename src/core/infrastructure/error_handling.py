@@ -6,6 +6,7 @@ from src.services.exceptions import (
     AccountLockedError,
     ApplicationAlreadyExistsError,
     ApplicationNotFoundError,
+    CandidateNotFoundError,
     CompanyNotFoundError,
     CompanyNotPendingError,
     EmailAlreadyExistsError,
@@ -33,6 +34,7 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     JobNotFoundError: status.HTTP_404_NOT_FOUND,
     CompanyNotFoundError: status.HTTP_404_NOT_FOUND,
     ApplicationNotFoundError: status.HTTP_404_NOT_FOUND,
+    CandidateNotFoundError: status.HTTP_404_NOT_FOUND,
     # Conflict errors (409)
     ApplicationAlreadyExistsError: status.HTTP_409_CONFLICT,
     InvitePendingForEmailError: status.HTTP_409_CONFLICT,
