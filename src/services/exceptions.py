@@ -150,3 +150,9 @@ class InvalidCursorError(Exception):
     """Raised when a pagination cursor is malformed or unparseable."""
 
     pass
+
+
+class CandidateNotFoundError(Exception):
+    """Raised when a candidate profile is not found."""
+
+    pass
