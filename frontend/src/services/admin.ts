@@ -12,6 +12,7 @@ import type {
   ApplicationWithDetails,
   ApplicationStatus,
   CandidateProfileRead,
+  CandidateProfileUpdate,
   InviteTokenCreate,
   InviteTokenRead,
   JobRead,
@@ -136,9 +137,38 @@ export async function deleteApplication(appId: number): Promise<void> {
 
 // ── Candidates ────────────────────────────────────────────────────────────────
 
-export async function getCandidates(): Promise<CandidateProfileRead[]> {
-  const res = await api.get<CandidateProfileRead[]>("/api/admin/candidates");
+export interface CandidateListParams {
+  cursor?: string | null;
+  limit?: number;
+}
+
+export async function getCandidates(
+  params?: CandidateListParams,
+): Promise<CursorPage<CandidateProfileRead>> {
+  const query: Record<string, string | number> = {};
+  if (params?.cursor) query.cursor = params.cursor;
+  if (params?.limit != null) query.limit = params.limit;
+  const res = await api.get<CursorPage<CandidateProfileRead>>("/api/admin/candidates", {
+    params: query,
+  });
   return res.data;
+}
+
+export async function getCandidate(id: number): Promise<CandidateProfileRead> {
+  const res = await api.get<CandidateProfileRead>(`/api/admin/candidates/${id}`);
+  return res.data;
+}
+
+export async function updateCandidate(
+  id: number,
+  body: CandidateProfileUpdate,
+): Promise<CandidateProfileRead> {
+  const res = await api.put<CandidateProfileRead>(`/api/admin/candidates/${id}`, body);
+  return res.data;
+}
+
+export async function deleteCandidate(id: number): Promise<void> {
+  await api.delete(`/api/admin/candidates/${id}`);
 }
 
 export async function fetchResumeBlob(fileKey: string): Promise<Blob> {
