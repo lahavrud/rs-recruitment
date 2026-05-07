@@ -1,59 +1,58 @@
 """Admin endpoints for application (match) management."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.tasks import enqueue_email_task
 from src.enums import ApplicationStatus
 from src.models import User
-from src.schemas import ApplicationRead, ApplicationStatusUpdate, ApplicationWithDetails
+from src.schemas import (
+    ApplicationNotesUpdate,
+    ApplicationRead,
+    ApplicationStatusUpdate,
+    ApplicationWithDetails,
+)
 from src.services.applications_admin import (
     delete_application,
     get_application,
     list_applications,
+    update_application_notes,
     update_application_status,
 )
-from src.services.exceptions import (
-    ApplicationNotFoundError,
-    InvalidApplicationStatusTransitionError,
-)
+from src.services.exceptions import ApplicationNotFoundError, InvalidCursorError
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 @router.get(
     "/applications",
-    response_model=list[ApplicationWithDetails],
+    response_model=CursorPage[ApplicationWithDetails],
 )
 async def get_applications(
     status: ApplicationStatus | None = None,
     job_id: int | None = None,
     candidate_id: int | None = None,
+    cursor: str | None = None,
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
-) -> list[ApplicationWithDetails]:
-    """List all applications with optional filtering.
-
-    Supports filtering by status, job, or candidate. Returns full details
-    including nested job and candidate information.
-    Requires admin authentication.
-
-    Args:
-        status: Filter by application status (optional)
-        job_id: Filter by job ID (optional)
-        candidate_id: Filter by candidate ID (optional)
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Returns:
-        List of applications with nested job and candidate details
-    """
-    return await list_applications(
-        session, status=status, job_id=job_id, candidate_id=candidate_id
-    )
+) -> CursorPage[ApplicationWithDetails]:
+    """List applications with optional filters, newest first, cursor-paginated."""
+    try:
+        return await list_applications(
+            session,
+            status=status,
+            job_id=job_id,
+            candidate_id=candidate_id,
+            cursor=cursor,
+            limit=limit,
+        )
+    except InvalidCursorError as exc:
+        raise service_exception_to_http(exc) from exc
 
 
 @router.get(
@@ -65,22 +64,7 @@ async def get_application_detail(
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> ApplicationWithDetails:
-    """Get a single application with full details.
-
-    Returns the application with nested job and candidate information.
-    Requires admin authentication.
-
-    Args:
-        application_id: ID of the application to retrieve
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Returns:
-        Application with nested job and candidate details
-
-    Raises:
-        HTTPException: If application not found
-    """
+    """Get a single application with full details."""
     try:
         return await get_application(application_id, session)
     except ApplicationNotFoundError as e:
@@ -100,45 +84,53 @@ async def update_application_status_endpoint(
 ) -> ApplicationRead:
     """Update an application's status and optionally add admin notes.
 
-    Enforces valid status transitions:
-    - NEW → APPROVED_BY_ADMIN or REJECTED
-    - APPROVED_BY_ADMIN → HIRED or REJECTED
-    - REJECTED and HIRED are terminal states
-
-    Sends email notifications to both candidate and company after the
-    DB transaction commits, so emails are never enqueued for rolled-back
-    changes.
-    Requires admin authentication.
-
-    Args:
-        application_id: ID of the application to update
-        body: Required new status and optional admin notes
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Returns:
-        Updated application as ApplicationRead schema
-
-    Raises:
-        HTTPException: If application not found or transition is invalid
+    Admin can move an application to any status from any other status —
+    including reverting from terminal `REJECTED`/`HIRED` for mis-click
+    recovery. Sends email notifications to both candidate and company
+    after the DB transaction commits.
     """
     try:
         result, email_payloads = await update_application_status(
             application_id, body.status, session, admin_notes=body.admin_notes
         )
         await session.commit()
-    except (ApplicationNotFoundError, InvalidApplicationStatusTransitionError) as e:
+    except ApplicationNotFoundError as e:
         await session.rollback()
         raise service_exception_to_http(e) from e
     except Exception:
         await session.rollback()
         raise
 
-    # Enqueue emails only after the transaction has committed successfully
     for payload in email_payloads:
         await enqueue_email_task(**payload)
 
     return result
+
+
+@router.put(
+    "/applications/{application_id}/notes",
+    response_model=ApplicationRead,
+    status_code=status.HTTP_200_OK,
+)
+async def update_application_notes_endpoint(
+    application_id: int,
+    body: ApplicationNotesUpdate,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> ApplicationRead:
+    """Update only the admin_notes field. Does not change status or send email."""
+    try:
+        result = await update_application_notes(
+            application_id, body.admin_notes, session
+        )
+        await session.commit()
+        return result
+    except ApplicationNotFoundError as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
+    except Exception:
+        await session.rollback()
+        raise
 
 
 @router.delete(
@@ -150,19 +142,7 @@ async def delete_application_endpoint(
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Delete an application record.
-
-    Removes the job ↔ candidate link. The candidate profile is preserved.
-    Requires admin authentication.
-
-    Args:
-        application_id: ID of the application to delete
-        current_admin: Current authenticated admin user (from dependency)
-        session: Database session
-
-    Raises:
-        HTTPException: If application not found
-    """
+    """Delete an application record. The candidate profile is preserved."""
     try:
         await delete_application(application_id, session)
     except ApplicationNotFoundError as e:

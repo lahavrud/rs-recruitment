@@ -430,6 +430,12 @@ class ApplicationUpdate(BaseModel):
     admin_notes: str | None = Field(None, max_length=2000)
 
 
+class ApplicationNotesUpdate(BaseModel):
+    """Schema for updating only the admin_notes field on an application."""
+
+    admin_notes: str | None = Field(None, max_length=2000)
+
+
 class ApplicationRead(BaseModel):
     """Schema for reading application data."""
 
