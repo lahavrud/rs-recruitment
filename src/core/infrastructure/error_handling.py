@@ -13,6 +13,7 @@ from src.services.exceptions import (
     InvalidActivationTokenError,
     InvalidApplicationStatusTransitionError,
     InvalidCredentialsError,
+    InvalidCursorError,
     InvalidInviteTokenError,
     InviteAlreadyRevokedError,
     InviteNotFoundError,
@@ -57,6 +58,7 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     CompanyNotPendingError: status.HTTP_400_BAD_REQUEST,
     JobNotPendingError: status.HTTP_400_BAD_REQUEST,
     InvalidApplicationStatusTransitionError: status.HTTP_400_BAD_REQUEST,
+    InvalidCursorError: status.HTTP_400_BAD_REQUEST,
 }
 
 
