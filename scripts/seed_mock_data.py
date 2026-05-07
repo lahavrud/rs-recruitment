@@ -7,7 +7,7 @@
 הרץ לאחר הפעלת הבקאנד (docker compose up) והוספת משתמש מנהל.
 
 יוצר:
-    - 1 משתמש מנהל (admin@rsrecruit.co.il / Admin123!)
+    - 1 משתמש מנהל (admin@rsrecruit.com / Admin123!)
     - 3 חברות עם פרופילים
     - 15 משרות (5 לכל חברה, סטטוסים מעורבים)
     - 8 פרופילי מועמדים
@@ -21,7 +21,7 @@ from sqlalchemy import select
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import async_session, init_db
 from src.core.infrastructure.security import get_password_hash
-from src.core.services.storage import LocalStorageProvider
+from src.core.services.storage_local import LocalStorageProvider
 from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 
@@ -41,28 +41,28 @@ _PLACEHOLDER_PDF = (
 )
 
 # ── מנהל ──
-ADMIN_EMAIL = "admin@rsrecruit.co.il"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_EMAIL = "admin@rsrecruit.com"
+ADMIN_PASSWORD = "Admin123!"  # pragma: allowlist secret
 
 # ── חברות ──
 COMPANIES = [
     {
-        "email": "ops@integrated-fm.co.il",
-        "password": "Company123!",
+        "email": "ops@integrated-fm.com",
+        "password": "Company123!",  # pragma: allowlist secret
         "company_name": 'פתרונות מתקנים בע"מ',
         "contact_person": "דוד כהן",
         "contact_phone": "050-1111111",
     },
     {
-        "email": "hr@sharion.co.il",
-        "password": "Company123!",
+        "email": "hr@sharion.com",
+        "password": "Company123!",  # pragma: allowlist secret
         "company_name": "שריון — אבטחה ותחזוקה",
         "contact_person": "נועה לוי",
         "contact_phone": "050-2222222",
     },
     {
-        "email": "info@cleanpro.co.il",
-        "password": "Company123!",
+        "email": "info@cleanpro.com",
+        "password": "Company123!",  # pragma: allowlist secret
         "company_name": "קלינפרו שירותי מתקנים",
         "contact_person": "רן מזרחי",
         "contact_phone": "050-3333333",
