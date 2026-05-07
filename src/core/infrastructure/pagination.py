@@ -94,20 +94,21 @@ def build_cursor_page(
     rows: list[R],
     *,
     serializer: Callable[[R], M],
-    sort_attr: str,
-    id_attr: str,
+    cursor_key: Callable[[R], tuple[datetime, int]],
     limit: int,
 ) -> CursorPage[M]:
-    """Slice up to `limit` rows from a `limit+1` fetch and emit the next cursor."""
+    """Slice up to `limit` rows from a `limit+1` fetch and emit the next cursor.
+
+    `cursor_key(row)` must return the `(created_at, id)` pair that should
+    encode the boundary. Using a callable lets joined/tuple result sets
+    pull the key from a specific entity instead of relying on attr names.
+    """
     has_more = len(rows) > limit
     page_rows = rows[:limit]
     next_cursor: str | None = None
     if has_more and page_rows:
-        last = page_rows[-1]
-        next_cursor = encode_cursor(
-            getattr(last, sort_attr),
-            getattr(last, id_attr),
-        )
+        ts, row_id = cursor_key(page_rows[-1])
+        next_cursor = encode_cursor(ts, row_id)
     return CursorPage(
         items=[serializer(r) for r in page_rows],
         next_cursor=next_cursor,

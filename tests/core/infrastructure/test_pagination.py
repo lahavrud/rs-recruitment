@@ -59,13 +59,16 @@ def test_clamp_limit_passes_through_valid():
     assert clamp_limit(25) == 25
 
 
+def _row_key(r: _Row) -> tuple[datetime, int]:
+    return r.created_at, r.id
+
+
 def test_build_cursor_page_no_more_when_under_limit():
     rows = [_Row(1, datetime(2026, 1, 1, tzinfo=timezone.utc))]
     page: CursorPage[int] = build_cursor_page(
         rows,
         serializer=lambda r: r.id,
-        sort_attr="created_at",
-        id_attr="id",
+        cursor_key=_row_key,
         limit=10,
     )
     assert page.items == [1]
@@ -78,8 +81,7 @@ def test_build_cursor_page_emits_cursor_when_more_available():
     page: CursorPage[int] = build_cursor_page(
         rows,
         serializer=lambda r: r.id,
-        sort_attr="created_at",
-        id_attr="id",
+        cursor_key=_row_key,
         limit=10,
     )
     assert len(page.items) == 10
@@ -89,3 +91,24 @@ def test_build_cursor_page_emits_cursor_when_more_available():
     # Boundary points at the last row of the emitted page (id=9).
     assert decoded_id == 9
     assert decoded_ts == base
+
+
+def test_build_cursor_page_supports_tuple_rows():
+    """Joined queries return tuples — cursor_key picks the right entity."""
+    base = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class _User:
+        def __init__(self, uid: int, ts: datetime):
+            self.id = uid
+            self.created_at = ts
+
+    rows = [(_User(i, base), object()) for i in range(11)]  # limit + 1
+    page: CursorPage[int] = build_cursor_page(
+        rows,
+        serializer=lambda row: row[0].id,
+        cursor_key=lambda row: (row[0].created_at, row[0].id),
+        limit=10,
+    )
+    assert page.next_cursor is not None
+    _, decoded_id = decode_cursor(page.next_cursor)
+    assert decoded_id == 9

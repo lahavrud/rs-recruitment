@@ -32,7 +32,6 @@ async def list_candidates(
     return build_cursor_page(
         list(rows),
         serializer=CandidateProfileRead.model_validate,
-        sort_attr="created_at",
-        id_attr="id",
+        cursor_key=lambda c: (c.created_at, c.id),
         limit=page_size,
     )

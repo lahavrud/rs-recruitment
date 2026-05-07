@@ -15,10 +15,10 @@ from tests.factories import FAKE_LOGO, FAKE_SIG_B64
 
 @pytest.mark.asyncio
 async def test_get_pending_companies_empty(admin_client: AsyncClient):
-    """Test getting pending companies when none exist."""
+    """Returns an empty page envelope when no pending companies exist."""
     response = await admin_client.get("/api/admin/companies/pending")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"items": [], "next_cursor": None}
 
 
 @pytest.mark.asyncio
@@ -26,7 +26,7 @@ async def test_get_pending_companies_empty(admin_client: AsyncClient):
 async def test_get_pending_companies(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
-    """Test getting list of pending companies."""
+    """Returns pending companies inside a CursorPage envelope."""
     mock_enqueue_email.return_value = "test-job-id"
     # Create another pending company
     async with TestSessionLocal() as session:
@@ -56,14 +56,41 @@ async def test_get_pending_companies(
     assert response.status_code == 200
 
     data = response.json()
-    assert len(data) == 2
+    assert data["next_cursor"] is None
+    assert len(data["items"]) == 2
 
-    # Check structure
-    for company in data:
+    for company in data["items"]:
         assert "user" in company
         assert "company_profile" in company
         assert company["user"]["is_active"] is False
         assert company["user"]["role"] == "COMPANY"
+
+
+@pytest.mark.asyncio
+async def test_pending_companies_invalid_cursor_returns_400(
+    admin_client: AsyncClient,
+):
+    response = await admin_client.get(
+        "/api/admin/companies/pending", params={"cursor": "not-a-cursor"}
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_active_companies_invalid_cursor_returns_400(
+    admin_client: AsyncClient,
+):
+    response = await admin_client.get(
+        "/api/admin/companies", params={"cursor": "not-a-cursor"}
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_active_companies_empty_envelope(admin_client: AsyncClient):
+    response = await admin_client.get("/api/admin/companies")
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "next_cursor": None}
 
 
 @pytest.mark.asyncio

@@ -1,11 +1,12 @@
 """Admin endpoints for company invite-token management."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.models import User
 from src.schemas import InviteTokenCreate, InviteTokenRead
 from src.services.admin_invites import (
@@ -16,6 +17,7 @@ from src.services.admin_invites import (
 )
 from src.services.exceptions import (
     EmailAlreadyExistsError,
+    InvalidCursorError,
     InviteAlreadyRevokedError,
     InviteNotFoundError,
     InvitePendingForEmailError,
@@ -50,16 +52,26 @@ async def create_company_invite(
 
 @router.get(
     "/companies/invites",
-    response_model=list[InviteTokenRead],
+    response_model=CursorPage[InviteTokenRead],
 )
 async def get_company_invites(
+    cursor: str | None = None,
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
-) -> list[InviteTokenRead]:
-    """List all invite tokens with their current status."""
-    result = await list_invites(session)
-    await session.commit()
-    return result
+) -> CursorPage[InviteTokenRead]:
+    """List invite tokens, newest first, cursor-paginated.
+
+    The service marks expired pending tokens before returning, so the bulk
+    update is committed even when the page is empty.
+    """
+    try:
+        result = await list_invites(session, cursor=cursor, limit=limit)
+        await session.commit()
+        return result
+    except InvalidCursorError as exc:
+        await session.rollback()
+        raise service_exception_to_http(exc) from exc
 
 
 @router.delete(

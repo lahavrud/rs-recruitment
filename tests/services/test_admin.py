@@ -66,8 +66,9 @@ async def test_get_all_admin_emails(session: AsyncSession):
 @pytest.mark.asyncio
 async def test_list_pending_companies_empty(session: AsyncSession):
     """Test listing pending companies when none exist."""
-    companies = await list_pending_companies(session)
-    assert companies == []
+    page = await list_pending_companies(session)
+    assert page.items == []
+    assert page.next_cursor is None
 
 
 @pytest.mark.asyncio
@@ -140,26 +141,14 @@ async def test_list_pending_companies(mock_enqueue_email, session: AsyncSession)
     approved_user.is_active = True
     await session.commit()
 
-    companies = await list_pending_companies(session)
-    assert len(companies) == 2
+    page = await list_pending_companies(session)
+    assert len(page.items) == 2
 
-    # Check first company
-    assert companies[0]["user"].email in [
-        "pending1@example.com",
-        "pending2@example.com",
-    ]
-    assert companies[0]["user"].is_active is False
-    assert companies[0]["company_profile"].name in [
-        "Pending Company 1",
-        "Pending Company 2",
-    ]
-
-    # Check second company
-    assert companies[1]["user"].email in [
-        "pending1@example.com",
-        "pending2@example.com",
-    ]
-    assert companies[1]["user"].email != companies[0]["user"].email
+    emails = {c.user.email for c in page.items}
+    names = {c.company_profile.name for c in page.items}
+    assert emails == {"pending1@example.com", "pending2@example.com"}
+    assert names == {"Pending Company 1", "Pending Company 2"}
+    assert all(c.user.is_active is False for c in page.items)
 
 
 @pytest.mark.asyncio

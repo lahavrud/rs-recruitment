@@ -99,7 +99,9 @@ async def test_create_invite_existing_user_raises(session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_list_invites_empty(session: AsyncSession):
-    assert await list_invites(session) == []
+    page = await list_invites(session)
+    assert page.items == []
+    assert page.next_cursor is None
 
 
 @pytest.mark.asyncio
@@ -118,9 +120,10 @@ async def test_list_invites_returns_all(session: AsyncSession):
             )
     await session.commit()
 
-    invites = await list_invites(session)
-    assert len(invites) == 2
-    assert {i.email for i in invites} == {"a@example.com", "b@example.com"}
+    page = await list_invites(session)
+    assert len(page.items) == 2
+    assert {i.email for i in page.items} == {"a@example.com", "b@example.com"}
+    assert page.next_cursor is None
 
 
 # ── revoke_invite ─────────────────────────────────────────────────────────────
