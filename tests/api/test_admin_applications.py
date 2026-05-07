@@ -19,10 +19,10 @@ async def test_list_applications_requires_admin(public_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_applications_empty(admin_client: AsyncClient):
-    """Returns empty list when no applications exist."""
+    """Returns an empty page envelope when no applications exist."""
     response = await admin_client.get("/api/admin/applications")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"items": [], "next_cursor": None}
 
 
 @pytest.mark.asyncio
@@ -30,18 +30,18 @@ async def test_list_applications_success(
     admin_client: AsyncClient,
     application: Application,
 ):
-    """Returns applications with nested job and candidate details."""
+    """Returns applications with nested job and candidate details inside CursorPage."""
     response = await admin_client.get("/api/admin/applications")
     assert response.status_code == 200
 
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == application.id
-    assert data[0]["status"] == ApplicationStatus.NEW
-    assert "job" in data[0]
-    assert "candidate" in data[0]
-    assert data[0]["job"] is not None
-    assert data[0]["candidate"] is not None
+    assert data["next_cursor"] is None
+    items = data["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == application.id
+    assert items[0]["status"] == ApplicationStatus.NEW
+    assert items[0]["job"] is not None
+    assert items[0]["candidate"] is not None
 
 
 @pytest.mark.asyncio
@@ -51,7 +51,6 @@ async def test_list_applications_filter_by_status(
     published_job: Job,
 ):
     """Filter by status returns only matching applications."""
-    # Create a second application with a different status
     async with TestSessionLocal() as session:
         candidate2 = CandidateProfile(
             full_name="Second Candidate", email="second@test.com"
@@ -72,10 +71,11 @@ async def test_list_applications_filter_by_status(
     )
 
     assert new_resp.status_code == 200
-    assert all(a["status"] == "NEW" for a in new_resp.json())
-
+    assert all(a["status"] == "NEW" for a in new_resp.json()["items"])
     assert approved_resp.status_code == 200
-    assert all(a["status"] == "APPROVED_BY_ADMIN" for a in approved_resp.json())
+    assert all(
+        a["status"] == "APPROVED_BY_ADMIN" for a in approved_resp.json()["items"]
+    )
 
 
 @pytest.mark.asyncio
@@ -88,9 +88,19 @@ async def test_list_applications_filter_by_job_id(
         f"/api/admin/applications?job_id={application.job_id}"
     )
     assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["job_id"] == application.job_id
+    items = response.json()["items"]
+    assert len(items) == 1
+    assert items[0]["job_id"] == application.job_id
+
+
+@pytest.mark.asyncio
+async def test_list_applications_invalid_cursor_returns_400(
+    admin_client: AsyncClient,
+):
+    response = await admin_client.get(
+        "/api/admin/applications", params={"cursor": "not-a-cursor"}
+    )
+    assert response.status_code == 400
 
 
 # ==================== GET /api/admin/applications/{id} ====================
@@ -167,17 +177,17 @@ async def test_update_application_status_with_notes(
 
 
 @pytest.mark.asyncio
-async def test_update_application_status_invalid_transition(
+async def test_update_application_status_skips_intermediate_steps(
     admin_client: AsyncClient,
     application: Application,
 ):
-    """Returns 400 when the status transition is not allowed."""
-    # NEW → HIRED is not a valid transition
+    """Admin can fast-forward NEW → HIRED in one step."""
     response = await admin_client.put(
         f"/api/admin/applications/{application.id}/status",
         json={"status": "HIRED"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.json()["status"] == "HIRED"
 
 
 @pytest.mark.asyncio
@@ -217,23 +227,80 @@ async def test_update_application_status_missing_status(
 
 
 @pytest.mark.asyncio
-async def test_terminal_state_cannot_transition(
+async def test_admin_can_revert_terminal_status(
     admin_client: AsyncClient,
     application: Application,
 ):
-    """Once REJECTED, the application cannot be transitioned further."""
-    # First, reject it
+    """Admin can revert from REJECTED back to APPROVED_BY_ADMIN — mis-click recovery."""
     await admin_client.put(
         f"/api/admin/applications/{application.id}/status",
         json={"status": "REJECTED"},
     )
 
-    # Then try to approve it — must fail
     response = await admin_client.put(
         f"/api/admin/applications/{application.id}/status",
         json={"status": "APPROVED_BY_ADMIN"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.json()["status"] == "APPROVED_BY_ADMIN"
+
+
+# ==================== PUT /api/admin/applications/{id}/notes ====================
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_persists_text(
+    admin_client: AsyncClient,
+    application: Application,
+):
+    """Notes endpoint stores the text without changing status."""
+    response = await admin_client.put(
+        f"/api/admin/applications/{application.id}/notes",
+        json={"admin_notes": "good interview"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["admin_notes"] == "good interview"
+    assert data["status"] == "NEW"  # untouched
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_clears_to_null(
+    admin_client: AsyncClient,
+    application: Application,
+):
+    """Sending null clears the notes."""
+    await admin_client.put(
+        f"/api/admin/applications/{application.id}/notes",
+        json={"admin_notes": "first pass"},
+    )
+    response = await admin_client.put(
+        f"/api/admin/applications/{application.id}/notes",
+        json={"admin_notes": None},
+    )
+    assert response.status_code == 200
+    assert response.json()["admin_notes"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_not_found(admin_client: AsyncClient):
+    response = await admin_client.put(
+        "/api/admin/applications/99999/notes",
+        json={"admin_notes": "x"},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_requires_admin(
+    public_client: AsyncClient,
+    application: Application,
+):
+    response = await public_client.put(
+        f"/api/admin/applications/{application.id}/notes",
+        json={"admin_notes": "x"},
+    )
+    assert response.status_code == 401
 
 
 # ==================== DELETE /api/admin/applications/{id} ====================

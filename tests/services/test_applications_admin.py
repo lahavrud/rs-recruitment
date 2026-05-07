@@ -9,12 +9,10 @@ from src.schemas import ApplicationRead, ApplicationWithDetails
 from src.services.applications_admin import (
     get_application,
     list_applications,
+    update_application_notes,
     update_application_status,
 )
-from src.services.exceptions import (
-    ApplicationNotFoundError,
-    InvalidApplicationStatusTransitionError,
-)
+from src.services.exceptions import ApplicationNotFoundError
 
 # ==================== Helpers ====================
 
@@ -64,25 +62,27 @@ async def _make_candidate(
 
 @pytest.mark.asyncio
 async def test_list_applications_empty(session: AsyncSession):
-    """Returns empty list when no applications exist."""
-    result = await list_applications(session)
-    assert result == []
+    """Returns an empty page envelope when no applications exist."""
+    page = await list_applications(session)
+    assert page.items == []
+    assert page.next_cursor is None
 
 
 @pytest.mark.asyncio
 async def test_list_applications_returns_with_details(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """Returns ApplicationWithDetails instances."""
+    """Returns ApplicationWithDetails instances inside the page envelope."""
     candidate = await _make_candidate(session)
     await _make_application(session, company_with_user, candidate)
 
-    results = await list_applications(session)
+    page = await list_applications(session)
 
-    assert len(results) == 1
-    assert isinstance(results[0], ApplicationWithDetails)
-    assert results[0].job is not None
-    assert results[0].candidate is not None
+    assert len(page.items) == 1
+    assert isinstance(page.items[0], ApplicationWithDetails)
+    assert page.items[0].job is not None
+    assert page.items[0].candidate is not None
+    assert page.next_cursor is None
 
 
 @pytest.mark.asyncio
@@ -99,15 +99,15 @@ async def test_list_applications_filter_by_status(
         session, company_with_user, c2, status=ApplicationStatus.APPROVED_BY_ADMIN
     )
 
-    new_results = await list_applications(session, status=ApplicationStatus.NEW)
-    approved_results = await list_applications(
+    new_page = await list_applications(session, status=ApplicationStatus.NEW)
+    approved_page = await list_applications(
         session, status=ApplicationStatus.APPROVED_BY_ADMIN
     )
 
-    assert len(new_results) == 1
-    assert new_results[0].status == ApplicationStatus.NEW
-    assert len(approved_results) == 1
-    assert approved_results[0].status == ApplicationStatus.APPROVED_BY_ADMIN
+    assert len(new_page.items) == 1
+    assert new_page.items[0].status == ApplicationStatus.NEW
+    assert len(approved_page.items) == 1
+    assert approved_page.items[0].status == ApplicationStatus.APPROVED_BY_ADMIN
 
 
 @pytest.mark.asyncio
@@ -120,10 +120,10 @@ async def test_list_applications_filter_by_job_id(
     app1 = await _make_application(session, company_with_user, c1)
     await _make_application(session, company_with_user, c2)
 
-    results = await list_applications(session, job_id=app1.job_id)
+    page = await list_applications(session, job_id=app1.job_id)
 
-    assert len(results) == 1
-    assert results[0].job_id == app1.job_id
+    assert len(page.items) == 1
+    assert page.items[0].job_id == app1.job_id
 
 
 @pytest.mark.asyncio
@@ -136,10 +136,10 @@ async def test_list_applications_filter_by_candidate_id(
     app1 = await _make_application(session, company_with_user, c1)
     await _make_application(session, company_with_user, c2)
 
-    results = await list_applications(session, candidate_id=c1.id)
+    page = await list_applications(session, candidate_id=c1.id)
 
-    assert len(results) == 1
-    assert results[0].candidate_id == app1.candidate_id
+    assert len(page.items) == 1
+    assert page.items[0].candidate_id == app1.candidate_id
 
 
 # ==================== get_application ====================
@@ -245,45 +245,49 @@ async def test_update_status_approved_to_rejected(
 
 
 @pytest.mark.asyncio
-async def test_update_status_invalid_transition_rejected_is_terminal(
+async def test_update_status_revert_from_rejected(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """REJECTED is a terminal state — no further transitions allowed."""
+    """Admin can revert a REJECTED application — mis-click recovery."""
     candidate = await _make_candidate(session)
     app = await _make_application(
         session, company_with_user, candidate, status=ApplicationStatus.REJECTED
     )
 
-    with pytest.raises(InvalidApplicationStatusTransitionError):
-        await update_application_status(
-            app.id, ApplicationStatus.APPROVED_BY_ADMIN, session
-        )
+    result, _ = await update_application_status(
+        app.id, ApplicationStatus.APPROVED_BY_ADMIN, session
+    )
+    assert result.status == ApplicationStatus.APPROVED_BY_ADMIN
 
 
 @pytest.mark.asyncio
-async def test_update_status_invalid_transition_hired_is_terminal(
+async def test_update_status_revert_from_hired(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """HIRED is a terminal state — no further transitions allowed."""
+    """Admin can revert a HIRED application — mis-click recovery."""
     candidate = await _make_candidate(session)
     app = await _make_application(
         session, company_with_user, candidate, status=ApplicationStatus.HIRED
     )
 
-    with pytest.raises(InvalidApplicationStatusTransitionError):
-        await update_application_status(app.id, ApplicationStatus.REJECTED, session)
+    result, _ = await update_application_status(
+        app.id, ApplicationStatus.REJECTED, session
+    )
+    assert result.status == ApplicationStatus.REJECTED
 
 
 @pytest.mark.asyncio
-async def test_update_status_invalid_transition_new_to_hired(
+async def test_update_status_skips_intermediate_steps(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """NEW → HIRED skips APPROVED_BY_ADMIN and is not allowed."""
+    """Admin can fast-forward NEW → HIRED in one step."""
     candidate = await _make_candidate(session)
     app = await _make_application(session, company_with_user, candidate)
 
-    with pytest.raises(InvalidApplicationStatusTransitionError):
-        await update_application_status(app.id, ApplicationStatus.HIRED, session)
+    result, _ = await update_application_status(
+        app.id, ApplicationStatus.HIRED, session
+    )
+    assert result.status == ApplicationStatus.HIRED
 
 
 @pytest.mark.asyncio
@@ -313,3 +317,45 @@ async def test_update_status_not_found(session: AsyncSession):
         await update_application_status(
             99999, ApplicationStatus.APPROVED_BY_ADMIN, session
         )
+
+
+# ==================== update_application_notes ====================
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_persists_text(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """update_application_notes overwrites admin_notes without changing status."""
+    candidate = await _make_candidate(session)
+    app = await _make_application(session, company_with_user, candidate)
+
+    result = await update_application_notes(
+        app.id, "Looks promising — schedule call.", session
+    )
+    await session.commit()
+
+    assert isinstance(result, ApplicationRead)
+    assert result.admin_notes == "Looks promising — schedule call."
+    assert result.status == ApplicationStatus.NEW  # untouched
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_clears_to_none(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Passing None clears the notes field."""
+    candidate = await _make_candidate(session)
+    app = await _make_application(session, company_with_user, candidate)
+
+    await update_application_notes(app.id, "first pass", session)
+    await session.commit()
+    cleared = await update_application_notes(app.id, None, session)
+    await session.commit()
+    assert cleared.admin_notes is None
+
+
+@pytest.mark.asyncio
+async def test_update_application_notes_not_found(session: AsyncSession):
+    with pytest.raises(ApplicationNotFoundError):
+        await update_application_notes(99999, "x", session)
