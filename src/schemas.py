@@ -215,6 +215,17 @@ class JobUpdate(BaseModel):
     status: JobStatus | None = None
 
 
+class JobAdminCreate(BaseModel):
+    """Schema for an admin creating a job posting against a specific company."""
+
+    company_id: int
+    title: str = Field(..., max_length=200)
+    description: str = Field(..., max_length=5000)
+    requirements: str = Field(..., max_length=5000)
+    location: str = Field(..., max_length=100)
+    status: JobStatus = JobStatus.PUBLISHED
+
+
 class JobRead(BaseModel):
     """Schema for reading job data."""
 
