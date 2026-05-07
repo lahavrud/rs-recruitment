@@ -274,18 +274,60 @@ export default function ApplicationPage() {
     <div className="mx-auto max-w-2xl">
       <Link
         to={`/jobs/${jobId}`}
-        className="mb-8 inline-block text-sm text-white/35 transition hover:text-copper"
+        className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
       >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className="size-4"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06L7.28 11.78a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z"
+            clipRule="evenodd"
+          />
+        </svg>
         {t("publicJobs.application.backToJob")}
       </Link>
 
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-        {t("publicJobs.application.applyFor")}
-      </p>
-      <h1 className="mt-2 text-xl font-semibold text-white/90 sm:text-2xl">{job?.title}</h1>
-      <p className="mt-1.5 text-sm text-white/40">{job?.location}</p>
+      {/* Job summary card */}
+      <div className="mb-8 rounded-xl border border-white/8 bg-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+              {t("publicJobs.application.applyFor")}
+            </p>
+            <h1 className="mt-1.5 text-xl font-semibold text-white/90 sm:text-2xl">
+              {job?.title}
+            </h1>
+            {job?.location && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/40">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  className="size-3.5 shrink-0"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {job.location}
+              </p>
+            )}
+          </div>
+          <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+            {t("publicJobs.board.open")}
+          </span>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-10 space-y-10" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-10" noValidate>
         {submitError && (
           <div className="rounded-lg border border-danger/20 bg-danger/10 p-4 text-sm text-danger">
             {submitError}
@@ -293,7 +335,7 @@ export default function ApplicationPage() {
         )}
 
         <section>
-          <h2 className="mb-5 border-b border-white/8 pb-3 text-sm font-semibold text-white/70">
+          <h2 className="mb-5 text-[10px] font-semibold uppercase tracking-widest text-copper">
             {t("publicJobs.application.personalSection")}
           </h2>
           <div className="space-y-4">
@@ -369,7 +411,7 @@ export default function ApplicationPage() {
         </section>
 
         <section>
-          <h2 className="mb-5 border-b border-white/8 pb-3 text-sm font-semibold text-white/70">
+          <h2 className="mb-5 text-[10px] font-semibold uppercase tracking-widest text-copper">
             {t("publicJobs.application.resumeSection")}
           </h2>
           <Field label={t("publicJobs.application.resumeUpload")} id="resume" required>
@@ -407,7 +449,7 @@ export default function ApplicationPage() {
           <h2 className="mb-2 border-b border-white/8 pb-3 text-sm font-semibold text-white/70">
             {t("publicJobs.application.interviewSection")}
           </h2>
-          <p className="mb-5 text-xs text-white/30">
+          <p className="mb-4 -mt-2 text-xs text-white/30">
             {t("publicJobs.application.interviewSectionHint")}
           </p>
           <div className="space-y-4">

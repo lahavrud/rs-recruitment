@@ -13,6 +13,45 @@ function formatDate(iso: string): string {
   });
 }
 
+function DetailSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl animate-pulse">
+      <div className="mb-8 h-4 w-24 rounded bg-white/8" />
+      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8">
+        {/* Left */}
+        <div className="rounded-xl border border-white/5 bg-card p-6 sm:p-10">
+          <div className="space-y-3">
+            <div className="h-6 w-2/3 rounded bg-white/8" />
+            <div className="h-4 w-1/4 rounded bg-white/5" />
+          </div>
+          <div className="my-8 h-px bg-white/5" />
+          <div className="space-y-2">
+            <div className="h-3 w-20 rounded bg-white/5" />
+            {[1, 0.9, 0.85, 0.7, 0.8].map((w, i) => (
+              <div key={i} className="h-3 rounded bg-white/5" style={{ width: `${w * 100}%` }} />
+            ))}
+          </div>
+          <div className="mt-8 space-y-2">
+            <div className="h-3 w-20 rounded bg-white/5" />
+            {[0.95, 0.75, 0.6].map((w, i) => (
+              <div key={i} className="h-3 rounded bg-white/5" style={{ width: `${w * 100}%` }} />
+            ))}
+          </div>
+        </div>
+        {/* Right sidebar */}
+        <div className="mt-4 rounded-xl border border-white/5 bg-card p-6 lg:mt-0">
+          <div className="space-y-3">
+            <div className="h-5 w-3/4 rounded bg-white/8" />
+            <div className="h-3 w-1/2 rounded bg-white/5" />
+            <div className="h-3 w-2/5 rounded bg-white/5" />
+          </div>
+          <div className="mt-6 h-10 rounded-sm bg-white/5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JobDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -58,13 +97,7 @@ export default function JobDetailPage() {
     };
   }, [id, navigate, t]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="text-white/30">{t("publicJobs.detail.loading")}</div>
-      </div>
-    );
-  }
+  if (loading) return <DetailSkeleton />;
 
   if (error || !job) {
     return (
@@ -82,62 +115,132 @@ export default function JobDetailPage() {
     );
   }
 
+  const applyHref = `/jobs/${job.id}/apply`;
+
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       <Link
         to="/jobs"
-        className="mb-8 inline-block text-sm text-white/35 transition hover:text-copper"
+        className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
       >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className="size-4"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06L7.28 11.78a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z"
+            clipRule="evenodd"
+          />
+        </svg>
         {t("publicJobs.detail.backToJobs")}
       </Link>
 
-      <article className="rounded-xl border border-white/8 bg-card p-6 sm:p-10">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-white/95 sm:text-2xl">{job.title}</h1>
-            <p className="mt-1.5 text-sm text-white/45">{job.location}</p>
+      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:items-start lg:gap-8">
+        {/* ── Main article ── */}
+        <article className="rounded-xl border border-white/8 bg-card p-6 sm:p-10">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold text-white/95 sm:text-2xl">
+                {job.title}
+              </h1>
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/45">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  className="size-3.5 shrink-0"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {job.location}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+              {t("publicJobs.detail.open")}
+            </span>
           </div>
-          <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-            {t("publicJobs.detail.open")}
-          </span>
-        </div>
-        <p className="mt-2 text-xs text-white/25">
-          {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
-        </p>
-
-        <div className="my-8 h-px bg-white/8" />
-
-        {/* About the role */}
-        <div>
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
-            {t("publicJobs.detail.aboutRole")}
+          <p className="mt-2 text-xs text-white/25">
+            {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
           </p>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
-            {job.description}
-          </p>
-        </div>
 
-        {/* Requirements */}
-        <div className="mt-8">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
-            {t("publicJobs.detail.requirements")}
-          </p>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
-            {job.requirements}
-          </p>
-        </div>
+          <div className="my-8 h-px bg-white/8" />
 
-        {/* CTA */}
-        <div className="mt-10 border-t border-white/8 pt-8">
-          <Link
-            to={`/jobs/${job.id}/apply`}
-            className="inline-block rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-          >
-            {t("publicJobs.detail.applyNow")}
-          </Link>
-        </div>
-      </article>
+          {/* About the role */}
+          <div>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              {t("publicJobs.detail.aboutRole")}
+            </p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
+              {job.description}
+            </p>
+          </div>
+
+          {/* Requirements */}
+          <div className="mt-8">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              {t("publicJobs.detail.requirements")}
+            </p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
+              {job.requirements}
+            </p>
+          </div>
+
+          {/* Mobile CTA — hidden on lg */}
+          <div className="mt-10 border-t border-white/8 pt-8 lg:hidden">
+            <Link
+              to={applyHref}
+              className="inline-block w-full rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            >
+              {t("publicJobs.detail.applyNow")}
+            </Link>
+          </div>
+        </article>
+
+        {/* ── Sticky sidebar ── */}
+        <aside className="mt-4 lg:sticky lg:top-6 lg:mt-0">
+          <div className="rounded-xl border border-white/8 bg-card p-6">
+            <h2 className="font-medium text-white/90">{job.title}</h2>
+            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/45">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="size-3.5 shrink-0"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {job.location}
+            </p>
+            <p className="mt-1 text-xs text-white/25">
+              {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
+            </p>
+
+            <div className="mt-5 h-px bg-white/8" />
+
+            <Link
+              to={applyHref}
+              className="mt-5 block rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            >
+              {t("publicJobs.detail.applyNow")}
+            </Link>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
