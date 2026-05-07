@@ -454,7 +454,7 @@ function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
                 <li key={a.id}>
                   <button
                     type="button"
-                    onClick={() => { onClose(); navigate(`/admin/applications?candidate=${a.candidate_id}`); }}
+                    onClick={() => { onClose(); navigate(`/admin/applications?candidate=${a.candidate_id}`, { state: { autoOpen: a } }); }}
                     className="flex w-full items-center justify-between rounded-sm border border-white/6 bg-card px-3 py-2 transition hover:border-copper/25 hover:bg-card-raised"
                   >
                     <span className="text-white/80">{a.job.title}</span>
