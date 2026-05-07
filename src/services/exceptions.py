@@ -144,3 +144,9 @@ class InvalidApplicationStatusTransitionError(Exception):
     """Raised when attempting an invalid application status transition."""
 
     pass
+
+
+class InvalidCursorError(Exception):
+    """Raised when a pagination cursor is malformed or unparseable."""
+
+    pass
