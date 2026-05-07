@@ -20,9 +20,17 @@ aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 
 echo "==> Pulling deploy config from S3"
-mkdir -p "${APP_DIR}"
+mkdir -p "${APP_DIR}/frontend/tls"
 aws s3 cp "s3://${S3_BUCKET}/deploy/docker-compose.deploy.yml" "${APP_DIR}/docker-compose.deploy.yml"
 aws s3 cp "s3://${S3_BUCKET}/deploy/nginx.conf" "${APP_DIR}/frontend/nginx.conf"
+
+echo "==> Materializing TLS cert from SSM"
+aws ssm get-parameter --name /rs-recruitment/infra/TLS_CERT --with-decryption \
+  --query 'Parameter.Value' --output text > "${APP_DIR}/frontend/tls/cert.pem"
+aws ssm get-parameter --name /rs-recruitment/infra/TLS_KEY --with-decryption \
+  --query 'Parameter.Value' --output text > "${APP_DIR}/frontend/tls/key.pem"
+chmod 600 "${APP_DIR}/frontend/tls/key.pem"
+chmod 644 "${APP_DIR}/frontend/tls/cert.pem"
 
 echo "==> Syncing frontend files"
 # Force-copy index.html — aws s3 sync skips same-size files even when content changes

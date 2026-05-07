@@ -6,57 +6,61 @@
 #          --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
 #
 #   2. Ensure the EC2 IAM role (rs-recruitment-app-role) has permissions for:
-#        ssm:GetParametersByPath on /rs-recruitment/prod/*
+#        ssm:GetParameter / GetParameters / GetParametersByPath on /rs-recruitment/*
 #        kms:Decrypt via SSM (for SecureString params, uses aws/ssm key)
 #        s3:GetObject + s3:PutObject on rs-recruitment-<account-id>
 #        ecr:GetAuthorizationToken + ecr:BatchGetImage (already set)
+#        logs:CreateLogStream + logs:PutLogEvents on /rs-recruitment/* (awslogs driver)
 #
 #      SSM Parameter Store (us-east-1) — required (SecureString):
 #        /rs-recruitment/prod/JWT_SECRET_KEY      — 32+ char random string
 #        /rs-recruitment/prod/DATABASE_URL        — postgresql+asyncpg://...
+#        /rs-recruitment/prod/SMTP_PASSWORD       — <resend-api-key>
+#      SSM Parameter Store (us-east-1) — TLS material (kept under /infra/ so the
+#      app's settings loader does not pick them up as Settings fields):
+#        /rs-recruitment/infra/TLS_CERT           — Cloudflare Origin Certificate (PEM)
+#        /rs-recruitment/infra/TLS_KEY            — Origin Certificate private key (PEM)
 #      SSM Parameter Store (us-east-1) — required (String):
-#        /rs-recruitment/prod/ALLOWED_ORIGINS     — https://rs-recruiting.com,...
+#        /rs-recruitment/prod/ALLOWED_ORIGINS     — https://rs-recruiting.com,https://www.rs-recruiting.com
 #        /rs-recruitment/prod/EMAIL_PROVIDER      — smtp
 #        /rs-recruitment/prod/SMTP_HOST           — smtp.resend.com
 #        /rs-recruitment/prod/SMTP_PORT           — 587
 #        /rs-recruitment/prod/SMTP_USER           — resend
-#        /rs-recruitment/prod/SMTP_FROM_EMAIL     — noreply@<your-verified-domain>
+#        /rs-recruitment/prod/SMTP_FROM_EMAIL     — noreply@rs-recruiting.com
 #        /rs-recruitment/prod/REDIS_URL           — redis://redis:6379/0
 #        /rs-recruitment/prod/AWS_REGION          — us-east-1
 #        /rs-recruitment/prod/AWS_S3_BUCKET_NAME  — rs-recruitment-<account-id>
 #        /rs-recruitment/prod/STORAGE_PROVIDER    — s3
-#        /rs-recruitment/prod/FRONTEND_BASE_URL   — https://your-domain
-#      SSM Parameter Store (us-east-1) — required (SecureString):
-#        /rs-recruitment/prod/SMTP_PASSWORD       — <resend-api-key>
+#        /rs-recruitment/prod/FRONTEND_BASE_URL   — https://rs-recruiting.com
 #
 #      The app fetches all config directly from SSM at startup — no .env file needed.
 #      Secret rotation = update SSM parameter + redeploy.
-#      NOTE: JWT_SECRET_KEY, DATABASE_URL, and SMTP_PASSWORD must be SecureString (not String).
 #
-#   3. Sync frontend build from S3 to EC2:
-#        aws s3 sync s3://<bucket>/deploy/dist/ ~/app/frontend/dist/ --delete
-#        aws s3 cp s3://<bucket>/deploy/dist/index.html ~/app/frontend/dist/index.html
-#        aws s3 cp s3://<bucket>/deploy/nginx.conf ~/app/frontend/nginx.conf
-#      NOTE: always use `aws s3 cp` for index.html in addition to sync —
-#      sync skips it when file size is unchanged (hash filenames are always same length).
+#   3. Sync frontend build + materialize TLS cert (handled by deploy_ec2.sh).
 #
 # Deploy:
-#   docker compose -f docker-compose.deploy.yml pull
-#   docker compose -f docker-compose.deploy.yml up -d
-#   docker compose -f docker-compose.deploy.yml exec -T api uv run alembic upgrade head
+#   ./scripts/deploy_ec2.sh
 
 services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "443:443"
     volumes:
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./frontend/tls:/etc/nginx/tls:ro
     depends_on:
       api:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /rs-recruitment/nginx
+        awslogs-stream: nginx
+        tag: "{{.Name}}/{{.ID}}"
 
   api:
     image: ${ECR_REGISTRY}/rs-recruitment/api:latest
@@ -69,11 +73,18 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
       start_period: 15s
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /rs-recruitment/api
+        awslogs-stream: api
+        tag: "{{.Name}}/{{.ID}}"
 
   worker:
     image: ${ECR_REGISTRY}/rs-recruitment/api:latest
@@ -84,6 +95,13 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /rs-recruitment/worker
+        awslogs-stream: worker
+        tag: "{{.Name}}/{{.ID}}"
 
   redis:
     image: redis:7-alpine
@@ -95,6 +113,13 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /rs-recruitment/redis
+        awslogs-stream: redis
+        tag: "{{.Name}}/{{.ID}}"
 
 volumes:
   app-data:   # persistent storage for local file uploads (/app/data)
