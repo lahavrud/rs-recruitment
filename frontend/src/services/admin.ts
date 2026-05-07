@@ -3,6 +3,7 @@
  * All endpoints require ADMIN role JWT.
  */
 import api from "@/services/api";
+import type { CursorPage } from "@/hooks/useInfiniteList";
 import type {
   ActiveCompanyRead,
   ApprovedCompanyRead,
@@ -19,9 +20,7 @@ import type {
 
 // ── Companies ────────────────────────────────────────────────────────────────
 
-export async function createInvite(
-  data: InviteTokenCreate,
-): Promise<InviteTokenRead> {
+export async function createInvite(data: InviteTokenCreate): Promise<InviteTokenRead> {
   const res = await api.post<InviteTokenRead>("/api/admin/companies/invite", data);
   return res.data;
 }
@@ -86,13 +85,36 @@ export async function contactJob(jobId: number, note: string): Promise<void> {
 
 // ── Applications ─────────────────────────────────────────────────────────────
 
-export async function getApplications(params?: {
+export interface ApplicationListParams {
   status?: ApplicationStatus;
   job_id?: number;
   candidate_id?: number;
-}): Promise<ApplicationWithDetails[]> {
-  const res = await api.get<ApplicationWithDetails[]>("/api/admin/applications", {
-    params,
+  cursor?: string | null;
+  limit?: number;
+}
+
+export async function getApplications(
+  params?: ApplicationListParams,
+): Promise<CursorPage<ApplicationWithDetails>> {
+  const query: Record<string, string | number> = {};
+  if (params?.status) query.status = params.status;
+  if (params?.job_id != null) query.job_id = params.job_id;
+  if (params?.candidate_id != null) query.candidate_id = params.candidate_id;
+  if (params?.cursor) query.cursor = params.cursor;
+  if (params?.limit != null) query.limit = params.limit;
+  const res = await api.get<CursorPage<ApplicationWithDetails>>(
+    "/api/admin/applications",
+    { params: query },
+  );
+  return res.data;
+}
+
+export async function updateApplicationNotes(
+  appId: number,
+  adminNotes: string | null,
+): Promise<ApplicationRead> {
+  const res = await api.put<ApplicationRead>(`/api/admin/applications/${appId}/notes`, {
+    admin_notes: adminNotes,
   });
   return res.data;
 }

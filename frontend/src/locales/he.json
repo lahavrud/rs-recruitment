@@ -490,11 +490,23 @@
       },
       "deleteButton": "מחיקת מועמדות",
       "deleteConfirm": "למחוק את המועמדות? לא ניתן לבטל פעולה זו.",
+      "deleteConfirmTitle": "מחיקת מועמדות",
       "deleteConfirmYes": "כן, מחק",
       "deleteCancel": "ביטול",
+      "viewAction": "פרטים מלאים",
+      "updateStatusAction": "עדכון סטטוס",
+      "editNotesAction": "עריכת הערות",
+      "deleteAction": "מחיקה",
+      "rowActionsLabel": "פעולות נוספות",
+      "revertConfirm": "לשחזר מועמדות מסטטוס סופי?",
+      "savedToast": "הסטטוס עודכן",
+      "notesSavedToast": "ההערות עודכנו",
+      "deletedToast": "המועמדות נמחקה",
+      "notesModalTitle": "הערות מנהל",
       "errors": {
         "updateFailed": "עדכון הסטטוס נכשל. נסה שוב.",
-        "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב."
+        "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב.",
+        "notesFailed": "שמירת ההערות נכשלה. נסה שוב."
       }
     },
     "candidates": {
