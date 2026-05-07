@@ -9,14 +9,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.security import get_password_hash
 from src.enums import UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
-from src.schemas import CompanyProfileCreate, UserCreate
+from src.schemas import (
+    CompanyProfileAdminCreate,
+    CompanyProfileAdminUpdate,
+    CompanyProfileCreate,
+    UserCreate,
+)
 from src.services.admin_companies import (
+    admin_create_company,
     approve_company,
     delete_active_company,
     get_all_admin_emails,
+    get_company_profile,
     list_active_companies,
     list_pending_companies,
     reject_company,
+    update_company_profile,
 )
 from src.services.auth import register_company_user
 from src.services.exceptions import CompanyNotFoundError, CompanyNotPendingError
@@ -400,3 +408,80 @@ async def test_delete_active_company_cascades_jobs_and_applications(
 async def test_delete_active_company_not_found(session: AsyncSession):
     with pytest.raises(CompanyNotFoundError):
         await delete_active_company(99999, session)
+
+
+# ── admin_create_company / get_company_profile / update_company_profile ──────
+
+
+def _admin_create_payload(name: str = "אדמין-קומפ") -> CompanyProfileAdminCreate:
+    return CompanyProfileAdminCreate(
+        name=name,
+        company_id="123456789",
+        address="רח׳ אדמין 1, תל אביב",
+        contact_first_name="אורי",
+        contact_last_name="אדמין",
+        contact_mobile_phone="0509999999",
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_create_company_persists_profile_without_user(
+    session: AsyncSession,
+):
+    profile = await admin_create_company(_admin_create_payload(), session)
+    await session.commit()
+
+    assert profile.id is not None
+    assert profile.user_id is None
+    assert profile.name == "אדמין-קומפ"
+    # Round-trip via the DB to make sure user_id is actually NULL on disk.
+    result = await session.execute(
+        select(CompanyProfile).where(CompanyProfile.id == profile.id)  # pyright: ignore[reportArgumentType]
+    )
+    persisted = result.scalar_one()
+    assert persisted.user_id is None
+
+
+@pytest.mark.asyncio
+async def test_get_company_profile_returns_admin_created_company(
+    session: AsyncSession,
+):
+    created = await admin_create_company(_admin_create_payload(), session)
+    await session.commit()
+    fetched = await get_company_profile(created.id, session)
+    assert fetched.id == created.id
+    assert fetched.user_id is None
+    assert fetched.name == created.name
+
+
+@pytest.mark.asyncio
+async def test_get_company_profile_not_found(session: AsyncSession):
+    with pytest.raises(CompanyNotFoundError):
+        await get_company_profile(99999, session)
+
+
+@pytest.mark.asyncio
+async def test_update_company_profile_partial(session: AsyncSession):
+    created = await admin_create_company(_admin_create_payload(), session)
+    await session.commit()
+
+    updated = await update_company_profile(
+        created.id,
+        CompanyProfileAdminUpdate(name="שם חדש", contact_landline_phone="03-1234567"),
+        session,
+    )
+    await session.commit()
+
+    assert updated.name == "שם חדש"
+    assert updated.contact_landline_phone == "03-1234567"
+    # Untouched fields preserved
+    assert updated.company_id == created.company_id
+    assert updated.contact_mobile_phone == created.contact_mobile_phone
+
+
+@pytest.mark.asyncio
+async def test_update_company_profile_not_found(session: AsyncSession):
+    with pytest.raises(CompanyNotFoundError):
+        await update_company_profile(
+            99999, CompanyProfileAdminUpdate(name="anything"), session
+        )

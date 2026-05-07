@@ -10,16 +10,22 @@ from src.models import User
 from src.schemas import (
     ActiveCompanyRead,
     ApprovedCompanyRead,
+    CompanyProfileAdminCreate,
+    CompanyProfileAdminUpdate,
+    CompanyProfileRead,
     InviteTokenCreate,
     InviteTokenRead,
     PendingCompanyRead,
 )
 from src.services.admin_companies import (
+    admin_create_company,
     approve_company,
     delete_active_company,
+    get_company_profile,
     list_active_companies,
     list_pending_companies,
     reject_company,
+    update_company_profile,
 )
 from src.services.admin_invites import (
     create_invite,
@@ -129,6 +135,70 @@ async def get_active_companies(
 ) -> list[ActiveCompanyRead]:
     """List all active companies."""
     return await list_active_companies(session)
+
+
+@router.post(
+    "/companies",
+    response_model=CompanyProfileRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_company_directly(
+    data: CompanyProfileAdminCreate,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> CompanyProfileRead:
+    """Create a CompanyProfile directly, without a user account.
+
+    The resulting profile has `user_id = null` and can be referenced by jobs
+    immediately. Admins use this for companies that haven't been onboarded
+    via the invite flow yet.
+    """
+    try:
+        result = await admin_create_company(data, session)
+        await session.commit()
+        return result
+    except Exception:
+        await session.rollback()
+        raise
+
+
+@router.get(
+    "/companies/profile/{profile_id}",
+    response_model=CompanyProfileRead,
+)
+async def get_company_profile_endpoint(
+    profile_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> CompanyProfileRead:
+    """Fetch a single CompanyProfile by its primary key."""
+    try:
+        return await get_company_profile(profile_id, session)
+    except CompanyNotFoundError as e:
+        raise service_exception_to_http(e) from e
+
+
+@router.put(
+    "/companies/profile/{profile_id}",
+    response_model=CompanyProfileRead,
+)
+async def update_company_profile_endpoint(
+    profile_id: int,
+    data: CompanyProfileAdminUpdate,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> CompanyProfileRead:
+    """Partially update a CompanyProfile."""
+    try:
+        result = await update_company_profile(profile_id, data, session)
+        await session.commit()
+        return result
+    except CompanyNotFoundError as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
+    except Exception:
+        await session.rollback()
+        raise
 
 
 @router.delete(

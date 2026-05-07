@@ -12,7 +12,13 @@ from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
 from src.models import ActivationToken, Application, CompanyProfile, Job, User
-from src.schemas import ActiveCompanyRead, CompanyProfileRead, UserRead
+from src.schemas import (
+    ActiveCompanyRead,
+    CompanyProfileAdminCreate,
+    CompanyProfileAdminUpdate,
+    CompanyProfileRead,
+    UserRead,
+)
 from src.services.contract_pdf import generate_signed_contract
 from src.services.exceptions import (
     CompanyNotFoundError,
@@ -288,6 +294,78 @@ async def list_active_companies(session: AsyncSession) -> list[ActiveCompanyRead
         )
         for user, cp in result.all()
     ]
+
+
+async def get_company_profile(
+    profile_id: int, session: AsyncSession
+) -> CompanyProfileRead:
+    """Fetch a single CompanyProfile by its primary key.
+
+    Works for both with-user and admin-created (user_id=None) profiles.
+
+    Raises:
+        CompanyNotFoundError: If no company profile with that id exists.
+    """
+    result = await session.execute(
+        select(CompanyProfile).where(CompanyProfile.id == profile_id)  # pyright: ignore[reportArgumentType]
+    )
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        raise CompanyNotFoundError(f"Company profile {profile_id} not found")
+    return CompanyProfileRead.model_validate(profile)
+
+
+async def admin_create_company(
+    data: CompanyProfileAdminCreate, session: AsyncSession
+) -> CompanyProfileRead:
+    """Create a CompanyProfile directly, without a user account.
+
+    Used when an admin wants to post jobs against a company that has not
+    been onboarded yet. `user_id` is left null; the company can be linked
+    to a real user later by extending this flow.
+    """
+    profile = CompanyProfile(
+        user_id=None,
+        name=data.name,
+        company_id=data.company_id,
+        address=data.address,
+        contact_first_name=data.contact_first_name,
+        contact_last_name=data.contact_last_name,
+        contact_mobile_phone=data.contact_mobile_phone,
+        contact_landline_phone=data.contact_landline_phone,
+    )
+    session.add(profile)
+    await session.flush()
+    await session.refresh(profile)
+    return CompanyProfileRead.model_validate(profile)
+
+
+async def update_company_profile(
+    profile_id: int,
+    data: CompanyProfileAdminUpdate,
+    session: AsyncSession,
+) -> CompanyProfileRead:
+    """Apply a partial update to a CompanyProfile.
+
+    Only fields explicitly set on the input schema are updated; unset fields
+    leave the existing value untouched.
+
+    Raises:
+        CompanyNotFoundError: If no company profile with that id exists.
+    """
+    result = await session.execute(
+        select(CompanyProfile).where(CompanyProfile.id == profile_id)  # pyright: ignore[reportArgumentType]
+    )
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        raise CompanyNotFoundError(f"Company profile {profile_id} not found")
+
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(profile, field, value)
+
+    await session.flush()
+    await session.refresh(profile)
+    return CompanyProfileRead.model_validate(profile)
 
 
 async def delete_active_company(company_user_id: int, session: AsyncSession) -> None:

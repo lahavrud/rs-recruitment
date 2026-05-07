@@ -269,3 +269,117 @@ async def test_generate_invite_token_requires_admin(public_client: AsyncClient):
     """Test that the invite endpoint requires admin authentication."""
     response = await public_client.post("/api/admin/companies/invite")
     assert response.status_code == 401
+
+
+# ── admin-create / get-detail / edit by profile id ─────────────────────────────
+
+
+_ADMIN_CREATE_PAYLOAD = {
+    "name": "חברה ישירה",
+    "company_id": "987654321",
+    "address": "רח׳ הישר 7, חיפה",
+    "contact_first_name": "אורי",
+    "contact_last_name": "ישיר",
+    "contact_mobile_phone": "0508887777",
+}
+
+
+@pytest.mark.asyncio
+async def test_admin_create_company_returns_profile_without_user(
+    admin_client: AsyncClient,
+):
+    response = await admin_client.post(
+        "/api/admin/companies", json=_ADMIN_CREATE_PAYLOAD
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["user_id"] is None
+    assert data["name"] == "חברה ישירה"
+    assert data["company_id"] == "987654321"
+    assert isinstance(data["id"], int)
+
+
+@pytest.mark.asyncio
+async def test_admin_create_company_validates_company_id(admin_client: AsyncClient):
+    bad = {**_ADMIN_CREATE_PAYLOAD, "company_id": "12345"}  # wrong length
+    response = await admin_client.post("/api/admin/companies", json=bad)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_admin_create_company_requires_admin(public_client: AsyncClient):
+    response = await public_client.post(
+        "/api/admin/companies", json=_ADMIN_CREATE_PAYLOAD
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_company_profile_by_id_admin_created(admin_client: AsyncClient):
+    create = await admin_client.post("/api/admin/companies", json=_ADMIN_CREATE_PAYLOAD)
+    profile_id = create.json()["id"]
+
+    response = await admin_client.get(f"/api/admin/companies/profile/{profile_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == profile_id
+    assert data["user_id"] is None
+    assert data["name"] == "חברה ישירה"
+
+
+@pytest.mark.asyncio
+async def test_get_company_profile_not_found(admin_client: AsyncClient):
+    response = await admin_client.get("/api/admin/companies/profile/99999")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_company_profile_partial(admin_client: AsyncClient):
+    create = await admin_client.post("/api/admin/companies", json=_ADMIN_CREATE_PAYLOAD)
+    profile_id = create.json()["id"]
+
+    response = await admin_client.put(
+        f"/api/admin/companies/profile/{profile_id}",
+        json={"name": "שם מעודכן", "contact_landline_phone": "04-1112233"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "שם מעודכן"
+    assert data["contact_landline_phone"] == "04-1112233"
+    # Untouched fields preserved
+    assert data["company_id"] == "987654321"
+    assert data["contact_mobile_phone"] == "0508887777"
+
+
+@pytest.mark.asyncio
+async def test_update_company_profile_validates_phone(admin_client: AsyncClient):
+    create = await admin_client.post("/api/admin/companies", json=_ADMIN_CREATE_PAYLOAD)
+    profile_id = create.json()["id"]
+
+    response = await admin_client.put(
+        f"/api/admin/companies/profile/{profile_id}",
+        json={"contact_mobile_phone": "12345"},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_company_profile_not_found(admin_client: AsyncClient):
+    response = await admin_client.put(
+        "/api/admin/companies/profile/99999", json={"name": "no"}
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_company_profile_endpoints_require_admin(public_client: AsyncClient):
+    create_resp = await public_client.post(
+        "/api/admin/companies", json=_ADMIN_CREATE_PAYLOAD
+    )
+    get_resp = await public_client.get("/api/admin/companies/profile/1")
+    put_resp = await public_client.put(
+        "/api/admin/companies/profile/1", json={"name": "x"}
+    )
+    assert create_resp.status_code == 401
+    assert get_resp.status_code == 401
+    assert put_resp.status_code == 401
