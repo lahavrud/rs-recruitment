@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -25,6 +26,7 @@ import CompanyJobsPage from "@/pages/company/CompanyJobsPage";
 
 export default function App() {
   return (
+    <HelmetProvider>
     <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
@@ -103,5 +105,6 @@ export default function App() {
       </AuthProvider>
     </BrowserRouter>
     </ErrorBoundary>
+    </HelmetProvider>
   );
 }

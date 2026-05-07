@@ -6,6 +6,7 @@ import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
 import Logo from "@/components/ui/Logo";
 import LogoBanner from "@/components/ui/LogoBanner";
+import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -84,6 +85,11 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-page">
+      <SeoHead
+        title={t("landing.seo.title")}
+        description={t("landing.seo.description")}
+        canonical={SITE_URL}
+      />
       {/* ── Hero ──────────────────────────────────────── */}
       <section className="texture-wave relative flex min-h-screen flex-col overflow-hidden bg-void">
         {/* preload trigger — zero-size, tells browser to decode image before painting */}
@@ -186,9 +192,12 @@ export default function LandingPage() {
               <p className="mt-2 flex-1 text-sm leading-relaxed text-white/65">
                 {t("landing.hero.companiesBody")}
               </p>
-              <p className="mt-5 text-xs text-white/35">
-                {t("landing.hero.companiesInviteOnly")}
-              </p>
+              <a
+                href={`mailto:${t("landing.contact.email")}`}
+                className="mt-5 inline-block rounded-sm border border-copper/50 px-5 py-2.5 text-center text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper"
+              >
+                {t("landing.hero.companiesContactCta")}
+              </a>
             </div>
           </div>
         </div>
@@ -382,6 +391,25 @@ export default function LandingPage() {
           </div>
         </section>
       )}
+
+      {/* ── Contact ───────────────────────────────────── */}
+      <section className="border-t border-white/10 bg-void py-16 text-center">
+        <div className="mx-auto max-w-xl px-6">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+            {t("landing.contact.eyebrow")}
+          </p>
+          <h2 className="mt-4 text-xl font-semibold text-white/90">
+            {t("landing.contact.headline")}
+          </h2>
+          <p className="mt-2 text-sm text-white/50">{t("landing.contact.body")}</p>
+          <a
+            href={`mailto:${t("landing.contact.email")}`}
+            className="mt-7 inline-block rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold"
+          >
+            {t("landing.contact.cta")}
+          </a>
+        </div>
+      </section>
 
       {/* ── Footer ────────────────────────────────────── */}
       <footer

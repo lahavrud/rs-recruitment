@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJobs } from "@/services/jobs";
 import SearchInput from "@/components/ui/SearchInput";
+import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { JobPublicRead } from "@/types/api";
 import axios from "axios";
 
@@ -108,6 +109,11 @@ export default function JobBoardPage() {
 
   return (
     <div>
+      <SeoHead
+        title={t("publicJobs.board.title")}
+        description={t("publicJobs.board.subtitle")}
+        canonical={`${SITE_URL}/jobs`}
+      />
       {/* Header */}
       <div className="mb-8 sm:mb-10">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">

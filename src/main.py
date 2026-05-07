@@ -19,6 +19,7 @@ from src.api import (
     jobs_write,
     public,
     resumes,
+    seo,
 )
 from src.core.infrastructure.config import settings, validate_settings
 from src.core.infrastructure.database import init_db
@@ -64,6 +65,7 @@ app.include_router(public.router)
 app.include_router(candidates.router)
 app.include_router(candidates.jobs_apply_router)
 app.include_router(resumes.router)
+app.include_router(seo.router)
 
 
 @app.get("/health")
