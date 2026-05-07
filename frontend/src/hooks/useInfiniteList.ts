@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Server response shape produced by the backend's `CursorPage[T]` envelope
@@ -38,98 +38,32 @@ interface State<T> {
   error: Error | null;
 }
 
-type Action<T> =
-  | { type: "reset" }
-  | { type: "loadStart" }
-  | { type: "loadMoreStart" }
-  | { type: "loadEnd"; items: T[]; cursor: string | null; replace: boolean }
-  | { type: "loadError"; error: Error }
-  | { type: "prepend"; item: T }
-  | { type: "update"; predicate: (item: T) => boolean; next: T }
-  | { type: "remove"; predicate: (item: T) => boolean };
-
-function reducer<T>(state: State<T>, action: Action<T>): State<T> {
-  switch (action.type) {
-    case "reset":
-      return {
-        items: [],
-        cursor: null,
-        hasMore: true,
-        isLoading: true,
-        isFetchingMore: false,
-        error: null,
-      };
-    case "loadStart":
-      return { ...state, isLoading: true, error: null };
-    case "loadMoreStart":
-      return { ...state, isFetchingMore: true, error: null };
-    case "loadEnd":
-      return {
-        ...state,
-        items: action.replace ? action.items : [...state.items, ...action.items],
-        cursor: action.cursor,
-        hasMore: action.cursor != null,
-        isLoading: false,
-        isFetchingMore: false,
-        error: null,
-      };
-    case "loadError":
-      return {
-        ...state,
-        isLoading: false,
-        isFetchingMore: false,
-        error: action.error,
-      };
-    case "prepend":
-      return { ...state, items: [action.item, ...state.items] };
-    case "update":
-      return {
-        ...state,
-        items: state.items.map((item) => (action.predicate(item) ? action.next : item)),
-      };
-    case "remove":
-      return {
-        ...state,
-        items: state.items.filter((item) => !action.predicate(item)),
-      };
-    default:
-      return state;
-  }
+function initialState<T>(): State<T> {
+  return {
+    items: [],
+    cursor: null,
+    hasMore: true,
+    isLoading: true,
+    isFetchingMore: false,
+    error: null,
+  };
 }
-
-const INITIAL: State<unknown> = {
-  items: [],
-  cursor: null,
-  hasMore: true,
-  isLoading: true,
-  isFetchingMore: false,
-  error: null,
-};
 
 /**
  * Cursor-paginated infinite list driven by an `IntersectionObserver` sentinel.
  *
  * Memoize your fetcher with `useCallback` and depend on filter values — the
  * hook resets and refetches whenever the fetcher identity changes.
- *
- * Returns `sentinelRef` for a bottom-of-list element; the hook attaches
- * an `IntersectionObserver` to it and pulls the next page when it scrolls
- * into view. Mutation helpers (`prependItem`, `updateItem`, `removeItem`)
- * let callers reflect optimistic updates without a full reload.
  */
 export function useInfiniteList<T>(
   fetcher: CursorFetcher<T>,
 ): UseInfiniteListResult<T> {
-  const [state, dispatch] = useReducer(
-    reducer as React.Reducer<State<T>, Action<T>>,
-    INITIAL as State<T>,
-  );
+  const [state, setState] = useState<State<T>>(initialState);
 
   const fetcherRef = useRef(fetcher);
   const inFlight = useRef(false);
   const stateRef = useRef(state);
 
-  // Sync refs from latest props/state in an effect — never during render.
   useEffect(() => {
     fetcherRef.current = fetcher;
   }, [fetcher]);
@@ -141,20 +75,30 @@ export function useInfiniteList<T>(
     async (nextCursor: string | null, replace: boolean): Promise<void> => {
       if (inFlight.current) return;
       inFlight.current = true;
-      dispatch(replace ? { type: "loadStart" } : { type: "loadMoreStart" });
+      setState((prev) =>
+        replace
+          ? { ...prev, isLoading: true, error: null }
+          : { ...prev, isFetchingMore: true, error: null },
+      );
       try {
         const page = await fetcherRef.current(nextCursor);
-        dispatch({
-          type: "loadEnd",
-          items: page.items,
+        setState((prev) => ({
+          ...prev,
+          items: replace ? page.items : [...prev.items, ...page.items],
           cursor: page.next_cursor,
-          replace,
-        });
+          hasMore: page.next_cursor != null,
+          isLoading: false,
+          isFetchingMore: false,
+          error: null,
+        }));
       } catch (err) {
-        dispatch({
-          type: "loadError",
-          error: err instanceof Error ? err : new Error(String(err)),
-        });
+        const wrapped = err instanceof Error ? err : new Error(String(err));
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          isFetchingMore: false,
+          error: wrapped,
+        }));
       } finally {
         inFlight.current = false;
       }
@@ -163,14 +107,15 @@ export function useInfiniteList<T>(
   );
 
   // Reset + load whenever the fetcher identity changes (filters/page mount).
+  // The single setState here is intentional — there's no external state to
+  // sync to, just a one-time reset before kicking off the fetch.
   useEffect(() => {
-    dispatch({ type: "reset" });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState(initialState<T>());
     void fetchPage(null, true);
   }, [fetcher, fetchPage]);
 
-  // Observer for the bottom-of-list sentinel. Holds the live observer in a
-  // ref so the ref-callback can disconnect cleanly without mutating closure
-  // state during render.
+  // Observer for the bottom-of-list sentinel.
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useCallback(
     (node: HTMLElement | null) => {
@@ -193,7 +138,6 @@ export function useInfiniteList<T>(
     [fetchPage],
   );
 
-  // Cleanup the observer when the host component unmounts.
   useEffect(
     () => () => {
       observerRef.current?.disconnect();
@@ -203,28 +147,39 @@ export function useInfiniteList<T>(
   );
 
   const reload = useCallback(() => {
-    dispatch({ type: "reset" });
+    setState(initialState<T>());
     void fetchPage(null, true);
   }, [fetchPage]);
 
   const prependItem = useCallback((item: T) => {
-    dispatch({ type: "prepend", item });
+    setState((prev) => ({ ...prev, items: [item, ...prev.items] }));
   }, []);
 
   const updateItem = useCallback((predicate: (item: T) => boolean, next: T) => {
-    dispatch({ type: "update", predicate, next });
+    setState((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => (predicate(item) ? next : item)),
+    }));
   }, []);
 
   const removeItem = useCallback((predicate: (item: T) => boolean) => {
-    dispatch({ type: "remove", predicate });
+    setState((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => !predicate(item)),
+    }));
   }, []);
 
+  // Defensive: if React ever hands back undefined initial state in a
+  // pathological reload, fall back to safe defaults rather than crashing
+  // the host component.
+  const items = state?.items ?? [];
+
   return {
-    items: state.items,
-    isLoading: state.isLoading,
-    isFetchingMore: state.isFetchingMore,
-    hasMore: state.hasMore,
-    error: state.error,
+    items,
+    isLoading: state?.isLoading ?? true,
+    isFetchingMore: state?.isFetchingMore ?? false,
+    hasMore: state?.hasMore ?? false,
+    error: state?.error ?? null,
     sentinelRef,
     reload,
     prependItem,
