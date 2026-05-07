@@ -20,7 +20,7 @@ from src.api import (
     public,
     resumes,
 )
-from src.core.infrastructure.config import settings
+from src.core.infrastructure.config import settings, validate_settings
 from src.core.infrastructure.database import init_db
 from src.core.tasks import close_redis_pool
 
@@ -28,7 +28,7 @@ from src.core.tasks import close_redis_pool
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for startup/shutdown events."""
-    # Initialize database on startup
+    validate_settings()
     await init_db()
     # Note: Redis pool is initialized lazily when first task is enqueued
     # This allows the app to start even if Redis is temporarily unavailable

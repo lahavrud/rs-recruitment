@@ -71,11 +71,17 @@ export default function AdminCompaniesPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
+    let cancelled = false;
     window.history.replaceState({}, "", window.location.pathname);
-    getCompanyProfile(Number(id)).then((profile) => {
-      setTab("active");
-      setExternalDetail(profile);
-    }).catch(() => toast.error(t("common.genericError")));
+    getCompanyProfile(Number(id))
+      .then((profile) => {
+        if (!cancelled) {
+          setTab("active");
+          setExternalDetail(profile);
+        }
+      })
+      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
+    return () => { cancelled = true; };
   }, [t, toast]);
 
   function handleInvite() {
