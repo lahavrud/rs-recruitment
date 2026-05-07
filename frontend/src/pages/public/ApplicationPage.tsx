@@ -2,6 +2,7 @@ import { type ChangeEvent, type FocusEvent, type FormEvent, type ReactNode, useE
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
+import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
 import { inputCls, textareaCls as textareaBase } from "@/styles/forms";
 import axios from "axios";
@@ -272,6 +273,13 @@ export default function ApplicationPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      {job && (
+        <SeoHead
+          title={`${t("publicJobs.application.applyFor")} ${job.title}`}
+          description={`${t("publicJobs.application.applyFor")} ${job.title} ב-RS Recruiting.`}
+          canonical={`${SITE_URL}/jobs/${jobId}/apply`}
+        />
+      )}
       <Link
         to={`/jobs/${jobId}`}
         className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"

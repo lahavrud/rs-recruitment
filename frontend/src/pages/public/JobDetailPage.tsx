@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob } from "@/services/jobs";
+import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import type { JobPublicRead } from "@/types/api";
 import axios from "axios";
 
@@ -117,8 +118,29 @@ export default function JobDetailPage() {
 
   const applyHref = `/jobs/${job.id}/apply`;
 
+  const jobPosting = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: `${job.description}\n\n${job.requirements}`,
+    datePosted: job.created_at,
+    url: `${SITE_URL}/jobs/${job.id}`,
+    hiringOrganization: { "@type": "Organization", name: SITE_NAME, sameAs: SITE_URL },
+    jobLocation: {
+      "@type": "Place",
+      address: { "@type": "PostalAddress", addressLocality: job.location, addressCountry: "IL" },
+    },
+  };
+
   return (
     <div className="mx-auto max-w-4xl">
+      <SeoHead
+        title={job.title}
+        description={job.description.slice(0, 160)}
+        canonical={`${SITE_URL}/jobs/${job.id}`}
+        ogType="article"
+        structuredData={jobPosting}
+      />
       <Link
         to="/jobs"
         className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
