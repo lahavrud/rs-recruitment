@@ -91,8 +91,12 @@ export default function AdminCandidatesPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
+    let cancelled = false;
     window.history.replaceState({}, "", window.location.pathname);
-    getCandidate(Number(id)).then(setDetail).catch(() => toast.error(t("common.genericError")));
+    getCandidate(Number(id))
+      .then((c) => { if (!cancelled) setDetail(c); })
+      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
+    return () => { cancelled = true; };
   }, [t, toast]);
 
   async function handleDeleteConfirm() {

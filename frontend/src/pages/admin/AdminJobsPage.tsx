@@ -99,8 +99,12 @@ export default function AdminJobsPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
+    let cancelled = false;
     window.history.replaceState({}, "", window.location.pathname);
-    getJob(Number(id)).then(setDetail).catch(() => toast.error(t("common.genericError")));
+    getJob(Number(id))
+      .then((job) => { if (!cancelled) setDetail(job); })
+      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
+    return () => { cancelled = true; };
   }, [t, toast]);
 
   const STATUS_LABELS: Record<string, string> = {

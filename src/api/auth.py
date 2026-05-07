@@ -134,8 +134,8 @@ async def register(
         ) from e
     except sqlalchemy_exc.IntegrityError as e:
         await session.rollback()
-        error_str = str(e.orig) if e.orig else str(e)
-        if "email" in error_str.lower() or "unique" in error_str.lower():
+        pgcode = getattr(e.orig, "pgcode", None)
+        if pgcode == "23505":  # unique_violation
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"User with email '{email}' already exists.",

@@ -280,7 +280,7 @@ export default function LandingPage() {
                 to="/jobs"
                 className="text-sm text-copper transition hover:text-gold"
               >
-                {t("landing.featuredJobs.viewAll")} ←
+                {t("landing.featuredJobs.viewAll")}
               </Link>
             </div>
 
