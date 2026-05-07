@@ -3,8 +3,8 @@
 ## Tech Stack
 
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind v4
-- **Backend**: FastAPI (Python) + SQLAlchemy async + PostgreSQL
-- **Auth**: JWT (access token stored in memory via `AuthContext`)
+- **Backend**: FastAPI (Python) + SQLModel async + PostgreSQL
+- **Auth**: JWT access token in `localStorage` + HttpOnly refresh-token cookie. `AuthContext` resolves initial state synchronously from `localStorage` and verifies via `/api/auth/me` on mount.
 - **i18n**: react-i18next, Hebrew-only (`he`), RTL forced globally via `<html dir="rtl" lang="he">`
 - **Routing**: React Router v7
 
@@ -17,25 +17,36 @@
 ```
 frontend/src/
 ├── components/
+│   ├── AdminRoute.tsx        # Route guard: requires role=ADMIN
+│   ├── CompanyRoute.tsx      # Route guard: requires role=COMPANY
+│   ├── ProtectedRoute.tsx    # Route guard: requires authenticated user
 │   ├── layout/
-│   │   ├── AppShell.tsx      # Root layout switcher (public / authenticated / full-page)
+│   │   ├── AppShell.tsx      # Root layout switcher (auth / public / bare)
 │   │   ├── Header.tsx        # Authenticated top bar
-│   │   └── Sidebar.tsx       # Authenticated nav sidebar
+│   │   └── Sidebar.tsx       # Authenticated nav sidebar (mobile drawer + desktop)
 │   └── ui/
 │       ├── Logo.tsx          # SVG logo with opacity fade-in on load
 │       ├── LogoBanner.tsx    # Hero-size logo + wordmark
 │       └── PageHeader.tsx    # Copper eyebrow + gold rule + subtitle (reusable)
 ├── pages/
+│   ├── ActivatePage.tsx      # Token-based account activation
+│   ├── DashboardPage.tsx     # Authenticated landing (role-aware)
 │   ├── LoginPage.tsx
-│   ├── RegisterPage.tsx
-│   ├── DashboardPage.tsx
 │   ├── NotFoundPage.tsx
-│   ├── admin/                # Admin-only pages (AdminRoute guard)
-│   └── public/               # Unauthenticated pages
-│       ├── LandingPage.tsx
+│   ├── RegisterPage.tsx
+│   ├── admin/                # Admin-only (AdminRoute)
+│   │   ├── AdminApplicationsPage.tsx
+│   │   ├── AdminCandidatesPage.tsx
+│   │   ├── AdminCompaniesPage.tsx
+│   │   └── AdminJobsPage.tsx
+│   ├── company/              # Company-only (CompanyRoute)
+│   │   └── CompanyJobsPage.tsx
+│   └── public/               # Unauthenticated
+│       ├── ApplicationPage.tsx
 │       ├── JobBoardPage.tsx
 │       ├── JobDetailPage.tsx
-│       └── ApplicationPage.tsx
+│       └── LandingPage.tsx
+├── contexts/                 # AuthContext
 ├── styles/
 │   └── forms.ts              # Shared dark-input CSS class strings (inputCls, textareaCls, selectCls)
 ├── locales/
@@ -49,9 +60,20 @@ frontend/src/
 
 | Condition | Shell |
 |---|---|
-| `/`, `/login`, `/register` | Bare — page owns its own layout |
-| Authenticated | Header + Sidebar + `bg-page` main area |
+| `/`, `/login`, `/register`, `/activate` | Bare — page owns its own layout |
+| Authenticated (admin or company) | Header + Sidebar + `bg-page` main area |
 | Unauthenticated (public) | `PublicHeader` + `bg-page` main area |
+
+### Routes (App.tsx)
+
+| Path | Guard | Page |
+|---|---|---|
+| `/` | — | `LandingPage` |
+| `/login` `/register` `/activate` | — | Auth pages |
+| `/jobs` `/jobs/:id` `/jobs/:id/apply` | — | Public job board + apply |
+| `/dashboard` | `ProtectedRoute` | Role-aware `DashboardPage` |
+| `/admin/companies` `/admin/jobs` `/admin/applications` `/admin/candidates` | `AdminRoute` | Admin pages |
+| `/company/jobs` | `CompanyRoute` | `CompanyJobsPage` |
 
 ---
 
@@ -151,10 +173,11 @@ The backend uses `slowapi` with:
 The frontend handles `429` explicitly with Hebrew messages. The raw slowapi detail string (`"5 per 1 minute"`) is never shown.
 
 ### Authentication flow
-- `AuthContext` fetches `/api/auth/me` on mount to restore session
-- JWT stored in memory (not localStorage) — no XSS exposure
+- Access token in `localStorage`; refresh token in HttpOnly cookie set by backend
+- `AuthContext` resolves initial state synchronously from `localStorage`, then verifies via `/api/auth/me` on mount
 - `ProtectedRoute`, `AdminRoute`, `CompanyRoute` enforce role-based access
 - Login redirects to `/dashboard`; unauthenticated access redirects to `/login`
+- Activation flow: invite token → `/activate` → password set → login
 
 ### Logo loading
 `Logo.tsx` renders `opacity-0` until the SVG `onLoad` fires, then fades to `opacity-1` (0.25s ease). This prevents the flash of broken-image placeholder on first load.
@@ -183,6 +206,50 @@ cd frontend && npm run dev
 ```
 
 The frontend proxies `/api/*` to `http://localhost:8000` (configured in `vite.config.ts`).
+
+---
+
+## GitHub workflow conventions — MUST follow
+
+This project has its own templates and naming conventions. **Always use them; do not fall back to generic GitHub defaults.**
+
+### Branch names
+Format: `<type>/<short-kebab-summary>`. Types observed in `git log`: `feat`, `fix`, `chore`, `docs`, `hotfix`, `feature`, `refactor`. Match an existing type rather than inventing one.
+
+### Commit messages
+**Conventional Commits**, with optional scope. Examples from `main`:
+- `feat(auth): refresh tokens, account lockout, password rules`
+- `fix(email): SMTP timeout + production config from SSM`
+- `docs: refresh CLAUDE.md and docs/* to match current state`
+- `chore: bump python-jose for security patches`
+
+Do **not** add `Co-Authored-By:` trailers — they don't appear on commits in this repo.
+
+### Pull requests
+Title matches the commit message style (Conventional Commits). Body **must** follow `.github/pull_request_template.md`:
+
+```
+## Summary
+Short description of the change.
+
+## Why
+What problem does this PR solve?
+
+## Changes
+-
+-
+
+## How to Test
+Steps to verify the changes.
+
+## Related Issue
+Closes #
+```
+
+If there is no related issue, write `N/A` — don't omit the section. Don't add other top-level sections (no "Test plan", no "Generated with…" footers).
+
+### Issues
+Three templates exist in `.github/ISSUE_TEMPLATE/`: `bug_report.md`, `feature_request.md`, `task.md`. Pick the matching one and fill every section. Each template includes a `🎯 Milestone` selector — pick from the listed phases (Infrastructure / Company / Job / Candidate / Match / Frontend / Deployment).
 
 ---
 

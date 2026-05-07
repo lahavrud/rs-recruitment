@@ -55,13 +55,14 @@ gantt
     Notifications Integration         :         feat8, after feat7, 2d
 
     section 🎨 5. Frontend
-    Frontend Structure (SPA Setup)    :         frontend1, 2026-03-05, 2d
-    Public Pages (Job Board/Apply)    :         frontend2, after frontend1, 3d
-    Admin & Company Dashboards        :         frontend3, after frontend2, 4d
+    Frontend Structure (SPA Setup)    :done,    frontend1, 2026-03-05, 2d
+    Public Pages (Job Board/Apply)    :done,    frontend2, after frontend1, 3d
+    Admin & Company Dashboards        :active,  frontend3, after frontend2, 4d
+    Admin Polish Pass                 :         frontend4, after frontend3, 5d
 
     section 🚀 Deployment
     Database Backup Strategy          :         devops1, 2026-03-15, 2d
-    Production Deploy                 :         deploy1, after devops1, 1d
+    Production Deploy                 :done,    deploy1, 2026-04-23, 1d
 
 ```
 
@@ -74,14 +75,22 @@ gantt
 * **Infrastructure Abstraction**: Storage and Email providers are fully implemented with local and cloud support.
 * **Core Vertical Slices**: Backend APIs for Authentication, Company Registration, Job Management, and Candidate Applications are complete and tested.
 * **CI/CD & Validation**: Pipeline includes Ruff linting, Pytest, and custom scripts for Async safety and SOC enforcement.
+* **Production Deploy (`deploy1`)**: Live at https://rs-recruiting.com (single EC2 + RDS + S3, deployed via GitHub Actions OIDC).
+* **Frontend Foundation (`frontend1`, `frontend2`)**: SPA structure, auth, public job board, application submission flow, and admin / company page scaffolding.
 
 ### 🔄 In Progress
 
-* **Local DB Parity (`infra9`)**: Transitioning local development from SQLite to PostgreSQL via `asyncpg` to ensure 1:1 environment parity.
-* **Match Management (`feat7`)**: Refining Admin endpoints for managing the link between Candidates and Jobs.
+* **Admin & Company Dashboards (`frontend3`)**: 4 admin pages (Companies, Jobs, Applications, Candidates) and `CompanyJobsPage` exist as scaffolds with basic CRUD. Polish pass is the next phase.
 
 ### 📋 Next Priorities
 
-1. **Notifications Integration (`feat8`)**: Triggering automated emails via the `Arq` task queue when candidates apply or jobs are posted.
-2. **Frontend Setup (`frontend1`)**: Initializing the separate SPA architecture following the established CORS configuration.
-3. **Backup Strategy (`devops1`)**: Implementing automated PostgreSQL backups, a critical blocker for production deployment.
+1. **Admin Polish Pass (`frontend4`)**: Foundations (Dialog, toast, empty / skeleton / error states, search, infinite scroll, kebab menus), modal detail views per entity, full CRUD wiring, mobile layouts. Detailed plan in local working notes (not pushed).
+2. **Notifications Integration (`feat8`)**: Candidate "application received" email + admin "new application" email via the Arq task queue.
+3. **Backup Strategy (`devops1`)**: Automated PostgreSQL backups for production resilience.
+
+### 📌 Deferred / post-MVP
+
+* **Candidate accounts** — currently anonymous-only. Future "claim" flow will match by email and link past applications. Schema design must keep this path open (nullable `user_id` on `CandidateProfile`).
+* **Company-side application visibility** — companies cannot yet view applications for their jobs.
+* **Public job-board search / filters** and SEO (per-job meta, sitemap, JobPosting schema).
+* **Admin shell redesign** (dashboard widgets, command palette, bulk actions) — defer until real usage data.
