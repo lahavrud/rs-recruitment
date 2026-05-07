@@ -490,11 +490,23 @@
       },
       "deleteButton": "מחיקת מועמדות",
       "deleteConfirm": "למחוק את המועמדות? לא ניתן לבטל פעולה זו.",
+      "deleteConfirmTitle": "מחיקת מועמדות",
       "deleteConfirmYes": "כן, מחק",
       "deleteCancel": "ביטול",
+      "viewAction": "פרטים מלאים",
+      "updateStatusAction": "עדכון סטטוס",
+      "editNotesAction": "עריכת הערות",
+      "deleteAction": "מחיקה",
+      "rowActionsLabel": "פעולות נוספות",
+      "revertConfirm": "לשחזר מועמדות מסטטוס סופי?",
+      "savedToast": "הסטטוס עודכן",
+      "notesSavedToast": "ההערות עודכנו",
+      "deletedToast": "המועמדות נמחקה",
+      "notesModalTitle": "הערות מנהל",
       "errors": {
         "updateFailed": "עדכון הסטטוס נכשל. נסה שוב.",
-        "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב."
+        "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב.",
+        "notesFailed": "שמירת ההערות נכשלה. נסה שוב."
       }
     },
     "candidates": {
@@ -518,6 +530,34 @@
         "strength": "חוזקות",
         "weakness": "נקודות לשיפור",
         "noAnswers": "אין תשובות לשאלות הראיון."
+      },
+      "rowActionsLabel": "פעולות נוספות",
+      "viewAction": "פרטים מלאים",
+      "editAction": "עריכת פרופיל",
+      "deleteAction": "מחיקה",
+      "applicationsCount": "{{count}} מועמדויות",
+      "applicationsSection": "מועמדויות של מועמד זה",
+      "noApplications": "המועמד לא הגיש מועמדויות עדיין.",
+      "editModalTitle": "עריכת פרופיל מועמד",
+      "fields": {
+        "fullName": "שם מלא",
+        "email": "כתובת אימייל",
+        "phone": "טלפון",
+        "linkedin": "LinkedIn",
+        "serviceConcept": "תפיסת שירות",
+        "salaryExpectations": "ציפיות שכר",
+        "strength": "חוזקות",
+        "weakness": "נקודות לשיפור"
+      },
+      "deleteConfirmTitle": "מחיקת מועמד",
+      "deleteConfirmMessage": "פעולה זו תמחק את המועמד ואת כל המועמדויות שלו. לא ניתן לבטל.",
+      "deleteConfirmYes": "כן, מחק",
+      "savedToast": "הפרופיל עודכן",
+      "deletedToast": "המועמד נמחק",
+      "errors": {
+        "saveFailed": "שמירת הפרופיל נכשלה. נסה שוב.",
+        "deleteFailed": "מחיקת המועמד נכשלה. נסה שוב.",
+        "applicationsLoadFailed": "טעינת המועמדויות של המועמד נכשלה."
       }
     }
   },

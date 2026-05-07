@@ -149,6 +149,19 @@ export interface CandidateProfileRead {
   created_at: string;
 }
 
+/** Mirrors backend CandidateProfileUpdate (partial — all fields optional). */
+export interface CandidateProfileUpdate {
+  full_name?: string;
+  email?: string;
+  phone?: string | null;
+  resume_path?: string | null;
+  linkedin_url?: string | null;
+  service_concept?: string | null;
+  salary_expectations?: string | null;
+  personality_weakness?: string | null;
+  personality_strength?: string | null;
+}
+
 /**
  * Form input shape for the application form.
  * Submitted as multipart/form-data to POST /api/candidates/apply.
