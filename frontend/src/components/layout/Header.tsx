@@ -1,6 +1,4 @@
-import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 
@@ -11,18 +9,6 @@ interface HeaderProps {
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  function handleLogout() {
-    // flushSync forces React Router to commit the navigation to "/" synchronously,
-    // so AdminRoute is no longer in the tree before logout() clears auth state.
-    // Without this, setUser(null) inside logout() triggers AdminRoute to fire
-    // <Navigate to="/login"> before our navigate("/") can commit.
-    flushSync(() => {
-      navigate("/");
-    });
-    void logout();
-  }
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-white/8 bg-void px-4 sm:px-6">
@@ -51,7 +37,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           {user?.role}
         </span>
         <button
-          onClick={handleLogout}
+          onClick={logout}
           className="rounded-sm border border-white/15 px-3 py-1.5 text-sm text-white/40 transition hover:border-white/30 hover:text-white/70"
         >
           {t("header.logout")}
