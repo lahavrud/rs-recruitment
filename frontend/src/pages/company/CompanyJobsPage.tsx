@@ -19,7 +19,7 @@ function formatDate(iso: string) {
   });
 }
 
-const EMPTY_FORM: JobCreate = { title: "", description: "", requirements: "", location: "" };
+const EMPTY_FORM: JobCreate = { title: "", description: "", requirements: "", location: "", salary_min: 0, salary_max: 0 };
 
 interface JobFormProps {
   initial: JobCreate;
@@ -34,7 +34,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  function set(field: keyof JobCreate, val: string) {
+  function set(field: keyof JobCreate, val: string | number) {
     setForm((prev) => ({ ...prev, [field]: val }));
   }
 
@@ -79,6 +79,32 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             onChange={(e) => set("location", e.target.value)}
             className={`mt-1 ${inputCls}`}
             placeholder={t("company.jobs.placeholders.location")}
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-white/50">
+            {t("common.salaryMin")} (₪/חודש) <span className="text-copper/80">*</span>
+          </label>
+          <input
+            type="number"
+            required
+            min={0}
+            value={form.salary_min || ""}
+            onChange={(e) => set("salary_min", e.target.value ? Number(e.target.value) : 0)}
+            className={`mt-1 ${inputCls}`}
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-white/50">
+            {t("common.salaryMax")} (₪/חודש) <span className="text-copper/80">*</span>
+          </label>
+          <input
+            type="number"
+            required
+            min={0}
+            value={form.salary_max || ""}
+            onChange={(e) => set("salary_max", e.target.value ? Number(e.target.value) : 0)}
+            className={`mt-1 ${inputCls}`}
           />
         </div>
         <div className="sm:col-span-2">
@@ -225,6 +251,8 @@ export default function CompanyJobsPage() {
                     description: mode.job.description,
                     requirements: mode.job.requirements,
                     location: mode.job.location,
+                    salary_min: mode.job.salary_min ?? 0,
+                    salary_max: mode.job.salary_max ?? 0,
                   }
                 : EMPTY_FORM
             }

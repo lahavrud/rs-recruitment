@@ -884,7 +884,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
             type="number"
             min={0}
             value={form.salary_min ?? ""}
-            onChange={(e) => set("salary_min", e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => setForm((prev) => ({ ...prev, salary_min: e.target.value ? Number(e.target.value) : undefined }))}
             className={inputCls}
           />
           {errors.salary_min && <p className="mt-1 text-xs text-danger">{errors.salary_min}</p>}
@@ -894,7 +894,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
             type="number"
             min={0}
             value={form.salary_max ?? ""}
-            onChange={(e) => set("salary_max", e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => setForm((prev) => ({ ...prev, salary_max: e.target.value ? Number(e.target.value) : undefined }))}
             className={inputCls}
           />
           {errors.salary_max && <p className="mt-1 text-xs text-danger">{errors.salary_max}</p>}
