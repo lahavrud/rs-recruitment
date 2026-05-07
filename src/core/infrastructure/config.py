@@ -96,6 +96,10 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     smtp_use_tls: bool = True
     smtp_from_email: Optional[str] = None
+    # Optional single recipient for new-application notifications. When set,
+    # admin notifications go to this address only; when unset, every active
+    # admin receives the notification (legacy fallback).
+    admin_notification_email: Optional[str] = None
 
     # Frontend
     frontend_base_url: str = "http://localhost:3000"
