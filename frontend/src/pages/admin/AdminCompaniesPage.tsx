@@ -194,9 +194,9 @@ export default function AdminCompaniesPage() {
 
   useEffect(() => {
     if (activeTab !== "active") return;
-    getActiveCompanies()
-      .then((data) => {
-        setActiveCompanies(data);
+    getActiveCompanies({ limit: 100 })
+      .then((page) => {
+        setActiveCompanies(page.items);
         setActiveCompaniesError(null);
       })
       .catch(() => setActiveCompaniesError(t("admin.companies.active.loadError")))
@@ -219,8 +219,12 @@ export default function AdminCompaniesPage() {
       if (companySort === "name_desc")
         return b.company_profile.name.localeCompare(a.company_profile.name, "he");
       if (companySort === "date_oldest")
-        return new Date(a.user.created_at).getTime() - new Date(b.user.created_at).getTime();
-      return new Date(b.user.created_at).getTime() - new Date(a.user.created_at).getTime();
+        return (
+          new Date(a.user.created_at).getTime() - new Date(b.user.created_at).getTime()
+        );
+      return (
+        new Date(b.user.created_at).getTime() - new Date(a.user.created_at).getTime()
+      );
     });
   }, [activeCompanies, companySearch, companySort]);
 
@@ -315,7 +319,9 @@ export default function AdminCompaniesPage() {
                     className="flex flex-col gap-4 rounded-xl border border-white/8 bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-white/85">{c.company_profile.name}</p>
+                      <p className="font-medium text-white/85">
+                        {c.company_profile.name}
+                      </p>
                       <p className="mt-0.5 text-sm text-white/45">{c.user.email}</p>
                       {(c.company_profile.contact_first_name ||
                         c.company_profile.contact_last_name) && (
@@ -332,7 +338,8 @@ export default function AdminCompaniesPage() {
                         </p>
                       )}
                       <p className="mt-1 text-xs text-white/25">
-                        {t("admin.companies.registeredLabel")} {formatDate(c.user.created_at)}
+                        {t("admin.companies.registeredLabel")}{" "}
+                        {formatDate(c.user.created_at)}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-2">
@@ -382,10 +389,18 @@ export default function AdminCompaniesPage() {
               onChange={(e) => setCompanySort(e.target.value as CompanySort)}
               className={`${selectCls} sm:w-56`}
             >
-              <option value="date_newest">{t("admin.companies.active.sortDateNewest")}</option>
-              <option value="date_oldest">{t("admin.companies.active.sortDateOldest")}</option>
-              <option value="name_asc">{t("admin.companies.active.sortNameAsc")}</option>
-              <option value="name_desc">{t("admin.companies.active.sortNameDesc")}</option>
+              <option value="date_newest">
+                {t("admin.companies.active.sortDateNewest")}
+              </option>
+              <option value="date_oldest">
+                {t("admin.companies.active.sortDateOldest")}
+              </option>
+              <option value="name_asc">
+                {t("admin.companies.active.sortNameAsc")}
+              </option>
+              <option value="name_desc">
+                {t("admin.companies.active.sortNameDesc")}
+              </option>
             </select>
           </div>
 
@@ -402,10 +417,18 @@ export default function AdminCompaniesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/8 bg-well text-left text-xs text-white/40">
-                    <th className="px-4 py-3">{t("admin.companies.active.table.company")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.active.table.contact")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.active.table.joined")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.active.table.actions")}</th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.active.table.company")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.active.table.contact")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.active.table.joined")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.active.table.actions")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -423,11 +446,15 @@ export default function AdminCompaniesPage() {
                         className="border-b border-white/5 last:border-0 hover:bg-card-raised/50"
                       >
                         <td className="px-4 py-3">
-                          <p className="font-medium text-white/85">{c.company_profile.name}</p>
+                          <p className="font-medium text-white/85">
+                            {c.company_profile.name}
+                          </p>
                           <p className="text-xs text-white/40">{c.user.email}</p>
                         </td>
                         <td className="px-4 py-3 text-white/50">{contact || "—"}</td>
-                        <td className="px-4 py-3 text-white/40">{formatDate(c.user.created_at)}</td>
+                        <td className="px-4 py-3 text-white/40">
+                          {formatDate(c.user.created_at)}
+                        </td>
                         <td className="px-4 py-3">
                           <button
                             onClick={() => handleDeleteCompany(c.user.id)}
@@ -452,7 +479,9 @@ export default function AdminCompaniesPage() {
         <div>
           {/* Top action row */}
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-white/40">{t("admin.companies.inviteList.title")}</p>
+            <p className="text-sm text-white/40">
+              {t("admin.companies.inviteList.title")}
+            </p>
             <div className="flex items-center gap-3">
               {inviteFormSuccess && (
                 <span className="text-sm text-success">
@@ -537,13 +566,27 @@ export default function AdminCompaniesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/8 bg-well text-left text-xs text-white/40">
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnEmail")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnCompany")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnContact")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnStatus")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnCreated")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnExpires")}</th>
-                    <th className="px-4 py-3">{t("admin.companies.inviteList.columnActions")}</th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnEmail")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnCompany")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnContact")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnStatus")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnCreated")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnExpires")}
+                    </th>
+                    <th className="px-4 py-3">
+                      {t("admin.companies.inviteList.columnActions")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -558,8 +601,12 @@ export default function AdminCompaniesPage() {
                         className="border-b border-white/5 last:border-0 hover:bg-card-raised/50"
                       >
                         <td className="px-4 py-3 text-white/75">{inv.email}</td>
-                        <td className="px-4 py-3 text-white/50">{inv.company_name || "—"}</td>
-                        <td className="px-4 py-3 text-white/50">{contactName || "—"}</td>
+                        <td className="px-4 py-3 text-white/50">
+                          {inv.company_name || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-white/50">
+                          {contactName || "—"}
+                        </td>
                         <td className="px-4 py-3">
                           <StatusBadge status={inv.status} />
                         </td>

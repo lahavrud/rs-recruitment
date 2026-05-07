@@ -39,6 +39,12 @@ export default function Dialog({
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
         <RadixDialog.Content
+          // Suppress Radix's default auto-focus on the first focusable child.
+          // It tends to land on a destructive button (delete) in detail
+          // modals, which both reads as urgency and shows the red focus ring
+          // immediately on open. Radix still focuses the Content wrapper for
+          // screen readers; users tab from there.
+          onOpenAutoFocus={(e) => e.preventDefault()}
           className={[
             "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2",
             "rounded-xl border border-white/8 bg-card-raised p-6 text-white/85 shadow-2xl shadow-black/60",
