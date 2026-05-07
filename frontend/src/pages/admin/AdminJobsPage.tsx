@@ -641,6 +641,7 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
         onOpenChange={(o) => !o && setConfirmDiscard(false)}
         title={t("common.discardTitle")}
         message={t("common.discardMessage")}
+        cancelLabel={t("common.continueEditing")}
         confirmLabel={t("common.discard")}
         variant="danger"
         onConfirm={() => { setConfirmDiscard(false); onClose(); }}

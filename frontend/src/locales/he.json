@@ -40,9 +40,10 @@
     "genericError": "אירעה שגיאה. אנא נסו שוב מאוחר יותר.",
     "noResultsHeadline": "אין תוצאות",
     "noResultsDescription": "נסו לשנות את המסננים או את מילות החיפוש.",
-    "discardTitle": "לבטל שינויים?",
+    "discardTitle": "לצאת ללא שמירה?",
     "discardMessage": "השינויים שביצעת לא יישמרו.",
-    "discard": "לבטל שינויים",
+    "discard": "צא ללא שמירה",
+    "continueEditing": "המשך עריכה",
     "validation": {
       "required": "שדה חובה",
       "tooLong": "מקסימום {{max}} תווים",

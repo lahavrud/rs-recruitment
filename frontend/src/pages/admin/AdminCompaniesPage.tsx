@@ -933,7 +933,8 @@ function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
       onOpenChange={(o) => !o && setConfirmDiscard(false)}
       title={t("common.discardTitle")}
       message={t("common.discardMessage")}
-      confirmLabel={t("common.discard")}
+      cancelLabel={t("common.continueEditing")}
+        confirmLabel={t("common.discard")}
       variant="danger"
       onConfirm={() => { setConfirmDiscard(false); onClose(); }}
     />
