@@ -77,7 +77,7 @@ export default function AdminCompaniesPage() {
         eyebrow={t("admin.companies.title")}
         subtitle={t("admin.companies.subtitle")}
         action={
-          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <button
               onClick={() => setCreating(true)}
               className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
