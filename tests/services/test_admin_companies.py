@@ -88,7 +88,9 @@ async def test_get_all_admin_emails(session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_list_pending_companies_empty(session: AsyncSession):
-    assert await list_pending_companies(session) == []
+    page = await list_pending_companies(session)
+    assert page.items == []
+    assert page.next_cursor is None
 
 
 @pytest.mark.asyncio
@@ -104,11 +106,34 @@ async def test_list_pending_companies(mock_email, session: AsyncSession):
     res.scalar_one().is_active = True
     await session.commit()
 
-    companies = await list_pending_companies(session)
-    assert len(companies) == 2
-    emails = {c["user"].email for c in companies}
+    page = await list_pending_companies(session)
+    assert len(page.items) == 2
+    emails = {c.user.email for c in page.items}
     assert emails == {"p1@example.com", "p2@example.com"}
-    assert all(not c["user"].is_active for c in companies)
+    assert all(not c.user.is_active for c in page.items)
+    assert page.next_cursor is None
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.enqueue_email_task")
+async def test_list_pending_companies_paginates(mock_email, session: AsyncSession):
+    mock_email.return_value = "job-id"
+    for i in range(5):
+        await _register(
+            _company_create(f"pend{i}@example.com", f"Pending {i}"), session
+        )
+
+    seen: list[str] = []
+    cursor: str | None = None
+    while True:
+        page = await list_pending_companies(session, cursor=cursor, limit=2)
+        seen.extend(item.user.email for item in page.items)
+        if page.next_cursor is None:
+            break
+        cursor = page.next_cursor
+
+    assert len(seen) == 5
+    assert len(set(seen)) == 5
 
 
 # ── approve_company ───────────────────────────────────────────────────────────
@@ -268,7 +293,9 @@ async def test_list_active_companies_empty(mock_email, session: AsyncSession):
     mock_email.return_value = "job-id"
     # Pending company should not appear
     await _register(_company_create("pending@example.com", "Pending Co"), session)
-    assert await list_active_companies(session) == []
+    page = await list_active_companies(session)
+    assert page.items == []
+    assert page.next_cursor is None
 
 
 @pytest.mark.asyncio
@@ -283,11 +310,38 @@ async def test_list_active_companies(mock_email, session: AsyncSession):
         db_user.is_active = True
     await session.commit()
 
-    companies = await list_active_companies(session)
-    assert len(companies) == 2
-    emails = {c.user.email for c in companies}
+    page = await list_active_companies(session)
+    assert len(page.items) == 2
+    emails = {c.user.email for c in page.items}
     assert emails == {"a@example.com", "b@example.com"}
-    assert all(c.user.is_active for c in companies)
+    assert all(c.user.is_active for c in page.items)
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.enqueue_email_task")
+async def test_list_active_companies_paginates(mock_email, session: AsyncSession):
+    mock_email.return_value = "job-id"
+    for i in range(5):
+        user = await _register(
+            _company_create(f"act{i}@example.com", f"Active {i}"), session
+        )
+        db_user = (
+            await session.execute(select(User).where(User.id == user.id))  # pyright: ignore[reportArgumentType]
+        ).scalar_one()
+        db_user.is_active = True
+    await session.commit()
+
+    seen: list[str] = []
+    cursor: str | None = None
+    while True:
+        page = await list_active_companies(session, cursor=cursor, limit=2)
+        seen.extend(item.user.email for item in page.items)
+        if page.next_cursor is None:
+            break
+        cursor = page.next_cursor
+
+    assert len(seen) == 5
+    assert len(set(seen)) == 5
 
 
 # ── delete_active_company ─────────────────────────────────────────────────────

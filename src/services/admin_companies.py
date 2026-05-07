@@ -8,16 +8,26 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.config import settings
+from src.core.infrastructure.pagination import (
+    CursorPage,
+    apply_cursor,
+    build_cursor_page,
+    clamp_limit,
+)
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
 from src.models import ActivationToken, Application, CompanyProfile, Job, User
-from src.schemas import ActiveCompanyRead, CompanyProfileRead, UserRead
+from src.schemas import (
+    ActiveCompanyRead,
+    CompanyProfileRead,
+    PendingCompanyRead,
+    UserRead,
+)
 from src.services.contract_pdf import generate_signed_contract
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
-    InvalidActivationTokenError,
 )
 from src.templates.email import build_approval_html, build_rejection_html
 
@@ -51,21 +61,33 @@ async def get_all_admin_emails(session: AsyncSession) -> list[str]:
     return list(result.scalars().all())
 
 
-async def list_pending_companies(session: AsyncSession) -> list[dict]:
-    """List all pending company registrations (inactive COMPANY users)."""
-    result = await session.execute(
+async def list_pending_companies(
+    session: AsyncSession,
+    *,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> CursorPage[PendingCompanyRead]:
+    """One page of pending companies (inactive COMPANY users), newest first."""
+    page_size = clamp_limit(limit)
+    query = apply_cursor(
         select(User, CompanyProfile)
-        .join(CompanyProfile, User.id == CompanyProfile.user_id)  # pyright: ignore[reportArgumentType]
-        .where(User.role == UserRole.COMPANY, User.is_active == False)  # noqa: E712
-        .order_by(User.created_at)
+        .join(CompanyProfile, User.id == CompanyProfile.user_id)
+        .where(User.role == UserRole.COMPANY, User.is_active == False),  # noqa: E712
+        sort_col=User.created_at,  # pyright: ignore[reportArgumentType]
+        id_col=User.id,  # pyright: ignore[reportArgumentType]
+        cursor=cursor,
+        limit=page_size,
     )
-    return [
-        {
-            "user": UserRead.model_validate(user),
-            "company_profile": CompanyProfileRead.model_validate(cp),
-        }
-        for user, cp in result.all()
-    ]
+    rows = list((await session.execute(query)).all())
+    return build_cursor_page(
+        rows,
+        serializer=lambda row: PendingCompanyRead(
+            user=UserRead.model_validate(row[0]),
+            company_profile=CompanyProfileRead.model_validate(row[1]),
+        ),
+        cursor_key=lambda row: (row[0].created_at, row[0].id),
+        limit=page_size,
+    )
 
 
 async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
@@ -182,37 +204,6 @@ async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
     }
 
 
-async def activate_company(token: str, session: AsyncSession) -> User:
-    """Activate a company account using the one-time activation token.
-
-    Raises:
-        InvalidActivationTokenError: If the token is invalid, expired, or already used.
-    """
-    now = datetime.now(timezone.utc)
-    result = await session.execute(
-        select(ActivationToken).where(
-            ActivationToken.token == token  # type: ignore[arg-type]
-        )
-    )
-    activation = result.scalar_one_or_none()
-
-    if activation is None or activation.used:
-        raise InvalidActivationTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
-    if activation.expires_at.replace(tzinfo=timezone.utc) < now:
-        raise InvalidActivationTokenError("פג תוקף הקישור")
-
-    user_result = await session.execute(
-        select(User).where(User.id == activation.company_user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = user_result.scalar_one_or_none()
-    if user is None:
-        raise InvalidActivationTokenError("המשתמש לא נמצא")
-
-    user.is_active = True
-    activation.used = True
-    return user
-
-
 async def reject_company(company_user_id: int, session: AsyncSession) -> None:
     """Reject a company registration by deleting the user and company profile.
 
@@ -273,21 +264,33 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
     await session.flush()
 
 
-async def list_active_companies(session: AsyncSession) -> list[ActiveCompanyRead]:
-    """List all approved (active) companies, newest first."""
-    result = await session.execute(
+async def list_active_companies(
+    session: AsyncSession,
+    *,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> CursorPage[ActiveCompanyRead]:
+    """One page of approved (active) companies, newest first."""
+    page_size = clamp_limit(limit)
+    query = apply_cursor(
         select(User, CompanyProfile)
-        .join(CompanyProfile, User.id == CompanyProfile.user_id)  # pyright: ignore[reportArgumentType]
-        .where(User.role == UserRole.COMPANY, User.is_active == True)  # noqa: E712
-        .order_by(User.created_at.desc())
+        .join(CompanyProfile, User.id == CompanyProfile.user_id)
+        .where(User.role == UserRole.COMPANY, User.is_active == True),  # noqa: E712
+        sort_col=User.created_at,  # pyright: ignore[reportArgumentType]
+        id_col=User.id,  # pyright: ignore[reportArgumentType]
+        cursor=cursor,
+        limit=page_size,
     )
-    return [
-        ActiveCompanyRead(
-            user=UserRead.model_validate(user),
-            company_profile=CompanyProfileRead.model_validate(cp),
-        )
-        for user, cp in result.all()
-    ]
+    rows = list((await session.execute(query)).all())
+    return build_cursor_page(
+        rows,
+        serializer=lambda row: ActiveCompanyRead(
+            user=UserRead.model_validate(row[0]),
+            company_profile=CompanyProfileRead.model_validate(row[1]),
+        ),
+        cursor_key=lambda row: (row[0].created_at, row[0].id),
+        limit=page_size,
+    )
 
 
 async def delete_active_company(company_user_id: int, session: AsyncSession) -> None:

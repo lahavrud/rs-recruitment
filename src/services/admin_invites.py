@@ -10,6 +10,12 @@ from src.core.infrastructure.invite_tokens import (
     generate_invite_token,
     revoke_invite_token,
 )
+from src.core.infrastructure.pagination import (
+    CursorPage,
+    apply_cursor,
+    build_cursor_page,
+    clamp_limit,
+)
 from src.core.tasks import enqueue_email_task
 from src.enums import InviteTokenStatus
 from src.models import InviteToken, User
@@ -75,8 +81,13 @@ async def create_invite(
     return InviteTokenRead.model_validate(record)
 
 
-async def list_invites(session: AsyncSession) -> list[InviteTokenRead]:
-    """Return all invite records, marking expired ones in bulk first."""
+async def list_invites(
+    session: AsyncSession,
+    *,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> CursorPage[InviteTokenRead]:
+    """One page of invite records, newest first; marks expired ones in bulk first."""
     now = datetime.now(timezone.utc)
     await session.execute(
         update(InviteToken)
@@ -87,11 +98,21 @@ async def list_invites(session: AsyncSession) -> list[InviteTokenRead]:
         .values(status=InviteTokenStatus.EXPIRED)
     )
 
-    result = await session.execute(
-        select(InviteToken).order_by(InviteToken.created_at.desc())  # type: ignore[arg-type]
+    page_size = clamp_limit(limit)
+    query = apply_cursor(
+        select(InviteToken),
+        sort_col=InviteToken.created_at,  # pyright: ignore[reportArgumentType]
+        id_col=InviteToken.id,  # pyright: ignore[reportArgumentType]
+        cursor=cursor,
+        limit=page_size,
     )
-    records = result.scalars().all()
-    return [InviteTokenRead.model_validate(r) for r in records]
+    rows = list((await session.execute(query)).scalars().all())
+    return build_cursor_page(
+        rows,
+        serializer=InviteTokenRead.model_validate,
+        cursor_key=lambda r: (r.created_at, r.id),
+        limit=page_size,
+    )
 
 
 async def revoke_invite(token_id: int, session: AsyncSession) -> None:

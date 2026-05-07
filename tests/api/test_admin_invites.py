@@ -23,3 +23,22 @@ async def test_generate_invite_token_requires_admin(public_client: AsyncClient):
     """Unauthenticated clients cannot generate invites."""
     response = await public_client.post("/api/admin/companies/invite")
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_list_invites_returns_cursor_page_envelope(admin_client: AsyncClient):
+    """The invites list returns a CursorPage envelope, not a bare array."""
+    response = await admin_client.get("/api/admin/companies/invites")
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body.keys()) == {"items", "next_cursor"}
+    assert body["next_cursor"] is None
+    assert isinstance(body["items"], list)
+
+
+@pytest.mark.asyncio
+async def test_list_invites_invalid_cursor_returns_400(admin_client: AsyncClient):
+    response = await admin_client.get(
+        "/api/admin/companies/invites", params={"cursor": "not-a-cursor"}
+    )
+    assert response.status_code == 400

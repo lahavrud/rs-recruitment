@@ -1,11 +1,12 @@
 """Admin endpoints for company approval and direct CRUD."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.models import User
 from src.schemas import (
     ActiveCompanyRead,
@@ -30,6 +31,7 @@ from src.services.admin_company_profiles import (
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
+    InvalidCursorError,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -37,14 +39,19 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 @router.get(
     "/companies",
-    response_model=list[ActiveCompanyRead],
+    response_model=CursorPage[ActiveCompanyRead],
 )
 async def get_active_companies(
+    cursor: str | None = None,
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
-) -> list[ActiveCompanyRead]:
-    """List all active companies."""
-    return await list_active_companies(session)
+) -> CursorPage[ActiveCompanyRead]:
+    """List active companies, newest first, cursor-paginated."""
+    try:
+        return await list_active_companies(session, cursor=cursor, limit=limit)
+    except InvalidCursorError as exc:
+        raise service_exception_to_http(exc) from exc
 
 
 @router.post(
@@ -134,15 +141,19 @@ async def delete_company(
 
 @router.get(
     "/companies/pending",
-    response_model=list[PendingCompanyRead],
+    response_model=CursorPage[PendingCompanyRead],
 )
 async def get_pending_companies(
+    cursor: str | None = None,
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
-) -> list[PendingCompanyRead]:
-    """List all pending company registrations."""
-    companies = await list_pending_companies(session)
-    return [PendingCompanyRead.model_validate(c) for c in companies]
+) -> CursorPage[PendingCompanyRead]:
+    """List pending company registrations, newest first, cursor-paginated."""
+    try:
+        return await list_pending_companies(session, cursor=cursor, limit=limit)
+    except InvalidCursorError as exc:
+        raise service_exception_to_http(exc) from exc
 
 
 @router.post(
