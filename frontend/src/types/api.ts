@@ -120,6 +120,16 @@ export interface JobUpdate {
   status?: JobStatus;
 }
 
+/** Mirrors backend JobAdminCreate schema. */
+export interface JobAdminCreate {
+  company_id: number;
+  title: string;
+  description: string;
+  requirements: string;
+  location: string;
+  status?: JobStatus;
+}
+
 // --- Public Jobs ---
 
 /** Mirrors backend JobPublicRead schema. Status is omitted (only PUBLISHED returned). */

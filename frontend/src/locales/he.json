@@ -424,11 +424,11 @@
       }
     },
     "jobs": {
-      "title": "משרות ממתינות",
-      "subtitle": "בדוק ואשר פרסומי משרות לפני פרסומם.",
+      "title": "משרות",
+      "subtitle": "ניהול פרסומי משרות בכל הסטטוסים.",
       "pending": "ממתין",
       "loading": "טוען…",
-      "empty": "אין משרות ממתינות לאישור.",
+      "empty": "לא נמצאו משרות.",
       "approve": "אישור",
       "reject": "דחייה",
       "companyLabel": "חברה #{{id}}",
@@ -436,7 +436,8 @@
       "approveError": "אישור המשרה נכשל.",
       "rejectError": "דחיית המשרה נכשלה.",
       "rejectConfirm": "לדחות פרסום משרה זה? הוא יסומן כסגור.",
-      "loadError": "טעינת המשרות הממתינות נכשלה.",
+      "rejectConfirmTitle": "דחיית משרה",
+      "loadError": "טעינת המשרות נכשלה.",
       "email": "אימייל",
       "emailModalTitle": "שליחת הודעה לחברה",
       "emailModalLabel": "הודעה (אופציונלי)",
@@ -444,7 +445,42 @@
       "emailSend": "שליחה",
       "emailSending": "שולח…",
       "emailSuccess": "ההודעה נשלחה.",
-      "emailError": "שליחת ההודעה נכשלה."
+      "emailError": "שליחת ההודעה נכשלה.",
+      "filterAll": "הכל",
+      "newJob": "משרה חדשה",
+      "newJobModalTitle": "יצירת משרה חדשה",
+      "editModalTitle": "עריכת משרה",
+      "rowActionsLabel": "פעולות נוספות",
+      "viewAction": "פרטים מלאים",
+      "editAction": "עריכת משרה",
+      "deleteAction": "מחיקה",
+      "deleteConfirmTitle": "מחיקת משרה",
+      "deleteConfirmMessage": "פעולה זו תמחק את המשרה ואת כל המועמדויות שהוגשו אליה. לא ניתן לבטל.",
+      "deleteConfirmYes": "כן, מחק",
+      "approvedToast": "המשרה אושרה",
+      "rejectedToast": "המשרה נדחתה",
+      "deletedToast": "המשרה נמחקה",
+      "savedToast": "המשרה עודכנה",
+      "createdToast": "המשרה נוצרה",
+      "statusLabels": {
+        "PENDING_APPROVAL": "ממתין לאישור",
+        "PUBLISHED": "פורסם",
+        "CLOSED": "סגור"
+      },
+      "fields": {
+        "company": "חברה",
+        "title": "כותרת המשרה",
+        "description": "תיאור",
+        "requirements": "דרישות",
+        "location": "מיקום",
+        "status": "סטטוס"
+      },
+      "errors": {
+        "saveFailed": "שמירת המשרה נכשלה. נסה שוב.",
+        "createFailed": "יצירת המשרה נכשלה. נסה שוב.",
+        "deleteFailed": "מחיקת המשרה נכשלה. נסה שוב.",
+        "companiesLoadFailed": "טעינת רשימת החברות נכשלה."
+      }
     },
     "applications": {
       "title": "מועמדויות",

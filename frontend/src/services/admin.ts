@@ -15,7 +15,10 @@ import type {
   CandidateProfileUpdate,
   InviteTokenCreate,
   InviteTokenRead,
+  JobAdminCreate,
   JobRead,
+  JobStatus,
+  JobUpdate,
   PendingCompanyRead,
 } from "@/types/api";
 
@@ -55,8 +58,20 @@ export async function rejectCompany(userId: number): Promise<void> {
   await api.post(`/api/admin/companies/${userId}/reject`);
 }
 
-export async function getActiveCompanies(): Promise<ActiveCompanyRead[]> {
-  const res = await api.get<ActiveCompanyRead[]>("/api/admin/companies");
+export interface ActiveCompaniesParams {
+  cursor?: string | null;
+  limit?: number;
+}
+
+export async function getActiveCompanies(
+  params?: ActiveCompaniesParams,
+): Promise<CursorPage<ActiveCompanyRead>> {
+  const query: Record<string, string | number> = {};
+  if (params?.cursor) query.cursor = params.cursor;
+  if (params?.limit != null) query.limit = params.limit;
+  const res = await api.get<CursorPage<ActiveCompanyRead>>("/api/admin/companies", {
+    params: query,
+  });
   return res.data;
 }
 
@@ -82,6 +97,42 @@ export async function rejectJob(jobId: number): Promise<void> {
 
 export async function contactJob(jobId: number, note: string): Promise<void> {
   await api.post(`/api/admin/jobs/${jobId}/contact`, { admin_note: note });
+}
+
+export interface JobListParams {
+  status?: JobStatus;
+  cursor?: string | null;
+  limit?: number;
+}
+
+export async function getJobs(params?: JobListParams): Promise<CursorPage<JobRead>> {
+  const query: Record<string, string | number> = {};
+  if (params?.status) query.status = params.status;
+  if (params?.cursor) query.cursor = params.cursor;
+  if (params?.limit != null) query.limit = params.limit;
+  const res = await api.get<CursorPage<JobRead>>("/api/admin/jobs", {
+    params: query,
+  });
+  return res.data;
+}
+
+export async function getJob(id: number): Promise<JobRead> {
+  const res = await api.get<JobRead>(`/api/admin/jobs/${id}`);
+  return res.data;
+}
+
+export async function createJob(body: JobAdminCreate): Promise<JobRead> {
+  const res = await api.post<JobRead>("/api/admin/jobs", body);
+  return res.data;
+}
+
+export async function updateJob(id: number, body: JobUpdate): Promise<JobRead> {
+  const res = await api.put<JobRead>(`/api/admin/jobs/${id}`, body);
+  return res.data;
+}
+
+export async function deleteJob(id: number): Promise<void> {
+  await api.delete(`/api/admin/jobs/${id}`);
 }
 
 // ── Applications ─────────────────────────────────────────────────────────────
