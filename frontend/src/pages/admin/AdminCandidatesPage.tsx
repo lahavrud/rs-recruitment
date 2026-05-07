@@ -92,8 +92,8 @@ export default function AdminCandidatesPage() {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
     window.history.replaceState({}, "", window.location.pathname);
-    getCandidate(Number(id)).then(setDetail).catch(() => {});
-  }, []);
+    getCandidate(Number(id)).then(setDetail).catch(() => toast.error(t("common.genericError")));
+  }, [t, toast]);
 
   async function handleDeleteConfirm() {
     if (!deletePending) return;

@@ -1,5 +1,6 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 type Size = "sm" | "md" | "lg";
 
@@ -34,6 +35,7 @@ export default function Dialog({
   footer,
   size = "md",
 }: DialogProps) {
+  const { t } = useTranslation();
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -64,7 +66,7 @@ export default function Dialog({
               )}
             </div>
             <RadixDialog.Close
-              aria-label="סגור"
+              aria-label={t("common.close")}
               className="shrink-0 rounded-sm p-1 text-white/30 transition hover:bg-white/8 hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden="true">

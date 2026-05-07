@@ -100,8 +100,8 @@ export default function AdminJobsPage() {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
     window.history.replaceState({}, "", window.location.pathname);
-    getJob(Number(id)).then(setDetail).catch(() => {});
-  }, []);
+    getJob(Number(id)).then(setDetail).catch(() => toast.error(t("common.genericError")));
+  }, [t, toast]);
 
   const STATUS_LABELS: Record<string, string> = {
     PENDING_APPROVAL: t("admin.jobs.statusLabels.PENDING_APPROVAL"),

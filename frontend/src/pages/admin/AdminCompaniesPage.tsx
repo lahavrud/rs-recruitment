@@ -61,6 +61,7 @@ const MOBILE_RE = /^05[0-9]\d{7}$/;
 export default function AdminCompaniesPage() {
   const { t } = useTranslation();
   usePageTitle(t("admin.companies.title"));
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("pending");
   const [creating, setCreating] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -74,8 +75,8 @@ export default function AdminCompaniesPage() {
     getCompanyProfile(Number(id)).then((profile) => {
       setTab("active");
       setExternalDetail(profile);
-    }).catch(() => {});
-  }, []);
+    }).catch(() => toast.error(t("common.genericError")));
+  }, [t, toast]);
 
   function handleInvite() {
     setTab("invites");
