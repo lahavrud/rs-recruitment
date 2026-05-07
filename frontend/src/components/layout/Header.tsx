@@ -13,8 +13,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const navigate = useNavigate();
 
   async function handleLogout() {
-    await logout();
     navigate("/");
+    await logout();
   }
 
   return (
