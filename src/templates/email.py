@@ -351,3 +351,56 @@ def build_job_contact_html(
         + _p("לשאלות ופניות נוספות, אנא צרו קשר עם צוות RS Recruiting.", muted=True)
     )
     return _wrap("פנייה בנוגע למשרה — RS Recruiting", body)
+
+
+def build_application_received_html(
+    candidate_name: str,
+    job_title: str,
+) -> str:
+    """HTML confirmation email sent to a candidate after a successful apply."""
+    sname = _e(candidate_name)
+    stitle = _e(job_title)
+    body = (
+        _h("מועמדותך התקבלה")
+        + _p(f"שלום {sname},")
+        + _p(f"קיבלנו את מועמדותך למשרת <strong>{stitle}</strong>.")
+        + _p(
+            "צוות RS Recruiting יבחן את הפרטים בקרוב ויחזור אליך עם עדכון "
+            "ברגע שהבחינה תושלם."
+        )
+        + _rule()
+        + _p("אין צורך לשלוח את המועמדות פעם נוספת.", muted=True)
+    )
+    return _wrap("מועמדותך התקבלה — RS Recruiting", body)
+
+
+def build_new_application_admin_html(
+    candidate_name: str,
+    candidate_email: str,
+    candidate_phone: str | None,
+    candidate_linkedin: str | None,
+    job_title: str,
+    company_name: str,
+    admin_url: str,
+) -> str:
+    """HTML notification sent to admins when a new application arrives."""
+    sname = _e(candidate_name)
+    semail = _e(candidate_email)
+    sphone = _e(candidate_phone) if candidate_phone else "לא צויין"
+    slinkedin = _e(candidate_linkedin) if candidate_linkedin else "לא צויין"
+    stitle = _e(job_title)
+    scompany = _e(company_name)
+    body = (
+        _h("מועמדות חדשה ממתינה לבדיקה")
+        + _p(
+            f"<strong>{sname}</strong> הגיש/ה מועמדות למשרת <strong>{stitle}</strong>."
+        )
+        + _rule()
+        + _p(f"שם מלא: <strong>{sname}</strong>")
+        + _p(f'דוא"ל: {semail}')
+        + _p(f"טלפון: {sphone}")
+        + _p(f"LinkedIn: {slinkedin}")
+        + _p(f"חברה: {scompany}")
+        + _cta(admin_url, "מעבר לניהול מועמדויות")
+    )
+    return _wrap("מועמדות חדשה — RS Recruiting", body)

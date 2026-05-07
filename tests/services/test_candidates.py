@@ -409,20 +409,70 @@ async def test_create_application_on_profile_creation(
     assert application.job_id == job.id
 
 
+async def _make_published_job(
+    session: AsyncSession,
+    company_with_user,
+    title: str = "Senior Python Developer",
+) -> Job:
+    job = Job(
+        company_id=company_with_user.id,
+        title=title,
+        description="We are looking for a senior Python developer...",
+        requirements="5+ years experience",
+        location="Tel Aviv, Israel",
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    return job
+
+
 @pytest.mark.asyncio
 @patch("src.services.candidates.enqueue_email_task")
-async def test_create_candidate_profile_sends_admin_email(
+async def test_create_candidate_profile_sends_candidate_confirmation_email(
     mock_enqueue_email,
     session: AsyncSession,
     company_with_user,
 ):
-    """Test that email notification is sent to admins when candidate applies."""
+    """The candidate gets a Hebrew HTML confirmation email after a successful apply."""
     mock_enqueue_email.return_value = "test-job-id"
 
-    # Create admin user
+    job = await _make_published_job(session, company_with_user)
+    candidate_data = CandidateProfileCreate(
+        full_name="John Doe",
+        email="john@example.com",
+        phone="123-456-7890",
+    )
+
+    await create_candidate_profile(
+        candidate_data=candidate_data, job_id=job.id, session=session
+    )
+
+    # First call is the candidate confirmation; second is the admin notification.
+    candidate_call = mock_enqueue_email.call_args_list[0].kwargs
+    assert candidate_call["to"] == "john@example.com"
+    assert "John Doe" in candidate_call["body"]
+    assert "John Doe" in candidate_call["html_body"]
+    assert job.title in candidate_call["html_body"]
+    assert "התקבלה" in candidate_call["subject"]
+
+
+@pytest.mark.asyncio
+@patch("src.services.candidates.enqueue_email_task")
+async def test_create_candidate_profile_admin_email_falls_back_to_all_admins(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+    monkeypatch,
+):
+    """When ADMIN_NOTIFICATION_EMAIL is unset, every active admin is notified."""
+    from src.core.infrastructure.config import settings as runtime_settings
     from src.core.infrastructure.security import get_password_hash
     from src.enums import UserRole
     from src.models import User
+
+    monkeypatch.setattr(runtime_settings, "admin_notification_email", None)
+    mock_enqueue_email.return_value = "test-job-id"
 
     admin = User(
         email="admin@test.com",
@@ -433,20 +483,7 @@ async def test_create_candidate_profile_sends_admin_email(
     session.add(admin)
     await session.commit()
 
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
-
-    # Create candidate
+    job = await _make_published_job(session, company_with_user)
     candidate_data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
@@ -454,21 +491,46 @@ async def test_create_candidate_profile_sends_admin_email(
     )
 
     await create_candidate_profile(
-        candidate_data=candidate_data,
-        job_id=job.id,
-        session=session,
+        candidate_data=candidate_data, job_id=job.id, session=session
     )
 
-    # Verify email was sent
-    mock_enqueue_email.assert_called_once()
-    call_args = mock_enqueue_email.call_args
-    # Function is called with keyword arguments
-    assert call_args.kwargs["to"] == ["admin@test.com"]  # Admin email
-    assert "New Application" in call_args.kwargs["subject"]  # Subject
-    assert "John Doe" in call_args.kwargs["body"]  # Body contains candidate name
-    assert (
-        "Senior Python Developer" in call_args.kwargs["body"]
-    )  # Body contains job title
+    # Two emails: candidate (index 0), admin (index 1).
+    assert mock_enqueue_email.call_count == 2
+    admin_call = mock_enqueue_email.call_args_list[1].kwargs
+    assert admin_call["to"] == ["admin@test.com"]
+    assert "John Doe" in admin_call["html_body"]
+    assert job.title in admin_call["html_body"]
+
+
+@pytest.mark.asyncio
+@patch("src.services.candidates.enqueue_email_task")
+async def test_create_candidate_profile_admin_email_uses_env_var_when_set(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+    monkeypatch,
+):
+    """ADMIN_NOTIFICATION_EMAIL routes the admin notification to a single recipient."""
+    from src.core.infrastructure.config import settings as runtime_settings
+
+    monkeypatch.setattr(
+        runtime_settings, "admin_notification_email", "ops@rsrecruit.test"
+    )
+    mock_enqueue_email.return_value = "test-job-id"
+
+    job = await _make_published_job(session, company_with_user)
+    candidate_data = CandidateProfileCreate(
+        full_name="John Doe",
+        email="john@example.com",
+        phone="123-456-7890",
+    )
+
+    await create_candidate_profile(
+        candidate_data=candidate_data, job_id=job.id, session=session
+    )
+
+    admin_call = mock_enqueue_email.call_args_list[1].kwargs
+    assert admin_call["to"] == "ops@rsrecruit.test"
 
 
 @pytest.mark.asyncio

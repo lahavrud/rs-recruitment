@@ -3,6 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.config import settings
 from src.core.services.file_validation import validate_document_magic_bytes
 from src.core.services.storage import StorageProvider, get_storage_provider
 from src.core.tasks import enqueue_email_task
@@ -11,6 +12,10 @@ from src.models import Application, CandidateProfile, Job
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.admin_companies import get_all_admin_emails
 from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
+from src.templates.email import (
+    build_application_received_html,
+    build_new_application_admin_html,
+)
 
 
 async def find_candidate_by_email(
@@ -269,31 +274,54 @@ async def create_candidate_profile(
 
     await session.commit()
 
-    # Send email notification to all admins (async task)
-    admin_emails = await get_all_admin_emails(session)
-    if admin_emails:
-        email_subject = (
-            f"New Application: {candidate.full_name} applied for {job.title}"
+    # Candidate confirmation email (one per successful apply, Hebrew HTML).
+    candidate_subject = f"מועמדותך למשרת '{job.title}' התקבלה"
+    candidate_plain = (
+        f"שלום {candidate.full_name},\n\n"
+        f"קיבלנו את מועמדותך למשרת '{job.title}'. צוות RS Recruiting "
+        "יבחן את הפרטים בקרוב ויחזור אליך עם עדכון."
+    )
+    await enqueue_email_task(
+        to=candidate.email,
+        subject=candidate_subject,
+        body=candidate_plain,
+        html_body=build_application_received_html(
+            candidate_name=candidate.full_name,
+            job_title=job.title,
+        ),
+    )
+
+    # Admin notification: prefer the configured single recipient; fall back
+    # to all active admins if the env var is not set.
+    if settings.admin_notification_email:
+        admin_recipients: list[str] | str = settings.admin_notification_email
+    else:
+        admin_recipients = await get_all_admin_emails(session)
+    if admin_recipients:
+        admin_url = f"{settings.frontend_base_url}/admin/applications"
+        admin_subject = f"מועמדות חדשה למשרת '{job.title}' — {candidate.full_name}"
+        admin_plain = (
+            f"מועמדות חדשה התקבלה:\n\n"
+            f"שם: {candidate.full_name}\n"
+            f'דוא"ל: {candidate.email}\n'
+            f"טלפון: {candidate.phone or 'לא צויין'}\n"
+            f"משרה: {job.title}\n"
+            f"חברה: {company_name}\n\n"
+            f"מעבר לניהול: {admin_url}"
         )
-        email_body = f"""
-A new candidate application has been submitted:
-
-Candidate: {candidate.full_name}
-Email: {candidate.email}
-Phone: {candidate.phone or "Not provided"}
-LinkedIn: {candidate.linkedin_url or "Not provided"}
-
-Job: {job.title} (ID: {job.id})
-Company: {company_name}
-
-Application Status: NEW (requires admin approval)
-
-Please review the application in the admin dashboard.
-"""
         await enqueue_email_task(
-            to=admin_emails,
-            subject=email_subject,
-            body=email_body,
+            to=admin_recipients,
+            subject=admin_subject,
+            body=admin_plain,
+            html_body=build_new_application_admin_html(
+                candidate_name=candidate.full_name,
+                candidate_email=candidate.email,
+                candidate_phone=candidate.phone,
+                candidate_linkedin=candidate.linkedin_url,
+                job_title=job.title,
+                company_name=company_name,
+                admin_url=admin_url,
+            ),
         )
 
     # Refresh candidate to ensure all fields are loaded (before commit)
