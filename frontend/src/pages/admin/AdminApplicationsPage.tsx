@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteApplication,
@@ -87,15 +88,32 @@ export default function AdminApplicationsPage() {
 
   const [filter, setFilter] = useState<FilterValue>(ALL_FILTER);
 
+  // Pre-fill job/candidate filters from URL params (?job=<id> or ?candidate=<id>)
+  const [filterJobId] = useState<number | undefined>(() => {
+    const val = new URLSearchParams(window.location.search).get("job");
+    return val && !Number.isNaN(Number(val)) ? Number(val) : undefined;
+  });
+  const [filterCandidateId] = useState<number | undefined>(() => {
+    const val = new URLSearchParams(window.location.search).get("candidate");
+    return val && !Number.isNaN(Number(val)) ? Number(val) : undefined;
+  });
+
+  // Clean URL params on mount after reading them
+  useEffect(() => {
+    if (filterJobId != null || filterCandidateId != null) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [filterJobId, filterCandidateId]);
+
   const fetcher = useCallback(
     (cursor: string | null): Promise<CursorPage<ApplicationWithDetails>> => {
       const params: ApplicationListParams = { cursor };
-      if (filter !== ALL_FILTER) {
-        params.status = filter as ApplicationStatus;
-      }
+      if (filter !== ALL_FILTER) params.status = filter as ApplicationStatus;
+      if (filterJobId != null) params.job_id = filterJobId;
+      if (filterCandidateId != null) params.candidate_id = filterCandidateId;
       return getApplications(params);
     },
-    [filter],
+    [filter, filterJobId, filterCandidateId],
   );
 
   const {
@@ -151,6 +169,16 @@ export default function AdminApplicationsPage() {
         eyebrow={t("admin.applications.title")}
         subtitle={t("admin.applications.subtitle")}
       />
+
+      {(filterJobId != null || filterCandidateId != null) && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="rounded-full border border-copper/30 bg-copper/10 px-3 py-1 text-xs text-copper">
+            {filterJobId != null
+              ? `${t("common.filteredByJob")} #${filterJobId}`
+              : `${t("common.filteredByCandidate")} #${filterCandidateId}`}
+          </span>
+        </div>
+      )}
 
       <div className="mb-5 flex flex-wrap gap-2">
         {filterTabs.map((tab) => {
@@ -392,6 +420,7 @@ function DetailDialog({
   onDelete,
 }: DetailProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   if (!app) return null;
   const c = app.candidate;
   return (
@@ -425,6 +454,22 @@ function DetailDialog({
       }
     >
       <div className="space-y-4 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/8 pb-3">
+          <button
+            type="button"
+            onClick={() => { onClose(); navigate(`/admin/candidates?detail=${app.candidate_id}`); }}
+            className="text-xs text-copper/70 underline-offset-2 transition hover:text-copper hover:underline"
+          >
+            {t("common.viewCandidate")}
+          </button>
+          <button
+            type="button"
+            onClick={() => { onClose(); navigate(`/admin/jobs?detail=${app.job_id}`); }}
+            className="text-xs text-copper/70 underline-offset-2 transition hover:text-copper hover:underline"
+          >
+            {t("common.viewJob")}
+          </button>
+        </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1">
           <span className="text-white/60">{c.email}</span>
           {c.phone && <span className="text-white/60">{c.phone}</span>}
