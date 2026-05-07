@@ -145,7 +145,7 @@ async def test_update_candidate_validates_phone(
 @pytest.mark.asyncio
 async def test_update_candidate_not_found(admin_client: AsyncClient):
     response = await admin_client.put(
-        "/api/admin/candidates/99999", json={"full_name": "x"}
+        "/api/admin/candidates/99999", json={"full_name": "Anyone"}
     )
     assert response.status_code == 404
 
@@ -177,7 +177,7 @@ async def test_candidate_endpoints_require_admin(
     public_client: AsyncClient, candidate_profile: CandidateProfile
 ):
     put_resp = await public_client.put(
-        f"/api/admin/candidates/{candidate_profile.id}", json={"full_name": "x"}
+        f"/api/admin/candidates/{candidate_profile.id}", json={"full_name": "New"}
     )
     delete_resp = await public_client.delete(
         f"/api/admin/candidates/{candidate_profile.id}"

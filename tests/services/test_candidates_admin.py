@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.enums import ApplicationStatus, JobStatus
+from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import CandidateProfileUpdate
 from src.services.candidates_admin import (
@@ -133,7 +133,9 @@ async def test_update_candidate_partial_keeps_unset_fields(
 @pytest.mark.asyncio
 async def test_update_candidate_not_found(session: AsyncSession):
     with pytest.raises(CandidateNotFoundError):
-        await update_candidate(99999, CandidateProfileUpdate(full_name="x"), session)
+        await update_candidate(
+            99999, CandidateProfileUpdate(full_name="Anyone"), session
+        )
 
 
 # ── delete_candidate ──────────────────────────────────────────────────────────
@@ -147,6 +149,7 @@ async def test_delete_candidate_cascades_applications(
     user = User(
         email="c-deltest@test.com",
         hashed_password="hashed",
+        role=UserRole.COMPANY,
         is_active=True,
     )
     session.add(user)
