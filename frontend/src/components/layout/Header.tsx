@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 
@@ -10,11 +9,10 @@ interface HeaderProps {
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   async function handleLogout() {
-    navigate("/");
     await logout();
+    window.location.replace("/");
   }
 
   return (
