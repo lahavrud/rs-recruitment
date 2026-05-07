@@ -150,7 +150,7 @@ class CompanyProfileRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    user_id: int
+    user_id: int | None
     name: str
     logo_url: str | None
     company_id: str | None
@@ -475,3 +475,63 @@ class ActiveCompanyRead(BaseModel):
 
     user: UserRead
     company_profile: CompanyProfileRead
+
+
+class CompanyProfileAdminCreate(BaseModel):
+    """Schema for an admin creating a company profile without a user account."""
+
+    name: str = Field(..., max_length=100)
+    company_id: str  # ח.פ — 9-digit Israeli company registration number
+    address: str = Field(..., max_length=200)
+    contact_first_name: str = Field(..., min_length=2, max_length=100)
+    contact_last_name: str = Field(..., min_length=2, max_length=100)
+    contact_mobile_phone: str
+    contact_landline_phone: str | None = Field(None, max_length=20)
+
+    @field_validator("company_id")
+    @classmethod
+    def validate_company_id(cls, v: str) -> str:
+        if not re.fullmatch(r"\d{9}", v):
+            raise ValueError("Company ID must be exactly 9 digits")
+        return v
+
+    @field_validator("contact_mobile_phone")
+    @classmethod
+    def validate_mobile_phone(cls, v: str) -> str:
+        if not re.fullmatch(r"05[0-9]\d{7}", v):
+            raise ValueError(
+                "Mobile phone must be a valid Israeli mobile number (05X-XXXXXXX)"
+            )
+        return v
+
+
+class CompanyProfileAdminUpdate(BaseModel):
+    """Partial-update schema for an admin editing a company profile."""
+
+    name: str | None = Field(None, max_length=100)
+    company_id: str | None = None
+    address: str | None = Field(None, max_length=200)
+    contact_first_name: str | None = Field(None, min_length=2, max_length=100)
+    contact_last_name: str | None = Field(None, min_length=2, max_length=100)
+    contact_mobile_phone: str | None = None
+    contact_landline_phone: str | None = Field(None, max_length=20)
+
+    @field_validator("company_id")
+    @classmethod
+    def validate_company_id(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not re.fullmatch(r"\d{9}", v):
+            raise ValueError("Company ID must be exactly 9 digits")
+        return v
+
+    @field_validator("contact_mobile_phone")
+    @classmethod
+    def validate_mobile_phone(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not re.fullmatch(r"05[0-9]\d{7}", v):
+            raise ValueError(
+                "Mobile phone must be a valid Israeli mobile number (05X-XXXXXXX)"
+            )
+        return v

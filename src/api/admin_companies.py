@@ -1,4 +1,4 @@
-"""Admin endpoints for company approval workflow."""
+"""Admin endpoints for company approval and direct CRUD."""
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,8 +10,9 @@ from src.models import User
 from src.schemas import (
     ActiveCompanyRead,
     ApprovedCompanyRead,
-    InviteTokenCreate,
-    InviteTokenRead,
+    CompanyProfileAdminCreate,
+    CompanyProfileAdminUpdate,
+    CompanyProfileRead,
     PendingCompanyRead,
 )
 from src.services.admin_companies import (
@@ -21,102 +22,17 @@ from src.services.admin_companies import (
     list_pending_companies,
     reject_company,
 )
-from src.services.admin_invites import (
-    create_invite,
-    list_invites,
-    resend_invite,
-    revoke_invite,
+from src.services.admin_company_profiles import (
+    admin_create_company,
+    get_company_profile,
+    update_company_profile,
 )
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
-    EmailAlreadyExistsError,
-    InviteAlreadyRevokedError,
-    InviteNotFoundError,
-    InvitePendingForEmailError,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-
-
-@router.post(
-    "/companies/invite",
-    response_model=InviteTokenRead,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_company_invite(
-    data: InviteTokenCreate,
-    current_admin: User = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_session),
-) -> InviteTokenRead:
-    """Generate a single-use invite token and send it via email."""
-    assert current_admin.id is not None
-    try:
-        result = await create_invite(current_admin.id, data, session)
-        await session.commit()
-        return result
-    except (InvitePendingForEmailError, EmailAlreadyExistsError) as e:
-        await session.rollback()
-        raise service_exception_to_http(e) from e
-    except Exception:
-        await session.rollback()
-        raise
-
-
-@router.get(
-    "/companies/invites",
-    response_model=list[InviteTokenRead],
-)
-async def get_company_invites(
-    current_admin: User = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_session),
-) -> list[InviteTokenRead]:
-    """List all invite tokens with their current status."""
-    result = await list_invites(session)
-    await session.commit()
-    return result
-
-
-@router.delete(
-    "/companies/invites/{token_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def revoke_company_invite(
-    token_id: int,
-    current_admin: User = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_session),
-) -> None:
-    """Revoke a pending invite token."""
-    try:
-        await revoke_invite(token_id, session)
-        await session.commit()
-    except (InviteNotFoundError, InviteAlreadyRevokedError) as e:
-        await session.rollback()
-        raise service_exception_to_http(e) from e
-    except Exception:
-        await session.rollback()
-        raise
-
-
-@router.post(
-    "/companies/invites/{token_id}/resend",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def resend_company_invite(
-    token_id: int,
-    current_admin: User = Depends(get_current_admin),
-    session: AsyncSession = Depends(get_session),
-) -> None:
-    """Regenerate and resend an invite email for an existing invite record."""
-    try:
-        await resend_invite(token_id, session)
-        await session.commit()
-    except (InviteNotFoundError, InviteAlreadyRevokedError) as e:
-        await session.rollback()
-        raise service_exception_to_http(e) from e
-    except Exception:
-        await session.rollback()
-        raise
 
 
 @router.get(
@@ -129,6 +45,70 @@ async def get_active_companies(
 ) -> list[ActiveCompanyRead]:
     """List all active companies."""
     return await list_active_companies(session)
+
+
+@router.post(
+    "/companies",
+    response_model=CompanyProfileRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_company_directly(
+    data: CompanyProfileAdminCreate,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> CompanyProfileRead:
+    """Create a CompanyProfile directly, without a user account.
+
+    The resulting profile has `user_id = null` and can be referenced by jobs
+    immediately. Admins use this for companies that haven't been onboarded
+    via the invite flow yet.
+    """
+    try:
+        result = await admin_create_company(data, session)
+        await session.commit()
+        return result
+    except Exception:
+        await session.rollback()
+        raise
+
+
+@router.get(
+    "/companies/profile/{profile_id}",
+    response_model=CompanyProfileRead,
+)
+async def get_company_profile_endpoint(
+    profile_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> CompanyProfileRead:
+    """Fetch a single CompanyProfile by its primary key."""
+    try:
+        return await get_company_profile(profile_id, session)
+    except CompanyNotFoundError as e:
+        raise service_exception_to_http(e) from e
+
+
+@router.put(
+    "/companies/profile/{profile_id}",
+    response_model=CompanyProfileRead,
+)
+async def update_company_profile_endpoint(
+    profile_id: int,
+    data: CompanyProfileAdminUpdate,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> CompanyProfileRead:
+    """Partially update a CompanyProfile."""
+    try:
+        result = await update_company_profile(profile_id, data, session)
+        await session.commit()
+        return result
+    except CompanyNotFoundError as e:
+        await session.rollback()
+        raise service_exception_to_http(e) from e
+    except Exception:
+        await session.rollback()
+        raise
 
 
 @router.delete(

@@ -9,6 +9,7 @@ from src.api import (
     admin_applications,
     admin_candidates,
     admin_companies,
+    admin_invites,
     admin_jobs,
     auth,
     candidates,
@@ -51,6 +52,7 @@ app.include_router(auth.router)
 app.include_router(activation.router)
 app.include_router(invites.router)
 app.include_router(admin_companies.router)
+app.include_router(admin_invites.router)
 app.include_router(admin_jobs.router)
 app.include_router(admin_applications.router)
 app.include_router(admin_candidates.router)
