@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 from pydantic import field_validator
-from sqlalchemy import DateTime, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, Text, UniqueConstraint
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from src.enums import ApplicationStatus, InviteTokenStatus, JobStatus, UserRole
@@ -153,6 +153,13 @@ class Job(SQLModel, table=True):
 
     Jobs can be posted by companies and require admin approval before being published.
     """
+
+    __table_args__ = (
+        CheckConstraint(
+            "salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max",
+            name="ck_job_salary_range",
+        ),
+    )
 
     id: int | None = Field(default=None, primary_key=True)
     company_id: int = Field(foreign_key="companyprofile.id", index=True)
