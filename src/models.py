@@ -298,7 +298,9 @@ class AuditLog(SQLModel, table=True):
     __tablename__ = "audit_log"
 
     id: int | None = Field(default=None, primary_key=True)
-    actor_user_id: int | None = Field(default=None, foreign_key="user.id", index=True)
+    # No FK on actor_user_id: audit rows must outlive the user they reference
+    # (deleting a user must not cascade-delete their audit history).
+    actor_user_id: int | None = Field(default=None, index=True)
     action: str = Field(index=True, max_length=64)
     target_type: str = Field(index=True, max_length=64)
     target_id: int = Field(index=True)
