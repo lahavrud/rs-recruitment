@@ -166,8 +166,10 @@ Default EBS encryption: ON (account-wide).
 | Alarm `rds-storage-low` | RDS free storage <4GB → ops-alerts |
 | Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
 | Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
-| SNS `ops-alerts` | Email → lahavrud@gmail.com (confirmed). Sole consumer: ops alarms (no billing path) |
+| SNS `ops-alerts` | Email → lahavrud@gmail.com (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
 | CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-510144817435` |
+| GuardDuty detector `32cf04c9…` | ENABLED, 15-minute finding frequency, 30-day free trial active until ~2026-06-08; primary input is CloudTrail (above) |
+| EventBridge rule `guardduty-findings` | Pattern: `source=aws.guardduty, detail-type=GuardDuty Finding`. Target: `ops-alerts` SNS with input transformer that flattens raw JSON into a human-readable email (severity, type, title, description, region, resource type) |
 | AWS Budget `monthly-40` | $40/mo cost budget with **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted |
 
 ### Backup posture
@@ -188,6 +190,11 @@ Default EBS encryption: ON (account-wide).
 ## 4. Decisions log (append-only)
 
 Newest first. Each entry: date, what, why, links. When updating, append; don't rewrite history.
+
+### 2026-05-09 — GuardDuty enabled, findings → ops-alerts via EventBridge transformer
+**Decision:** Enable GuardDuty (15-minute publishing frequency, 30-day free trial), wire findings to the existing `ops-alerts` SNS topic via an EventBridge rule with an input transformer that flattens the raw finding JSON into a readable email summary (severity, type, title, description, region, resource type).
+**Why:** CloudTrail is now writing API audit data, but no human reads CloudTrail manually. GuardDuty turns CloudTrail (+ DNS + EC2 metadata) into actionable signal — primarily catches credential abuse, which is the realistic threat at single-admin scale. The 30-day trial gives a real cost estimate before committing; if it lands above ~$5/mo or generates noise, can disable.
+**Trade:** added one EventBridge rule + one new statement on the SNS topic policy (allow `events.amazonaws.com` to publish). VPC Flow Logs explicitly skipped — see prior entry.
 
 ### 2026-05-09 — Billing alerts via AWS Budget only; S3 lifecycle + cleanup
 **Decision:** Delete the redundant CloudWatch `billing-over-40` alarm and `billing-alerts` SNS topic. AWS Budget `monthly-40` already has 4 direct EMAIL subscriptions (50%/80%/100% actual + 100% forecasted) that fire faster and with finer-grained thresholds than the alarm — keeping both was duplicate notifications. Net: one fewer alarm, one fewer SNS topic, only `ops-alerts` remains. Also cleaned up obsolete root-level S3 deploy artifacts (`deploy/{deploy_ec2.sh, docker-compose.deploy.yml, nginx.conf, dist/, seed_admin.py}` — all leftovers from the pre-#296 deploy model) and applied a lifecycle policy: `deploy/` current versions expire after 30 days (matches the spirit of ECR's "keep last 10 tagged" since deploys land near-daily), global noncurrent versions expire after 30 days, incomplete multipart uploads abort after 7 days.
