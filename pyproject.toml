@@ -23,4 +23,5 @@ filterwarnings = [
 dev = [
     "aiosmtpd>=1.4.6",
     "pymupdf>=1.27.2.3",
+    "pytest-cov>=5.0.0",
 ]
