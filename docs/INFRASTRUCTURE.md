@@ -31,10 +31,10 @@ flowchart LR
     ECR1[("ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush")]
     ECR2[("ECR rs-recruitment/frontend<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
-    CW["CloudWatch<br/>5 log groups · 6 alarms"]
+    CW["CloudWatch<br/>5 log groups · 5 alarms"]
     CT["CloudTrail<br/>multi-region · log validation"]
     SNS1["SNS ops-alerts"]
-    SNS2["SNS billing-alerts"]
+    Budget["AWS Budget<br/>monthly-40<br/>50/80/100 actual + 100 forecast"]
   end
 
   GHA["GitHub Actions<br/>OIDC role"]
@@ -61,10 +61,9 @@ flowchart LR
   ec2host -->|logs + metrics| CW
   ec2host -->|API calls audit| CT
   CT -->|deliver logs| S3CT
-  CW -->|alarms| SNS1
-  CW -->|billing alarm| SNS2
+  CW -->|ops alarms| SNS1
   SNS1 --> Email
-  SNS2 --> Email
+  Budget -->|direct email, no SNS| Email
 ```
 
 ### Network notes
@@ -127,7 +126,7 @@ flowchart LR
 ### Storage
 | Bucket / repo | Purpose | Settings |
 |---|---|---|
-| `rs-recruitment-510144817435` | App data — resumes (`/uploads/`), public assets (`/public/*`), deploy artifacts (`/deploy/${SHA}/`) | Versioning ON, SSE-S3, BPA partial (public path allowed for BIMI logo) |
+| `rs-recruitment-510144817435` | App data — resumes (`/uploads/`), public assets (`/public/*`), deploy artifacts (`/deploy/${SHA}/`) | Versioning ON, SSE-S3, BPA partial (public path allowed for BIMI logo). **Lifecycle:** `deploy/` current versions expire 30d; noncurrent globally expire 30d; abort incomplete multipart 7d |
 | `rs-recruitment-cloudtrail-510144817435` | CloudTrail logs | Versioning ON, SSE-S3, BPA full block |
 | ECR `rs-recruitment/api` | Backend image | IMMUTABLE, scanOnPush |
 | ECR `rs-recruitment/frontend` | Frontend image (multistage build) | IMMUTABLE, scanOnPush |
@@ -167,11 +166,9 @@ Default EBS encryption: ON (account-wide).
 | Alarm `rds-storage-low` | RDS free storage <4GB → ops-alerts |
 | Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
 | Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
-| Alarm `billing-over-40` | Estimated charges >$40 → billing-alerts |
-| SNS `ops-alerts` | Email → lahavrud@gmail.com (confirmed) |
-| SNS `billing-alerts` | Email → lahavrud@gmail.com (confirmed) |
+| SNS `ops-alerts` | Email → lahavrud@gmail.com (confirmed). Sole consumer: ops alarms (no billing path) |
 | CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-510144817435` |
-| AWS Budget `monthly-40` | $40/mo with notifications at 50%/80%/100% actual + 100% forecasted, all → email |
+| AWS Budget `monthly-40` | $40/mo cost budget with **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted |
 
 ### Backup posture
 | Layer | Mechanism | Retention |
@@ -191,6 +188,10 @@ Default EBS encryption: ON (account-wide).
 ## 4. Decisions log (append-only)
 
 Newest first. Each entry: date, what, why, links. When updating, append; don't rewrite history.
+
+### 2026-05-09 — Billing alerts via AWS Budget only; S3 lifecycle + cleanup
+**Decision:** Delete the redundant CloudWatch `billing-over-40` alarm and `billing-alerts` SNS topic. AWS Budget `monthly-40` already has 4 direct EMAIL subscriptions (50%/80%/100% actual + 100% forecasted) that fire faster and with finer-grained thresholds than the alarm — keeping both was duplicate notifications. Net: one fewer alarm, one fewer SNS topic, only `ops-alerts` remains. Also cleaned up obsolete root-level S3 deploy artifacts (`deploy/{deploy_ec2.sh, docker-compose.deploy.yml, nginx.conf, dist/, seed_admin.py}` — all leftovers from the pre-#296 deploy model) and applied a lifecycle policy: `deploy/` current versions expire after 30 days (matches the spirit of ECR's "keep last 10 tagged" since deploys land near-daily), global noncurrent versions expire after 30 days, incomplete multipart uploads abort after 7 days.
+**Why:** Surfaced when reviewing the topology diagram — billing alerts appeared to flow through SNS, but the actual budget mechanism is direct email. Same review caught that the bucket still had pre-atomic-deploy artifacts at the root level that nothing reads anymore.
 
 ### 2026-05-09 — GuardDuty over VPC Flow Logs
 **Decision:** Enable GuardDuty (with EventBridge → ops-alerts), defer Flow Logs.
