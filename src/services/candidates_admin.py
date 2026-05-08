@@ -182,6 +182,9 @@ async def purge_expired_candidates(session: AsyncSession) -> int:
             delete(Application).where(Application.candidate_id == candidate.id)  # pyright: ignore[reportArgumentType]
         )
         await session.delete(candidate)
+        # Audit trail: candidate id only (no PII) — needed to prove the
+        # 12-month deletion to a privacy auditor.
+        _logger.info("retention.purge candidate_id=%d", candidate.id)
         purged += 1
 
     await session.flush()

@@ -221,3 +221,134 @@ def test_worker_settings_configuration():
     assert settings.retry_jobs is True
     assert settings.max_tries == 3
     assert settings.keep_result == 3600
+
+
+# ── purge_expired_candidate_data_task — observability ────────────────────────
+
+
+def _patch_purge_returning(count: int):
+    """Patch the service function to return ``count`` without touching the DB."""
+    return patch(
+        "src.core.tasks.purge_expired_candidates",
+        new=AsyncMock(return_value=count),
+    )
+
+
+def _patch_session_noop():
+    """Patch async_session + transactional so the task doesn't hit the DB."""
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=MagicMock())
+    session_cm.__aexit__ = AsyncMock(return_value=None)
+
+    txn_cm = MagicMock()
+    txn_cm.__aenter__ = AsyncMock(return_value=None)
+    txn_cm.__aexit__ = AsyncMock(return_value=None)
+
+    return (
+        patch("src.core.tasks.async_session", return_value=session_cm),
+        patch("src.core.tasks.transactional", return_value=txn_cm),
+    )
+
+
+@pytest.mark.asyncio
+async def test_purge_task_emits_metric_in_production():
+    """In production, the task emits PurgedCandidatesCount with the count."""
+    cw_client = AsyncMock()
+    cw_client.__aenter__.return_value = cw_client
+    cw_client.__aexit__.return_value = None
+    boto_session = MagicMock()
+    boto_session.client.return_value = cw_client
+
+    s_patch, t_patch = _patch_session_noop()
+    with (
+        _patch_purge_returning(7),
+        s_patch,
+        t_patch,
+        patch("src.core.tasks.aioboto3.Session", return_value=boto_session),
+        patch("src.core.tasks.settings") as mock_settings,
+    ):
+        mock_settings.environment = "production"
+        mock_settings.aws_region = "us-east-1"
+
+        result = await purge_expired_candidate_data_task(ctx={})
+
+    assert result == 7
+    cw_client.put_metric_data.assert_awaited_once()
+    call_kwargs = cw_client.put_metric_data.await_args.kwargs
+    assert call_kwargs["Namespace"] == "RsRecruitment/Retention"
+    [datum] = call_kwargs["MetricData"]
+    assert datum["MetricName"] == "PurgedCandidatesCount"
+    assert datum["Value"] == 7.0
+    assert datum["Unit"] == "Count"
+
+
+@pytest.mark.asyncio
+async def test_purge_task_emits_zero_on_empty_run():
+    """Empty runs still emit a datapoint — required for the missing-data alarm."""
+    cw_client = AsyncMock()
+    cw_client.__aenter__.return_value = cw_client
+    cw_client.__aexit__.return_value = None
+    boto_session = MagicMock()
+    boto_session.client.return_value = cw_client
+
+    s_patch, t_patch = _patch_session_noop()
+    with (
+        _patch_purge_returning(0),
+        s_patch,
+        t_patch,
+        patch("src.core.tasks.aioboto3.Session", return_value=boto_session),
+        patch("src.core.tasks.settings") as mock_settings,
+    ):
+        mock_settings.environment = "production"
+        mock_settings.aws_region = "us-east-1"
+
+        await purge_expired_candidate_data_task(ctx={})
+
+    cw_client.put_metric_data.assert_awaited_once()
+    [datum] = cw_client.put_metric_data.await_args.kwargs["MetricData"]
+    assert datum["Value"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_purge_task_skips_metric_outside_production():
+    """In dev/test, no metric is emitted (avoids polluting CloudWatch and IAM noise)."""
+    s_patch, t_patch = _patch_session_noop()
+    with (
+        _patch_purge_returning(3),
+        s_patch,
+        t_patch,
+        patch("src.core.tasks.aioboto3.Session") as boto_session_cls,
+        patch("src.core.tasks.settings") as mock_settings,
+    ):
+        mock_settings.environment = "development"
+
+        result = await purge_expired_candidate_data_task(ctx={})
+
+    assert result == 3
+    boto_session_cls.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_purge_task_swallows_metric_failure():
+    """A CloudWatch failure must not mask the purge or raise from the task."""
+    cw_client = AsyncMock()
+    cw_client.__aenter__.return_value = cw_client
+    cw_client.__aexit__.return_value = None
+    cw_client.put_metric_data.side_effect = RuntimeError("CW outage")
+    boto_session = MagicMock()
+    boto_session.client.return_value = cw_client
+
+    s_patch, t_patch = _patch_session_noop()
+    with (
+        _patch_purge_returning(2),
+        s_patch,
+        t_patch,
+        patch("src.core.tasks.aioboto3.Session", return_value=boto_session),
+        patch("src.core.tasks.settings") as mock_settings,
+    ):
+        mock_settings.environment = "production"
+        mock_settings.aws_region = "us-east-1"
+
+        result = await purge_expired_candidate_data_task(ctx={})
+
+    assert result == 2  # purge succeeded; metric failure is invisible to caller

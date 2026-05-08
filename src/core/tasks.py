@@ -3,6 +3,7 @@
 import logging
 from typing import List, Optional
 
+import aioboto3
 from arq import ArqRedis, create_pool
 from arq.connections import RedisSettings
 from arq.cron import cron
@@ -14,6 +15,10 @@ from src.core.services.email import get_email_provider
 from src.services.candidates_admin import purge_expired_candidates
 
 logger = logging.getLogger(__name__)
+
+# CloudWatch namespace for our application metrics. Single namespace keeps
+# the alarm/dashboard surface uniform and the IAM policy tight.
+METRIC_NAMESPACE = "RsRecruitment/Retention"
 
 # Global Redis pool (initialized on worker startup)
 _redis_pool: Optional[ArqRedis] = None
@@ -54,16 +59,45 @@ async def send_email_task(
         raise
 
 
+async def _emit_purge_count_metric(count: int) -> None:
+    """Emit PurgedCandidatesCount to CloudWatch (production only).
+
+    Always emits a datapoint — even count=0 — so a stale-purge alarm can
+    detect a dead worker via missing data. Failures are swallowed: the
+    purge already happened in the DB, and we don't want a metrics blip
+    to mask compliance success.
+    """
+    if settings.environment != "production":
+        return
+    try:
+        session = aioboto3.Session()
+        async with session.client("cloudwatch", region_name=settings.aws_region) as cw:
+            await cw.put_metric_data(
+                Namespace=METRIC_NAMESPACE,
+                MetricData=[
+                    {
+                        "MetricName": "PurgedCandidatesCount",
+                        "Value": float(count),
+                        "Unit": "Count",
+                    }
+                ],
+            )
+    except Exception:
+        logger.exception("Failed to emit PurgedCandidatesCount metric")
+
+
 async def purge_expired_candidate_data_task(ctx: dict) -> int:
     """Periodic task: purge candidates past the 12-month retention window.
 
     Runs nightly via Arq cron. The heavy lifting lives in
     ``src.services.candidates_admin.purge_expired_candidates``; this
-    wrapper just opens a session and delegates.
+    wrapper just opens a session, delegates, and emits the count metric.
     """
     async with async_session() as session:
         async with transactional(session):
-            return await purge_expired_candidates(session)
+            count = await purge_expired_candidates(session)
+    await _emit_purge_count_metric(count)
+    return count
 
 
 class WorkerSettings:
