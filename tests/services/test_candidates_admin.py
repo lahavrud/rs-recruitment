@@ -11,9 +11,11 @@ from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import CandidateProfileUpdate
 from src.services.candidates_admin import (
+    CANDIDATE_RETENTION_DAYS,
     delete_candidate,
     get_candidate,
     list_candidates,
+    purge_expired_candidates,
     update_candidate,
 )
 from src.services.exceptions import CandidateNotFoundError
@@ -227,3 +229,165 @@ async def test_delete_candidate_with_resume_calls_storage(session: AsyncSession)
 async def test_delete_candidate_not_found(session: AsyncSession):
     with pytest.raises(CandidateNotFoundError):
         await delete_candidate(99999, session)
+
+
+# ── purge_expired_candidates ──────────────────────────────────────────────────
+
+
+async def _make_closed_job(
+    session: AsyncSession,
+    company: CompanyProfile,
+    *,
+    closed_days_ago: int,
+) -> Job:
+    job = Job(
+        company_id=company.id,
+        title="Closed Role",
+        description="x",
+        requirements="x",
+        location="x",
+        status=JobStatus.CLOSED,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    job.updated_at = datetime.now(timezone.utc) - timedelta(days=closed_days_ago)
+    session.add(job)
+    await session.commit()
+    return job
+
+
+async def _make_candidate(
+    session: AsyncSession, *, email: str, resume_path: str | None = None
+) -> CandidateProfile:
+    candidate = CandidateProfile(
+        full_name="Test", email=email, phone="050-9999999", resume_path=resume_path
+    )
+    session.add(candidate)
+    await session.commit()
+    await session.refresh(candidate)
+    return candidate
+
+
+async def _make_app(
+    session: AsyncSession,
+    *,
+    job: Job,
+    candidate: CandidateProfile,
+    status: ApplicationStatus,
+) -> None:
+    session.add(Application(job_id=job.id, candidate_id=candidate.id, status=status))
+    await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_purge_returns_zero_when_nothing_eligible(session: AsyncSession):
+    assert await purge_expired_candidates(session) == 0
+
+
+@pytest.mark.asyncio
+async def test_purge_removes_old_closed_non_hired(
+    session: AsyncSession, company_profile: CompanyProfile
+):
+    job = await _make_closed_job(
+        session, company_profile, closed_days_ago=CANDIDATE_RETENTION_DAYS + 30
+    )
+    candidate = await _make_candidate(
+        session, email="purge@test.com", resume_path="uploads/resumes/x.pdf"
+    )
+    await _make_app(session, job=job, candidate=candidate, status=ApplicationStatus.NEW)
+
+    with patch("src.services.candidates_admin.get_storage_provider") as factory:
+        factory.return_value.delete_file = AsyncMock()
+        purged = await purge_expired_candidates(session)
+        await session.commit()
+        factory.return_value.delete_file.assert_awaited_once_with(
+            "uploads/resumes/x.pdf"
+        )
+
+    assert purged == 1
+    remaining = await session.execute(
+        select(CandidateProfile).where(CandidateProfile.id == candidate.id)  # pyright: ignore[reportArgumentType]
+    )
+    assert remaining.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_purge_preserves_hired_candidates(
+    session: AsyncSession, company_profile: CompanyProfile
+):
+    job = await _make_closed_job(
+        session, company_profile, closed_days_ago=CANDIDATE_RETENTION_DAYS + 30
+    )
+    candidate = await _make_candidate(session, email="hired@test.com")
+    await _make_app(
+        session, job=job, candidate=candidate, status=ApplicationStatus.HIRED
+    )
+
+    with patch("src.services.candidates_admin.get_storage_provider") as factory:
+        factory.return_value.delete_file = AsyncMock()
+        assert await purge_expired_candidates(session) == 0
+
+
+@pytest.mark.asyncio
+async def test_purge_preserves_recently_closed_jobs(
+    session: AsyncSession, company_profile: CompanyProfile
+):
+    job = await _make_closed_job(
+        session, company_profile, closed_days_ago=CANDIDATE_RETENTION_DAYS - 30
+    )
+    candidate = await _make_candidate(session, email="recent@test.com")
+    await _make_app(session, job=job, candidate=candidate, status=ApplicationStatus.NEW)
+
+    with patch("src.services.candidates_admin.get_storage_provider") as factory:
+        factory.return_value.delete_file = AsyncMock()
+        assert await purge_expired_candidates(session) == 0
+
+
+@pytest.mark.asyncio
+async def test_purge_preserves_candidate_with_any_active_application(
+    session: AsyncSession, company_profile: CompanyProfile
+):
+    """Mixed history: one expired application + one active should NOT purge."""
+    old_closed = await _make_closed_job(
+        session, company_profile, closed_days_ago=CANDIDATE_RETENTION_DAYS + 30
+    )
+    active = Job(
+        company_id=company_profile.id,
+        title="Open",
+        description="x",
+        requirements="x",
+        location="x",
+        status=JobStatus.PUBLISHED,
+    )
+    session.add(active)
+    await session.commit()
+    await session.refresh(active)
+
+    candidate = await _make_candidate(session, email="mixed@test.com")
+    await _make_app(
+        session, job=old_closed, candidate=candidate, status=ApplicationStatus.NEW
+    )
+    await _make_app(
+        session, job=active, candidate=candidate, status=ApplicationStatus.NEW
+    )
+
+    with patch("src.services.candidates_admin.get_storage_provider") as factory:
+        factory.return_value.delete_file = AsyncMock()
+        assert await purge_expired_candidates(session) == 0
+
+
+@pytest.mark.asyncio
+async def test_purge_idempotent(session: AsyncSession, company_profile: CompanyProfile):
+    """Re-running on a clean state purges nothing."""
+    job = await _make_closed_job(
+        session, company_profile, closed_days_ago=CANDIDATE_RETENTION_DAYS + 30
+    )
+    candidate = await _make_candidate(session, email="idem@test.com")
+    await _make_app(session, job=job, candidate=candidate, status=ApplicationStatus.NEW)
+
+    with patch("src.services.candidates_admin.get_storage_provider") as factory:
+        factory.return_value.delete_file = AsyncMock()
+        assert await purge_expired_candidates(session) == 1
+        await session.commit()
+        assert await purge_expired_candidates(session) == 0
