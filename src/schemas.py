@@ -250,6 +250,20 @@ class JobRead(BaseModel):
     updated_at: datetime
 
 
+class CompanyDataExport(BaseModel):
+    """Right-to-data-portability export payload for a company.
+
+    File URLs on the embedded ``company_profile`` are presigned (1-hour
+    validity for S3) so the recipient can download them without a
+    follow-up auth round-trip.
+    """
+
+    exported_at: datetime
+    user: UserRead
+    company_profile: CompanyProfileRead
+    jobs: list[JobRead]
+
+
 class JobPublicRead(BaseModel):
     """Schema for public job board responses.
 
