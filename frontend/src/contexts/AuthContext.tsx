@@ -1,4 +1,4 @@
-import { createContext, useCallback, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { login as loginService, logout as logoutService } from "@/services/auth";
 import type { JwtPayload, LoginRequest } from "@/types/api";
 import type { UserRole } from "@/types/api";
@@ -52,6 +52,13 @@ function getInitialUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(getInitialUser);
   const [loggingOut, setLoggingOut] = useState(false);
+  const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (logoutTimerRef.current !== null) clearTimeout(logoutTimerRef.current);
+    };
+  }, []);
 
   const login = useCallback(async (credentials: LoginRequest) => {
     const response = await loginService(credentials);
@@ -76,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.replace("/");
     // Safety valve: if navigation is blocked (e.g. browser extension), reset
     // the sentinel so route guards can fall through to /login on their own.
-    setTimeout(() => setLoggingOut(false), 2000);
+    logoutTimerRef.current = setTimeout(() => setLoggingOut(false), 500);
   }, []);
 
   const value = useMemo(
