@@ -62,9 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    // Clear React state before redirect so route guards see logged-out
-    // state immediately even if the redirect stalls (extension, slow network).
-    setUser(null);
+    // Clear tokens and navigate without calling setUser(null) — if we set
+    // user=null first, React re-renders AdminRoute which fires <Navigate to="/login">
+    // before the browser starts the page replacement, causing a flash.
+    // Skipping setUser(null) is safe: the page reloads and getInitialUser()
+    // finds no token, so the app starts cleanly with user=null.
     logoutService();
     window.location.replace("/");
   }, []);
