@@ -94,7 +94,7 @@ async def test_active_companies_empty_envelope(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_companies.enqueue_email_task")
+@patch("src.services.admin_company_approval.enqueue_email_task")
 async def test_approve_company_success(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
@@ -129,7 +129,7 @@ async def test_approve_company_not_found(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_companies.enqueue_email_task")
+@patch("src.services.admin_company_approval.enqueue_email_task")
 async def test_approve_company_already_approved(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
@@ -177,12 +177,14 @@ async def test_reject_company_not_found(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+@patch("src.services.admin_company_approval.enqueue_email_task")
 @patch("src.services.admin_companies.enqueue_email_task")
 async def test_reject_company_already_approved(
-    mock_enqueue_email, admin_client: AsyncClient, company_user
+    mock_enqueue_email, mock_approval_email, admin_client: AsyncClient, company_user
 ):
     """Test rejecting after approval revokes the token and rejects the company (204)."""
     mock_enqueue_email.return_value = "test-job-id"
+    mock_approval_email.return_value = "test-job-id"
     response1 = await admin_client.post(
         f"/api/admin/companies/{company_user.id}/approve"
     )

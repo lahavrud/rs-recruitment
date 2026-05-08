@@ -2,11 +2,11 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
-from src.core.infrastructure.dependencies import get_current_admin
+from src.core.infrastructure.dependencies import client_ip, get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
@@ -100,13 +100,19 @@ async def update_company_profile_endpoint(
 @router.delete("/companies/{company_user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_company(
     company_user_id: int,
+    request: Request,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Hard-delete a company and all its jobs and applications."""
     try:
         async with transactional(session):
-            await delete_active_company(company_user_id, session)
+            await delete_active_company(
+                company_user_id,
+                session,
+                actor_user_id=current_admin.id,
+                ip_address=client_ip(request),
+            )
     except CompanyNotFoundError as e:
         raise service_exception_to_http(e) from e
 
@@ -132,13 +138,19 @@ async def get_pending_companies(
 )
 async def approve_company_registration(
     company_user_id: int,
+    request: Request,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> ApprovedCompanyRead:
     """Approve a company registration."""
     try:
         async with transactional(session):
-            result = await approve_company(company_user_id, session)
+            result = await approve_company(
+                company_user_id,
+                session,
+                actor_user_id=current_admin.id,
+                ip_address=client_ip(request),
+            )
             return ApprovedCompanyRead.model_validate(result)
     except (CompanyNotFoundError, CompanyNotPendingError) as e:
         logger.warning(
@@ -157,13 +169,19 @@ async def approve_company_registration(
 )
 async def reject_company_registration(
     company_user_id: int,
+    request: Request,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Reject a company registration."""
     try:
         async with transactional(session):
-            await reject_company(company_user_id, session)
+            await reject_company(
+                company_user_id,
+                session,
+                actor_user_id=current_admin.id,
+                ip_address=client_ip(request),
+            )
     except (CompanyNotFoundError, CompanyNotPendingError) as e:
         logger.warning(
             "admin company reject failed: %s",

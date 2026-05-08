@@ -290,3 +290,21 @@ class Application(SQLModel, table=True):
     # session.exec(select(Application).where(Application.job_id == job.id))
     # Access candidate's applications via:
     # session.exec(select(Application).where(Application.candidate_id == candidate.id))
+
+
+class AuditLog(SQLModel, table=True):
+    """Append-only record of sensitive admin operations and system tasks."""
+
+    __tablename__ = "audit_log"
+
+    id: int | None = Field(default=None, primary_key=True)
+    actor_user_id: int | None = Field(default=None, foreign_key="user.id", index=True)
+    action: str = Field(index=True, max_length=64)
+    target_type: str = Field(index=True, max_length=64)
+    target_id: int = Field(index=True)
+    detail: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    ip_address: str | None = Field(default=None, max_length=45)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+    )

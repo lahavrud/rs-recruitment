@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -158,3 +158,16 @@ async def get_current_company(
         )
 
     return (current_user, company_profile)
+
+
+def client_ip(request: Request) -> str | None:
+    """Best-effort client IP, honoring X-Forwarded-For from a trusted proxy.
+
+    Returns the leftmost entry of `X-Forwarded-For` if present (most trustworthy
+    when terminating TLS at a single reverse proxy), otherwise the direct peer
+    address. None if neither is available.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip() or None
+    return request.client.host if request.client else None

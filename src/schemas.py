@@ -576,3 +576,18 @@ class CompanyProfileAdminUpdate(BaseModel):
                 "Mobile phone must be a valid Israeli mobile number (05X-XXXXXXX)"
             )
         return v
+
+
+class AuditLogRead(BaseModel):
+    """Audit log entry returned by the admin query endpoint."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    actor_user_id: int | None
+    action: str
+    target_type: str
+    target_id: int
+    detail: str | None
+    ip_address: str | None
+    created_at: datetime

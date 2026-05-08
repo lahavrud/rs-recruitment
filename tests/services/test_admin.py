@@ -152,8 +152,8 @@ async def test_list_pending_companies(mock_enqueue_email, session: AsyncSession)
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_companies.enqueue_email_task")
-@patch("src.services.admin_companies.generate_signed_contract")
+@patch("src.services.admin_company_approval.enqueue_email_task")
+@patch("src.services.admin_company_approval.generate_signed_contract")
 @patch("src.core.services.storage.get_storage_provider")
 async def test_approve_company_success(
     mock_storage, mock_pdf, mock_enqueue_email, session: AsyncSession

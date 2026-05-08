@@ -15,6 +15,7 @@ from src.core.infrastructure.pagination import (
 from src.enums import ApplicationStatus
 from src.models import Application
 from src.schemas import ApplicationRead, ApplicationWithDetails
+from src.services.audit import record_audit_event
 from src.services.exceptions import ApplicationNotFoundError
 
 
@@ -92,6 +93,9 @@ async def update_application_status(
     new_status: ApplicationStatus,
     session: AsyncSession,
     admin_notes: str | None = None,
+    *,
+    actor_user_id: int | None = None,
+    ip_address: str | None = None,
 ) -> tuple[ApplicationRead, list[dict[str, str]]]:
     """Update an application's status and optionally add admin notes.
 
@@ -122,6 +126,8 @@ async def update_application_status(
             f"Application with ID {application_id} not found"
         )
 
+    old_status = application.status
+
     # Admin can move to any status — including reverting from terminal states
     # for mis-click recovery.
     application.status = new_status
@@ -129,6 +135,17 @@ async def update_application_status(
         application.admin_notes = admin_notes
     application.updated_at = datetime.now(timezone.utc)
     await session.flush()
+
+    if old_status != new_status:
+        await record_audit_event(
+            session,
+            actor_user_id=actor_user_id,
+            action="application.status_change",
+            target_type="Application",
+            target_id=application_id,
+            detail=f"{old_status.value}->{new_status.value}",
+            ip_address=ip_address,
+        )
 
     return ApplicationRead.model_validate(application), []
 
