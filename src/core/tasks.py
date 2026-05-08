@@ -5,9 +5,13 @@ from typing import List, Optional
 
 from arq import ArqRedis, create_pool
 from arq.connections import RedisSettings
+from arq.cron import cron
 
 from src.core.infrastructure.config import settings
+from src.core.infrastructure.database import async_session
+from src.core.infrastructure.transactions import transactional
 from src.core.services.email import get_email_provider
+from src.services.candidates_admin import purge_expired_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +54,27 @@ async def send_email_task(
         raise
 
 
+async def purge_expired_candidate_data_task(ctx: dict) -> int:
+    """Periodic task: purge candidates past the 12-month retention window.
+
+    Runs nightly via Arq cron. The heavy lifting lives in
+    ``src.services.candidates_admin.purge_expired_candidates``; this
+    wrapper just opens a session and delegates.
+    """
+    async with async_session() as session:
+        async with transactional(session):
+            return await purge_expired_candidates(session)
+
+
 class WorkerSettings:
     """Arq worker configuration."""
 
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
-    functions = [send_email_task]
+    functions = [send_email_task, purge_expired_candidate_data_task]
+    cron_jobs = [
+        # Nightly at 03:00 UTC — off-peak for our user base.
+        cron(purge_expired_candidate_data_task, hour=3, minute=0),
+    ]
     # Retry configuration
     max_jobs = 10  # Maximum concurrent jobs
     job_timeout = 300  # 5 minutes timeout per job
