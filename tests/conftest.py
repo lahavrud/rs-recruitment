@@ -154,6 +154,11 @@ def _per_worker_dbname(base_url: str, worker_id: str) -> str:
 
 TEST_DATABASE_URL = _per_worker_url(_BASE_DATABASE_URL, WORKER_ID)
 
+# Several test modules read DATABASE_URL directly at import time to build their
+# own engines (tests/api/test_auth.py, tests/core/infrastructure/test_dependencies.py,
+# etc.). Rewrite the env var here so those reads pick up the per-worker URL too.
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+
 test_engine = create_async_engine(
     TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
 )
