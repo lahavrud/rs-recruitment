@@ -297,9 +297,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/rs-recruitment/api:latest
-            ${{ secrets.ECR_REGISTRY }}/rs-recruitment/api:${{ github.sha }}
+          tags: ${{ secrets.ECR_REGISTRY }}/rs-recruitment/api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -308,9 +306,7 @@ jobs:
         with:
           context: frontend
           push: true
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/rs-recruitment/frontend:latest
-            ${{ secrets.ECR_REGISTRY }}/rs-recruitment/frontend:${{ github.sha }}
+          tags: ${{ secrets.ECR_REGISTRY }}/rs-recruitment/frontend:${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
