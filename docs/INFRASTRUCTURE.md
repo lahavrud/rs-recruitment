@@ -13,32 +13,32 @@ For higher-level architectural decisions (auth model, framework choices, etc.) s
 ```mermaid
 flowchart LR
   User((User))
-  CF[Cloudflare<br/>DNS + CDN + DDoS]
+  CF["Cloudflare<br/>DNS + CDN + DDoS"]
 
-  subgraph aws[AWS us-east-1]
+  subgraph aws["AWS us-east-1"]
     subgraph vpc["VPC 10.0.0.0/16 (vpc-00dc609b…)"]
-      subgraph ec2["EC2 t3.micro<br/>i-07959a0a (rs-server)<br/>EIP 35.169.244.63"]
-        nginx[frontend<br/>nginx:alpine<br/>:443]
-        api[api<br/>FastAPI<br/>:8000]
-        worker[worker<br/>Arq]
-        redis[redis<br/>:6379]
+      subgraph ec2host["EC2 t3.micro<br/>i-07959a0a (rs-server)<br/>EIP 35.169.244.63"]
+        nginx["frontend<br/>nginx:alpine<br/>port 443"]
+        api["api<br/>FastAPI<br/>port 8000"]
+        worker["worker<br/>Arq"]
+        redis["redis<br/>port 6379"]
       end
-      RDS[(RDS Postgres 16<br/>rs-recruitment-prod-db<br/>db.t3.micro · single-AZ<br/>encrypted · 7d backups)]
+      RDS[("RDS Postgres 16<br/>rs-recruitment-prod-db<br/>db.t3.micro · single-AZ<br/>encrypted · 7d backups")]
     end
 
-    S3A[(S3 bucket<br/>rs-recruitment-510144817435<br/>versioned · SSE-S3<br/>resumes + deploy artifacts)]
-    S3CT[(S3 bucket<br/>rs-recruitment-cloudtrail-510144817435<br/>versioned · SSE-S3 · BPA full)]
-    ECR1[(ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush)]
-    ECR2[(ECR rs-recruitment/frontend<br/>IMMUTABLE · scanOnPush)]
-    SSM[(SSM Parameter Store<br/>secrets + CURRENT_SHA)]
-    CW[CloudWatch<br/>5 log groups · 6 alarms]
-    CT[CloudTrail<br/>multi-region · log validation]
-    SNS1[SNS ops-alerts]
-    SNS2[SNS billing-alerts]
+    S3A[("S3 bucket<br/>rs-recruitment-510144817435<br/>versioned · SSE-S3<br/>resumes + deploy artifacts")]
+    S3CT[("S3 bucket<br/>rs-recruitment-cloudtrail-510144817435<br/>versioned · SSE-S3 · BPA full")]
+    ECR1[("ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush")]
+    ECR2[("ECR rs-recruitment/frontend<br/>IMMUTABLE · scanOnPush")]
+    SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
+    CW["CloudWatch<br/>5 log groups · 6 alarms"]
+    CT["CloudTrail<br/>multi-region · log validation"]
+    SNS1["SNS ops-alerts"]
+    SNS2["SNS billing-alerts"]
   end
 
-  GHA[GitHub Actions<br/>OIDC role]
-  Email[lahavrud@gmail.com]
+  GHA["GitHub Actions<br/>OIDC role"]
+  Email["ops email"]
 
   User --> CF --> nginx
   nginx --> api
@@ -54,12 +54,12 @@ flowchart LR
   GHA -->|push images| ECR1
   GHA -->|push images| ECR2
   GHA -->|deploy artifacts| S3A
-  GHA -->|run command| ec2
+  GHA -->|run command| ec2host
   GHA -->|put CURRENT_SHA| SSM
-  ec2 -->|pull images| ECR1
-  ec2 -->|pull images| ECR2
-  ec2 -->|logs + metrics| CW
-  ec2 -->|API calls audit| CT
+  ec2host -->|pull images| ECR1
+  ec2host -->|pull images| ECR2
+  ec2host -->|logs + metrics| CW
+  ec2host -->|API calls audit| CT
   CT -->|deliver logs| S3CT
   CW -->|alarms| SNS1
   CW -->|billing alarm| SNS2
@@ -91,17 +91,17 @@ Loose end: App-SG egress on `5432` is `0.0.0.0/0`; could be tightened to `RDS-SG
 
 ```mermaid
 flowchart LR
-  PR[PR merge to main] --> CI[GitHub Actions]
-  CI -->|assume OIDC| AWS[github-actions-rs-recruitment role]
-  CI --> B1[Build api: SHA] --> ECR1[ECR api:SHA]
-  CI --> B2[Build frontend: SHA] --> ECR2[ECR frontend:SHA]
-  CI -->|s3 cp| S3[s3://bucket/deploy/SHA/<br/>compose + deploy_ec2.sh]
-  CI -->|SSM Run Command| EC2
-  EC2 -->|fetch deploy_ec2.sh| S3
-  EC2 -->|pull images by SHA| ECR1
-  EC2 -->|pull images by SHA| ECR2
-  EC2 -->|materialize TLS<br/>docker compose up<br/>migrate| running[Running stack]
-  CI -->|on success| SHA_PARAM[SSM /rs-recruitment/infra/CURRENT_SHA = SHA]
+  PR["PR merge to main"] --> CI["GitHub Actions"]
+  CI -->|assume OIDC| AWS["github-actions-rs-recruitment role"]
+  CI --> B1["Build api at SHA"] --> ECR1["ECR api at SHA"]
+  CI --> B2["Build frontend at SHA"] --> ECR2["ECR frontend at SHA"]
+  CI -->|"s3 cp"| S3["s3 deploy prefix per SHA<br/>compose + deploy_ec2.sh"]
+  CI -->|"SSM Run Command"| EC2["EC2"]
+  EC2 -->|"fetch deploy_ec2.sh"| S3
+  EC2 -->|"pull images by SHA"| ECR1
+  EC2 -->|"pull images by SHA"| ECR2
+  EC2 -->|"materialize TLS<br/>docker compose up<br/>migrate"| running["Running stack"]
+  CI -->|"on success"| SHA_PARAM["SSM CURRENT_SHA set to SHA"]
 ```
 
 ### Properties
