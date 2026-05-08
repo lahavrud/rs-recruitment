@@ -41,20 +41,33 @@ jobs:
       - name: Run Ruff Format Check
         run: uv run ruff format --check .
 
-      - name: Validate imports (SOC enforcement)
-        run: python scripts/validate_imports.py
+      - name: Audit Python dependencies for known CVEs
+        run: uv tool run pip-audit -r requirements.txt
+        continue-on-error: true
 
-      - name: Check file sizes
-        run: python scripts/check_file_sizes.py
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - validate_imports
+          - check_file_sizes
+          - validate_type_hints
+          - validate_blocking_io
+          - validate_test_files
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Validate type hints
-        run: python scripts/validate_type_hints.py
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Validate blocking I/O in async functions
-        run: python scripts/validate_blocking_io.py
-
-      - name: Validate test file existence
-        run: python scripts/validate_test_files.py
+      - name: Run ${{ matrix.script }}
+        run: python scripts/${{ matrix.script }}.py
 
   test:
     runs-on: ubuntu-latest
@@ -118,7 +131,15 @@ jobs:
       - name: Run Tests
         # Sequential: all workers share one PostgreSQL DB; -n auto would cause
         # cross-worker cleanup conflicts (table.delete() wipes all rows).
-        run: uv run pytest
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
 
   frontend-lint:
     runs-on: ubuntu-latest
@@ -140,7 +161,7 @@ jobs:
 
       - name: TypeScript type check
         working-directory: frontend
-        run: npx tsc -b
+        run: npx tsc -b --noEmit
 
   validate-deploy-artifacts:
     name: Validate deploy artifacts (HTTPS contract)
@@ -154,7 +175,7 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' # On push to main the deploy job handles building
-    needs: [lint, test, frontend-lint] # Only run if lint, test, and frontend type check pass
+    needs: [lint, validate, test, frontend-lint] # Only run if lint, test, and frontend type check pass
     env:
       JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long" # pragma: allowlist secret
       PG_TEST_PASSWORD: "test" # pragma: allowlist secret
@@ -246,7 +267,7 @@ jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [lint, test, frontend-lint, validate-deploy-artifacts]
+    needs: [lint, validate, test, frontend-lint, validate-deploy-artifacts]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       id-token: write # Required for OIDC token exchange
