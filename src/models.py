@@ -95,10 +95,12 @@ class User(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
-    # Relationship to CompanyProfile (optional, only for COMPANY role)
-    # Note: ADMIN users don't have CompanyProfile, so this can be None
-    # Reverted to original - CompanyProfile is defined later,
-    # but SQLModel handles forward references
+    # NOTE: annotation is the bare class for SQLModel 0.0.22 compatibility —
+    # `Optional[CompanyProfile]` / `CompanyProfile | None` are rejected at
+    # mapper init under `from __future__ import annotations`. The relationship
+    # IS effectively nullable: ADMIN users have no profile, and after
+    # `selectinload(User.company_profile)` the value will be None.
+    # See `tests/models/test_user.py::test_admin_user_company_profile_is_none`.
     company_profile: CompanyProfile = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"uselist": False},
@@ -142,7 +144,11 @@ class CompanyProfile(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
-    # Relationships
+    # NOTE: bare annotation for SQLModel 0.0.22 compatibility (see User above).
+    # user_id is nullable (CompanyProfile may be created from an admin invite
+    # before any User exists), so this relationship is effectively
+    # `User | None` at runtime. See
+    # `tests/models/test_user.py::test_orphan_company_profile_user_is_none`.
     user: User = Relationship(back_populates="company_profile")
     # Note: One-way relationships for Job and Application (SQLModel 0.0.22 limitation)
     # Access via queries: session.exec(select(Job).where(Job.company_id == company.id))

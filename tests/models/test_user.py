@@ -2,10 +2,12 @@
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from sqlmodel import select
 
 from src.core.infrastructure.security import get_password_hash, verify_password
 from src.enums import UserRole
-from src.models import User
+from src.models import CompanyProfile, User
 
 
 @pytest.mark.asyncio
@@ -45,3 +47,46 @@ async def test_user_default_values(session: AsyncSession):
     # Default values
     assert user.is_active is False
     assert user.created_at is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_user_company_profile_is_none(session: AsyncSession):
+    """ADMIN users have no CompanyProfile — relationship resolves to None.
+
+    Pins the type annotation: User.company_profile is Optional, not required.
+    """
+    admin = User(
+        email="admin@example.com",
+        hashed_password=get_password_hash("password"),
+        role=UserRole.ADMIN,
+    )
+    session.add(admin)
+    await session.commit()
+
+    result = await session.execute(
+        select(User)
+        .options(selectinload(User.company_profile))
+        .where(User.email == "admin@example.com")
+    )
+    fetched = result.scalar_one()
+    assert fetched.company_profile is None
+
+
+@pytest.mark.asyncio
+async def test_orphan_company_profile_user_is_none(session: AsyncSession):
+    """CompanyProfile created without a User (admin pre-invite flow) has user=None.
+
+    Pins the type annotation: CompanyProfile.user is Optional since user_id is
+    nullable.
+    """
+    orphan = CompanyProfile(name="Pre-Invite Co", user_id=None)
+    session.add(orphan)
+    await session.commit()
+
+    result = await session.execute(
+        select(CompanyProfile)
+        .options(selectinload(CompanyProfile.user))
+        .where(CompanyProfile.name == "Pre-Invite Co")
+    )
+    fetched = result.scalar_one()
+    assert fetched.user is None
