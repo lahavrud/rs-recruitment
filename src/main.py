@@ -14,6 +14,7 @@ from src.api import (
     admin_jobs_crud,
     auth,
     candidates,
+    companies,
     invites,
     jobs_read,
     jobs_write,
@@ -59,6 +60,7 @@ app.include_router(admin_jobs.router)
 app.include_router(admin_jobs_crud.router)
 app.include_router(admin_applications.router)
 app.include_router(admin_candidates.router)
+app.include_router(companies.router)
 app.include_router(jobs_read.router)
 app.include_router(jobs_write.router)
 app.include_router(public.router)
