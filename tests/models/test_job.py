@@ -1,6 +1,7 @@
 """Tests for Job model."""
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.enums import JobStatus
@@ -47,3 +48,65 @@ async def test_job_required_fields(
         )
         session.add(job)
         await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_job_salary_range_db_constraint_rejects_inverted(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """DB-level CHECK rejects salary_min > salary_max even when bypassing Pydantic."""
+    assert company_with_user.id is not None
+    job = Job(
+        company_id=company_with_user.id,
+        title="Test Job",
+        description="d",
+        requirements="r",
+        location="l",
+        salary_min=20000,
+        salary_max=10000,
+    )
+    session.add(job)
+    with pytest.raises(IntegrityError):
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_job_salary_range_db_constraint_allows_partial_null(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """One-sided salary (only min or only max set) is allowed."""
+    assert company_with_user.id is not None
+    job = Job(
+        company_id=company_with_user.id,
+        title="Test Job",
+        description="d",
+        requirements="r",
+        location="l",
+        salary_min=15000,
+        salary_max=None,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    assert job.id is not None
+
+
+@pytest.mark.asyncio
+async def test_job_salary_range_db_constraint_allows_equal(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """salary_min == salary_max is allowed (boundary case)."""
+    assert company_with_user.id is not None
+    job = Job(
+        company_id=company_with_user.id,
+        title="Test Job",
+        description="d",
+        requirements="r",
+        location="l",
+        salary_min=15000,
+        salary_max=15000,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    assert job.id is not None
