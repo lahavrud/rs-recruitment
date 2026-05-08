@@ -56,8 +56,7 @@ async def get_company_invites(
 ) -> CursorPage[InviteTokenRead]:
     """List invite tokens, newest first. Expired tokens are marked before returning."""
     try:
-        async with transactional(session):
-            return await list_invites(session, cursor=cursor, limit=limit)
+        return await list_invites(session, cursor=cursor, limit=limit)
     except InvalidCursorError as exc:
         raise service_exception_to_http(exc) from exc
 
