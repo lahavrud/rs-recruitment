@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api import (
     activation,
     admin_applications,
+    admin_audit,
     admin_candidates,
     admin_companies,
     admin_invites,
@@ -59,6 +60,7 @@ app.include_router(admin_invites.router)
 app.include_router(admin_jobs.router)
 app.include_router(admin_jobs_crud.router)
 app.include_router(admin_applications.router)
+app.include_router(admin_audit.router)
 app.include_router(admin_candidates.router)
 app.include_router(companies.router)
 app.include_router(jobs_read.router)

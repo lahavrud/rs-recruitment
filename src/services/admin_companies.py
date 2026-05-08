@@ -1,13 +1,10 @@
 """Admin service layer for company management."""
 
 import logging
-import secrets
-from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.infrastructure.config import settings
 from src.core.infrastructure.pagination import (
     CursorPage,
     apply_cursor,
@@ -24,14 +21,23 @@ from src.schemas import (
     PendingCompanyRead,
     UserRead,
 )
-from src.services.contract_pdf import generate_signed_contract
+from src.services.admin_company_approval import approve_company  # re-exported
+from src.services.audit import record_audit_event
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
 )
-from src.templates.email import build_approval_html, build_rejection_html
+from src.templates.email import build_rejection_html
 
-_ACTIVATION_TTL_HOURS = 48
+__all__ = [
+    "approve_company",
+    "delete_active_company",
+    "get_all_admin_emails",
+    "list_active_companies",
+    "list_pending_companies",
+    "reject_company",
+]
+
 _logger = logging.getLogger(__name__)
 
 
@@ -90,121 +96,13 @@ async def list_pending_companies(
     )
 
 
-async def approve_company(company_user_id: int, session: AsyncSession) -> dict:
-    """Approve a pending company registration.
-
-    Generates an activation token, builds the signed contract PDF, and emails
-    the company an activation link with the PDF attached.  The account is NOT
-    activated here — the company must click the link.
-
-    Raises:
-        CompanyNotFoundError: If company user not found
-        CompanyNotPendingError: If already approved or not a COMPANY user
-    """
-    result = await session.execute(
-        select(User).where(User.id == company_user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = result.scalar_one_or_none()
-    if not user:
-        raise CompanyNotFoundError(f"Company user with ID {company_user_id} not found")
-    if user.role != UserRole.COMPANY:
-        raise CompanyNotPendingError(
-            f"User {company_user_id} is not a COMPANY user (role: {user.role})"
-        )
-    if user.is_active:
-        raise CompanyNotPendingError(
-            f"Company user {company_user_id} is already approved (active)"
-        )
-
-    # Revoke any previous (unused, possibly expired) activation token before
-    # issuing a new one.  This allows re-approval after a token expires or after
-    # the admin rejects and later changes their mind.
-    stale_result = await session.execute(
-        select(ActivationToken).where(
-            ActivationToken.company_user_id == company_user_id,  # type: ignore[arg-type]
-            ActivationToken.used == False,  # noqa: E712
-        )
-    )
-    stale = stale_result.scalar_one_or_none()
-    if stale is not None:
-        await session.delete(stale)
-        await session.flush()
-
-    result = await session.execute(
-        select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-            CompanyProfile.user_id == company_user_id
-        )
-    )
-    company_profile = result.scalar_one()
-
-    # Generate activation token
-    raw_token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=_ACTIVATION_TTL_HOURS)
-    activation = ActivationToken(
-        token=raw_token,
-        company_user_id=company_user_id,
-        expires_at=expires_at,
-    )
-    session.add(activation)
-    await session.flush()
-
-    activation_url = f"{settings.frontend_base_url}/activate?token={raw_token}"
-
-    # Generate signed contract PDF and persist it to storage
-    pdf_bytes: bytes | None = None
-    try:
-        storage = get_storage_provider()
-        if company_profile.agreement_signature_url:
-            sig_bytes = await storage.download_file(
-                company_profile.agreement_signature_url
-            )
-            signed_at = company_profile.agreement_signed_at or datetime.now(
-                timezone.utc
-            )
-            pdf_bytes = await generate_signed_contract(
-                company_name=company_profile.name or "",
-                company_id=company_profile.company_id or "",
-                address=company_profile.address or "",
-                signed_at=signed_at,
-                company_signature_png_bytes=sig_bytes,
-            )
-            if pdf_bytes:
-                pdf_key = await storage.upload_file(
-                    pdf_bytes,
-                    f"contracts/{company_profile.company_id}_contract.pdf",
-                    "application/pdf",
-                )
-                company_profile.contract_pdf_url = pdf_key
-                await session.flush()
-    except Exception:
-        # PDF generation/upload is best-effort — approval proceeds without it
-        _logger.exception(
-            "Failed to generate/store signed contract for company %s", company_user_id
-        )
-
-    plain = (
-        f"שלום,\n\n"
-        f"בקשת ההרשמה של {company_profile.name} אושרה.\n\n"
-        f"לחצו על הקישור להפעלת החשבון:\n{activation_url}\n\n"
-        "בברכה,\nצוות RS Recruiting"
-    )
-    html = build_approval_html(company_profile.name or "", activation_url)
-    attachments = [("חוזה-RS.pdf", pdf_bytes, "application/pdf")] if pdf_bytes else None
-    await enqueue_email_task(
-        to=user.email,
-        subject="בקשת ההרשמה שלכם אושרה – RS Recruiting",
-        body=plain,
-        html_body=html,
-        attachments=attachments,
-    )
-
-    return {
-        "user": UserRead.model_validate(user),
-        "company_profile": CompanyProfileRead.model_validate(company_profile),
-    }
-
-
-async def reject_company(company_user_id: int, session: AsyncSession) -> None:
+async def reject_company(
+    company_user_id: int,
+    session: AsyncSession,
+    *,
+    actor_user_id: int | None = None,
+    ip_address: str | None = None,
+) -> None:
     """Reject a company registration by deleting the user and company profile.
 
     Raises:
@@ -258,10 +156,21 @@ async def reject_company(company_user_id: int, session: AsyncSession) -> None:
 
     await _delete_company_files(company_profile)
 
+    rejected_target_id = company_profile.id
+
     await session.delete(company_profile)
     await session.flush()
     await session.delete(user)
     await session.flush()
+
+    await record_audit_event(
+        session,
+        actor_user_id=actor_user_id,
+        action="company.reject",
+        target_type="CompanyProfile",
+        target_id=rejected_target_id,
+        ip_address=ip_address,
+    )
 
 
 async def list_active_companies(
@@ -293,7 +202,13 @@ async def list_active_companies(
     )
 
 
-async def delete_active_company(company_user_id: int, session: AsyncSession) -> None:
+async def delete_active_company(
+    company_user_id: int,
+    session: AsyncSession,
+    *,
+    actor_user_id: int | None = None,
+    ip_address: str | None = None,
+) -> None:
     """Hard-delete a company and cascade through its jobs and applications.
 
     Delete order: Applications → Jobs → CompanyProfile → User.
@@ -310,6 +225,7 @@ async def delete_active_company(company_user_id: int, session: AsyncSession) -> 
     if not row:
         raise CompanyNotFoundError(f"Company user with ID {company_user_id} not found")
     user, cp = row
+    cp_id = cp.id
 
     job_ids_result = await session.execute(
         select(Job.id).where(Job.company_id == cp.id)  # pyright: ignore[reportArgumentType]
@@ -330,3 +246,12 @@ async def delete_active_company(company_user_id: int, session: AsyncSession) -> 
     await session.flush()
     await session.delete(user)
     await session.flush()
+
+    await record_audit_event(
+        session,
+        actor_user_id=actor_user_id,
+        action="company.delete",
+        target_type="CompanyProfile",
+        target_id=cp_id,
+        ip_address=ip_address,
+    )

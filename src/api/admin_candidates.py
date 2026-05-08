@@ -1,10 +1,10 @@
 """Admin endpoints for candidate management."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
-from src.core.infrastructure.dependencies import get_current_admin
+from src.core.infrastructure.dependencies import client_ip, get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
@@ -66,12 +66,18 @@ async def update_candidate_endpoint(
 @router.delete("/candidates/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_candidate_endpoint(
     candidate_id: int,
+    request: Request,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Hard-delete a candidate and cascade through their applications."""
     try:
         async with transactional(session):
-            await delete_candidate(candidate_id, session)
+            await delete_candidate(
+                candidate_id,
+                session,
+                actor_user_id=current_admin.id,
+                ip_address=client_ip(request),
+            )
     except CandidateNotFoundError as e:
         raise service_exception_to_http(e) from e

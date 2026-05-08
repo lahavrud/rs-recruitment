@@ -16,6 +16,7 @@ from src.core.services.storage import get_storage_provider
 from src.enums import ApplicationStatus, JobStatus
 from src.models import Application, CandidateProfile, Job
 from src.schemas import CandidateProfileRead, CandidateProfileUpdate
+from src.services.audit import record_audit_event
 from src.services.exceptions import CandidateNotFoundError
 
 CANDIDATE_RETENTION_DAYS = 365  # 12 months per privacy policy
@@ -89,7 +90,13 @@ async def update_candidate(
     return CandidateProfileRead.model_validate(candidate)
 
 
-async def delete_candidate(candidate_id: int, session: AsyncSession) -> None:
+async def delete_candidate(
+    candidate_id: int,
+    session: AsyncSession,
+    *,
+    actor_user_id: int | None = None,
+    ip_address: str | None = None,
+) -> None:
     """Hard-delete a candidate, cascading through their applications.
 
     Best-effort delete of the latest resume snapshot from storage. Failures
@@ -119,6 +126,15 @@ async def delete_candidate(candidate_id: int, session: AsyncSession) -> None:
 
     await session.delete(candidate)
     await session.flush()
+
+    await record_audit_event(
+        session,
+        actor_user_id=actor_user_id,
+        action="candidate.delete",
+        target_type="CandidateProfile",
+        target_id=candidate_id,
+        ip_address=ip_address,
+    )
 
 
 async def purge_expired_candidates(session: AsyncSession) -> int:
@@ -170,6 +186,7 @@ async def purge_expired_candidates(session: AsyncSession) -> int:
     storage = get_storage_provider()
     purged = 0
     for candidate in candidates:
+        candidate_id = candidate.id
         if candidate.resume_path:
             try:
                 await storage.delete_file(candidate.resume_path)
@@ -184,7 +201,14 @@ async def purge_expired_candidates(session: AsyncSession) -> int:
         await session.delete(candidate)
         # Audit trail: candidate id only (no PII) — needed to prove the
         # 12-month deletion to a privacy auditor.
-        _logger.info("retention.purge candidate_id=%d", candidate.id)
+        _logger.info("retention.purge candidate_id=%d", candidate_id)
+        await record_audit_event(
+            session,
+            actor_user_id=None,
+            action="candidate.purge",
+            target_type="CandidateProfile",
+            target_id=candidate_id,
+        )
         purged += 1
 
     await session.flush()

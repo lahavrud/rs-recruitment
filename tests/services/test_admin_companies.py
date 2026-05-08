@@ -11,7 +11,6 @@ from src.enums import UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.admin_companies import (
-    approve_company,
     delete_active_company,
     get_all_admin_emails,
     list_active_companies,
@@ -134,84 +133,6 @@ async def test_list_pending_companies_paginates(mock_email, session: AsyncSessio
 
     assert len(seen) == 5
     assert len(set(seen)) == 5
-
-
-# ── approve_company ───────────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-@patch("src.services.admin_companies.enqueue_email_task")
-@patch("src.services.admin_companies.generate_signed_contract")
-@patch("src.services.admin_companies.get_storage_provider")
-async def test_approve_company_success(
-    mock_storage, mock_pdf, mock_email, session: AsyncSession
-):
-    mock_email.return_value = "job-id"
-    mock_pdf.return_value = b"%PDF-fake"
-    mock_storage.return_value.download_file = AsyncMock(return_value=b"fake-sig-bytes")
-    mock_storage.return_value.upload_file = AsyncMock(return_value="contract-key.pdf")
-
-    user = await _register(
-        _company_create("approve@example.com", "Approve Co"), session
-    )
-    assert not user.is_active
-
-    result = await approve_company(user.id, session)
-    await session.commit()
-
-    # Approval creates an activation token but does NOT activate the account yet
-    assert result["user"].is_active is False
-    db_user = (
-        await session.execute(select(User).where(User.id == user.id))  # pyright: ignore[reportArgumentType]
-    ).scalar_one()
-    assert db_user.is_active is False
-
-    # Contract PDF should be persisted to storage
-    cp = (
-        await session.execute(
-            select(CompanyProfile).where(CompanyProfile.user_id == user.id)  # pyright: ignore[reportArgumentType]
-        )
-    ).scalar_one()
-    assert cp.contract_pdf_url == "contract-key.pdf"
-    mock_storage.return_value.upload_file.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_approve_company_not_found(session: AsyncSession):
-    with pytest.raises(CompanyNotFoundError):
-        await approve_company(99999, session)
-
-
-@pytest.mark.asyncio
-@patch("src.services.auth.enqueue_email_task")
-async def test_approve_company_already_approved(mock_email, session: AsyncSession):
-    mock_email.return_value = "job-id"
-    user = await _register(
-        _company_create("already@example.com", "Already Co"), session
-    )
-    db_user = (
-        await session.execute(select(User).where(User.id == user.id))  # pyright: ignore[reportArgumentType]
-    ).scalar_one()
-    db_user.is_active = True
-    await session.commit()
-
-    with pytest.raises(CompanyNotPendingError):
-        await approve_company(user.id, session)
-
-
-@pytest.mark.asyncio
-async def test_approve_company_wrong_role(session: AsyncSession):
-    admin = User(
-        email="wrongrole@example.com",
-        hashed_password=get_password_hash("password"),
-        role=UserRole.ADMIN,
-        is_active=False,
-    )
-    session.add(admin)
-    await session.commit()
-
-    with pytest.raises(CompanyNotPendingError):
-        await approve_company(admin.id, session)
 
 
 # ── reject_company ────────────────────────────────────────────────────────────

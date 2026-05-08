@@ -1,10 +1,10 @@
 """Admin endpoints for application (match) management."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
-from src.core.infrastructure.dependencies import get_current_admin
+from src.core.infrastructure.dependencies import client_ip, get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
@@ -74,6 +74,7 @@ async def get_application_detail(
 async def update_application_status_endpoint(
     application_id: int,
     body: ApplicationStatusUpdate,
+    request: Request,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> ApplicationRead:
@@ -81,7 +82,12 @@ async def update_application_status_endpoint(
     try:
         async with transactional(session):
             result, email_payloads = await update_application_status(
-                application_id, body.status, session, admin_notes=body.admin_notes
+                application_id,
+                body.status,
+                session,
+                admin_notes=body.admin_notes,
+                actor_user_id=current_admin.id,
+                ip_address=client_ip(request),
             )
     except ApplicationNotFoundError as e:
         raise service_exception_to_http(e) from e
