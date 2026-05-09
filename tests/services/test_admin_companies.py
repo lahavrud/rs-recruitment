@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.security import get_password_hash
 from src.enums import UserRole
 from src.models import Application, CandidateProfile, CompanyProfile, Job, User
-from src.schemas import CompanyProfileCreate, UserCreate
+from src.schemas import CompanyProfileAdminCreate, CompanyProfileCreate, UserCreate
 from src.services.admin_companies import (
     delete_active_company,
     get_all_admin_emails,
@@ -17,6 +17,7 @@ from src.services.admin_companies import (
     list_pending_companies,
     reject_company,
 )
+from src.services.admin_company_profiles import admin_create_company
 from src.services.auth import register_company_user
 from src.services.exceptions import CompanyNotFoundError, CompanyNotPendingError
 from tests.factories import FAKE_LOGO as _LOGO
@@ -263,6 +264,36 @@ async def test_list_active_companies_paginates(mock_email, session: AsyncSession
 
     assert len(seen) == 5
     assert len(set(seen)) == 5
+
+
+@pytest.mark.asyncio
+async def test_list_active_companies_includes_admin_created_profiles(
+    session: AsyncSession,
+):
+    """Profiles created directly by admins (user_id=None) appear in the active list.
+
+    Regression test for the transaction-boundary bug where admin-created profiles
+    were persisted to the DB but invisible in every admin list view, because the
+    query required an INNER JOIN with a user row.
+    """
+    payload = CompanyProfileAdminCreate(
+        name="ללא חשבון",
+        company_id="111222333",
+        address="רח' כלשהי 1",
+        contact_first_name="אורי",
+        contact_last_name="ישיר",
+        contact_mobile_phone="0501234567",
+    )
+    await admin_create_company(payload, session)
+    await session.commit()
+
+    page = await list_active_companies(session)
+
+    assert len(page.items) == 1
+    item = page.items[0]
+    assert item.user is None
+    assert item.company_profile.name == "ללא חשבון"
+    assert item.company_profile.user_id is None
 
 
 # ── delete_active_company ─────────────────────────────────────────────────────

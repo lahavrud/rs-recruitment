@@ -185,14 +185,23 @@ async def list_active_companies(
     cursor: str | None = None,
     limit: int | None = None,
 ) -> CursorPage[ActiveCompanyRead]:
-    """One page of approved (active) companies, newest first."""
+    """One page of active companies, newest first.
+
+    Includes both company users that have been approved (is_active=True) and
+    admin-created profiles that have no user account yet (user_id=None).
+    """
     page_size = clamp_limit(limit)
     query = apply_cursor(
-        select(User, CompanyProfile)
-        .join(CompanyProfile, User.id == CompanyProfile.user_id)
-        .where(User.role == UserRole.COMPANY, User.is_active == True),  # noqa: E712
-        sort_col=User.created_at,  # pyright: ignore[reportArgumentType]
-        id_col=User.id,  # pyright: ignore[reportArgumentType]
+        select(CompanyProfile, User)
+        .outerjoin(User, CompanyProfile.user_id == User.id)  # pyright: ignore[reportArgumentType]
+        .where(
+            (CompanyProfile.user_id == None)  # noqa: E711 — orphan profiles (IS NULL)
+            | (  # pyright: ignore[reportOperatorIssue]
+                (User.role == UserRole.COMPANY) & (User.is_active == True)  # noqa: E712
+            )
+        ),
+        sort_col=CompanyProfile.created_at,  # pyright: ignore[reportArgumentType]
+        id_col=CompanyProfile.id,  # pyright: ignore[reportArgumentType]
         cursor=cursor,
         limit=page_size,
     )
@@ -200,8 +209,8 @@ async def list_active_companies(
     return build_cursor_page(
         rows,
         serializer=lambda row: ActiveCompanyRead(
-            user=UserRead.model_validate(row[0]),
-            company_profile=CompanyProfileRead.model_validate(row[1]),
+            user=UserRead.model_validate(row[1]) if row[1] is not None else None,
+            company_profile=CompanyProfileRead.model_validate(row[0]),
         ),
         cursor_key=lambda row: (row[0].created_at, row[0].id),
         limit=page_size,
