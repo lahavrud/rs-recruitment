@@ -1,5 +1,6 @@
 """Generate a signed contract PDF by overlaying company details on the template."""
 
+import asyncio
 import io
 import logging
 from datetime import datetime
@@ -85,23 +86,17 @@ def _htmlbox_rtl(page: fitz.Page, rect: fitz.Rect, text: str, size: float = 11) 
     page.insert_htmlbox(rect, html)
 
 
-async def generate_signed_contract(
+def _render_pdf(
+    template_bytes: bytes,
+    rs_sig_bytes: bytes,
     company_name: str,
     company_id: str,
     address: str,
     signed_at: datetime,
     company_signature_png_bytes: bytes,
 ) -> bytes:
-    """Overlay company details and signatures on the RS contract template.
-
-    Text is inserted DIRECTLY on the printed underlines (no white-box
-    erasure), matching the appearance of a typewritten contract.
-    Signatures are placed so their baseline sits on the drawn signature lines.
-
-    Returns raw PDF bytes suitable for email attachment.
-    """
-    template_bytes = await _fetch_asset(settings.rs_contract_template_s3_key)
-    rs_sig_bytes = await _fetch_asset(settings.rs_signature_s3_key)
+    """CPU-bound PDF rendering — must be called via asyncio.to_thread."""
+    from zoneinfo import ZoneInfo
 
     doc = fitz.open(stream=template_bytes, filetype="pdf")
     page = doc[0]
@@ -109,8 +104,6 @@ async def generate_signed_contract(
     # ── Date (right-aligned, LTR numbers flush against "מתאריך") ──────────────
     # Convert UTC timestamp to Israel time (UTC+3 in summer, UTC+2 in winter)
     # before formatting so the printed date matches what the user saw locally.
-    from zoneinfo import ZoneInfo
-
     israel = ZoneInfo("Asia/Jerusalem")
     date_str = signed_at.astimezone(israel).strftime("%-d/%-m/%Y")
     page.insert_htmlbox(
@@ -145,3 +138,33 @@ async def generate_signed_contract(
     buf = io.BytesIO()
     doc.save(buf, deflate=True)
     return buf.getvalue()
+
+
+async def generate_signed_contract(
+    company_name: str,
+    company_id: str,
+    address: str,
+    signed_at: datetime,
+    company_signature_png_bytes: bytes,
+) -> bytes:
+    """Overlay company details and signatures on the RS contract template.
+
+    Text is inserted DIRECTLY on the printed underlines (no white-box
+    erasure), matching the appearance of a typewritten contract.
+    Signatures are placed so their baseline sits on the drawn signature lines.
+
+    Returns raw PDF bytes suitable for email attachment.
+    """
+    template_bytes = await _fetch_asset(settings.rs_contract_template_s3_key)
+    rs_sig_bytes = await _fetch_asset(settings.rs_signature_s3_key)
+
+    return await asyncio.to_thread(
+        _render_pdf,
+        template_bytes,
+        rs_sig_bytes,
+        company_name,
+        company_id,
+        address,
+        signed_at,
+        company_signature_png_bytes,
+    )
