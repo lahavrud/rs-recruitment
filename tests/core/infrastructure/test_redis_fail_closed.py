@@ -206,7 +206,7 @@ class TestHealthEndpoint:
         ping_redis = AsyncMock()
         ping_redis.ping = AsyncMock(return_value=True)
         with patch(
-            "src.main.get_redis_pool",
+            "src.core.tasks.get_redis_pool",
             new_callable=AsyncMock,
             return_value=ping_redis,
         ):
@@ -219,7 +219,7 @@ class TestHealthEndpoint:
     @pytest.mark.asyncio
     async def test_health_degraded_when_redis_down(self, public_client):
         with patch(
-            "src.main.get_redis_pool",
+            "src.core.tasks.get_redis_pool",
             new_callable=AsyncMock,
             side_effect=ConnectionError("Redis down"),
         ):
