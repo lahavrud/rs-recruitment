@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
 import {
   approveJob,
   contactJob,
@@ -99,12 +100,15 @@ export default function AdminJobsPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     window.history.replaceState({}, "", window.location.pathname);
-    getJob(Number(id))
-      .then((job) => { if (!cancelled) setDetail(job); })
-      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
-    return () => { cancelled = true; };
+    getJob(Number(id), ctrl.signal)
+      .then((job) => setDetail(job))
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        toast.error(t("common.genericError"));
+      });
+    return () => ctrl.abort();
   }, [t, toast]);
 
   const STATUS_LABELS: Record<string, string> = {

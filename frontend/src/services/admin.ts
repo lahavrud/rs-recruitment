@@ -94,12 +94,14 @@ export interface ActiveCompaniesParams {
 
 export async function getActiveCompanies(
   params?: ActiveCompaniesParams,
+  signal?: AbortSignal,
 ): Promise<CursorPage<ActiveCompanyRead>> {
   const query: Record<string, string | number> = {};
   if (params?.cursor) query.cursor = params.cursor;
   if (params?.limit != null) query.limit = params.limit;
   const res = await api.get<CursorPage<ActiveCompanyRead>>("/api/admin/companies", {
     params: query,
+    signal,
   });
   return res.data;
 }
@@ -117,9 +119,11 @@ export async function adminCreateCompany(
 
 export async function getCompanyProfile(
   profileId: number,
+  signal?: AbortSignal,
 ): Promise<CompanyProfileRead> {
   const res = await api.get<CompanyProfileRead>(
     `/api/admin/companies/profile/${profileId}`,
+    { signal },
   );
   return res.data;
 }
@@ -161,19 +165,23 @@ export interface JobListParams {
   limit?: number;
 }
 
-export async function getJobs(params?: JobListParams): Promise<CursorPage<JobRead>> {
+export async function getJobs(
+  params?: JobListParams,
+  signal?: AbortSignal,
+): Promise<CursorPage<JobRead>> {
   const query: Record<string, string | number> = {};
   if (params?.status) query.status = params.status;
   if (params?.cursor) query.cursor = params.cursor;
   if (params?.limit != null) query.limit = params.limit;
   const res = await api.get<CursorPage<JobRead>>("/api/admin/jobs", {
     params: query,
+    signal,
   });
   return res.data;
 }
 
-export async function getJob(id: number): Promise<JobRead> {
-  const res = await api.get<JobRead>(`/api/admin/jobs/${id}`);
+export async function getJob(id: number, signal?: AbortSignal): Promise<JobRead> {
+  const res = await api.get<JobRead>(`/api/admin/jobs/${id}`, { signal });
   return res.data;
 }
 
@@ -203,6 +211,7 @@ export interface ApplicationListParams {
 
 export async function getApplications(
   params?: ApplicationListParams,
+  signal?: AbortSignal,
 ): Promise<CursorPage<ApplicationWithDetails>> {
   const query: Record<string, string | number> = {};
   if (params?.status) query.status = params.status;
@@ -212,7 +221,7 @@ export async function getApplications(
   if (params?.limit != null) query.limit = params.limit;
   const res = await api.get<CursorPage<ApplicationWithDetails>>(
     "/api/admin/applications",
-    { params: query },
+    { params: query, signal },
   );
   return res.data;
 }
@@ -261,8 +270,13 @@ export async function getCandidates(
   return res.data;
 }
 
-export async function getCandidate(id: number): Promise<CandidateProfileRead> {
-  const res = await api.get<CandidateProfileRead>(`/api/admin/candidates/${id}`);
+export async function getCandidate(
+  id: number,
+  signal?: AbortSignal,
+): Promise<CandidateProfileRead> {
+  const res = await api.get<CandidateProfileRead>(`/api/admin/candidates/${id}`, {
+    signal,
+  });
   return res.data;
 }
 

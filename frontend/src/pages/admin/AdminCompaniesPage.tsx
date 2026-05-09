@@ -71,17 +71,18 @@ export default function AdminCompaniesPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     window.history.replaceState({}, "", window.location.pathname);
-    getCompanyProfile(Number(id))
+    getCompanyProfile(Number(id), ctrl.signal)
       .then((profile) => {
-        if (!cancelled) {
-          setTab("active");
-          setExternalDetail(profile);
-        }
+        setTab("active");
+        setExternalDetail(profile);
       })
-      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
-    return () => { cancelled = true; };
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        toast.error(t("common.genericError"));
+      });
+    return () => ctrl.abort();
   }, [t, toast]);
 
   function handleInvite() {
@@ -705,24 +706,22 @@ function CompanyDetailDialog({ profile, onClose, onEdit }: DetailProps) {
 
   useEffect(() => {
     if (!profile) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     /* eslint-disable react-hooks/set-state-in-effect */
     setJobs(null);
     setJobsError(false);
     /* eslint-enable react-hooks/set-state-in-effect */
     // No backend ?company_id= filter on /admin/jobs yet; fetch first page and
     // filter client-side. Adequate while companies have ~5 jobs each.
-    getJobs({ limit: 100 })
-      .then((page) => {
-        if (cancelled) return;
-        setJobs(page.items.filter((j) => j.company_id === profile.id));
-      })
-      .catch(() => {
-        if (!cancelled) setJobsError(true);
+    getJobs({ limit: 100 }, ctrl.signal)
+      .then((page) =>
+        setJobs(page.items.filter((j) => j.company_id === profile.id)),
+      )
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        setJobsError(true);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => ctrl.abort();
   }, [profile]);
 
   if (!profile) return null;
