@@ -394,9 +394,7 @@ async def test_admin_created_company_appears_in_active_list(admin_client: AsyncC
     items = list_response.json()["items"]
 
     ids = [item["company_profile"]["id"] for item in items]
-    assert (
-        profile_id in ids
-    ), "Admin-created company not visible in active companies list"
+    assert profile_id in ids, "Admin-created company missing from active list"
 
     matched = next(i for i in items if i["company_profile"]["id"] == profile_id)
     assert matched["user"] is None
