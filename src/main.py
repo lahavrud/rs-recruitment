@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -38,6 +39,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     # Cleanup Redis connection pool on shutdown
     await close_redis_pool()
+
+
+class _HealthCheckLogFilter(logging.Filter):
+    # Route 53 polls /health every 30s, which would otherwise add ~2.8k
+    # GET /health 200 lines/day to CloudWatch — pure noise that crowds out
+    # real signal during incident triage.
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/health" not in record.getMessage()
+
+
+logging.getLogger("uvicorn.access").addFilter(_HealthCheckLogFilter())
 
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
