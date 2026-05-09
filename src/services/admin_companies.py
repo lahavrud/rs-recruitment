@@ -15,7 +15,14 @@ from src.core.infrastructure.transactions import defer_after_commit
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
-from src.models import ActivationToken, Application, CompanyProfile, Job, User
+from src.models import (
+    ActivationToken,
+    Application,
+    CompanyProfile,
+    Job,
+    RefreshToken,
+    User,
+)
 from src.schemas import (
     ActiveCompanyRead,
     CompanyProfileRead,
@@ -224,9 +231,10 @@ async def delete_active_company(
     actor_user_id: int | None = None,
     ip_address: str | None = None,
 ) -> None:
-    """Hard-delete a company and cascade through its jobs and applications.
+    """Hard-delete a company and cascade through its dependent rows.
 
-    Delete order: Applications → Jobs → CompanyProfile → User.
+    Delete order: Applications → Jobs → ActivationTokens → RefreshTokens
+                  → CompanyProfile → User.
 
     Raises:
         CompanyNotFoundError: If no COMPANY user with that ID exists
@@ -254,6 +262,20 @@ async def delete_active_company(
             delete(Job).where(Job.id.in_(job_ids))  # pyright: ignore[reportAttributeAccessIssue]
         )
         await session.flush()
+
+    # ActivationToken and RefreshToken both FK-reference User without ON DELETE
+    # CASCADE, so they must be removed before the user row can be deleted.
+    await session.execute(
+        delete(ActivationToken).where(
+            ActivationToken.company_user_id == company_user_id  # type: ignore[arg-type]
+        )
+    )
+    await session.execute(
+        delete(RefreshToken).where(
+            RefreshToken.user_id == company_user_id  # type: ignore[arg-type]
+        )
+    )
+    await session.flush()
 
     await _delete_company_files(cp)
 

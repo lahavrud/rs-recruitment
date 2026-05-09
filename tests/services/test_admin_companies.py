@@ -8,7 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import get_password_hash
 from src.enums import UserRole
-from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+from src.models import (
+    ActivationToken,
+    Application,
+    CandidateProfile,
+    CompanyProfile,
+    Job,
+    RefreshToken,
+    User,
+)
 from src.schemas import CompanyProfileAdminCreate, CompanyProfileCreate, UserCreate
 from src.services.admin_companies import (
     delete_active_company,
@@ -294,6 +302,47 @@ async def test_list_active_companies_includes_admin_created_profiles(
     assert item.user is None
     assert item.company_profile.name == "ללא חשבון"
     assert item.company_profile.user_id is None
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.enqueue_email_task")
+async def test_delete_active_company_with_activation_and_refresh_tokens(
+    mock_email, session: AsyncSession
+):
+    """delete_active_company removes ActivationToken + RefreshToken rows before
+    deleting the user, preventing FK constraint violations on fully-activated
+    company accounts.
+    """
+    mock_email.return_value = "job-id"
+    user = await _register(_company_create("fk@example.com", "FK Co"), session)
+    user_id = user.id
+
+    from datetime import datetime, timezone
+
+    # Simulate an activation token (as created by the approval flow).
+    act_token = ActivationToken(
+        token="fake-act-token",
+        company_user_id=user_id,
+        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+        used=True,
+    )
+    # Simulate a refresh token (as stored after the company logs in).
+    ref_token = RefreshToken(
+        token_hash="fake-hash",
+        user_id=user_id,
+        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+    )
+    session.add(act_token)
+    session.add(ref_token)
+    await session.commit()
+
+    await delete_active_company(user_id, session)
+    await session.commit()
+
+    result = await session.execute(
+        select(User).where(User.id == user_id)  # pyright: ignore[reportArgumentType]
+    )
+    assert result.scalar_one_or_none() is None
 
 
 # ── delete_active_company ─────────────────────────────────────────────────────

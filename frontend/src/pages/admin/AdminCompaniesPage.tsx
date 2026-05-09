@@ -7,6 +7,7 @@ import {
   approveCompany,
   createInvite,
   deleteCompany,
+  deleteOrphanCompany,
   getActiveCompanies,
   getCompanyProfile,
   getInvites,
@@ -203,11 +204,15 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
   }, [externalDetail, onExternalDetailClose]);
 
   async function handleDelete() {
-    if (!deletePending?.user) return;
+    if (!deletePending) return;
     setPendingMutation(true);
     try {
-      await deleteCompany(deletePending.user.id);
-      removeItem((c) => c.user?.id === deletePending.user!.id);
+      if (deletePending.user) {
+        await deleteCompany(deletePending.user.id);
+      } else {
+        await deleteOrphanCompany(deletePending.company_profile.id);
+      }
+      removeItem((c) => c.company_profile.id === deletePending.company_profile.id);
       toast.success(t("admin.companies.deletedToast"));
       setDeletePending(null);
     } catch {
@@ -312,17 +317,13 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
                         >
                           {t("admin.companies.editAction")}
                         </DropdownMenuItem>
-                        {row.user && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              variant="danger"
-                              onSelect={() => setDeletePending(row)}
-                            >
-                              {t("admin.companies.deleteAction")}
-                            </DropdownMenuItem>
-                          </>
-                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="danger"
+                          onSelect={() => setDeletePending(row)}
+                        >
+                          {t("admin.companies.deleteAction")}
+                        </DropdownMenuItem>
                       </DropdownMenu>
                     </td>
                   </tr>
