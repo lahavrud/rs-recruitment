@@ -95,33 +95,46 @@ async def approve_company(
 
     activation_url = f"{settings.frontend_base_url}/activate?token={raw_token}"
 
+    # Generate signed contract PDF + upload + persist contract_pdf_url synchronously
+    # so the approval state is atomic with the DB row. Only the email send (which
+    # talks to SMTP and is the slow part) is deferred until after commit.
+    pdf_bytes: bytes | None = None
+    try:
+        storage = get_storage_provider()
+        if company_profile.agreement_signature_url:
+            sig_bytes = await storage.download_file(
+                company_profile.agreement_signature_url
+            )
+            signed_at = company_profile.agreement_signed_at or datetime.now(
+                timezone.utc
+            )
+            pdf_bytes = await generate_signed_contract(
+                company_name=company_profile.name or "",
+                company_id=company_profile.company_id or "",
+                address=company_profile.address or "",
+                signed_at=signed_at,
+                company_signature_png_bytes=sig_bytes,
+            )
+            if pdf_bytes:
+                pdf_key = await storage.upload_file(
+                    pdf_bytes,
+                    f"contracts/{company_profile.company_id}_contract.pdf",
+                    "application/pdf",
+                )
+                company_profile.contract_pdf_url = pdf_key
+                await session.flush()
+    except Exception:
+        # PDF generation/upload is best-effort — approval proceeds without it
+        _logger.exception(
+            "Failed to generate/store signed contract for company %s", company_user_id
+        )
+
     _user_email = user.email
     _company_name = company_profile.name or ""
-    _company_id_str = company_profile.company_id or ""
-    _address = company_profile.address or ""
-    _sig_url = company_profile.agreement_signature_url
-    _signed_at = company_profile.agreement_signed_at or datetime.now(timezone.utc)
     _activation_url = activation_url
+    _pdf_bytes = pdf_bytes
 
-    async def _send_approval_email_with_pdf() -> None:
-        pdf_bytes: bytes | None = None
-        try:
-            storage = get_storage_provider()
-            if _sig_url:
-                sig_bytes = await storage.download_file(_sig_url)
-                pdf_bytes = await generate_signed_contract(
-                    company_name=_company_name,
-                    company_id=_company_id_str,
-                    address=_address,
-                    signed_at=_signed_at,
-                    company_signature_png_bytes=sig_bytes,
-                )
-        except Exception:
-            # PDF generation is best-effort — send approval email without attachment
-            _logger.exception(
-                "Failed to generate signed contract for company %s", _user_email
-            )
-
+    async def _send_approval_email() -> None:
         plain = (
             f"שלום,\n\n"
             f"בקשת ההרשמה של {_company_name} אושרה.\n\n"
@@ -130,7 +143,7 @@ async def approve_company(
         )
         html = build_approval_html(_company_name, _activation_url)
         attachments = (
-            [("חוזה-RS.pdf", pdf_bytes, "application/pdf")] if pdf_bytes else None
+            [("חוזה-RS.pdf", _pdf_bytes, "application/pdf")] if _pdf_bytes else None
         )
         await enqueue_email_task(
             to=_user_email,
@@ -140,7 +153,7 @@ async def approve_company(
             attachments=attachments,
         )
 
-    defer_after_commit(_send_approval_email_with_pdf)
+    defer_after_commit(_send_approval_email)
 
     await record_audit_event(
         session,

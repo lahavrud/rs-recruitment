@@ -3,7 +3,11 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.infrastructure.transactions import defer_after_commit, transactional
+from src.core.infrastructure.transactions import (
+    _post_commit_hooks,
+    defer_after_commit,
+    transactional,
+)
 from src.models import User
 
 
@@ -72,9 +76,18 @@ async def test_deferred_hook_not_called_on_rollback(session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_defer_after_commit_raises_outside_transaction():
-    """defer_after_commit() raises RuntimeError when called outside transactional()."""
-    with pytest.raises(RuntimeError, match="outside of transactional"):
-        defer_after_commit(lambda: None)  # type: ignore[arg-type]
+    """defer_after_commit() raises RuntimeError when called outside transactional().
+
+    Reset the contextvar set by the autouse `_provide_post_commit_hooks_context`
+    fixture so we test the production contract: outside any transactional block
+    the hooks list is None and defer_after_commit() must raise.
+    """
+    token = _post_commit_hooks.set(None)
+    try:
+        with pytest.raises(RuntimeError, match="outside of transactional"):
+            defer_after_commit(lambda: None)  # type: ignore[arg-type]
+    finally:
+        _post_commit_hooks.reset(token)
 
 
 @pytest.mark.asyncio
