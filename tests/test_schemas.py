@@ -190,12 +190,14 @@ BASE_CREATE = {
         (CandidateProfileCreate, "+972 50 123 4567", "+972 50 123 4567"),
         (CandidateProfileCreate, "050-123-4567", "050-123-4567"),
         (CandidateProfileCreate, "(03) 123 4567", "(03) 123 4567"),
+        (CandidateProfileCreate, None, None),
+        (CandidateProfileCreate, "", None),
         (CandidateProfileUpdate, "+1 800 555 1234", "+1 800 555 1234"),
         (CandidateProfileUpdate, None, None),
     ],
 )
 def test_valid_phone(schema_class, phone, expected):
-    """Test that valid phone numbers are accepted."""
+    """Test that valid phone numbers are accepted; None and empty normalize to None."""
     if schema_class is CandidateProfileCreate:
         kwargs = {**BASE_CREATE, "phone": phone}
     else:
@@ -204,10 +206,16 @@ def test_valid_phone(schema_class, phone, expected):
     assert schema.phone == expected
 
 
+def test_candidate_profile_create_phone_optional():
+    """phone may be omitted entirely on CandidateProfileCreate (matches DB column)."""
+    payload = {k: v for k, v in BASE_CREATE.items() if k != "phone"}
+    schema = CandidateProfileCreate(**payload)
+    assert schema.phone is None
+
+
 @pytest.mark.parametrize(
     "schema_class,phone,error_match",
     [
-        (CandidateProfileCreate, "", "required"),
         (CandidateProfileCreate, "abc", "digits, spaces"),
         (CandidateProfileCreate, "123", "at least 5 digits"),
         (CandidateProfileUpdate, "!@#$", "digits, spaces"),
