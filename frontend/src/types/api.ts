@@ -289,6 +289,10 @@ export type InviteTokenStatus =
 
 export interface InviteTokenCreate {
   email: string;
+  company_name?: string | null;
+  contact_first_name?: string | null;
+  contact_last_name?: string | null;
+  note?: string | null;
 }
 
 export interface InviteTokenRead {

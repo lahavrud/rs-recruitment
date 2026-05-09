@@ -68,6 +68,10 @@ async def create_invite(
     record = InviteToken(
         token=token,
         email=data.email,
+        company_name=data.company_name,
+        contact_first_name=data.contact_first_name,
+        contact_last_name=data.contact_last_name,
+        note=data.note,
         status=InviteTokenStatus.PENDING,
         created_by_admin_id=admin_user_id,
         expires_at=expires_at,

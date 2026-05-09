@@ -43,9 +43,19 @@ def _validate_linkedin_url_value(v: str | None) -> str | None:
 
 
 class InviteTokenCreate(BaseModel):
-    """Admin input for creating an invite — email only."""
+    """Admin input for creating an invite.
+
+    `email` is required; the remaining fields let the admin pre-fill details
+    for a brand-new (not-yet-existing) company at invite-issuance time so the
+    information isn't lost between the admin form and the company's eventual
+    self-registration. They are persisted on the InviteToken row.
+    """
 
     email: EmailStr = Field(..., max_length=255)
+    company_name: str | None = Field(default=None, max_length=100)
+    contact_first_name: str | None = Field(default=None, max_length=100)
+    contact_last_name: str | None = Field(default=None, max_length=100)
+    note: str | None = None
 
 
 class InviteTokenRead(BaseModel):

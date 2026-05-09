@@ -41,7 +41,7 @@ import DropdownMenu, {
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
-import { inputCls } from "@/styles/forms";
+import { inputCls, textareaCls } from "@/styles/forms";
 
 type Tab = "active" | "pending" | "invites";
 
@@ -1172,11 +1172,28 @@ function InviteFormDialog({ open, onClose, onCreated }: InviteFormProps) {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open]);
 
+  function update<K extends keyof InviteTokenCreate>(
+    key: K,
+    value: InviteTokenCreate[K],
+  ) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
   async function handleSubmit() {
     setErrorKey(null);
     setSubmitting(true);
     try {
-      const created = await createInvite(form);
+      // Trim and drop empty optional fields so the backend stores NULL,
+      // not "" — keeps the InviteToken row consistent with self-registered
+      // company profiles where these columns are also nullable.
+      const payload: InviteTokenCreate = {
+        email: form.email.trim(),
+        company_name: form.company_name?.trim() || null,
+        contact_first_name: form.contact_first_name?.trim() || null,
+        contact_last_name: form.contact_last_name?.trim() || null,
+        note: form.note?.trim() || null,
+      };
+      const created = await createInvite(payload);
       toast.success(t("admin.companies.inviteForm.successMessage"));
       onCreated(created);
     } catch (err) {
@@ -1225,18 +1242,70 @@ function InviteFormDialog({ open, onClose, onCreated }: InviteFormProps) {
         </>
       }
     >
-      <label className="block text-sm">
-        <span className="block text-xs text-white/45">
-          {t("admin.companies.inviteForm.emailLabel")}
-        </span>
-        <input
-          type="email"
-          value={form.email}
-          onChange={(e) => setForm({ email: e.target.value })}
-          className={`mt-1 ${inputCls}`}
-          placeholder={t("admin.companies.inviteForm.emailPlaceholder")}
-        />
-      </label>
+      <div className="space-y-3">
+        <label className="block text-sm">
+          <span className="block text-xs text-white/45">
+            {t("admin.companies.inviteForm.emailLabel")}
+          </span>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => update("email", e.target.value)}
+            className={`mt-1 ${inputCls}`}
+            placeholder={t("admin.companies.inviteForm.emailPlaceholder")}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="block text-xs text-white/45">
+            {t("admin.companies.inviteForm.companyNameLabel")}
+          </span>
+          <input
+            type="text"
+            value={form.company_name ?? ""}
+            onChange={(e) => update("company_name", e.target.value)}
+            className={`mt-1 ${inputCls}`}
+            maxLength={100}
+            placeholder={t("admin.companies.inviteForm.companyNamePlaceholder")}
+          />
+        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="block text-xs text-white/45">
+              {t("admin.companies.inviteForm.contactFirstNameLabel")}
+            </span>
+            <input
+              type="text"
+              value={form.contact_first_name ?? ""}
+              onChange={(e) => update("contact_first_name", e.target.value)}
+              className={`mt-1 ${inputCls}`}
+              maxLength={100}
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="block text-xs text-white/45">
+              {t("admin.companies.inviteForm.contactLastNameLabel")}
+            </span>
+            <input
+              type="text"
+              value={form.contact_last_name ?? ""}
+              onChange={(e) => update("contact_last_name", e.target.value)}
+              className={`mt-1 ${inputCls}`}
+              maxLength={100}
+            />
+          </label>
+        </div>
+        <label className="block text-sm">
+          <span className="block text-xs text-white/45">
+            {t("admin.companies.inviteForm.noteLabel")}
+          </span>
+          <textarea
+            value={form.note ?? ""}
+            onChange={(e) => update("note", e.target.value)}
+            className={`mt-1 ${textareaCls}`}
+            rows={3}
+          />
+        </label>
+      </div>
       {errorKey && <p className="mt-3 text-xs text-danger">{t(errorKey)}</p>}
     </Dialog>
   );
