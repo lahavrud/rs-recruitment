@@ -219,8 +219,9 @@ export default function LandingPage() {
         canonical={SITE_URL}
       />
 
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section className="texture-wave relative flex min-h-screen flex-col overflow-hidden bg-void">
+      {/* ── Hero + audience panels share one image so they fade into each
+            other without a visible seam where the sections meet. ─────────── */}
+      <div className="relative overflow-hidden bg-void">
         <img
           src="/hero-city.jpg"
           alt=""
@@ -232,6 +233,9 @@ export default function LandingPage() {
             opacity: heroLoaded ? 1 : 0,
           }}
         />
+
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <section className="texture-wave relative flex min-h-screen flex-col">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/80 via-page/60 to-void/55" />
 
         {/* Nav */}
@@ -315,15 +319,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Audience panels — hero atmosphere fades to next section ─────── */}
-      <section className="relative overflow-hidden bg-void py-10 sm:py-14">
-        <img
-          src="/hero-city.jpg"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-          style={{ objectPosition: "center 60%" }}
-        />
+      {/* ── Audience panels — image is shared with hero (above); just paint
+            the gradient overlay that fades into the next dark section. ─── */}
+      <section className="relative py-10 sm:py-14">
         {/* Front-loaded fade: void/55 → nearly dark by 35% → locked card-raised after that */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -377,6 +375,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </div>
 
       {/* ── About ─────────────────────────────────────────────────────── */}
       <section className="texture-wave bg-card-raised py-14 sm:py-28">
