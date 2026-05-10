@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { getPublicJobs } from "@/services/jobs";
@@ -21,39 +21,173 @@ function truncate(text: string, maxLength: number): string {
   return text.slice(0, maxLength).trimEnd() + "…";
 }
 
-const MAX_VISIBLE = 2;
-
-function circDist(active: number, idx: number, n: number): number {
-  const d = ((active - idx) % n + n) % n;
-  return d > n / 2 ? d - n : d;
-}
+const SEARCH_TAGS = ["תפקיד", "מיקום"] as const;
+const LONG_PRESS_MS = 140;
 
 export default function LandingPage() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const touchStartX = useRef<number | null>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [heroLoaded, setHeroLoaded] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [cardsVisible, setCardsVisible] = useState<boolean>(
     () => typeof window === "undefined" || !("IntersectionObserver" in window),
   );
 
-  const goNext = () => setActiveIdx((i) => (i + 1) % jobs.length);
-  const goPrev = () => setActiveIdx((i) => (i - 1 + jobs.length) % jobs.length);
+  const cardsRef    = useRef<HTMLDivElement>(null);
+  const scrollRef   = useRef<HTMLDivElement>(null);
+  // Carousel drag state (all in refs to avoid re-renders)
+  const isDragging  = useRef(false);
+  const hasDragged  = useRef(false);
+  const velocityRef = useRef(0);
+  const longTimer   = useRef<ReturnType<typeof setTimeout>>();
+  const rafId       = useRef(0);
 
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-  }
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return;
-    const dx = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(dx) > 40) { if (dx > 0) goNext(); else goPrev(); }
-    touchStartX.current = null;
+  // Triple the array for the infinite loop
+  const loopedJobs = useMemo(
+    () => (jobs.length > 0 ? [...jobs, ...jobs, ...jobs] : []),
+    [jobs],
+  );
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    navigate(`/jobs${searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ""}`);
   }
 
+  // ── Initial scroll: park at the START of the middle set ──────────────
+  useEffect(() => {
+    if (loading || !jobs.length) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    // rAF ensures layout (card widths) is settled
+    const id = requestAnimationFrame(() => {
+      el.scrollLeft = el.scrollWidth / 3;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [loading, jobs.length]);
+
+  // ── Infinite-loop carousel: drag + momentum + long-press ─────────────
+  useEffect(() => {
+    if (loading || !jobs.length) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    let isMouseDown = false; // gate: only drag when button is actually held
+    let startX      = 0;
+    let startScroll = 0;
+    let lastX       = 0;
+    let lastT       = 0;
+    let teleporting = false; // guard against re-entrant scroll events
+
+    function enterDrag(clientX: number) {
+      isDragging.current = true;
+      hasDragged.current = true;
+      startX      = clientX;
+      startScroll = el.scrollLeft;
+      lastX       = clientX;
+      lastT       = performance.now();
+      velocityRef.current = 0;
+      cancelAnimationFrame(rafId.current);
+      el.style.cursor     = "grabbing";
+      el.style.userSelect = "none";
+    }
+
+    function onMouseDown(e: MouseEvent) {
+      isMouseDown = true;
+      hasDragged.current = false;
+      startX      = e.clientX;
+      startScroll = el.scrollLeft;
+
+      // Long-press: enter drag even without significant movement
+      longTimer.current = setTimeout(() => enterDrag(e.clientX), LONG_PRESS_MS);
+    }
+
+    function onMouseMove(e: MouseEvent) {
+      if (!isDragging.current) {
+        // Only consider dragging when the mouse button is held down
+        if (isMouseDown && Math.abs(e.clientX - startX) > 5) {
+          clearTimeout(longTimer.current);
+          enterDrag(e.clientX);
+        }
+        return;
+      }
+      e.preventDefault();
+
+      const now = performance.now();
+      const dt  = now - lastT;
+      if (dt > 0) velocityRef.current = (lastX - e.clientX) / dt; // px/ms
+      lastX = e.clientX;
+      lastT = now;
+
+      el.scrollLeft = startScroll + (startX - e.clientX);
+    }
+
+    function onMouseUp() {
+      isMouseDown = false;
+      clearTimeout(longTimer.current);
+      if (!isDragging.current) return;
+
+      isDragging.current  = false;
+      el.style.cursor     = "grab";
+      el.style.userSelect = "";
+
+      // Momentum: carry the last velocity and decelerate
+      let v = velocityRef.current * 16; // convert px/ms → px/frame @60fps
+      function step() {
+        if (Math.abs(v) < 0.5) {
+          hasDragged.current = false;
+          return;
+        }
+        el.scrollLeft += v;
+        v *= 0.90;
+        rafId.current = requestAnimationFrame(step);
+      }
+      rafId.current = requestAnimationFrame(step);
+    }
+
+    function onScroll() {
+      if (teleporting) return;
+      const total     = el.scrollWidth;
+      const oneSet    = total / 3;
+
+      // Silent teleport to keep the user in the middle set
+      if (el.scrollLeft < oneSet * 0.5) {
+        teleporting = true;
+        el.scrollLeft += oneSet;
+        teleporting = false;
+      } else if (el.scrollLeft > oneSet * 2 - el.clientWidth * 0.5) {
+        teleporting = true;
+        el.scrollLeft -= oneSet;
+        teleporting = false;
+      }
+
+      // Progress bar: position within one set, 0–100 %
+      const pos   = ((el.scrollLeft - oneSet) % oneSet + oneSet) % oneSet;
+      const range = oneSet - el.clientWidth;
+      setScrollProgress(range > 0 ? Math.min(100, Math.max(0, (pos / range) * 100)) : 0);
+    }
+
+    el.style.cursor = "grab";
+    el.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("mouseup", onMouseUp);
+    el.addEventListener("mousemove", onMouseMove);
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      clearTimeout(longTimer.current);
+      cancelAnimationFrame(rafId.current);
+      el.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("mouseup", onMouseUp);
+      el.removeEventListener("mousemove", onMouseMove);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [loading, jobs.length]);
+
+  // ── Feature-card entrance animations ─────────────────────────────────
   useEffect(() => {
     const el = cardsRef.current;
     if (!el || !("IntersectionObserver" in window)) return;
@@ -67,20 +201,11 @@ export default function LandingPage() {
 
   useEffect(() => {
     let cancelled = false;
-    async function fetchJobs() {
-      try {
-        const data = await getPublicJobs();
-        if (!cancelled) setJobs(data.slice(0, 10));
-      } catch {
-        // featured jobs are optional
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    fetchJobs();
-    return () => {
-      cancelled = true;
-    };
+    getPublicJobs()
+      .then((data) => { if (!cancelled) setJobs(data.slice(0, 10)); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -90,9 +215,9 @@ export default function LandingPage() {
         description={t("landing.seo.description")}
         canonical={SITE_URL}
       />
-      {/* ── Hero ──────────────────────────────────────── */}
+
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="texture-wave relative flex min-h-screen flex-col overflow-hidden bg-void">
-        {/* preload trigger — zero-size, tells browser to decode image before painting */}
         <img
           src="/hero-city.jpg"
           alt=""
@@ -100,28 +225,25 @@ export default function LandingPage() {
           onLoad={() => setHeroLoaded(true)}
           className="pointer-events-none absolute h-0 w-0 opacity-0"
         />
-        {/* image layer — fades in only after the file is fully decoded */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             backgroundImage: 'url("/hero-city.jpg")',
             backgroundSize: "cover",
             backgroundPosition: "center 60%",
+            backgroundAttachment: "fixed",
             opacity: heroLoaded ? 1 : 0,
             transition: "opacity 0.9s ease",
           }}
         />
-        {/* dark gradient overlay — ensures text stays readable */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/85 via-page/72 to-void/92" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/80 via-page/60 to-void/55" />
+
         {/* Nav */}
         <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-5">
           <div className="flex items-center justify-between">
             <Logo />
             <div className="flex items-center gap-5">
-              <Link
-                to="/jobs"
-                className="text-sm text-white/40 transition hover:text-white/70"
-              >
+              <Link to="/jobs" className="text-sm text-white/40 transition hover:text-white/70">
                 {t("landing.footer.jobs")}
               </Link>
               {isAuthenticated ? (
@@ -143,58 +265,117 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Centered hero content — vertically fills remaining space */}
-        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-28 lg:pb-36">
+        {/* Centered content */}
+        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
           <LogoBanner />
 
-          {/* Gold rule */}
           <div
-            className="mx-auto mt-8 h-px w-36 sm:mt-10 sm:w-56"
+            className="mx-auto mt-7 h-px w-32 sm:mt-8 sm:w-48"
             style={{
               background:
                 "linear-gradient(to right, transparent, var(--color-copper), var(--color-gold), var(--color-copper), transparent)",
             }}
           />
 
-          <p className="mx-auto mt-6 max-w-sm px-2 text-base font-light tracking-wide text-white/70 sm:mt-8 sm:max-w-lg sm:px-0 sm:text-lg">
+          <p className="mt-4 text-sm font-light tracking-wide text-white/50 sm:mt-5 sm:text-base">
             {t("landing.hero.tagline")}
           </p>
 
-          {/* Two audience panels */}
-          <div className="mt-12 grid w-full max-w-3xl gap-5 sm:mt-14 sm:grid-cols-2 sm:gap-6">
-            {/* For job seekers — primary */}
-            <div className="flex flex-col rounded-xl border border-copper/35 bg-black/35 p-7 text-start backdrop-blur-sm sm:p-8">
-              <h2 className="text-2xl font-semibold leading-tight text-white/95 sm:text-3xl">
+          {/* Search bar */}
+          <form onSubmit={handleSearch} className="mt-9 w-full sm:mt-11">
+            <div className="flex items-center overflow-hidden rounded-full border border-white/20 bg-black/45 shadow-xl backdrop-blur-md transition-colors focus-within:border-copper/50">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("landing.hero.searchPlaceholder")}
+                className="min-w-0 flex-1 bg-transparent py-4 pe-4 ps-6 text-base text-white/90 placeholder:text-white/35 focus:outline-none sm:text-lg"
+              />
+              <button
+                type="submit"
+                aria-label={t("common.search")}
+                className="m-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-copper text-white transition hover:bg-gold"
+              >
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2.5"
+                  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-3.5 flex items-center justify-center gap-2 text-xs text-white/25">
+              <span>חפש לפי:</span>
+              {SEARCH_TAGS.map((tag) => (
+                <span key={tag} className="rounded-full border border-white/10 px-2.5 py-0.5">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </form>
+        </div>
+      </section>
+
+      {/* ── Audience panels — hero atmosphere fades to next section ─────── */}
+      <section className="relative bg-void py-10 sm:py-14">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: 'url("/hero-city.jpg")',
+            backgroundSize: "cover",
+            backgroundPosition: "center 60%",
+            backgroundAttachment: "fixed",
+          }}
+        />
+        {/* Front-loaded fade: void/55 → nearly dark by 35% → locked card-raised after that */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `linear-gradient(to bottom,
+              color-mix(in srgb, var(--color-void) 55%, transparent) 0%,
+              color-mix(in srgb, var(--color-void) 75%, transparent) 15%,
+              color-mix(in srgb, var(--color-void) 92%, transparent) 28%,
+              var(--color-card-raised) 38%
+            )`,
+          }}
+        />
+
+        <div className="relative z-10 mx-auto max-w-4xl px-6">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+            <div className="flex flex-col rounded-xl border border-copper/20 bg-card p-6 text-start sm:p-7">
+              <h2 className="text-lg font-semibold leading-tight text-white/95 sm:text-xl">
                 {t("landing.hero.forSeekers")}
               </h2>
-              <p className="mt-1.5 text-sm font-medium text-copper/80">
+              <p className="mt-1 text-xs font-medium text-copper/70">
                 {t("landing.hero.seekersHeadline")}
               </p>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-white/65">
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
                 {t("landing.hero.seekersBody")}
               </p>
               <Link
                 to="/jobs"
-                className="mt-6 inline-block rounded-sm bg-copper px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-gold"
+                className="mt-5 inline-block rounded-sm bg-copper px-4 py-2 text-center text-sm font-medium text-white transition hover:bg-gold"
               >
                 {t("landing.hero.seekersCta")}
               </Link>
             </div>
 
-            {/* For companies — secondary */}
-            <div className="flex flex-col rounded-xl border border-white/15 bg-black/25 p-7 text-start backdrop-blur-sm sm:p-8">
-              <h2 className="text-2xl font-semibold leading-tight text-white/95 sm:text-3xl">
+            <div className="flex flex-col rounded-xl border border-white/8 bg-card p-6 text-start sm:p-7">
+              <h2 className="text-lg font-semibold leading-tight text-white/95 sm:text-xl">
                 {t("landing.hero.forCompanies")}
               </h2>
-              <p className="mt-1.5 text-sm font-medium text-copper/80">
+              <p className="mt-1 text-xs font-medium text-copper/70">
                 {t("landing.hero.companiesHeadline")}
               </p>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-white/65">
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
                 {t("landing.hero.companiesBody")}
               </p>
               <a
                 href={`mailto:${t("landing.contact.email")}`}
-                className="mt-6 inline-block rounded-sm border border-copper/50 px-5 py-2.5 text-center text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper"
+                className="mt-5 inline-block rounded-sm border border-copper/40 px-4 py-2 text-center text-sm font-medium text-copper/75 transition hover:border-copper hover:text-copper"
               >
                 {t("landing.hero.companiesContactCta")}
               </a>
@@ -203,13 +384,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── About ─────────────────────────────────────── */}
-      <section
-        className="texture-wave bg-card-raised py-20 sm:py-28"
-      >
+      {/* ── About ─────────────────────────────────────────────────────── */}
+      <section className="texture-wave bg-card-raised py-14 sm:py-28">
         <div className="mx-auto max-w-4xl px-6">
           <div className="grid gap-10 sm:grid-cols-5 sm:gap-20">
-            {/* Eyebrow + headline */}
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-widest text-copper">
                 {t("landing.about.eyebrow")}
@@ -219,11 +397,9 @@ export default function LandingPage() {
                 {t("landing.about.headline")}
               </p>
             </div>
-
-            {/* Body + pillars */}
             <div className="flex flex-col justify-center sm:col-span-3">
               <p className="text-base leading-relaxed text-white/60">
-                <span className="font-josefin text-4xl font-light tracking-widest text-copper sm:text-5xl">RS Recruiting</span>{" "}
+                <span className="font-wordmark text-4xl font-light tracking-widest text-gold/60 sm:text-5xl">RS Recruiting</span>{" "}
                 {t("landing.about.body")}
               </p>
               <p className="mt-4 text-base leading-relaxed text-white/60">
@@ -235,8 +411,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Numbered pillar cards */}
-          <div ref={cardsRef} className="mt-16 grid gap-5 sm:grid-cols-3">
+          <div
+            ref={cardsRef}
+            className="mt-10 -mx-6 flex gap-4 overflow-x-auto px-6 pb-4 sm:mx-0 sm:mt-16 sm:grid sm:grid-cols-3 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0"
+          >
             {(
               [
                 { titleKey: "landing.about.feature1Title", bodyKey: "landing.about.feature1Body", num: "01" },
@@ -246,6 +424,7 @@ export default function LandingPage() {
             ).map((f, idx) => (
               <div
                 key={f.titleKey}
+                className="w-[78vw] shrink-0 snap-start sm:w-auto"
                 style={{
                   animation: cardsVisible
                     ? `${["card-tilt-in", "card-rise-in", "card-swing-in"][idx]} 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 160}ms both`
@@ -254,9 +433,7 @@ export default function LandingPage() {
                 }}
               >
                 <div className="feature-card feature-card-shimmer h-full rounded-lg border border-white/10 bg-card-raised p-6">
-                  <p className="font-display text-4xl font-semibold leading-none text-copper/25 select-none">
-                    {f.num}
-                  </p>
+                  <p className="select-none text-4xl font-semibold leading-none text-copper/25">{f.num}</p>
                   <div
                     className="mt-4 h-px bg-copper/60 transition-all duration-500"
                     style={{
@@ -265,9 +442,7 @@ export default function LandingPage() {
                     }}
                   />
                   <p className="mt-3 font-semibold text-white/90">{t(f.titleKey)}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-white/55">
-                    {t(f.bodyKey)}
-                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">{t(f.bodyKey)}</p>
                 </div>
               </div>
             ))}
@@ -275,126 +450,76 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Featured Jobs carousel ─────────────────────── */}
+      {/* ── Featured Jobs — infinite free-scroll carousel ─────────────── */}
       {!loading && jobs.length > 0 && (
-        <section
-          className="overflow-hidden border-t border-white/10 bg-section py-16 sm:py-20"
-        >
+        <section className="border-t border-white/10 bg-section py-12 sm:py-20">
           <div className="mx-auto max-w-4xl px-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white/90">
                 {t("landing.featuredJobs.title")}
               </h2>
-              <Link
-                to="/jobs"
-                className="text-sm text-copper transition hover:text-gold"
-              >
+              <Link to="/jobs" className="text-sm text-copper transition hover:text-gold">
                 {t("landing.featuredJobs.viewAll")}
               </Link>
             </div>
 
-            {/* 3D carousel — swipe on mobile, click side cards on desktop */}
+            {/*
+              dir="ltr" forces a predictable scrollLeft (0 = left edge, positive = scrolled right).
+              Each card gets dir="rtl" so Hebrew text renders correctly.
+              onClickCapture prevents Link navigation when the user was dragging.
+            */}
             <div
-              className="relative mt-10 select-none"
-              style={{ perspective: "1100px", perspectiveOrigin: "50% 50%" }}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
+              ref={scrollRef}
+              dir="ltr"
+              className="scrollbar-none mt-8 flex gap-4 overflow-x-scroll pb-2"
+              style={{
+                WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
+              }}
+              onClickCapture={(e) => {
+                if (hasDragged.current) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
             >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateAreas: '"card"',
-                  maxWidth: "300px",
-                  margin: "0 auto",
-                }}
-              >
-                {jobs.map((job, idx) => {
-                  const dist = circDist(activeIdx, idx, jobs.length);
-                  const absDist = Math.abs(dist);
-                  const isActive = dist === 0;
-                  const hidden = absDist > MAX_VISIBLE;
-
-                  const cardCls =
-                    "block rounded-xl border border-white/10 bg-card p-5 flex flex-col min-h-[210px]";
-
-                  const cardContent = (
-                    <>
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-medium text-white/90">{job.title}</h3>
-                        <span className="shrink-0 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
-                          {t("landing.featuredJobs.open")}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-white/40">{job.location}</p>
-                      <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
-                        {truncate(job.description, 120)}
-                      </p>
-                      <p className="mt-4 text-xs text-white/30">
-                        {t("common.posted")} {formatDate(job.created_at)}
-                      </p>
-                    </>
-                  );
-
-                  return (
-                    <div
-                      key={job.id}
-                      className="carousel-card"
-                      style={
-                        {
-                          gridArea: "card",
-                          "--offset": dist / MAX_VISIBLE,
-                          "--abs-offset": absDist / MAX_VISIBLE,
-                          "--direction": Math.sign(dist),
-                          opacity: hidden ? 0 : 1,
-                          display: hidden ? "none" : "block",
-                          zIndex: 10 - absDist,
-                        } as React.CSSProperties
-                      }
-                    >
-                      {isActive ? (
-                        <Link to={`/jobs/${job.id}`} className={cardCls}>
-                          {cardContent}
-                        </Link>
-                      ) : (
-                        <div
-                          className={`${cardCls} cursor-pointer`}
-                          onClick={() => setActiveIdx(idx)}
-                          role="button"
-                          tabIndex={-1}
-                        >
-                          {cardContent}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {loopedJobs.map((job, i) => (
+                <Link
+                  key={`${job.id}-${i}`}
+                  to={`/jobs/${job.id}`}
+                  dir="rtl"
+                  draggable={false}
+                  className="flex min-h-[210px] w-[75vw] shrink-0 flex-col rounded-xl border border-white/10 bg-card p-5 transition-colors hover:border-white/20 sm:w-72"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-medium text-white/90">{job.title}</h3>
+                    <span className="shrink-0 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
+                      {t("landing.featuredJobs.open")}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-white/40">{job.location}</p>
+                  <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
+                    {truncate(job.description, 120)}
+                  </p>
+                  <p className="mt-4 text-xs text-white/30">
+                    {t("common.posted")} {formatDate(job.created_at)}
+                  </p>
+                </Link>
+              ))}
             </div>
 
-            {/* Dot indicators */}
-            {jobs.length > 1 && (
-              <div className="mt-8 flex justify-center gap-2">
-                {jobs.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveIdx(idx)}
-                    aria-label={`משרה ${idx + 1}`}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      idx === activeIdx
-                        ? "w-5 bg-copper"
-                        : "w-1.5 bg-white/15 hover:bg-white/25"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Progress bar */}
+            <div className="mt-5 h-px overflow-hidden rounded-full bg-white/8">
+              <div
+                className="h-full rounded-full bg-copper/50 transition-all duration-100"
+                style={{ width: `${scrollProgress}%` }}
+              />
+            </div>
           </div>
         </section>
       )}
 
-      {/* ── Contact ───────────────────────────────────── */}
-      <section className="border-t border-white/10 bg-void py-16 text-center">
+      {/* ── Contact ───────────────────────────────────────────────────── */}
+      <section className="border-t border-white/10 bg-void py-12 text-center sm:py-16">
         <div className="mx-auto max-w-xl px-6">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
             {t("landing.contact.eyebrow")}
@@ -412,10 +537,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────── */}
-      <footer
-        className="border-t border-white/10 bg-page py-8"
-      >
+      {/* ── Footer ────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/10 bg-page py-8">
         <div className="mx-auto max-w-4xl px-6">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <Logo size={26} />
@@ -426,7 +549,6 @@ export default function LandingPage() {
               <Link to="/login" className="transition hover:text-white/70">
                 {t("landing.footer.login")}
               </Link>
-              {/* register link removed — invite-only */}
             </nav>
             <p className="text-xs text-white/25">
               &copy; {new Date().getFullYear()} <span className="text-copper">RS Recruiting</span>.{" "}

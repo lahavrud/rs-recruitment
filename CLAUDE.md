@@ -111,8 +111,8 @@ The light tokens (`canvas`, `surface`, `ink`, `line`, etc.) are defined but curr
 `success`, `warning`, `danger`, `info`, `hired` — semantic status colors.
 
 ### Typography
-- **Body**: Inter (weights 300, 400, 500, 600)
-- **Display**: Playfair Display — use `.font-display` class for serif headings
+- **Body / headings**: Inter (weights 300, 400, 500, 600) — hierarchy via weight and size only, no separate display typeface
+- **Brand wordmark**: Cormorant Garamond (`font-wordmark`, `font-light tracking-widest text-gold/60`) — used for "RS Recruiting" in LogoBanner and landing hero only. Never apply to body text or UI headings.
 - Hebrew text renders RTL automatically
 
 ### Spacing / shape conventions
@@ -135,6 +135,22 @@ Use `<PageHeader>` for all page headings in authenticated and public-shell pages
 ```
 
 The `action` slot is for badges (pending count) or primary action buttons. For pages with a large `<h1>` below the eyebrow (like `JobBoardPage`), inline the eyebrow + rule pattern directly.
+
+### CompanyName component
+
+Use `<CompanyName>` wherever a company name is rendered in the UI — it is the canonical copper-accent treatment:
+
+```tsx
+import CompanyName from "@/components/ui/CompanyName";
+
+<CompanyName name={row.company_profile.name} />
+// optional className for layout (e.g. "truncate block")
+<CompanyName name={row.company_profile.name} className="truncate block" />
+```
+
+`text-copper font-medium`, inherits surrounding text size. Never render company names as plain text in tables, cards, or detail views.
+
+In email templates (`src/templates/email.py`) use the `_company(name)` helper — it produces the equivalent inline-style copper span.
 
 ### Shared form styles
 

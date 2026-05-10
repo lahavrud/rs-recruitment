@@ -40,7 +40,7 @@ _BASE = """\
   <title>{subject}</title>
 </head>
 <body style="margin:0;padding:0;background:{void};
-             font-family:Georgia,'Times New Roman',serif;direction:rtl;">
+             font-family:Arial,Helvetica,sans-serif;direction:rtl;">
   <table width="100%" cellpadding="0" cellspacing="0"
          style="background:{void};padding:48px 16px;">
     <tr>
@@ -141,8 +141,14 @@ def _cta(url: str, label: str) -> str:
 def _h(text: str) -> str:
     return (
         f'<h2 style="margin:0 0 20px;font-size:22px;font-weight:400;'
+        f"font-family:Arial,Helvetica,sans-serif;"
         f'color:{_TEXT_HI};line-height:1.3;">{text}</h2>'
     )
+
+
+def _company(name: str) -> str:
+    """Copper accent for company names — mirrors <CompanyName> in the frontend."""
+    return f'<span style="color:{_COPPER};font-weight:500;">{name}</span>'
 
 
 def _p(text: str, muted: bool = False) -> str:
@@ -177,7 +183,7 @@ def build_approval_html(company_name: str, activation_url: str) -> str:
     safe_company = _e(company_name)
     body = (
         _h("הבקשה שלכם אושרה")
-        + _p(f"בקשת ההרשמה של <strong>{safe_company}</strong> התקבלה.")
+        + _p(f"בקשת ההרשמה של {_company(safe_company)} התקבלה.")
         + _p(
             "מצורף לאימייל זה החוזה החתום. "
             "לחצו על הכפתור להפעלת החשבון ותחילת השימוש בפלטפורמה."
@@ -194,7 +200,7 @@ def build_rejection_html(company_name: str) -> str:
     safe_company = _e(company_name)
     body = (
         _h("בקשת ההרשמה נדחתה")
-        + _p(f"בקשת ההרשמה של <strong>{safe_company}</strong> לא אושרה.")
+        + _p(f"בקשת ההרשמה של {_company(safe_company)} לא אושרה.")
         + _p(
             "אם אתם סבורים שמדובר בטעות, אנא צרו קשר עם צוות RS Recruiting.",
             muted=True,
@@ -217,9 +223,9 @@ def build_new_registration_html(
     scontact, semail, smobile = _e(contact_name), _e(email), _e(mobile)
     body = (
         _h("חברה חדשה ממתינה לאישור")
-        + _p(f"<strong>{sc}</strong> השלימה את תהליך ההרשמה.")
+        + _p(f"{_company(sc)} השלימה את תהליך ההרשמה.")
         + _rule()
-        + _p(f"שם חברה: <strong>{sc}</strong>")
+        + _p(f"שם חברה: {_company(sc)}")
         + _p(f"ח.פ: {sid}")
         + _p(f"כתובת: {saddr}")
         + _p(f"איש קשר: {scontact}")
@@ -245,7 +251,7 @@ def build_new_job_html(
         _h("משרה חדשה ממתינה לאישור")
         + _rule()
         + _p(f"כותרת: <strong>{stitle}</strong>")
-        + _p(f"חברה: {scompany}")
+        + _p(f"חברה: {_company(scompany)}")
         + _p(f"מיקום: {slocation}")
         + _p(f"מזהה משרה: #{job_id}")
         + _cta(admin_url, "מעבר לניהול משרות")
@@ -270,7 +276,7 @@ def build_job_updated_html(
         _h("פרסום משרה עודכן")
         + _rule()
         + _p(f"כותרת: <strong>{stitle}</strong>")
-        + _p(f"חברה: {scompany}")
+        + _p(f"חברה: {_company(scompany)}")
         + _p(f"מיקום: {slocation}")
         + _p(f"מזהה משרה: #{job_id}")
         + _p(f"סטטוס: {sstatus}")
@@ -321,7 +327,7 @@ def build_application_status_company_html(
     snotes = _e(notes) if notes else None
     body = (
         _h("עדכון סטטוס מועמדות")
-        + _p(f"שלום {scompany},")
+        + _p(f"שלום {_company(scompany)},")
         + _p(f"סטטוס מועמדות למשרת <strong>{stitle}</strong> עודכן.")
         + _rule()
         + _p(f"מועמד: {scandidate}")
@@ -343,7 +349,7 @@ def build_job_contact_html(
     snote = _e(admin_note) if admin_note else ""
     body = (
         _h("פנייה ממנהל המערכת")
-        + _p(f"שלום {scompany},")
+        + _p(f"שלום {_company(scompany)},")
         + _p(f"פנייה זו נשלחה בנוגע למשרת <strong>{stitle}</strong>.")
         + _rule()
         + (_p(snote) if snote else "")
@@ -400,7 +406,7 @@ def build_new_application_admin_html(
         + _p(f'דוא"ל: {semail}')
         + _p(f"טלפון: {sphone}")
         + _p(f"LinkedIn: {slinkedin}")
-        + _p(f"חברה: {scompany}")
+        + _p(f"חברה: {_company(scompany)}")
         + _cta(admin_url, "מעבר לניהול מועמדויות")
     )
     return _wrap("מועמדות חדשה — RS Recruiting", body)
