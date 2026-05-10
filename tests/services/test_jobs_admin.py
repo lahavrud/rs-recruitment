@@ -22,6 +22,8 @@ async def pending_job(session: AsyncSession, company_with_user: CompanyProfile) 
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
         status=JobStatus.PENDING_APPROVAL,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -50,6 +52,8 @@ async def test_list_pending_jobs(
         requirements="Requirements 1",
         location="Location 1",
         status=JobStatus.PENDING_APPROVAL,
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -58,6 +62,8 @@ async def test_list_pending_jobs(
         requirements="Requirements 2",
         location="Location 2",
         status=JobStatus.PENDING_APPROVAL,
+        salary_min=15000,
+        salary_max=25000,
     )
     # Create a published job (should not be included)
     published_job = Job(
@@ -67,6 +73,8 @@ async def test_list_pending_jobs(
         requirements="Requirements",
         location="Location",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -128,6 +136,8 @@ async def test_approve_job_already_published(
         requirements="Requirements",
         location="Location",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -182,6 +192,8 @@ async def test_reject_job_already_published(
         requirements="Requirements",
         location="Location",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()

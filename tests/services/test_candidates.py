@@ -39,6 +39,8 @@ async def test_create_candidate_profile_success(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -108,6 +110,8 @@ async def test_create_candidate_profile_with_resume(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -172,6 +176,8 @@ async def test_create_candidate_profile_duplicate_email(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -179,6 +185,8 @@ async def test_create_candidate_profile_duplicate_email(
         description="We are looking for a junior Python developer...",
         requirements="1+ years experience with Python",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -250,6 +258,8 @@ async def test_create_candidate_profile_invalid_file(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -293,6 +303,8 @@ async def test_create_candidate_profile_forged_magic_bytes_rejected(
         description="Description",
         requirements="Requirements",
         location="Tel Aviv",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -334,6 +346,8 @@ async def test_create_candidate_profile_file_size_limit(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -378,6 +392,8 @@ async def test_create_application_on_profile_creation(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -421,6 +437,8 @@ async def _make_published_job(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -588,6 +606,8 @@ async def test_create_candidate_profile_reuses_existing_profile(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -595,6 +615,8 @@ async def test_create_candidate_profile_reuses_existing_profile(
         description="We are looking for a junior Python developer...",
         requirements="1+ years experience with Python",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -662,6 +684,8 @@ async def test_create_candidate_profile_updates_existing_profile(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -669,6 +693,8 @@ async def test_create_candidate_profile_updates_existing_profile(
         description="We are looking for a junior Python developer...",
         requirements="1+ years experience with Python",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -732,6 +758,8 @@ async def test_create_candidate_profile_does_not_overwrite_resume(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -739,6 +767,8 @@ async def test_create_candidate_profile_does_not_overwrite_resume(
         description="We are looking for a junior Python developer...",
         requirements="1+ years experience with Python",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -813,6 +843,8 @@ async def test_create_candidate_profile_always_updates_full_name(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -820,6 +852,8 @@ async def test_create_candidate_profile_always_updates_full_name(
         description="We are looking for a junior Python developer...",
         requirements="1+ years experience with Python",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -878,6 +912,8 @@ async def test_create_candidate_profile_duplicate_application_raises_error(
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -926,6 +962,7 @@ async def test_find_candidate_by_email_exists(
     candidate = CandidateProfile(
         full_name="John Doe",
         email="john@example.com",
+        phone="050-000-0000",
     )
     session.add(candidate)
     await session.commit()
@@ -962,7 +999,7 @@ async def test_update_candidate_profile(
     candidate = CandidateProfile(
         full_name="John Doe",
         email="john@example.com",
-        phone=None,
+        phone="000-000-0000",
         linkedin_url=None,
     )
     session.add(candidate)
@@ -974,7 +1011,7 @@ async def test_update_candidate_profile(
     candidate_data = CandidateProfileCreate(
         full_name="John Smith",  # Should be updated
         email="john@example.com",
-        phone="123-456-7890",  # Should be updated (was None)
+        phone="123-456-7890",  # NOT NULL, never overwritten on re-apply
         linkedin_url="https://linkedin.com/in/johndoe",  # Should be updated (was None)
     )
 
@@ -986,7 +1023,7 @@ async def test_update_candidate_profile(
 
     # Verify updates
     assert updated.full_name == "John Smith"
-    assert updated.phone == "123-456-7890"
+    assert updated.phone == "000-000-0000"  # preserved — never overwritten
     assert updated.linkedin_url == "https://linkedin.com/in/johndoe"
     assert updated.email == "john@example.com"  # Email should not change
 
@@ -1010,6 +1047,8 @@ async def test_one_profile_can_have_many_applications(
             description=f"Description for job {i + 1}",
             requirements=f"Requirements for job {i + 1}",
             location="Tel Aviv, Israel",
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job)
         jobs.append(job)

@@ -309,6 +309,8 @@ async def test_apply_endpoint_reuses_existing_profile(
             description="We are looking for a junior Python developer...",
             requirements="1+ years experience with Python",
             location="Tel Aviv, Israel",
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job2)
         await session.commit()

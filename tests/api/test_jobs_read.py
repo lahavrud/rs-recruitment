@@ -29,6 +29,8 @@ async def test_get_company_jobs(
             description="Description 1",
             requirements="Requirements 1",
             location="Location 1",
+            salary_min=15000,
+            salary_max=25000,
         )
         job2 = Job(
             company_id=company_profile.id,
@@ -36,6 +38,8 @@ async def test_get_company_jobs(
             description="Description 2",
             requirements="Requirements 2",
             location="Location 2",
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job1)
         session.add(job2)

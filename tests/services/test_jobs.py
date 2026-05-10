@@ -50,6 +50,8 @@ async def job(session: AsyncSession, company_with_user: CompanyProfile) -> Job:
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
         status=JobStatus.PENDING_APPROVAL,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -145,6 +147,8 @@ async def test_list_company_jobs(
         description="Description 1",
         requirements="Requirements 1",
         location="Location 1",
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -152,6 +156,8 @@ async def test_list_company_jobs(
         description="Description 2",
         requirements="Requirements 2",
         location="Location 2",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job1)
     session.add(job2)
@@ -234,6 +240,11 @@ async def test_update_job_not_owned(
     other_company = CompanyProfile(
         user_id=other_user.id,
         name="Other Company",
+        company_id="123456789",
+        address="רח׳ הדוגמה 1, תל אביב",
+        contact_first_name="ישראל",
+        contact_last_name="ישראלי",
+        contact_mobile_phone="0501234567",
     )
     session.add(other_company)
     await session.commit()
@@ -339,6 +350,11 @@ async def test_delete_job_not_owned(
     other_company = CompanyProfile(
         user_id=other_user.id,
         name="Other Company",
+        company_id="123456789",
+        address="רח׳ הדוגמה 1, תל אביב",
+        contact_first_name="ישראל",
+        contact_last_name="ישראלי",
+        contact_mobile_phone="0501234567",
     )
     session.add(other_company)
     await session.commit()

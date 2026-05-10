@@ -23,6 +23,11 @@ async def job_and_candidate(session: AsyncSession) -> dict[str, Job | CandidateP
     company = CompanyProfile(
         user_id=user.id,  # type: ignore[arg-type]
         name="Test Company",
+        company_id="123456789",
+        address="רח׳ הדוגמה 1, תל אביב",
+        contact_first_name="ישראל",
+        contact_last_name="ישראלי",
+        contact_mobile_phone="0501234567",
     )
     session.add(company)
     await session.flush()
@@ -36,6 +41,8 @@ async def job_and_candidate(session: AsyncSession) -> dict[str, Job | CandidateP
         requirements="Requirements",
         location="Tel Aviv",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.flush()
@@ -44,6 +51,7 @@ async def job_and_candidate(session: AsyncSession) -> dict[str, Job | CandidateP
     candidate = CandidateProfile(
         full_name="Jane Doe",
         email="jane@example.com",
+        phone="050-1112233",
     )
     session.add(candidate)
     await session.commit()

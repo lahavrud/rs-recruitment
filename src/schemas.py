@@ -153,11 +153,11 @@ class CompanyProfileRead(BaseModel):
     user_id: int | None
     name: str
     logo_url: str | None
-    company_id: str | None
-    address: str | None
-    contact_first_name: str | None
-    contact_last_name: str | None
-    contact_mobile_phone: str | None
+    company_id: str
+    address: str
+    contact_first_name: str
+    contact_last_name: str
+    contact_mobile_phone: str
     contact_landline_phone: str | None
     agreement_signed_at: datetime | None
     agreement_signature_url: str | None
@@ -208,7 +208,13 @@ class JobCreate(BaseModel):
 
 
 class JobUpdate(BaseModel):
-    """Schema for updating a job posting."""
+    """Schema for updating a job posting.
+
+    All fields are Optional only for partial-update semantics (omit to leave
+    unchanged). Fields backed by NOT NULL columns — title, description,
+    requirements, location, salary_min, salary_max — reject an explicit
+    ``null`` so a PATCH cannot bypass the database constraint.
+    """
 
     title: str | None = Field(None, max_length=200)
     description: str | None = Field(None, max_length=5000)
@@ -217,6 +223,20 @@ class JobUpdate(BaseModel):
     salary_min: int | None = Field(None, ge=0)
     salary_max: int | None = Field(None, ge=0)
     status: JobStatus | None = None
+
+    @field_validator(
+        "title",
+        "description",
+        "requirements",
+        "location",
+        "salary_min",
+        "salary_max",
+    )
+    @classmethod
+    def reject_explicit_null(cls, v: str | int | None) -> str | int:
+        if v is None:
+            raise ValueError("Field cannot be set to null on update")
+        return v
 
 
 class JobAdminCreate(BaseModel):
@@ -243,8 +263,8 @@ class JobRead(BaseModel):
     description: str
     requirements: str
     location: str
-    salary_min: int | None
-    salary_max: int | None
+    salary_min: int
+    salary_max: int
     status: JobStatus
     created_at: datetime
     updated_at: datetime
@@ -280,8 +300,8 @@ class JobPublicRead(BaseModel):
     description: str
     requirements: str
     location: str
-    salary_min: int | None
-    salary_max: int | None
+    salary_min: int
+    salary_max: int
     created_at: datetime
 
 
@@ -400,8 +420,19 @@ class CandidateProfileUpdate(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
-        """Validate phone number format."""
-        return _validate_phone_value(v)
+        """Validate phone number format.
+
+        ``phone`` is NOT NULL in the database, so an explicit ``null`` on PATCH
+        is rejected. The field stays Optional purely to keep partial-update
+        semantics (omit-to-leave-unchanged) — only an absent key skips the
+        validator.
+        """
+        if v is None:
+            raise ValueError("Phone cannot be set to null on update")
+        result = _validate_phone_value(v)
+        if result is None:
+            raise ValueError("Phone number is required")
+        return result
 
     @field_validator("linkedin_url")
     @classmethod
@@ -418,7 +449,7 @@ class CandidateProfileRead(BaseModel):
     id: int
     full_name: str
     email: str
-    phone: str | None
+    phone: str
     resume_path: str | None
     linkedin_url: str | None
     service_concept: str | None
@@ -550,7 +581,14 @@ class CompanyProfileAdminCreate(BaseModel):
 
 
 class CompanyProfileAdminUpdate(BaseModel):
-    """Partial-update schema for an admin editing a company profile."""
+    """Partial-update schema for an admin editing a company profile.
+
+    The five fields ``name``, ``company_id``, ``address``, ``contact_first_name``,
+    ``contact_last_name``, and ``contact_mobile_phone`` are NOT NULL in the
+    database. They stay typed as Optional only for partial-update semantics
+    (omit-to-leave-unchanged); an explicit ``null`` is rejected by validators
+    so a PATCH cannot bypass the DB constraint.
+    """
 
     name: str | None = Field(None, max_length=100)
     company_id: str | None = None
@@ -560,11 +598,23 @@ class CompanyProfileAdminUpdate(BaseModel):
     contact_mobile_phone: str | None = None
     contact_landline_phone: str | None = Field(None, max_length=20)
 
+    @field_validator(
+        "name",
+        "address",
+        "contact_first_name",
+        "contact_last_name",
+    )
+    @classmethod
+    def reject_explicit_null(cls, v: str | None) -> str | None:
+        if v is None:
+            raise ValueError("Field cannot be set to null on update")
+        return v
+
     @field_validator("company_id")
     @classmethod
     def validate_company_id(cls, v: str | None) -> str | None:
         if v is None:
-            return v
+            raise ValueError("company_id cannot be set to null on update")
         if not re.fullmatch(r"\d{9}", v):
             raise ValueError("Company ID must be exactly 9 digits")
         return v
@@ -573,7 +623,7 @@ class CompanyProfileAdminUpdate(BaseModel):
     @classmethod
     def validate_mobile_phone(cls, v: str | None) -> str | None:
         if v is None:
-            return v
+            raise ValueError("contact_mobile_phone cannot be set to null on update")
         if not re.fullmatch(r"05[0-9]\d{7}", v):
             raise ValueError(
                 "Mobile phone must be a valid Israeli mobile number (05X-XXXXXXX)"

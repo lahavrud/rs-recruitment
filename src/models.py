@@ -119,12 +119,12 @@ class CompanyProfile(SQLModel, table=True):
     )
     name: str
     logo_url: str | None = None
-    company_id: str | None = None  # ח.פ — 9-digit Israeli company registration number
-    contact_first_name: str | None = None
-    contact_last_name: str | None = None
-    contact_mobile_phone: str | None = None
+    company_id: str  # ח.פ — 9-digit Israeli company registration number
+    contact_first_name: str
+    contact_last_name: str
+    contact_mobile_phone: str
     contact_landline_phone: str | None = None
-    address: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    address: str = Field(sa_column=Column(Text, nullable=False))
     agreement_signed_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
@@ -162,7 +162,7 @@ class Job(SQLModel, table=True):
 
     __table_args__ = (
         CheckConstraint(
-            "salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max",
+            "salary_min <= salary_max",
             name="ck_job_salary_range",
         ),
     )
@@ -173,8 +173,8 @@ class Job(SQLModel, table=True):
     description: str
     requirements: str
     location: str
-    salary_min: int | None = Field(default=None)
-    salary_max: int | None = Field(default=None)
+    salary_min: int
+    salary_max: int
     status: JobStatus = Field(default=JobStatus.PENDING_APPROVAL)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -204,7 +204,7 @@ class CandidateProfile(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     full_name: str
     email: str = Field(unique=True, index=True)
-    phone: str | None = None
+    phone: str
     resume_path: str | None = None
     linkedin_url: str | None = None
 

@@ -67,11 +67,11 @@ export interface CompanyProfileRead {
   user_id: number | null;
   name: string;
   logo_url: string | null;
-  company_id: string | null;
-  address: string | null;
-  contact_first_name: string | null;
-  contact_last_name: string | null;
-  contact_mobile_phone: string | null;
+  company_id: string;
+  address: string;
+  contact_first_name: string;
+  contact_last_name: string;
+  contact_mobile_phone: string;
   contact_landline_phone: string | null;
   agreement_signed_at: string | null;
   privacy_accepted_at: string | null;
@@ -123,8 +123,8 @@ export interface JobRead {
   description: string;
   requirements: string;
   location: string;
-  salary_min: number | null;
-  salary_max: number | null;
+  salary_min: number;
+  salary_max: number;
   status: JobStatus;
   created_at: string;
   updated_at: string;
@@ -144,8 +144,10 @@ export interface JobUpdate {
   description?: string;
   requirements?: string;
   location?: string;
-  salary_min?: number | null;
-  salary_max?: number | null;
+  /** NOT NULL in DB — backend rejects explicit null. Omit to leave unchanged. */
+  salary_min?: number;
+  /** NOT NULL in DB — backend rejects explicit null. Omit to leave unchanged. */
+  salary_max?: number;
   status?: JobStatus;
 }
 
@@ -170,8 +172,8 @@ export interface JobPublicRead {
   description: string;
   requirements: string;
   location: string;
-  salary_min: number | null;
-  salary_max: number | null;
+  salary_min: number;
+  salary_max: number;
   created_at: string;
 }
 
@@ -182,7 +184,7 @@ export interface CandidateProfileRead {
   id: number;
   full_name: string;
   email: string;
-  phone: string | null;
+  phone: string;
   resume_path: string | null;
   linkedin_url: string | null;
   service_concept: string | null;
@@ -196,7 +198,8 @@ export interface CandidateProfileRead {
 export interface CandidateProfileUpdate {
   full_name?: string;
   email?: string;
-  phone?: string | null;
+  /** NOT NULL in DB — backend rejects explicit null. Omit to leave unchanged. */
+  phone?: string;
   resume_path?: string | null;
   linkedin_url?: string | null;
   service_concept?: string | null;

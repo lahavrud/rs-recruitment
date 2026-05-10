@@ -53,7 +53,9 @@ async def test_list_applications_filter_by_status(
     """Filter by status returns only matching applications."""
     async with TestSessionLocal() as session:
         candidate2 = CandidateProfile(
-            full_name="Second Candidate", email="second@test.com"
+            full_name="Second Candidate",
+            email="second@test.com",
+            phone="050-000-0000",
         )
         session.add(candidate2)
         await session.flush()

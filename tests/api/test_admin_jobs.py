@@ -35,6 +35,8 @@ async def test_get_pending_jobs(
             requirements="3+ years experience with React",
             location="Remote",
             status=JobStatus.PENDING_APPROVAL,
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job2)
         await session.commit()
@@ -65,6 +67,8 @@ async def test_get_pending_jobs_excludes_published_and_closed(
             requirements="N/A",
             location="N/A",
             status=JobStatus.PUBLISHED,
+            salary_min=15000,
+            salary_max=25000,
         )
         closed_job = Job(
             company_id=company_profile.id,
@@ -73,6 +77,8 @@ async def test_get_pending_jobs_excludes_published_and_closed(
             requirements="N/A",
             location="N/A",
             status=JobStatus.CLOSED,
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(published_job)
         session.add(closed_job)
@@ -137,6 +143,8 @@ async def test_approve_job_already_published(
             requirements="N/A",
             location="N/A",
             status=JobStatus.PUBLISHED,
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job)
         await session.commit()
@@ -195,6 +203,8 @@ async def test_reject_job_already_published(
             requirements="N/A",
             location="N/A",
             status=JobStatus.PUBLISHED,
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job)
         await session.commit()
@@ -277,6 +287,8 @@ async def test_contact_job_works_for_published_job(
             requirements="Requirements",
             location="Tel Aviv",
             status=JobStatus.PUBLISHED,
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job)
         await session.commit()

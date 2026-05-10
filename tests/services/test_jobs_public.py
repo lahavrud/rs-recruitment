@@ -36,6 +36,8 @@ async def test_list_published_jobs(
         location="Location 1",
         status=JobStatus.PUBLISHED,
         created_at=now - timedelta(hours=1),
+        salary_min=15000,
+        salary_max=25000,
     )
     job2 = Job(
         company_id=company_with_user.id,
@@ -45,6 +47,8 @@ async def test_list_published_jobs(
         location="Location 2",
         status=JobStatus.PUBLISHED,
         created_at=now,
+        salary_min=15000,
+        salary_max=25000,
     )
     # Non-published job — must be excluded by the gatekeeper
     job3 = Job(
@@ -55,6 +59,8 @@ async def test_list_published_jobs(
         location="Location 3",
         status=JobStatus.PENDING_APPROVAL,
         created_at=now + timedelta(hours=1),
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add_all([job1, job2, job3])
     await session.commit()
@@ -90,6 +96,8 @@ async def test_get_published_job_success(
         requirements="Python experience",
         location="Tel Aviv",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -127,6 +135,8 @@ async def test_get_published_job_not_published(
         requirements="Requirements",
         location="Location",
         status=JobStatus.PENDING_APPROVAL,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()

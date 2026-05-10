@@ -877,14 +877,20 @@ function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
 
   async function handleSave() {
     if (!profile) return;
-    if (!form.name?.trim()) { setValidationError(t("common.validation.required")); return; }
-    if (!form.contact_first_name?.trim() || !form.contact_last_name?.trim()) {
+    if (
+      !form.name?.trim() ||
+      !form.company_id?.trim() ||
+      !form.address?.trim() ||
+      !form.contact_first_name?.trim() ||
+      !form.contact_last_name?.trim() ||
+      !form.contact_mobile_phone?.trim()
+    ) {
       setValidationError(t("common.validation.required")); return;
     }
-    if (form.company_id && !COMPANY_ID_RE.test(form.company_id)) {
+    if (!COMPANY_ID_RE.test(form.company_id)) {
       setValidationError(t("admin.companies.validation.companyId")); return;
     }
-    if (form.contact_mobile_phone && !MOBILE_RE.test(form.contact_mobile_phone)) {
+    if (!MOBILE_RE.test(form.contact_mobile_phone)) {
       setValidationError(t("admin.companies.validation.mobile")); return;
     }
     setSaving(true);
