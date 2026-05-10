@@ -73,10 +73,10 @@ async def test_job_salary_range_db_constraint_rejects_inverted(
 
 
 @pytest.mark.asyncio
-async def test_job_salary_range_db_constraint_allows_partial_null(
+async def test_job_salary_range_db_rejects_null(
     session: AsyncSession, company_with_user: CompanyProfile
 ):
-    """One-sided salary (only min or only max set) is allowed."""
+    """NULL salary_min or salary_max is rejected at the DB level (NOT NULL)."""
     assert company_with_user.id is not None
     job = Job(
         company_id=company_with_user.id,
@@ -85,12 +85,11 @@ async def test_job_salary_range_db_constraint_allows_partial_null(
         requirements="r",
         location="l",
         salary_min=15000,
-        salary_max=None,
+        salary_max=None,  # type: ignore[arg-type]
     )
     session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
+    with pytest.raises(IntegrityError):
+        await session.commit()
 
 
 @pytest.mark.asyncio
