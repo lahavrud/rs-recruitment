@@ -6,7 +6,9 @@ import { inputCls } from "@/styles/forms";
 interface SearchInputProps {
   /** Initial value, used only for uncontrolled internal state. */
   initialValue?: string;
-  /** Fired with the debounced value. */
+  /** Controlled value. When provided, debounce is bypassed and onChange fires synchronously. */
+  value?: string;
+  /** Fired with the debounced value (or synchronously when controlled). */
   onChange: (value: string) => void;
   /** Override the default Hebrew placeholder. */
   placeholder?: string;
@@ -14,6 +16,8 @@ interface SearchInputProps {
   delay?: number;
   /** Disable the global `/` keyboard shortcut. */
   disableShortcut?: boolean;
+  /** Show a clear (X) button on the trailing side when the input has a value. */
+  clearable?: boolean;
   className?: string;
   ariaLabel?: string;
 }
@@ -25,24 +29,27 @@ interface SearchInputProps {
  */
 export default function SearchInput({
   initialValue = "",
+  value: controlledValue,
   onChange,
   placeholder,
   delay = 300,
   disableShortcut = false,
+  clearable = false,
   className = "",
   ariaLabel,
 }: SearchInputProps) {
   const { t } = useTranslation();
-  const [value, setValue] = useState(initialValue);
-  const debounced = useDebounce(value, delay);
+  const isControlled = controlledValue !== undefined;
+  const [internal, setInternal] = useState(initialValue);
+  const value = isControlled ? controlledValue : internal;
+  const debounced = useDebounce(internal, delay);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (isControlled) return;
     onChange(debounced);
-    // Note: `onChange` deliberately not in deps — caller is expected to
-    // memoize their handler if they care about stability.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced]);
+  }, [debounced, isControlled]);
 
   useEffect(() => {
     if (disableShortcut) return;
@@ -66,15 +73,63 @@ export default function SearchInput({
     return () => window.removeEventListener("keydown", handler);
   }, [disableShortcut]);
 
-  return (
+  const handleClear = () => {
+    if (isControlled) {
+      onChange("");
+    } else {
+      setInternal("");
+    }
+    inputRef.current?.focus();
+  };
+
+  const showClear = clearable && value.length > 0;
+  // Hide native webkit search clear button so our custom X is the only one.
+  const noNativeClear =
+    "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none";
+
+  const input = (
     <input
       ref={inputRef}
       type="search"
       value={value}
-      onChange={(e) => setValue(e.target.value)}
+      onChange={(e) => {
+        const next = e.target.value;
+        if (isControlled) {
+          onChange(next);
+        } else {
+          setInternal(next);
+        }
+      }}
       placeholder={placeholder ?? t("common.searchPlaceholder")}
       aria-label={ariaLabel ?? t("common.search")}
-      className={`${inputCls} ${className}`}
+      className={`${inputCls} ${noNativeClear} ${showClear ? "pe-9" : ""} ${className}`}
     />
+  );
+
+  if (!clearable) return input;
+
+  return (
+    <div className="relative">
+      {input}
+      {showClear && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleClear}
+          aria-label={t("common.clear")}
+          className="absolute inset-y-0 end-2 my-auto inline-flex size-6 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className="size-3.5"
+            aria-hidden="true"
+          >
+            <path d="M3.28 2.22a.75.75 0 0 0-1.06 1.06L6.94 8l-4.72 4.72a.75.75 0 1 0 1.06 1.06L8 9.06l4.72 4.72a.75.75 0 1 0 1.06-1.06L9.06 8l4.72-4.72a.75.75 0 0 0-1.06-1.06L8 6.94 3.28 2.22Z" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }

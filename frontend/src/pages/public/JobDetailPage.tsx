@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob } from "@/services/jobs";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
@@ -25,10 +25,10 @@ function formatDate(iso: string): string {
 function DetailSkeleton() {
   return (
     <div className="mx-auto max-w-4xl animate-pulse">
-      <div className="mb-8 h-4 w-24 rounded bg-white/8" />
+      <div className="mb-6 h-4 w-24 rounded bg-white/8 sm:mb-8" />
       <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8">
         {/* Left */}
-        <div className="rounded-xl border border-white/5 bg-card p-6 sm:p-10">
+        <div className="rounded-xl border border-white/5 bg-card p-5 sm:p-10">
           <div className="space-y-3">
             <div className="h-6 w-2/3 rounded bg-white/8" />
             <div className="h-4 w-1/4 rounded bg-white/5" />
@@ -47,8 +47,8 @@ function DetailSkeleton() {
             ))}
           </div>
         </div>
-        {/* Right sidebar */}
-        <div className="mt-4 rounded-xl border border-white/5 bg-card p-6 lg:mt-0">
+        {/* Right sidebar — desktop only */}
+        <div className="mt-4 hidden rounded-xl border border-white/5 bg-card p-6 lg:mt-0 lg:block">
           <div className="space-y-3">
             <div className="h-5 w-3/4 rounded bg-white/8" />
             <div className="h-3 w-1/2 rounded bg-white/5" />
@@ -61,10 +61,32 @@ function DetailSkeleton() {
   );
 }
 
+function LocationIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      className="size-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 export default function JobDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Preserve filter params (q, loc, smin, smax) carried in from the board so
+  // the back link returns the user to their filtered list.
+  const backTo = { pathname: "/jobs", search: location.search };
   const [job, setJob] = useState<JobPublicRead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +137,7 @@ export default function JobDetailPage() {
           {error ?? t("publicJobs.detail.notFound")}
         </div>
         <Link
-          to="/jobs"
+          to={backTo}
           className="mt-6 inline-block text-sm text-white/40 transition hover:text-copper"
         >
           {t("publicJobs.detail.backToJobs")}
@@ -125,6 +147,7 @@ export default function JobDetailPage() {
   }
 
   const applyHref = `/jobs/${job.id}/apply`;
+  const salaryStr = formatSalary(job.salary_min, job.salary_max);
 
   const jobPosting = {
     "@context": "https://schema.org",
@@ -148,7 +171,8 @@ export default function JobDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl">
+    // pb-24 leaves room for the mobile fixed apply bar; cleared on lg.
+    <div className="mx-auto max-w-4xl pb-24 lg:pb-0">
       <SeoHead
         title={job.title}
         description={job.description.slice(0, 160)}
@@ -157,8 +181,8 @@ export default function JobDetailPage() {
         structuredData={jobPosting}
       />
       <Link
-        to="/jobs"
-        className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
+        to={backTo}
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper sm:mb-8"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -178,27 +202,15 @@ export default function JobDetailPage() {
 
       <div className="lg:grid lg:grid-cols-[1fr_280px] lg:items-start lg:gap-8">
         {/* ── Main article ── */}
-        <article className="rounded-xl border border-white/8 bg-card p-6 sm:p-10">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-xl font-semibold text-white/95 sm:text-2xl">
+        <article className="rounded-xl border border-white/8 bg-card p-5 sm:p-10">
+          {/* Header: title, status badge, location, posted, salary */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-semibold leading-tight text-white/95 sm:text-2xl">
                 {job.title}
               </h1>
-              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/45">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="size-3.5 shrink-0"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-white/45">
+                <LocationIcon />
                 {job.location}
               </p>
             </div>
@@ -206,23 +218,26 @@ export default function JobDetailPage() {
               {t("publicJobs.detail.open")}
             </span>
           </div>
-          <p className="mt-2 text-xs text-white/25">
-            {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
-          </p>
-          {formatSalary(job.salary_min, job.salary_max) && (
-            <p className="mt-1.5 text-sm font-medium text-copper/80">
-              {formatSalary(job.salary_min, job.salary_max)}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <p className="text-xs text-white/30">
+              {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
             </p>
-          )}
+            <p className="flex items-center gap-1.5 text-sm">
+              <span className="text-white/40">{t("common.salary")}:</span>
+              <span className="font-medium text-copper/85">
+                {salaryStr ?? t("common.salaryNotSpecified")}
+              </span>
+            </p>
+          </div>
 
-          <div className="my-8 h-px bg-white/8" />
+          <div className="my-6 h-px bg-white/8 sm:my-8" />
 
           {/* About the role */}
           <div>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
               {t("publicJobs.detail.aboutRole")}
             </p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65 sm:text-[15px]">
               {job.description}
             </p>
           </div>
@@ -232,50 +247,29 @@ export default function JobDetailPage() {
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
               {t("publicJobs.detail.requirements")}
             </p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65 sm:text-[15px]">
               {job.requirements}
             </p>
           </div>
-
-          {/* Mobile CTA — hidden on lg */}
-          <div className="mt-10 border-t border-white/8 pt-8 lg:hidden">
-            <Link
-              to={applyHref}
-              className="inline-block w-full rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-            >
-              {t("publicJobs.detail.applyNow")}
-            </Link>
-          </div>
         </article>
 
-        {/* ── Sticky sidebar ── */}
-        <aside className="mt-4 lg:sticky lg:top-6 lg:mt-0">
+        {/* ── Sticky desktop sidebar (hidden on mobile — replaced by fixed bottom bar) ── */}
+        <aside className="hidden lg:sticky lg:top-6 lg:mt-0 lg:block">
           <div className="rounded-xl border border-white/8 bg-card p-6">
             <h2 className="font-medium text-white/90">{job.title}</h2>
             <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/45">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="size-3.5 shrink-0"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <LocationIcon />
               {job.location}
             </p>
             <p className="mt-1 text-xs text-white/25">
               {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
             </p>
-            {formatSalary(job.salary_min, job.salary_max) && (
-              <p className="mt-2 text-sm font-medium text-copper/80">
-                {formatSalary(job.salary_min, job.salary_max)}
-              </p>
-            )}
+            <p className="mt-2 flex items-center gap-1.5 text-sm">
+              <span className="text-white/40">{t("common.salary")}:</span>
+              <span className="font-medium text-copper/85">
+                {salaryStr ?? t("common.salaryNotSpecified")}
+              </span>
+            </p>
 
             <div className="mt-5 h-px bg-white/8" />
 
@@ -287,6 +281,23 @@ export default function JobDetailPage() {
             </Link>
           </div>
         </aside>
+      </div>
+
+      {/* ── Fixed mobile apply bar ── */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-void/95 px-4 py-3 backdrop-blur-md lg:hidden">
+        <div className="mx-auto flex max-w-4xl items-center gap-3">
+          {salaryStr && (
+            <p className="truncate text-xs font-medium text-copper/80 sm:text-sm">
+              {salaryStr}
+            </p>
+          )}
+          <Link
+            to={applyHref}
+            className="flex-1 rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-void"
+          >
+            {t("publicJobs.detail.applyNow")}
+          </Link>
+        </div>
       </div>
     </div>
   );

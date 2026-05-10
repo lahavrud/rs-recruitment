@@ -43,6 +43,7 @@ import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
+import CompanyName from "@/components/ui/CompanyName";
 
 type Tab = "active" | "pending" | "invites";
 
@@ -242,9 +243,7 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
                 onClick={() => setDetail(row.company_profile)}
                 className="w-full rounded-xl border border-white/8 bg-card px-4 py-3 text-start transition hover:border-white/15"
               >
-                <p className="truncate font-medium text-white/85">
-                  {row.company_profile.name}
-                </p>
+                <CompanyName name={row.company_profile.name} className="truncate block" />
                 <p className="truncate text-xs text-white/50">
                   {row.user?.email ?? t("admin.companies.noUserAccount")}
                 </p>
@@ -276,9 +275,7 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
                     className="cursor-pointer transition hover:bg-white/3"
                   >
                     <td className="px-4 py-3">
-                      <p className="font-medium text-white/85">
-                        {row.company_profile.name}
-                      </p>
+                      <CompanyName name={row.company_profile.name} />
                       <p className="text-xs text-white/40">
                         {row.user?.email ?? t("admin.companies.noUserAccount")}
                       </p>
@@ -453,9 +450,7 @@ function PendingTab() {
                 className="flex flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-white/85">
-                    {row.company_profile.name}
-                  </p>
+                  <CompanyName name={row.company_profile.name} />
                   <p className="text-xs text-white/45">{row.user.email}</p>
                   <p className="mt-1 text-xs text-white/35">
                     {t("admin.companies.contactLabel")}:{" "}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Josefin+Sans:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:wght@300;400;500&display=swap');
 
 @import "tailwindcss";
 
@@ -44,12 +44,8 @@ html {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
-}
-
-.font-josefin {
-  font-family: 'Josefin Sans', sans-serif;
+.font-wordmark {
+  font-family: 'Cormorant Garamond', Georgia, serif;
 }
 
 /* Paper grain — dark (hero) */
@@ -72,7 +68,7 @@ html {
 .carousel-card {
   transition:
     transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
-    filter 0.45s ease-out,
+    filter 0.4s ease-out,
     opacity 0.35s ease-out;
   transform:
     rotateY(calc(var(--offset, 0) * 28deg))
@@ -80,8 +76,17 @@ html {
     translateX(calc(var(--direction, 0) * (var(--abs-offset, 0) * 62%)))
     scale(calc(1 - var(--abs-offset, 0) * 0.09));
   filter:
-    brightness(calc(1 - var(--abs-offset, 0) * 0.62))
-    blur(calc(var(--abs-offset, 0) * 1.2px));
+    brightness(calc(1 - var(--abs-offset, 0) * 0.45))
+    blur(calc(var(--abs-offset, 0) * 0.8px));
+}
+
+/* On desktop: side cards brighten and sharpen on hover — invites clicking */
+@media (min-width: 640px) {
+  .carousel-card:hover {
+    filter:
+      brightness(calc(1 - var(--abs-offset, 0) * 0.18))
+      blur(0px);
+  }
 }
 
 /* ── Feature card entrance animations (one per card) ────────────────────────
@@ -133,9 +138,33 @@ html {
   }
 }
 
+/* Mobile: replace 3D entrance animations with a simple fade-up */
+@media (max-width: 639px) {
+  @keyframes card-tilt-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes card-rise-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes card-swing-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
 .feature-card {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   position: relative;
+}
+
+/* Hide scrollbar while keeping scroll functional */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* SHIMMER: diagonal streak — copper lead, white flash at peak, gold trail */

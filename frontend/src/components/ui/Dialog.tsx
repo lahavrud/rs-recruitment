@@ -56,7 +56,7 @@ export default function Dialog({
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <RadixDialog.Title className="font-display text-xl text-white">
+              <RadixDialog.Title className="text-xl font-semibold text-white">
                 {title}
               </RadixDialog.Title>
               {description && (
