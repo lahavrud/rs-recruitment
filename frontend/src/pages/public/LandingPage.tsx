@@ -226,17 +226,10 @@ export default function LandingPage() {
           alt=""
           aria-hidden="true"
           onLoad={() => setHeroLoaded(true)}
-          className="pointer-events-none absolute h-0 w-0 opacity-0"
-        />
-        <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
           style={{
-            backgroundImage: 'url("/hero-city.jpg")',
-            backgroundSize: "cover",
-            backgroundPosition: "center 60%",
-            backgroundAttachment: "fixed",
+            objectPosition: "center 60%",
             opacity: heroLoaded ? 1 : 0,
-            transition: "opacity 0.9s ease",
           }}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/80 via-page/60 to-void/55" />
@@ -323,15 +316,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Audience panels — hero atmosphere fades to next section ─────── */}
-      <section className="relative bg-void py-10 sm:py-14">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: 'url("/hero-city.jpg")',
-            backgroundSize: "cover",
-            backgroundPosition: "center 60%",
-            backgroundAttachment: "fixed",
-          }}
+      <section className="relative overflow-hidden bg-void py-10 sm:py-14">
+        <img
+          src="/hero-city.jpg"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          style={{ objectPosition: "center 60%" }}
         />
         {/* Front-loaded fade: void/55 → nearly dark by 35% → locked card-raised after that */}
         <div
