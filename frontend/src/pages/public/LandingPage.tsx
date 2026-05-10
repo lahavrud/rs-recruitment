@@ -44,7 +44,7 @@ export default function LandingPage() {
   const isDragging  = useRef(false);
   const hasDragged  = useRef(false);
   const velocityRef = useRef(0);
-  const longTimer   = useRef<ReturnType<typeof setTimeout>>();
+  const longTimer   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const rafId       = useRef(0);
 
   // Triple the array for the infinite loop
@@ -83,7 +83,10 @@ export default function LandingPage() {
     let lastT       = 0;
     let teleporting = false; // guard against re-entrant scroll events
 
-    function enterDrag(clientX: number) {
+    // Arrow expressions (not function declarations) so the `el` non-null
+    // narrowing from the guard above propagates into these closures under
+    // tsc -b strict mode.
+    const enterDrag = (clientX: number) => {
       isDragging.current = true;
       hasDragged.current = true;
       startX      = clientX;
@@ -94,9 +97,9 @@ export default function LandingPage() {
       cancelAnimationFrame(rafId.current);
       el.style.cursor     = "grabbing";
       el.style.userSelect = "none";
-    }
+    };
 
-    function onMouseDown(e: MouseEvent) {
+    const onMouseDown = (e: MouseEvent) => {
       isMouseDown = true;
       hasDragged.current = false;
       startX      = e.clientX;
@@ -104,9 +107,9 @@ export default function LandingPage() {
 
       // Long-press: enter drag even without significant movement
       longTimer.current = setTimeout(() => enterDrag(e.clientX), LONG_PRESS_MS);
-    }
+    };
 
-    function onMouseMove(e: MouseEvent) {
+    const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) {
         // Only consider dragging when the mouse button is held down
         if (isMouseDown && Math.abs(e.clientX - startX) > 5) {
@@ -124,9 +127,9 @@ export default function LandingPage() {
       lastT = now;
 
       el.scrollLeft = startScroll + (startX - e.clientX);
-    }
+    };
 
-    function onMouseUp() {
+    const onMouseUp = () => {
       isMouseDown = false;
       clearTimeout(longTimer.current);
       if (!isDragging.current) return;
@@ -137,7 +140,7 @@ export default function LandingPage() {
 
       // Momentum: carry the last velocity and decelerate
       let v = velocityRef.current * 16; // convert px/ms → px/frame @60fps
-      function step() {
+      const step = () => {
         if (Math.abs(v) < 0.5) {
           hasDragged.current = false;
           return;
@@ -145,11 +148,11 @@ export default function LandingPage() {
         el.scrollLeft += v;
         v *= 0.90;
         rafId.current = requestAnimationFrame(step);
-      }
+      };
       rafId.current = requestAnimationFrame(step);
-    }
+    };
 
-    function onScroll() {
+    const onScroll = () => {
       if (teleporting) return;
       const total     = el.scrollWidth;
       const oneSet    = total / 3;
@@ -169,7 +172,7 @@ export default function LandingPage() {
       const pos   = ((el.scrollLeft - oneSet) % oneSet + oneSet) % oneSet;
       const range = oneSet - el.clientWidth;
       setScrollProgress(range > 0 ? Math.min(100, Math.max(0, (pos / range) * 100)) : 0);
-    }
+    };
 
     el.style.cursor = "grab";
     el.addEventListener("mousedown", onMouseDown);
