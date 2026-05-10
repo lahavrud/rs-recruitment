@@ -233,7 +233,7 @@ class JobUpdate(BaseModel):
         "salary_max",
     )
     @classmethod
-    def reject_explicit_null(cls, v):  # type: ignore[no-untyped-def]
+    def reject_explicit_null(cls, v: str | int | None) -> str | int:
         if v is None:
             raise ValueError("Field cannot be set to null on update")
         return v
