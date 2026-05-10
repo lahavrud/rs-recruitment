@@ -191,7 +191,6 @@ BASE_CREATE = {
         (CandidateProfileCreate, "050-123-4567", "050-123-4567"),
         (CandidateProfileCreate, "(03) 123 4567", "(03) 123 4567"),
         (CandidateProfileUpdate, "+1 800 555 1234", "+1 800 555 1234"),
-        (CandidateProfileUpdate, None, None),
     ],
 )
 def test_valid_phone(schema_class, phone, expected):
@@ -212,6 +211,8 @@ def test_valid_phone(schema_class, phone, expected):
         (CandidateProfileCreate, "123", "at least 5 digits"),
         (CandidateProfileUpdate, "!@#$", "digits, spaces"),
         (CandidateProfileUpdate, "1234", "at least 5 digits"),
+        # phone is NOT NULL in the DB — explicit null on PATCH is rejected
+        (CandidateProfileUpdate, None, "null on update"),
     ],
 )
 def test_invalid_phone(schema_class, phone, error_match):

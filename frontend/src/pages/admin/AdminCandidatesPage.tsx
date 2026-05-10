@@ -534,7 +534,8 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
     else if (form.full_name.length > 100) e.full_name = t("common.validation.tooLong", { max: 100 });
     if (!form.email?.trim()) e.email = t("common.validation.required");
     else if (!EMAIL_RE.test(form.email)) e.email = t("common.validation.emailInvalid");
-    if (form.phone?.trim() && !PHONE_RE.test(form.phone.trim())) {
+    if (!form.phone?.trim()) e.phone = t("common.validation.required");
+    else if (!PHONE_RE.test(form.phone.trim())) {
       e.phone = t("common.validation.phoneInvalid");
     }
     if (form.linkedin_url?.trim()) {
@@ -559,7 +560,7 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
     const body: CandidateProfileUpdate = {
       full_name: form.full_name,
       email: form.email,
-      phone: form.phone?.trim() ? form.phone : null,
+      phone: form.phone,
       linkedin_url: form.linkedin_url?.trim() ? form.linkedin_url : null,
       service_concept: form.service_concept?.trim() ? form.service_concept : null,
       salary_expectations: form.salary_expectations?.trim() ? form.salary_expectations : null,

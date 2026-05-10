@@ -32,6 +32,8 @@ async def _make_application(
         requirements="Requirements",
         location="Location",
         status=job_status,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.flush()
@@ -51,7 +53,11 @@ async def _make_candidate(
     session: AsyncSession, email: str = "c@test.com"
 ) -> CandidateProfile:
     """Helper to create a candidate in the given session."""
-    candidate = CandidateProfile(full_name="Test Candidate", email=email)
+    candidate = CandidateProfile(
+        full_name="Test Candidate",
+        email=email,
+        phone="050-000-0000",
+    )
     session.add(candidate)
     await session.flush()
     return candidate

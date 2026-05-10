@@ -410,6 +410,7 @@ async def company_with_user(session: AsyncSession) -> CompanyProfile:
         user_id=user.id,
         name="Test Company",
         company_id="123456789",
+        address="רח׳ הדוגמה 1, תל אביב",
         contact_first_name="ישראל",
         contact_last_name="ישראלי",
         contact_mobile_phone="0501234567",
@@ -434,6 +435,8 @@ async def job(company_profile: CompanyProfile) -> Job:
             description="We are looking for a senior Python developer...",
             requirements="5+ years experience with Python, FastAPI, PostgreSQL",
             location="Tel Aviv, Israel",
+            salary_min=15000,
+            salary_max=25000,
             status=JobStatus.PENDING_APPROVAL,
         )
         session.add(job)
@@ -452,6 +455,8 @@ async def pending_job(company_profile: CompanyProfile) -> Job:
             description="We are looking for a senior Python developer...",
             requirements="5+ years experience with Python, FastAPI, PostgreSQL",
             location="Tel Aviv, Israel",
+            salary_min=15000,
+            salary_max=25000,
             status=JobStatus.PENDING_APPROVAL,
         )
         session.add(job)
@@ -470,6 +475,8 @@ async def published_job(company_profile: CompanyProfile) -> Job:
             description="We are looking for a senior Python developer...",
             requirements="5+ years experience with Python, FastAPI, PostgreSQL",
             location="Tel Aviv, Israel",
+            salary_min=15000,
+            salary_max=25000,
             status=JobStatus.PUBLISHED,
         )
         session.add(job)
@@ -488,6 +495,8 @@ async def closed_job(company_profile: CompanyProfile) -> Job:
             description="This position is closed",
             requirements="N/A",
             location="N/A",
+            salary_min=10000,
+            salary_max=15000,
             status=JobStatus.CLOSED,
         )
         session.add(job)

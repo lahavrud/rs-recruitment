@@ -163,6 +163,7 @@ async def test_delete_candidate_cascades_applications(
         contact_first_name="א",
         contact_last_name="ב",
         contact_mobile_phone="0501234567",
+        address="רח׳ הדוגמה 1, תל אביב",
     )
     session.add(company)
     await session.flush()
@@ -173,6 +174,8 @@ async def test_delete_candidate_cascades_applications(
         requirements="x",
         location="x",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.flush()
@@ -247,6 +250,8 @@ async def _make_closed_job(
         requirements="x",
         location="x",
         status=JobStatus.CLOSED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
@@ -359,6 +364,8 @@ async def test_purge_preserves_candidate_with_any_active_application(
         requirements="x",
         location="x",
         status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(active)
     await session.commit()

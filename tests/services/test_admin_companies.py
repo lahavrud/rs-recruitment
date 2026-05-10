@@ -419,11 +419,17 @@ async def test_delete_active_company_cascades_jobs_and_applications(
         requirements="Python",
         location="TLV",
         company_id=cp.id,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.flush()
 
-    candidate = CandidateProfile(full_name="Test Candidate", email="cand@example.com")
+    candidate = CandidateProfile(
+        full_name="Test Candidate",
+        email="cand@example.com",
+        phone="050-000-0000",
+    )
     session.add(candidate)
     await session.flush()
 

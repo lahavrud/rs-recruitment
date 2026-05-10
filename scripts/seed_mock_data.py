@@ -50,22 +50,31 @@ COMPANIES = [
         "email": "ops@integrated-fm.com",
         "password": "Company123!",  # pragma: allowlist secret
         "company_name": 'פתרונות מתקנים בע"מ',
-        "contact_person": "דוד כהן",
-        "contact_phone": "050-1111111",
+        "company_id": "511234561",  # ח.פ — 9 digits
+        "address": "רח׳ הברזל 32, תל אביב",
+        "contact_first_name": "דוד",
+        "contact_last_name": "כהן",
+        "contact_mobile_phone": "0501111111",
     },
     {
         "email": "hr@sharion.com",
         "password": "Company123!",  # pragma: allowlist secret
         "company_name": "שריון — אבטחה ותחזוקה",
-        "contact_person": "נועה לוי",
-        "contact_phone": "050-2222222",
+        "company_id": "511234562",
+        "address": "שדרות רוטשילד 15, תל אביב",
+        "contact_first_name": "נועה",
+        "contact_last_name": "לוי",
+        "contact_mobile_phone": "0502222222",
     },
     {
         "email": "info@cleanpro.com",
         "password": "Company123!",  # pragma: allowlist secret
         "company_name": "קלינפרו שירותי מתקנים",
-        "contact_person": "רן מזרחי",
-        "contact_phone": "050-3333333",
+        "company_id": "511234563",
+        "address": "רח׳ המסגר 22, תל אביב",
+        "contact_first_name": "רן",
+        "contact_last_name": "מזרחי",
+        "contact_mobile_phone": "0503333333",
     },
 ]
 
@@ -393,8 +402,11 @@ async def seed() -> None:
                 profile = CompanyProfile(
                     user_id=user.id,
                     name=c["company_name"],
-                    contact_person=c["contact_person"],
-                    contact_phone=c["contact_phone"],
+                    company_id=c["company_id"],
+                    address=c["address"],
+                    contact_first_name=c["contact_first_name"],
+                    contact_last_name=c["contact_last_name"],
+                    contact_mobile_phone=c["contact_mobile_phone"],
                 )
                 session.add(profile)
                 await session.flush()
@@ -424,6 +436,8 @@ async def seed() -> None:
                         description=j["description"],
                         requirements=j["requirements"],
                         location=j["location"],
+                        salary_min=j["salary_min"],
+                        salary_max=j["salary_max"],
                         status=j["status"],
                     )
                     session.add(job)

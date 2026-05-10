@@ -34,6 +34,7 @@ async def test_candidate_profile_minimal_data(session: AsyncSession):
     candidate = CandidateProfile(
         full_name="John Smith",
         email="john.smith@example.com",
+        phone="050-000-0000",
     )
     session.add(candidate)
     await session.commit()
@@ -41,7 +42,7 @@ async def test_candidate_profile_minimal_data(session: AsyncSession):
 
     assert candidate.id is not None
     assert candidate.full_name == "John Smith"
-    assert candidate.phone is None
+    assert candidate.phone == "050-000-0000"
     assert candidate.resume_path is None
     assert candidate.linkedin_url is None
 
@@ -52,6 +53,7 @@ async def test_candidate_profile_unique_email(session: AsyncSession):
     candidate1 = CandidateProfile(
         full_name="User One",
         email="duplicate@example.com",
+        phone="050-000-0000",
     )
     session.add(candidate1)
     await session.commit()
@@ -60,6 +62,7 @@ async def test_candidate_profile_unique_email(session: AsyncSession):
     candidate2 = CandidateProfile(
         full_name="User Two",
         email="duplicate@example.com",
+        phone="050-000-0000",
     )
     session.add(candidate2)
 
@@ -77,6 +80,7 @@ async def test_candidate_profile_interview_fields(session: AsyncSession):
         salary_expectations="15,000 - 20,000 ILS per month",
         personality_weakness="Sometimes too detail-oriented",
         personality_strength="Strong problem-solving skills",
+        phone="050-000-0000",
     )
     session.add(candidate)
     await session.commit()
@@ -99,6 +103,7 @@ async def test_candidate_profile_long_text_fields(session: AsyncSession):
         email="longtext@example.com",
         service_concept=long_text,
         salary_expectations=long_text,
+        phone="050-000-0000",
     )
     session.add(candidate)
     await session.commit()
@@ -115,6 +120,7 @@ async def test_candidate_profile_query_by_email(session: AsyncSession):
     candidate = CandidateProfile(
         full_name="Query Test",
         email="query@example.com",
+        phone="050-000-0000",
     )
     session.add(candidate)
     await session.commit()
@@ -137,6 +143,7 @@ async def test_candidate_profile_no_authentication(session: AsyncSession):
     candidate = CandidateProfile(
         full_name="No Auth User",
         email="noauth@example.com",
+        phone="050-000-0000",
     )
 
     # Verify there's no password or auth-related fields
@@ -158,6 +165,7 @@ def test_candidate_profile_path_traversal_parent_directory():
             {
                 "full_name": "Malicious User",
                 "email": "malicious1@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "../../../../etc/passwd",
             }
         )
@@ -170,6 +178,7 @@ def test_candidate_profile_path_traversal_relative_parent():
             {
                 "full_name": "Malicious User",
                 "email": "malicious2@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "../config.py",
             }
         )
@@ -182,6 +191,7 @@ def test_candidate_profile_absolute_path_rejected():
             {
                 "full_name": "Malicious User",
                 "email": "malicious3@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "/root/sensitive_file",
             }
         )
@@ -194,6 +204,7 @@ def test_candidate_profile_path_outside_uploads_directory():
             {
                 "full_name": "Malicious User",
                 "email": "malicious4@example.com",
+                "phone": "050-000-0000",
                 "resume_path": "config/secrets.env",
             }
         )
@@ -205,6 +216,7 @@ async def test_candidate_profile_valid_resume_path(session: AsyncSession):
     candidate_data = {
         "full_name": "Valid User",
         "email": "valid@example.com",
+        "phone": "050-000-0000",
         "resume_path": "uploads/resumes/valid_resume.pdf",
     }
     candidate = CandidateProfile.model_validate(candidate_data)
@@ -223,6 +235,7 @@ async def test_candidate_profile_none_resume_path_allowed(session: AsyncSession)
         full_name="No Resume User",
         email="noresume@example.com",
         resume_path=None,
+        phone="050-000-0000",
     )
     session.add(candidate)
     await session.commit()
@@ -238,6 +251,7 @@ async def test_candidate_profile_nested_valid_path(session: AsyncSession):
     candidate_data = {
         "full_name": "Nested Path User",
         "email": "nested@example.com",
+        "phone": "050-000-0000",
         "resume_path": "uploads/resumes/2026/01/resume.pdf",
     }
     candidate = CandidateProfile.model_validate(candidate_data)

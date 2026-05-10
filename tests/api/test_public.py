@@ -51,6 +51,8 @@ async def test_get_public_jobs_multiple_published(
             requirements="3+ years experience with React",
             location="Tel Aviv, Israel",
             status=JobStatus.PUBLISHED,
+            salary_min=15000,
+            salary_max=25000,
         )
         session.add(job2)
         await session.commit()

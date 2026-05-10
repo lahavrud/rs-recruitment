@@ -79,7 +79,15 @@ async def test_orphan_company_profile_user_is_none(session: AsyncSession):
     Pins the type annotation: CompanyProfile.user is Optional since user_id is
     nullable.
     """
-    orphan = CompanyProfile(name="Pre-Invite Co", user_id=None)
+    orphan = CompanyProfile(
+        name="Pre-Invite Co",
+        user_id=None,
+        company_id="999999999",
+        address="כתובת לדוגמה",
+        contact_first_name="א",
+        contact_last_name="ב",
+        contact_mobile_phone="0500000000",
+    )
     session.add(orphan)
     await session.commit()
 

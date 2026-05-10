@@ -66,6 +66,8 @@ async def test_get_job_returns_any_status(
         requirements="x",
         location="x",
         status=JobStatus.CLOSED,
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(closed)
     await session.commit()
@@ -178,6 +180,8 @@ async def test_list_jobs_filters_by_status(
                 location="x",
                 status=status,
                 created_at=base + timedelta(minutes=i),
+                salary_min=15000,
+                salary_max=25000,
             )
         )
     await session.commit()
@@ -202,6 +206,8 @@ async def test_list_jobs_paginates_through_all(
                 location="x",
                 status=JobStatus.PUBLISHED,
                 created_at=base + timedelta(minutes=i),
+                salary_min=15000,
+                salary_max=25000,
             )
         )
     await session.commit()

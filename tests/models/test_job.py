@@ -18,6 +18,8 @@ async def test_job_creation(session: AsyncSession, company_with_user: CompanyPro
         description="We are looking for a senior Python developer...",
         requirements="5+ years experience with Python, FastAPI, PostgreSQL",
         location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
     )
     session.add(job)
     await session.commit()
