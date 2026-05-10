@@ -10,13 +10,13 @@ export default function LogoBanner({ className = "" }: LogoBannerProps) {
       <img
         src="/logo.svg"
         alt=""
-        className="h-12 w-12 shrink-0 sm:h-16 sm:w-16"
+        className="h-16 w-16 shrink-0 sm:h-24 sm:w-24"
       />
 
       {/* Vertical rule — desktop only */}
-      <div className="hidden h-10 w-px bg-white/20 sm:mx-6 sm:block" />
+      <div className="hidden h-16 w-px bg-white/20 sm:mx-8 sm:block" />
 
-      <span className="font-display text-2xl font-medium tracking-wide text-white sm:text-4xl lg:text-5xl">
+      <span className="font-display text-4xl font-medium tracking-wide text-copper sm:text-6xl lg:text-7xl">
         RS Recruiting
       </span>
     </div>

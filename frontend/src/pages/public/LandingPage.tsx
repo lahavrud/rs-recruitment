@@ -144,57 +144,57 @@ export default function LandingPage() {
         </div>
 
         {/* Centered hero content — vertically fills remaining space */}
-        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-28 lg:pb-36">
           <LogoBanner />
 
           {/* Gold rule */}
           <div
-            className="mx-auto mt-7 h-px w-28 sm:mt-9 sm:w-36"
+            className="mx-auto mt-8 h-px w-36 sm:mt-10 sm:w-56"
             style={{
               background:
                 "linear-gradient(to right, transparent, var(--color-copper), var(--color-gold), var(--color-copper), transparent)",
             }}
           />
 
-          <p className="mx-auto mt-5 max-w-xs px-2 text-sm font-light tracking-wide text-white/70 sm:mt-7 sm:max-w-sm sm:px-0 sm:text-base">
+          <p className="mx-auto mt-6 max-w-sm px-2 text-base font-light tracking-wide text-white/70 sm:mt-8 sm:max-w-lg sm:px-0 sm:text-lg">
             {t("landing.hero.tagline")}
           </p>
 
           {/* Two audience panels */}
-          <div className="mt-10 grid w-full max-w-xl gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5">
+          <div className="mt-12 grid w-full max-w-3xl gap-5 sm:mt-14 sm:grid-cols-2 sm:gap-6">
             {/* For job seekers — primary */}
-            <div className="flex flex-col rounded-xl border border-copper/35 bg-black/35 p-6 text-start backdrop-blur-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+            <div className="flex flex-col rounded-xl border border-copper/35 bg-black/35 p-7 text-start backdrop-blur-sm sm:p-8">
+              <h2 className="text-2xl font-semibold leading-tight text-white/95 sm:text-3xl">
                 {t("landing.hero.forSeekers")}
-              </p>
-              <h2 className="mt-2 text-base font-semibold leading-snug text-white/95 sm:text-lg">
-                {t("landing.hero.seekersHeadline")}
               </h2>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-white/65">
+              <p className="mt-1.5 text-sm font-medium text-copper/80">
+                {t("landing.hero.seekersHeadline")}
+              </p>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-white/65">
                 {t("landing.hero.seekersBody")}
               </p>
               <Link
                 to="/jobs"
-                className="mt-5 inline-block rounded-sm bg-copper px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-gold"
+                className="mt-6 inline-block rounded-sm bg-copper px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-gold"
               >
                 {t("landing.hero.seekersCta")}
               </Link>
             </div>
 
             {/* For companies — secondary */}
-            <div className="flex flex-col rounded-xl border border-white/15 bg-black/25 p-6 text-start backdrop-blur-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">
+            <div className="flex flex-col rounded-xl border border-white/15 bg-black/25 p-7 text-start backdrop-blur-sm sm:p-8">
+              <h2 className="text-2xl font-semibold leading-tight text-white/95 sm:text-3xl">
                 {t("landing.hero.forCompanies")}
-              </p>
-              <h2 className="mt-2 text-base font-semibold leading-snug text-white/95 sm:text-lg">
-                {t("landing.hero.companiesHeadline")}
               </h2>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-white/65">
+              <p className="mt-1.5 text-sm font-medium text-copper/80">
+                {t("landing.hero.companiesHeadline")}
+              </p>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-white/65">
                 {t("landing.hero.companiesBody")}
               </p>
               <a
                 href={`mailto:${t("landing.contact.email")}`}
-                className="mt-5 inline-block rounded-sm border border-copper/50 px-5 py-2.5 text-center text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper"
+                className="mt-6 inline-block rounded-sm border border-copper/50 px-5 py-2.5 text-center text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper"
               >
                 {t("landing.hero.companiesContactCta")}
               </a>
@@ -223,6 +223,7 @@ export default function LandingPage() {
             {/* Body + pillars */}
             <div className="flex flex-col justify-center sm:col-span-3">
               <p className="text-base leading-relaxed text-white/60">
+                <span className="font-josefin text-4xl font-light tracking-widest text-copper sm:text-5xl">RS Recruiting</span>{" "}
                 {t("landing.about.body")}
               </p>
               <p className="mt-4 text-base leading-relaxed text-white/60">
@@ -428,7 +429,7 @@ export default function LandingPage() {
               {/* register link removed — invite-only */}
             </nav>
             <p className="text-xs text-white/25">
-              &copy; {new Date().getFullYear()} RS Recruiting.{" "}
+              &copy; {new Date().getFullYear()} <span className="text-copper">RS Recruiting</span>.{" "}
               {t("landing.footer.copyright")}
             </p>
           </div>
