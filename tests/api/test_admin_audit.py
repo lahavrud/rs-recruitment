@@ -80,7 +80,7 @@ async def test_audit_log_paginates_through_all_rows(
     cursor: str | None = None
     pages = 0
     while True:
-        params = {"limit": 3}
+        params: dict[str, object] = {"limit": 3}
         if cursor is not None:
             params["cursor"] = cursor
         response = await admin_client.get("/api/admin/audit-log", params=params)
@@ -91,9 +91,10 @@ async def test_audit_log_paginates_through_all_rows(
         cursor = body["next_cursor"]
         if cursor is None:
             break
-        assert pages < 10, "pagination did not terminate"
 
     assert seen == set(range(total))
+    # 7 rows / limit 3 => 3 pages (last is partial).
+    assert pages == 3
 
 
 @pytest.mark.asyncio

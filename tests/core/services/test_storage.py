@@ -1,6 +1,7 @@
 """Tests for storage service."""
 
 import tempfile
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -106,7 +107,6 @@ class TestS3StorageProvider:
     @pytest.mark.asyncio
     async def test_upload_file(self, mock_s3_bucket):
         """Test S3 file upload using mocked S3 client."""
-        from unittest.mock import AsyncMock, patch
 
         provider = S3StorageProvider(
             bucket_name=mock_s3_bucket["bucket_name"],
@@ -139,7 +139,6 @@ class TestS3StorageProvider:
     @pytest.mark.asyncio
     async def test_get_file_url(self, mock_s3_bucket):
         """Test getting S3 presigned URL using mocked S3 client."""
-        from unittest.mock import AsyncMock, patch
 
         provider = S3StorageProvider(
             bucket_name=mock_s3_bucket["bucket_name"],
@@ -166,7 +165,6 @@ class TestS3StorageProvider:
     @pytest.mark.asyncio
     async def test_delete_file(self, mock_s3_bucket):
         """Test S3 file deletion using mocked S3 client."""
-        from unittest.mock import AsyncMock, patch
 
         provider = S3StorageProvider(
             bucket_name=mock_s3_bucket["bucket_name"],
@@ -215,8 +213,6 @@ class TestS3StorageProviderErrors:
     async def test_upload_put_object_failure_raises_value_error(
         self, provider: S3StorageProvider
     ):
-        from unittest.mock import AsyncMock, patch
-
         mock_s3 = AsyncMock()
         mock_s3.put_object = AsyncMock(side_effect=self._client_error("AccessDenied"))
 
@@ -230,7 +226,6 @@ class TestS3StorageProviderErrors:
         self, provider: S3StorageProvider
     ):
         """put_object succeeds but head_object 404 means the upload silently dropped."""
-        from unittest.mock import AsyncMock, patch
 
         mock_s3 = AsyncMock()
         mock_s3.put_object = AsyncMock()
@@ -245,8 +240,6 @@ class TestS3StorageProviderErrors:
     async def test_get_file_url_failure_raises_value_error(
         self, provider: S3StorageProvider
     ):
-        from unittest.mock import AsyncMock, patch
-
         mock_s3 = AsyncMock()
         mock_s3.generate_presigned_url = AsyncMock(
             side_effect=self._client_error("NoSuchKey")
@@ -261,8 +254,6 @@ class TestS3StorageProviderErrors:
     async def test_download_file_failure_raises_value_error(
         self, provider: S3StorageProvider
     ):
-        from unittest.mock import AsyncMock, patch
-
         mock_s3 = AsyncMock()
         mock_s3.get_object = AsyncMock(side_effect=self._client_error("NoSuchKey"))
 
@@ -274,7 +265,6 @@ class TestS3StorageProviderErrors:
     @pytest.mark.asyncio
     async def test_delete_file_failure_returns_false(self, provider: S3StorageProvider):
         """delete_file swallows ClientError and returns False (idempotent semantics)."""
-        from unittest.mock import AsyncMock, patch
 
         mock_s3 = AsyncMock()
         mock_s3.delete_object = AsyncMock(
