@@ -1,5 +1,8 @@
 """Security tests for storage providers."""
 
+import tempfile
+from pathlib import Path
+
 import pytest
 
 from src.core.services.storage_local import LocalStorageProvider
@@ -205,7 +208,7 @@ class TestLocalStorageProviderSecurity:
 
     @pytest.mark.asyncio
     async def test_symlink_to_outside_storage_is_rejected(
-        self, provider: LocalStorageProvider, tmp_path
+        self, provider: LocalStorageProvider
     ):
         """A symlink inside storage_path pointing OUTSIDE must be rejected.
 
@@ -213,15 +216,21 @@ class TestLocalStorageProviderSecurity:
         but never reach the `resolved.relative_to(self.storage_path)` check.
         A symlink slips past the string guard, so this check is the only thing
         protecting against an attacker who can plant a link in the storage dir.
+
+        Note: the symlink target must live OUTSIDE provider.storage_path.
+        Using the provider fixture's own tmp_path here would make the
+        target a sibling inside storage_path, and the .resolve()
+        relative_to check would (correctly) succeed.
         """
-        outside = tmp_path / "secret_target"
-        outside.write_bytes(b"sensitive")
+        with tempfile.TemporaryDirectory() as outside_root:
+            outside_target = Path(outside_root) / "secret_target"
+            outside_target.write_bytes(b"sensitive")
 
-        link = provider.storage_path / "innocent_name"
-        link.symlink_to(outside)
+            link = provider.storage_path / "innocent_name"
+            link.symlink_to(outside_target)
 
-        with pytest.raises(ValueError, match="resolves outside storage directory"):
-            await provider.get_file_url("innocent_name")
+            with pytest.raises(ValueError, match="resolves outside storage directory"):
+                await provider.get_file_url("innocent_name")
 
-        with pytest.raises(ValueError, match="resolves outside storage directory"):
-            await provider.delete_file("innocent_name")
+            with pytest.raises(ValueError, match="resolves outside storage directory"):
+                await provider.delete_file("innocent_name")
