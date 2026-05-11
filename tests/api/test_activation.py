@@ -60,7 +60,7 @@ async def _make_pending_company(session: AsyncSession) -> tuple[User, str]:
 
 
 @pytest.mark.asyncio
-async def test_activate_valid_token():
+async def test_activate_valid_token(test_db):
     async with TestSessionLocal() as session:
         user, token = await _make_pending_company(session)
 
@@ -92,7 +92,7 @@ async def test_activate_invalid_token_returns_400():
 
 
 @pytest.mark.asyncio
-async def test_activate_used_token_returns_400():
+async def test_activate_used_token_returns_400(test_db):
     async with TestSessionLocal() as session:
         user, token = await _make_pending_company(session)
         # Mark token as used

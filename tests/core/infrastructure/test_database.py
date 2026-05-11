@@ -43,7 +43,7 @@ class TestInitDB:
         assert "application" in table_names
 
     @pytest.mark.asyncio
-    async def test_init_db_all_models_registered(self):
+    async def test_init_db_all_models_registered(self, test_db):
         """Test that all models are registered with SQLModel.metadata."""
         test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
 
@@ -75,7 +75,7 @@ class TestInitDB:
             assert isinstance(applications, list)
 
     @pytest.mark.asyncio
-    async def test_init_db_tables_can_be_queried(self):
+    async def test_init_db_tables_can_be_queried(self, test_db):
         """Test that tables can be queried after initialization."""
         test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, future=True)
         test_session_factory = async_sessionmaker(
