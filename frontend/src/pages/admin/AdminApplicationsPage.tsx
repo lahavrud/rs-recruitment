@@ -19,6 +19,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
 import FunnelIcon from "@/components/admin/FunnelIcon";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
@@ -430,7 +431,14 @@ export default function AdminApplicationsPage() {
       </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} columns={4} />
+        <>
+          <div className="md:hidden">
+            <MobileListSkeleton rows={6} />
+          </div>
+          <div className="hidden md:block">
+            <TableSkeleton rows={6} columns={4} />
+          </div>
+        </>
       ) : error ? (
         <ErrorState message={t("admin.applications.loadError")} onRetry={reload} />
       ) : applications.length === 0 ? (
