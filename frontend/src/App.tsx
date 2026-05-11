@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
-import ErrorBoundary from "@/components/ErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import CompanyRoute from "@/components/CompanyRoute";
@@ -29,7 +28,6 @@ import CompanyJobsPage from "@/pages/company/CompanyJobsPage";
 export default function App() {
   return (
     <HelmetProvider>
-    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <AppShell>
@@ -108,7 +106,6 @@ export default function App() {
         </AppShell>
       </AuthProvider>
     </BrowserRouter>
-    </ErrorBoundary>
     </HelmetProvider>
   );
 }
