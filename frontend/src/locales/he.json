@@ -83,8 +83,7 @@
       "passwordPlaceholder": "הכנס את הסיסמה שלך",
       "submitText": "התחברות",
       "submittingText": "מתחבר…",
-      "noAccount": "אין לך חשבון?",
-      "registerLink": "הרשם כחברה",
+      "forgotPasswordLink": "שכחת סיסמה?",
       "validation": {
         "emailRequired": "נדרשת כתובת אימייל",
         "emailInvalid": "נא להזין כתובת אימייל תקינה",
@@ -193,6 +192,63 @@
       "nextStep": "המשך לשלב הבא",
       "backStep": "חזרה לשלב הקודם",
       "agreementTextPrivacyPreview": "RS Recruiting פועלת כמעבד נתונים ומחויבת להגנה על פרטיות המידע האישי שנמסר לנו. מסמך זה מפרט את מדיניות הפרטיות שלנו בהתאם לחוק הגנת הפרטיות הישראלי תשמ\"א-1981, תקנות אבטחת מידע תשע\"ז-2017, ועקרונות ה-GDPR האירופאי."
+    },
+    "forgotPassword": {
+      "title": "איפוס סיסמה",
+      "subtitle": "הזינו את כתובת הדוא״ל ונשלח אליכם קישור לאיפוס הסיסמה.",
+      "emailLabel": "כתובת אימייל",
+      "emailPlaceholder": "you@example.com",
+      "submitText": "שליחת קישור איפוס",
+      "submittingText": "שולח…",
+      "backToLogin": "חזרה להתחברות",
+      "validation": {
+        "emailRequired": "נדרשת כתובת אימייל",
+        "emailInvalid": "נא להזין כתובת אימייל תקינה"
+      },
+      "success": {
+        "title": "הבקשה התקבלה",
+        "message": "אם הכתובת רשומה במערכת, ישלח אליה קישור לאיפוס הסיסמה. בדקו את תיבת הדוא״ל שלכם.",
+        "backToLogin": "חזרה להתחברות"
+      },
+      "errors": {
+        "tooManyAttempts": "יותר מדי בקשות איפוס. אנא המתינו ונסו שוב מאוחר יותר.",
+        "unexpected": "אירעה שגיאה. אנא נסו שוב."
+      }
+    },
+    "resetPassword": {
+      "title": "הגדרת סיסמה חדשה",
+      "subtitle": "בחרו סיסמה חדשה לחשבון שלכם.",
+      "passwordLabel": "סיסמה חדשה",
+      "confirmLabel": "אימות סיסמה",
+      "submitText": "עדכון סיסמה",
+      "submittingText": "מעדכן…",
+      "backToLogin": "חזרה להתחברות",
+      "validation": {
+        "passwordRequired": "נדרשת סיסמה",
+        "passwordMin": "הסיסמה חייבת להכיל לפחות 8 תווים",
+        "passwordUppercase": "הסיסמה חייבת להכיל לפחות אות גדולה אחת באנגלית",
+        "passwordLowercase": "הסיסמה חייבת להכיל לפחות אות קטנה אחת באנגלית",
+        "passwordDigit": "הסיסמה חייבת להכיל לפחות ספרה אחת",
+        "passwordSpecial": "הסיסמה חייבת להכיל לפחות תו מיוחד אחד",
+        "confirmRequired": "נא לאשר את הסיסמה",
+        "confirmMismatch": "הסיסמאות אינן תואמות"
+      },
+      "success": {
+        "title": "הסיסמה עודכנה",
+        "message": "תוכלו כעת להתחבר עם הסיסמה החדשה.",
+        "loginButton": "כניסה למערכת"
+      },
+      "invalidToken": {
+        "title": "הקישור אינו תקף",
+        "message": "הקישור פג תוקפו, נעשה בו שימוש או שגוי. ניתן לבקש קישור חדש.",
+        "requestNew": "בקשת קישור חדש"
+      },
+      "errors": {
+        "invalidToken": "הקישור אינו תקף או שפג תוקפו. ניתן לבקש קישור חדש.",
+        "tooManyAttempts": "יותר מדי בקשות. אנא המתינו ונסו שוב מאוחר יותר.",
+        "failed": "עדכון הסיסמה נכשל. אנא נסו שוב.",
+        "unexpected": "אירעה שגיאה. אנא נסו שוב."
+      }
     },
     "activate": {
       "loading": "מפעיל חשבון…",

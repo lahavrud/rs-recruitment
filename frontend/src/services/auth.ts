@@ -57,6 +57,20 @@ export async function activateAccount(token: string): Promise<void> {
   });
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post("/auth/forgot-password", { email });
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  await api.post("/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+}
+
 export function logout(): void {
   const refreshToken = getRefreshToken();
   removeToken();

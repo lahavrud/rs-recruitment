@@ -163,9 +163,11 @@ export default function LoginPage() {
         </form>
 
         <p className="px-6 pb-8 text-center text-sm text-white/35 sm:px-8">
-          {t("auth.login.noAccount")}{" "}
-          <Link to="/register" className="text-copper transition hover:text-gold">
-            {t("auth.login.registerLink")}
+          <Link
+            to="/forgot-password"
+            className="text-copper transition hover:text-gold"
+          >
+            {t("auth.login.forgotPasswordLink")}
           </Link>
         </p>
       </div>

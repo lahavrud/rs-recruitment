@@ -20,6 +20,7 @@ from src.api import (
     invites,
     jobs_read,
     jobs_write,
+    password_reset,
     public,
     resumes,
     seo,
@@ -66,6 +67,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(activation.router)
+app.include_router(password_reset.router)
 app.include_router(invites.router)
 app.include_router(admin_companies.router)
 app.include_router(admin_invites.router)
