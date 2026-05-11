@@ -16,6 +16,45 @@ from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundEr
 _PDF_BYTES = b"%PDF-1.4" + b"\x00" * 50
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+async def _make_published_job(
+    session: AsyncSession,
+    company_with_user,
+    title: str = "Senior Python Developer",
+) -> Job:
+    """Create + persist a published job under the test company."""
+    job = Job(
+        company_id=company_with_user.id,
+        title=title,
+        description="We are looking for a senior Python developer...",
+        requirements="5+ years experience",
+        location="Tel Aviv, Israel",
+        salary_min=15000,
+        salary_max=25000,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    assert job.id is not None
+    return job
+
+
+def _default_candidate(**overrides) -> CandidateProfileCreate:
+    """Build a CandidateProfileCreate with sensible defaults; overrides as kwargs."""
+    base = {
+        "full_name": "John Doe",
+        "email": "john@example.com",
+        "phone": "050-000-0001",
+    }
+    base.update(overrides)
+    return CandidateProfileCreate(**base)
+
+
+# ── Happy paths ───────────────────────────────────────────────────────────────
+
+
 @pytest.mark.asyncio
 @patch("src.services.applications.enqueue_email_task")
 @patch("src.services.applications.get_storage_provider")
@@ -25,61 +64,34 @@ async def test_create_candidate_profile_success(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test successfully creating a candidate profile without resume."""
+    """Successful apply (no resume): candidate + NEW Application row are persisted."""
     mock_enqueue_email.return_value = "test-job-id"
-
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
-
-    # Create candidate data
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="123-456-7890",
-        linkedin_url="https://linkedin.com/in/johndoe",
-        service_concept="I want to work on exciting projects",
-        salary_expectations="100k-120k",
-    )
+    job = await _make_published_job(session, company_with_user)
 
     candidate = await create_candidate_profile(
-        candidate_data=candidate_data,
+        candidate_data=_default_candidate(
+            linkedin_url="https://linkedin.com/in/johndoe",
+            service_concept="I want to work on exciting projects",
+            salary_expectations="100k-120k",
+        ),
         job_id=job.id,
         session=session,
     )
 
     assert candidate.id is not None
     assert candidate.full_name == "John Doe"
-    assert candidate.email == "john@example.com"
-    assert candidate.phone == "123-456-7890"
     assert candidate.linkedin_url == "https://linkedin.com/in/johndoe"
     assert candidate.resume_path is None
 
-    # Verify Application was created
-    result = await session.execute(
-        select(Application).where(  # pyright: ignore[reportArgumentType]
-            Application.candidate_id == candidate.id,  # pyright: ignore[reportArgumentType]
-            Application.job_id == job.id,  # pyright: ignore[reportArgumentType]
+    application = (
+        await session.execute(
+            select(Application).where(  # pyright: ignore[reportArgumentType]
+                Application.candidate_id == candidate.id,
+                Application.job_id == job.id,
+            )
         )
-    )
-    application = result.scalar_one_or_none()
-    assert application is not None
+    ).scalar_one()
     assert application.status == ApplicationStatus.NEW
-
-    # Note: Email is only sent if admin users exist
-    # This test doesn't create an admin, so email won't be sent
-    # For email testing, see test_create_candidate_profile_sends_admin_email
 
 
 @pytest.mark.asyncio
@@ -91,148 +103,31 @@ async def test_create_candidate_profile_with_resume(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test creating a candidate profile with resume file upload."""
+    """Resume file is uploaded via storage and its key lands on the profile."""
     mock_enqueue_email.return_value = "test-job-id"
-
-    # Mock storage provider
     mock_storage = AsyncMock()
     mock_storage.upload_file = AsyncMock(return_value="resume-uuid-123.pdf")
     mock_storage_provider.return_value = mock_storage
 
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
+    job = await _make_published_job(session, company_with_user)
 
-    # Create candidate data with resume
-    candidate_data = CandidateProfileCreate(
-        full_name="Jane Doe",
-        email="jane@example.com",
-        phone="987-654-3210",
-    )
-
-    resume_file = _PDF_BYTES
-    resume_filename = "resume.pdf"
-
+    candidate_data = _default_candidate(full_name="Jane Doe", email="jane@example.com")
     candidate = await create_candidate_profile(
         candidate_data=candidate_data,
         job_id=job.id,
-        resume_file=resume_file,
-        resume_filename=resume_filename,
+        resume_file=_PDF_BYTES,
+        resume_filename="resume.pdf",
         session=session,
     )
 
-    assert candidate.id is not None
-    assert candidate.full_name == "Jane Doe"
-    assert candidate.email == "jane@example.com"
     assert candidate.resume_path == "resume-uuid-123.pdf"
-
-    # Verify storage was called
     mock_storage.upload_file.assert_called_once()
-    call_args = mock_storage.upload_file.call_args
-    assert call_args[1]["file_content"] == resume_file
-    assert call_args[1]["file_name"] == f"resumes/{resume_filename}"
-
-    # Verify Application was created
-    result = await session.execute(
-        select(Application).where(  # pyright: ignore[reportArgumentType]
-            Application.candidate_id == candidate.id,  # pyright: ignore[reportArgumentType]
-            Application.job_id == job.id,  # pyright: ignore[reportArgumentType]
-        )
-    )
-    application = result.scalar_one_or_none()
-    assert application is not None
-    assert application.status == ApplicationStatus.NEW
+    call_kwargs = mock_storage.upload_file.call_args.kwargs
+    assert call_kwargs["file_content"] == _PDF_BYTES
+    assert call_kwargs["file_name"] == "resumes/resume.pdf"
 
 
-@pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-async def test_create_candidate_profile_duplicate_email(
-    mock_enqueue_email,
-    session: AsyncSession,
-    company_with_user,
-):
-    """Test duplicate email reuses existing profile."""
-    mock_enqueue_email.return_value = "test-job-id"
-
-    # Create two published jobs
-    job1 = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    job2 = Job(
-        company_id=company_with_user.id,
-        title="Junior Python Developer",
-        description="We are looking for a junior Python developer...",
-        requirements="1+ years experience with Python",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job1)
-    session.add(job2)
-    await session.commit()
-    await session.refresh(job1)
-    await session.refresh(job2)
-    assert job1.id is not None
-    assert job2.id is not None
-
-    # Create first candidate for job1
-    candidate_data1 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate1 = await create_candidate_profile(
-        candidate_data=candidate_data1,
-        job_id=job1.id,
-        session=session,
-    )
-    assert candidate1.id is not None
-    candidate_id = candidate1.id
-
-    # Create second application with same email for job2
-    # Should reuse existing profile and create new Application
-    candidate_data2 = CandidateProfileCreate(
-        full_name="John Smith",  # Different name (should be updated)
-        email="john@example.com",  # Same email
-        phone="050-000-0001",
-    )
-    candidate2 = await create_candidate_profile(
-        candidate_data=candidate_data2,
-        job_id=job2.id,
-        session=session,
-    )
-
-    # Verify: Same candidate profile ID, name updated
-    assert candidate2.id == candidate_id
-    assert candidate2.full_name == "John Smith"  # Name should be updated
-
-    # Verify: Two applications exist
-    result = await session.execute(
-        select(Application).where(  # pyright: ignore[reportArgumentType]
-            Application.candidate_id == candidate_id,  # pyright: ignore[reportArgumentType]
-        )
-    )
-    applications = result.scalars().all()
-    assert len(applications) == 2
-    job_ids = {app.job_id for app in applications}
-    assert job_ids == {job1.id, job2.id}
+# ── File-validation rejection paths ───────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -244,40 +139,16 @@ async def test_create_candidate_profile_invalid_file(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test creating a candidate profile with invalid file type."""
+    """A .txt resume is rejected before any storage call."""
     mock_enqueue_email.return_value = "test-job-id"
-
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
-
-    # Create candidate data with invalid file type
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-
-    resume_file = b"fake content"
-    resume_filename = "resume.txt"  # Invalid file type
+    job = await _make_published_job(session, company_with_user)
 
     with pytest.raises(ValueError, match="Invalid file type"):
         await create_candidate_profile(
-            candidate_data=candidate_data,
+            candidate_data=_default_candidate(),
             job_id=job.id,
-            resume_file=resume_file,
-            resume_filename=resume_filename,
+            resume_file=b"fake content",
+            resume_filename="resume.txt",
             session=session,
         )
 
@@ -291,31 +162,14 @@ async def test_create_candidate_profile_forged_magic_bytes_rejected(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test that a file with a forged extension is rejected via magic byte check."""
+    """An exe renamed to .pdf is caught by the magic-byte check."""
     mock_enqueue_email.return_value = "test-job-id"
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="Description",
-        requirements="Requirements",
-        location="Tel Aviv",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
+    job = await _make_published_job(session, company_with_user)
 
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="forged@example.com",
-        phone="050-000-0001",
-    )
-    exe_bytes = b"MZ" + b"\x00" * 100  # Windows PE disguised as PDF
+    exe_bytes = b"MZ" + b"\x00" * 100  # Windows PE header
     with pytest.raises(ValueError, match="does not match"):
         await create_candidate_profile(
-            candidate_data=candidate_data,
+            candidate_data=_default_candidate(email="forged@example.com"),
             job_id=job.id,
             resume_file=exe_bytes,
             resume_filename="resume.pdf",
@@ -332,114 +186,21 @@ async def test_create_candidate_profile_file_size_limit(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test creating a candidate profile with file exceeding size limit."""
+    """A >10 MB resume is rejected before the magic-byte check."""
     mock_enqueue_email.return_value = "test-job-id"
-
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
-
-    # Create candidate data with oversized file
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-
-    # Create file larger than 10MB
-    resume_file = b"x" * (11 * 1024 * 1024)  # 11MB
-    resume_filename = "resume.pdf"
+    job = await _make_published_job(session, company_with_user)
 
     with pytest.raises(ValueError, match="File size exceeds maximum"):
         await create_candidate_profile(
-            candidate_data=candidate_data,
+            candidate_data=_default_candidate(),
             job_id=job.id,
-            resume_file=resume_file,
-            resume_filename=resume_filename,
+            resume_file=b"x" * (11 * 1024 * 1024),
+            resume_filename="resume.pdf",
             session=session,
         )
 
 
-@pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-async def test_create_application_on_profile_creation(
-    mock_enqueue_email,
-    session: AsyncSession,
-    company_with_user,
-):
-    """Test that Application record is created when candidate profile is created."""
-    mock_enqueue_email.return_value = "test-job-id"
-
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
-
-    # Create candidate
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-
-    candidate = await create_candidate_profile(
-        candidate_data=candidate_data,
-        job_id=job.id,
-        session=session,
-    )
-
-    # Verify Application was created with correct status
-    result = await session.execute(
-        select(Application).where(  # pyright: ignore[reportArgumentType]
-            Application.candidate_id == candidate.id,  # pyright: ignore[reportArgumentType]
-            Application.job_id == job.id,  # pyright: ignore[reportArgumentType]
-        )
-    )
-    application = result.scalar_one()
-    assert application.status == ApplicationStatus.NEW
-    assert application.candidate_id == candidate.id
-    assert application.job_id == job.id
-
-
-async def _make_published_job(
-    session: AsyncSession,
-    company_with_user,
-    title: str = "Senior Python Developer",
-) -> Job:
-    job = Job(
-        company_id=company_with_user.id,
-        title=title,
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    return job
+# ── Email side effects ────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -451,17 +212,13 @@ async def test_create_candidate_profile_sends_candidate_confirmation_email(
 ):
     """The candidate gets a Hebrew HTML confirmation email after a successful apply."""
     mock_enqueue_email.return_value = "test-job-id"
-
     job = await _make_published_job(session, company_with_user)
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="123-456-7890",
-    )
 
     async with transactional(session):
         await create_candidate_profile(
-            candidate_data=candidate_data, job_id=job.id, session=session
+            candidate_data=_default_candidate(phone="123-456-7890"),
+            job_id=job.id,
+            session=session,
         )
 
     # First call is the candidate confirmation; second is the admin notification.
@@ -490,29 +247,26 @@ async def test_create_candidate_profile_admin_email_falls_back_to_all_admins(
     monkeypatch.setattr(runtime_settings, "admin_notification_email", None)
     mock_enqueue_email.return_value = "test-job-id"
 
-    admin = User(
-        email="admin@test.com",
-        hashed_password=get_password_hash("password"),
-        role=UserRole.ADMIN,
-        is_active=True,
+    session.add(
+        User(
+            email="admin@test.com",
+            hashed_password=get_password_hash("password"),
+            role=UserRole.ADMIN,
+            is_active=True,
+        )
     )
-    session.add(admin)
     await session.commit()
 
     job = await _make_published_job(session, company_with_user)
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="123-456-7890",
-    )
 
     async with transactional(session):
         await create_candidate_profile(
-            candidate_data=candidate_data, job_id=job.id, session=session
+            candidate_data=_default_candidate(phone="123-456-7890"),
+            job_id=job.id,
+            session=session,
         )
 
-    # Two emails: candidate (index 0), admin (index 1).
-    assert mock_enqueue_email.call_count == 2
+    assert mock_enqueue_email.call_count == 2  # candidate + admin
     admin_call = mock_enqueue_email.call_args_list[1].kwargs
     assert admin_call["to"] == ["admin@test.com"]
     assert "John Doe" in admin_call["html_body"]
@@ -534,205 +288,110 @@ async def test_create_candidate_profile_admin_email_uses_env_var_when_set(
         runtime_settings, "admin_notification_email", "ops@rsrecruit.test"
     )
     mock_enqueue_email.return_value = "test-job-id"
-
     job = await _make_published_job(session, company_with_user)
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="123-456-7890",
-    )
 
     async with transactional(session):
         await create_candidate_profile(
-            candidate_data=candidate_data, job_id=job.id, session=session
+            candidate_data=_default_candidate(phone="123-456-7890"),
+            job_id=job.id,
+            session=session,
         )
 
     admin_call = mock_enqueue_email.call_args_list[1].kwargs
     assert admin_call["to"] == "ops@rsrecruit.test"
 
 
+# ── Argument validation ───────────────────────────────────────────────────────
+
+
 @pytest.mark.asyncio
 async def test_create_candidate_profile_job_not_found(session: AsyncSession):
-    """Test creating a candidate profile for non-existent job."""
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-
     with pytest.raises(JobNotFoundError, match="Job with ID 999 not found"):
         await create_candidate_profile(
-            candidate_data=candidate_data,
-            job_id=999,  # Non-existent job ID
+            candidate_data=_default_candidate(),
+            job_id=999,
             session=session,
         )
 
 
 @pytest.mark.asyncio
 async def test_create_candidate_profile_session_required():
-    """Test that create_candidate_profile requires a session."""
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-
     with pytest.raises(ValueError, match="Database session is required"):
         await create_candidate_profile(
-            candidate_data=candidate_data,
+            candidate_data=_default_candidate(),
             job_id=1,
             session=None,  # type: ignore[arg-type]
         )
 
 
+# ── Re-apply behavior (parametrized over field-update rules) ──────────────────
+
+
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "first_overrides, second_overrides, expected",
+    [
+        # Same data twice — verifies profile reuse + 2 applications.
+        ({}, {}, {"full_name": "John Doe", "linkedin_url": None}),
+        # full_name is always overwritten on re-apply.
+        (
+            {},
+            {"full_name": "John Smith"},
+            {"full_name": "John Smith", "linkedin_url": None},
+        ),
+        # Optional fields fill in when previously None.
+        (
+            {},
+            {"linkedin_url": "https://linkedin.com/in/johndoe"},
+            {
+                "full_name": "John Doe",
+                "linkedin_url": "https://linkedin.com/in/johndoe",
+            },
+        ),
+    ],
+    ids=["same-data", "name-overwrites", "linkedin-fills"],
+)
 @patch("src.services.applications.enqueue_email_task")
-async def test_create_candidate_profile_reuses_existing_profile(
+async def test_create_candidate_profile_reapply_updates_profile(
     mock_enqueue_email,
+    first_overrides,
+    second_overrides,
+    expected,
     session: AsyncSession,
     company_with_user,
 ):
-    """Test that applying to different jobs with same email reuses existing profile."""
+    """Re-applying with the same email reuses the profile + applies update rules."""
     mock_enqueue_email.return_value = "test-job-id"
+    job1 = await _make_published_job(session, company_with_user, title="Senior")
+    job2 = await _make_published_job(session, company_with_user, title="Junior")
 
-    # Create two published jobs
-    job1 = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    job2 = Job(
-        company_id=company_with_user.id,
-        title="Junior Python Developer",
-        description="We are looking for a junior Python developer...",
-        requirements="1+ years experience with Python",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job1)
-    session.add(job2)
-    await session.commit()
-    await session.refresh(job1)
-    await session.refresh(job2)
-    assert job1.id is not None
-    assert job2.id is not None
-
-    # Create candidate with email "john@example.com" for Job A
-    candidate_data1 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate1 = await create_candidate_profile(
-        candidate_data=candidate_data1,
+    first = await create_candidate_profile(
+        candidate_data=_default_candidate(**first_overrides),
         job_id=job1.id,
         session=session,
     )
-    candidate_id = candidate1.id
-    assert candidate_id is not None
-
-    # Create another application with same email for Job B
-    candidate_data2 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate2 = await create_candidate_profile(
-        candidate_data=candidate_data2,
+    second = await create_candidate_profile(
+        candidate_data=_default_candidate(**second_overrides),
         job_id=job2.id,
         session=session,
     )
 
-    # Verify: Same candidate profile ID, two applications exist
-    assert candidate2.id == candidate_id
+    assert second.id == first.id
+    for field, value in expected.items():
+        assert getattr(second, field) == value
 
-    # Verify two applications exist
-    result = await session.execute(
-        select(Application).where(  # pyright: ignore[reportArgumentType]
-            Application.candidate_id == candidate_id,  # pyright: ignore[reportArgumentType]
+    applications = (
+        (
+            await session.execute(
+                select(Application).where(  # pyright: ignore[reportArgumentType]
+                    Application.candidate_id == first.id,
+                )
+            )
         )
+        .scalars()
+        .all()
     )
-    applications = result.scalars().all()
-    assert len(applications) == 2
-    job_ids = {app.job_id for app in applications}
-    assert job_ids == {job1.id, job2.id}
-
-
-@pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-async def test_create_candidate_profile_updates_existing_profile(
-    mock_enqueue_email,
-    session: AsyncSession,
-    company_with_user,
-):
-    """Test that applying again with same email updates profile with new data."""
-    mock_enqueue_email.return_value = "test-job-id"
-
-    # Create two published jobs
-    job1 = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    job2 = Job(
-        company_id=company_with_user.id,
-        title="Junior Python Developer",
-        description="We are looking for a junior Python developer...",
-        requirements="1+ years experience with Python",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job1)
-    session.add(job2)
-    await session.commit()
-    await session.refresh(job1)
-    await session.refresh(job2)
-    assert job1.id is not None
-    assert job2.id is not None
-
-    # Create candidate with phone but no linkedin
-    candidate_data1 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate1 = await create_candidate_profile(
-        candidate_data=candidate_data1,
-        job_id=job1.id,
-        session=session,
-    )
-    candidate_id = candidate1.id
-    assert candidate_id is not None
-    assert candidate1.phone == "050-000-0001"
-    assert candidate1.linkedin_url is None
-
-    # Create second application with same email, adding linkedin
-    candidate_data2 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-        linkedin_url="https://linkedin.com/in/johndoe",
-    )
-    candidate2 = await create_candidate_profile(
-        candidate_data=candidate_data2,
-        job_id=job2.id,
-        session=session,
-    )
-
-    # Verify: linkedin filled in on second application, same profile ID
-    assert candidate2.id == candidate_id
-    assert candidate2.phone == "050-000-0001"
-    assert candidate2.linkedin_url == "https://linkedin.com/in/johndoe"
+    assert {a.job_id for a in applications} == {job1.id, job2.id}
 
 
 @pytest.mark.asyncio
@@ -744,151 +403,38 @@ async def test_create_candidate_profile_does_not_overwrite_resume(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test that applying again with new resume doesn't overwrite existing resume."""
+    """Re-applying with a new resume keeps the original resume_path on the profile."""
     mock_enqueue_email.return_value = "test-job-id"
-
-    # Create two published jobs
-    job1 = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    job2 = Job(
-        company_id=company_with_user.id,
-        title="Junior Python Developer",
-        description="We are looking for a junior Python developer...",
-        requirements="1+ years experience with Python",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job1)
-    session.add(job2)
-    await session.commit()
-    await session.refresh(job1)
-    await session.refresh(job2)
-    assert job1.id is not None
-    assert job2.id is not None
-
-    # Mock storage provider
     mock_storage = AsyncMock()
-    mock_storage.upload_file = AsyncMock(return_value="resume1.pdf")
     mock_storage_provider.return_value = mock_storage
 
-    # Create candidate with resume_path = "resume1.pdf"
-    candidate_data1 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    resume_file1 = _PDF_BYTES
-    resume_filename1 = "resume1.pdf"
+    job1 = await _make_published_job(session, company_with_user, title="Senior")
+    job2 = await _make_published_job(session, company_with_user, title="Junior")
 
-    candidate1 = await create_candidate_profile(
-        candidate_data=candidate_data1,
+    mock_storage.upload_file = AsyncMock(return_value="resume1.pdf")
+    first = await create_candidate_profile(
+        candidate_data=_default_candidate(),
         job_id=job1.id,
-        resume_file=resume_file1,
-        resume_filename=resume_filename1,
+        resume_file=_PDF_BYTES,
+        resume_filename="resume1.pdf",
         session=session,
     )
-    candidate_id = candidate1.id
-    assert candidate_id is not None
-    assert candidate1.resume_path == "resume1.pdf"
+    assert first.resume_path == "resume1.pdf"
 
-    # Create second application with same email, new resume = "resume2.pdf"
     mock_storage.upload_file = AsyncMock(return_value="resume2.pdf")
-    candidate_data2 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    resume_file2 = _PDF_BYTES
-    resume_filename2 = "resume2.pdf"
-
-    candidate2 = await create_candidate_profile(
-        candidate_data=candidate_data2,
+    second = await create_candidate_profile(
+        candidate_data=_default_candidate(),
         job_id=job2.id,
-        resume_file=resume_file2,
-        resume_filename=resume_filename2,
+        resume_file=_PDF_BYTES,
+        resume_filename="resume2.pdf",
         session=session,
     )
 
-    # Verify: Profile keeps original resume_path (don't overwrite existing resume)
-    assert candidate2.id == candidate_id
-    assert candidate2.resume_path == "resume1.pdf"  # Original resume kept
+    assert second.id == first.id
+    assert second.resume_path == "resume1.pdf"  # original kept
 
 
-@pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-async def test_create_candidate_profile_always_updates_full_name(
-    mock_enqueue_email,
-    session: AsyncSession,
-    company_with_user,
-):
-    """Test that full_name is always updated even if candidate exists."""
-    mock_enqueue_email.return_value = "test-job-id"
-
-    # Create two published jobs
-    job1 = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    job2 = Job(
-        company_id=company_with_user.id,
-        title="Junior Python Developer",
-        description="We are looking for a junior Python developer...",
-        requirements="1+ years experience with Python",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job1)
-    session.add(job2)
-    await session.commit()
-    await session.refresh(job1)
-    await session.refresh(job2)
-    assert job1.id is not None
-    assert job2.id is not None
-
-    # Create candidate with full_name = "John Doe"
-    candidate_data1 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate1 = await create_candidate_profile(
-        candidate_data=candidate_data1,
-        job_id=job1.id,
-        session=session,
-    )
-    candidate_id = candidate1.id
-    assert candidate_id is not None
-    assert candidate1.full_name == "John Doe"
-
-    # Create second application with same email, full_name = "John Smith"
-    candidate_data2 = CandidateProfileCreate(
-        full_name="John Smith",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate2 = await create_candidate_profile(
-        candidate_data=candidate_data2,
-        job_id=job2.id,
-        session=session,
-    )
-
-    # Verify: Profile updated with "John Smith"
-    assert candidate2.id == candidate_id
-    assert candidate2.full_name == "John Smith"
+# ── Duplicate / fan-out invariants ────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -898,54 +444,24 @@ async def test_create_candidate_profile_duplicate_application_raises_error(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test that applying twice to same job raises ApplicationAlreadyExistsError."""
+    """Applying twice to the same job raises ApplicationAlreadyExistsError."""
     mock_enqueue_email.return_value = "test-job-id"
+    job = await _make_published_job(session, company_with_user)
 
-    # Create a published job
-    job = Job(
-        company_id=company_with_user.id,
-        title="Senior Python Developer",
-        description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-        location="Tel Aviv, Israel",
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(job)
-    await session.commit()
-    await session.refresh(job)
-    assert job.id is not None
-
-    # Create candidate application for Job A
-    candidate_data1 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate1 = await create_candidate_profile(
-        candidate_data=candidate_data1,
+    first = await create_candidate_profile(
+        candidate_data=_default_candidate(),
         job_id=job.id,
         session=session,
     )
-    candidate_id = candidate1.id
-    assert candidate_id is not None
 
-    # Try to create another application for same Job A with same email
-    candidate_data2 = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-
-    # Verify: Raises ApplicationAlreadyExistsError
     with pytest.raises(ApplicationAlreadyExistsError) as exc_info:
         await create_candidate_profile(
-            candidate_data=candidate_data2,
+            candidate_data=_default_candidate(),
             job_id=job.id,
             session=session,
         )
     assert exc_info.value.job_id == job.id
-    assert exc_info.value.candidate_id == candidate_id
+    assert exc_info.value.candidate_id == first.id
 
 
 @pytest.mark.asyncio
@@ -955,62 +471,30 @@ async def test_one_profile_can_have_many_applications(
     session: AsyncSession,
     company_with_user,
 ):
-    """Test that one candidate profile can have many different applications."""
+    """One candidate profile can fan out into many Application rows across jobs."""
     mock_enqueue_email.return_value = "test-job-id"
+    jobs = [
+        await _make_published_job(session, company_with_user, title=f"Job {i + 1}")
+        for i in range(5)
+    ]
 
-    # Create 5 different jobs
-    jobs = []
-    for i in range(5):
-        job = Job(
-            company_id=company_with_user.id,
-            title=f"Job {i + 1}",
-            description=f"Description for job {i + 1}",
-            requirements=f"Requirements for job {i + 1}",
-            location="Tel Aviv, Israel",
-            salary_min=15000,
-            salary_max=25000,
-        )
-        session.add(job)
-        jobs.append(job)
-    await session.commit()
     for job in jobs:
-        await session.refresh(job)
-        assert job.id is not None
-
-    # Create first application
-    candidate_data = CandidateProfileCreate(
-        full_name="John Doe",
-        email="john@example.com",
-        phone="050-000-0001",
-    )
-    candidate = await create_candidate_profile(
-        candidate_data=candidate_data,
-        job_id=jobs[0].id,
-        session=session,
-    )
-    candidate_id = candidate.id
-    assert candidate_id is not None
-
-    # Apply to remaining 4 jobs with same email
-    for i in range(1, 5):
         candidate = await create_candidate_profile(
-            candidate_data=candidate_data,
-            job_id=jobs[i].id,
+            candidate_data=_default_candidate(),
+            job_id=job.id,
             session=session,
         )
-        # Verify same profile is reused
-        assert candidate.id == candidate_id
 
-    # Verify: One profile has 5 applications
-    result = await session.execute(
-        select(Application).where(  # pyright: ignore[reportArgumentType]
-            Application.candidate_id == candidate_id,  # pyright: ignore[reportArgumentType]
+    applications = (
+        (
+            await session.execute(
+                select(Application).where(  # pyright: ignore[reportArgumentType]
+                    Application.candidate_id == candidate.id,
+                )
+            )
         )
+        .scalars()
+        .all()
     )
-    applications = result.scalars().all()
     assert len(applications) == 5
-
-    # Verify all job IDs are different
-    job_ids = {app.job_id for app in applications}
-    assert len(job_ids) == 5
-    assert job_ids == {job.id for job in jobs}
+    assert {a.job_id for a in applications} == {job.id for job in jobs}
