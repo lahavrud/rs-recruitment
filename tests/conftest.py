@@ -1,7 +1,10 @@
 # ruff: noqa: E402  -- env var must be set before src imports (see _TEST_JWT_SECRET below)
 """Shared pytest fixtures for all tests."""
 
+import base64 as _base64
 import os
+import struct as _struct
+import zlib as _zlib
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -312,11 +315,24 @@ def _make_company_profile_create(name: str) -> CompanyProfileCreate:
     )
 
 
-from tests.factories import FAKE_LOGO as _FAKE_LOGO
-from tests.factories import FAKE_SIG_B64 as _FAKE_SIGNATURE_B64
+def _make_png() -> bytes:
+    """Generate a minimal valid 1×1 white PNG for use in tests."""
 
-_STRONG_PASSWORD = "SecurePass1!"
+    def _chunk(tag: bytes, data: bytes) -> bytes:
+        crc = _zlib.crc32(tag + data) & 0xFFFFFFFF
+        return _struct.pack(">I", len(data)) + tag + data + _struct.pack(">I", crc)
 
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _chunk(b"IHDR", _struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+        + _chunk(b"IDAT", _zlib.compress(b"\x00\xff\xff\xff"))
+        + _chunk(b"IEND", b"")
+    )
+
+
+FAKE_PNG: bytes = _make_png()
+FAKE_LOGO: bytes = FAKE_PNG
+FAKE_SIG_B64: str = _base64.b64encode(FAKE_PNG).decode()
 
 _STRONG_PASSWORD = "SecurePass1!"
 
@@ -334,10 +350,10 @@ async def company_user(test_db) -> User:
             result = await register_company_user(
                 user_data,
                 session,
-                _FAKE_LOGO,
+                FAKE_LOGO,
                 "logo.png",
                 "image/png",
-                _FAKE_SIGNATURE_B64,
+                FAKE_SIG_B64,
             )
         return result.user
 
@@ -355,10 +371,10 @@ async def approved_company_user(test_db) -> User:
             result = await register_company_user(
                 user_data,
                 session,
-                _FAKE_LOGO,
+                FAKE_LOGO,
                 "logo.png",
                 "image/png",
-                _FAKE_SIGNATURE_B64,
+                FAKE_SIG_B64,
             )
         result.user.is_active = True
         await session.commit()
@@ -423,26 +439,6 @@ async def company_with_user(session: AsyncSession) -> CompanyProfile:
 
 
 # ==================== Job Fixtures ====================
-
-
-@pytest.fixture
-async def job(company_profile: CompanyProfile) -> Job:
-    """Create a pending job for testing."""
-    async with TestSessionLocal() as session:
-        job = Job(
-            company_id=company_profile.id,
-            title="Senior Python Developer",
-            description="We are looking for a senior Python developer...",
-            requirements="5+ years experience with Python, FastAPI, PostgreSQL",
-            location="Tel Aviv, Israel",
-            salary_min=15000,
-            salary_max=25000,
-            status=JobStatus.PENDING_APPROVAL,
-        )
-        session.add(job)
-        await session.commit()
-        await session.refresh(job)
-        return job
 
 
 @pytest.fixture
@@ -549,76 +545,74 @@ async def override_get_session():
         yield session
 
 
-def setup_admin_overrides(admin_user: User):
-    """Helper function to set up admin authentication overrides."""
-    app.dependency_overrides[get_session] = override_get_session
-
-    async def override_get_current_user(
+def _apply_admin_overrides(admin_user: User) -> None:
+    async def _current_user(
         credentials=None,  # noqa: ARG001
         session=None,  # noqa: ARG001
     ):
         return admin_user
 
-    app.dependency_overrides[get_current_user] = override_get_current_user
-    app.dependency_overrides[get_current_admin] = override_get_current_user
+    app.dependency_overrides[get_current_user] = _current_user
+    app.dependency_overrides[get_current_admin] = _current_user
+
+
+def _apply_company_overrides(company_user: User) -> None:
+    async def _current_company():
+        async with TestSessionLocal() as session:
+            user = (
+                await session.execute(
+                    select(User).where(User.id == company_user.id)  # pyright: ignore[reportArgumentType]
+                )
+            ).scalar_one()
+            company_profile = (
+                await session.execute(
+                    select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
+                        CompanyProfile.user_id == user.id
+                    )
+                )
+            ).scalar_one()
+            return (user, company_profile)
+
+    app.dependency_overrides[get_current_company] = _current_company
+
+
+async def _make_client() -> AsyncGenerator[AsyncClient, None]:
+    """Yield an AsyncClient bound to the FastAPI app under test.
+
+    Caller is responsible for setting any auth dependency overrides BEFORE
+    awaiting this generator's first yield, and the fixture wrapper handles
+    tearing them down afterwards.
+    """
+    app.dependency_overrides[get_session] = override_get_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def company_client(
     approved_company_user: User,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Create test client authenticated as a company user."""
-
-    async def override_get_session():
-        async with TestSessionLocal() as session:
-            yield session
-
-    async def override_get_current_company():
-        async with TestSessionLocal() as session:
-            result = await session.execute(
-                select(User).where(User.id == approved_company_user.id)  # pyright: ignore[reportArgumentType]
-            )
-            user = result.scalar_one()
-            result = await session.execute(
-                select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-                    CompanyProfile.user_id == user.id
-                )
-            )
-            company_profile = result.scalar_one()
-            return (user, company_profile)
-
-    app.dependency_overrides[get_session] = override_get_session
-    app.dependency_overrides[get_current_company] = override_get_current_company
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    """Test client authenticated as a company user."""
+    _apply_company_overrides(approved_company_user)
+    async for client in _make_client():
         yield client
-
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def admin_client(admin_user: User) -> AsyncGenerator[AsyncClient, None]:
-    """Create test client authenticated as an admin user."""
-    setup_admin_overrides(admin_user)
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    """Test client authenticated as an admin user."""
+    _apply_admin_overrides(admin_user)
+    async for client in _make_client():
         yield client
-
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def public_client() -> AsyncGenerator[AsyncClient, None]:
-    """Create test client without authentication (for public endpoints)."""
-    app.dependency_overrides[get_session] = override_get_session
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    """Test client without authentication (for public endpoints)."""
+    async for client in _make_client():
         yield client
-
-    app.dependency_overrides.clear()
 
 
 # Legacy alias for backward compatibility
@@ -626,3 +620,19 @@ async def public_client() -> AsyncGenerator[AsyncClient, None]:
 async def client(company_client: AsyncClient) -> AsyncClient:
     """Legacy alias for company_client."""
     return company_client
+
+
+@pytest.fixture
+async def unauthenticated_client(test_db) -> AsyncGenerator[AsyncClient, None]:
+    """Client with no auth dependency overrides.
+
+    Use to verify protected endpoints return 401 when called without a token.
+    The session override IS applied so the request reaches the auth guard
+    instead of failing at DB acquisition.
+    """
+    app.dependency_overrides.clear()
+    app.dependency_overrides[get_session] = override_get_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()

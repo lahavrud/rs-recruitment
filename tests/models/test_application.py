@@ -70,10 +70,6 @@ async def test_application_creation(session: AsyncSession, job_and_candidate):
     assert isinstance(candidate, CandidateProfile)
     assert job.id is not None
     assert candidate.id is not None
-    assert isinstance(job, Job)
-    assert isinstance(candidate, CandidateProfile)
-    assert job.id is not None
-    assert candidate.id is not None
 
     application = Application(
         job_id=job.id,  # type: ignore[arg-type]

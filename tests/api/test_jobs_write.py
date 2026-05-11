@@ -55,7 +55,7 @@ async def test_update_job_success(
     mock_get_admin_emails,
     mock_enqueue_email,
     company_client: AsyncClient,
-    job: Job,
+    pending_job: Job,
 ):
     """Test updating a job successfully."""
     mock_enqueue_email.return_value = "test-job-id"
@@ -66,13 +66,13 @@ async def test_update_job_success(
         "location": "Updated Location",
     }
 
-    response = await company_client.put(f"/api/jobs/{job.id}", json=update_data)
+    response = await company_client.put(f"/api/jobs/{pending_job.id}", json=update_data)
     assert response.status_code == 200
 
     data = response.json()
     assert data["title"] == "Updated Title"
     assert data["location"] == "Updated Location"
-    assert data["description"] == job.description  # Unchanged
+    assert data["description"] == pending_job.description  # Unchanged
 
     # Verify email was sent
     mock_enqueue_email.assert_called_once()
@@ -89,37 +89,39 @@ async def test_update_job_not_found(company_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_update_job_cannot_change_status(company_client: AsyncClient, job: Job):
+async def test_update_job_cannot_change_status(
+    company_client: AsyncClient, pending_job: Job
+):
     """Test that companies cannot change job status."""
     update_data = {"status": "PUBLISHED"}
 
-    response = await company_client.put(f"/api/jobs/{job.id}", json=update_data)
+    response = await company_client.put(f"/api/jobs/{pending_job.id}", json=update_data)
     assert response.status_code == 400
     assert "cannot change job status" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_update_job_closed_status(company_client: AsyncClient, job: Job):
+async def test_update_job_closed_status(company_client: AsyncClient, pending_job: Job):
     """Test updating a job with CLOSED status."""
     # Set job status to CLOSED
     async with TestSessionLocal() as session:
-        db_job = await session.get(Job, job.id)
+        db_job = await session.get(Job, pending_job.id)
         if db_job is None:
-            raise AssertionError(f"Job with id {job.id} not found in database.")
+            raise AssertionError(f"Job with id {pending_job.id} not found in database.")
         db_job.status = JobStatus.CLOSED
         await session.commit()
 
     update_data = {"title": "Updated Title"}
 
-    response = await company_client.put(f"/api/jobs/{job.id}", json=update_data)
+    response = await company_client.put(f"/api/jobs/{pending_job.id}", json=update_data)
     assert response.status_code == 400
     assert "cannot be updated" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_delete_job_success(company_client: AsyncClient, job: Job):
+async def test_delete_job_success(company_client: AsyncClient, pending_job: Job):
     """Test deleting a job successfully."""
-    job_id = job.id
+    job_id = pending_job.id
     response = await company_client.delete(f"/api/jobs/{job_id}")
     assert response.status_code == 204
 
@@ -138,39 +140,35 @@ async def test_delete_job_not_found(company_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_job_published_status(company_client: AsyncClient, job: Job):
+async def test_delete_job_published_status(
+    company_client: AsyncClient, pending_job: Job
+):
     """Test deleting a job with PUBLISHED status."""
     # Set job status to PUBLISHED
     async with TestSessionLocal() as session:
-        db_job = await session.get(Job, job.id)
+        db_job = await session.get(Job, pending_job.id)
         if db_job is None:
-            raise AssertionError(f"Job with id {job.id} not found in database.")
+            raise AssertionError(f"Job with id {pending_job.id} not found in database.")
         db_job.status = JobStatus.PUBLISHED
         await session.commit()
 
-    response = await company_client.delete(f"/api/jobs/{job.id}")
+    response = await company_client.delete(f"/api/jobs/{pending_job.id}")
     assert response.status_code == 400
     assert "cannot be deleted" in response.json()["detail"].lower()
     assert "PENDING_APPROVAL" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
-async def test_job_write_endpoints_require_auth(test_db):
-    """Test that job write endpoints require authentication."""
-    from httpx import ASGITransport, AsyncClient
+async def test_job_write_endpoints_require_auth(unauthenticated_client: AsyncClient):
+    """Job write endpoints reject requests without an auth token."""
+    response = await unauthenticated_client.post("/api/jobs/", json={})
+    assert response.status_code == 401
 
-    from src.main import app
+    response = await unauthenticated_client.put("/api/jobs/1", json={})
+    assert response.status_code == 401
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/api/jobs/", json={})
-        assert response.status_code == 401  # Unauthorized (no auth token)
-
-        response = await client.put("/api/jobs/1", json={})
-        assert response.status_code == 401
-
-        response = await client.delete("/api/jobs/1")
-        assert response.status_code == 401
+    response = await unauthenticated_client.delete("/api/jobs/1")
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -208,14 +206,15 @@ async def test_update_job_salary(
     mock_get_admin_emails,
     mock_enqueue_email,
     company_client: AsyncClient,
-    job: Job,
+    pending_job: Job,
 ):
     """Salary range can be updated."""
     mock_enqueue_email.return_value = "test-job-id"
     mock_get_admin_emails.return_value = []
 
     response = await company_client.put(
-        f"/api/jobs/{job.id}", json={"salary_min": 12000, "salary_max": 15000}
+        f"/api/jobs/{pending_job.id}",
+        json={"salary_min": 12000, "salary_max": 15000},
     )
     assert response.status_code == 200
     assert response.json()["salary_min"] == 12000

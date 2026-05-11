@@ -31,7 +31,7 @@ async def test_export_company_data_includes_jobs(
     session: AsyncSession,
     approved_company_user: User,
     company_profile: CompanyProfile,
-    job: Job,
+    pending_job: Job,
 ):
     """The export payload includes the company's jobs and presigned URLs."""
     storage = AsyncMock()
@@ -43,4 +43,4 @@ async def test_export_company_data_includes_jobs(
 
     assert payload.user.id == approved_company_user.id
     assert payload.company_profile.id == company_profile.id
-    assert any(j.id == job.id for j in payload.jobs)
+    assert any(j.id == pending_job.id for j in payload.jobs)

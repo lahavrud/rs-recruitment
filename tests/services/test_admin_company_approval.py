@@ -17,8 +17,8 @@ from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.admin_company_approval import approve_company
 from src.services.auth import register_company_user
 from src.services.exceptions import CompanyNotFoundError, CompanyNotPendingError
-from tests.factories import FAKE_LOGO as _LOGO
-from tests.factories import FAKE_SIG_B64 as _SIG
+from tests.conftest import FAKE_LOGO as _LOGO
+from tests.conftest import FAKE_SIG_B64 as _SIG
 
 
 def _company_create(email: str, name: str) -> UserCreate:
