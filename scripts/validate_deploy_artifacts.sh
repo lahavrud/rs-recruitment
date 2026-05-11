@@ -54,6 +54,10 @@ check "resolves IMAGE_TAG (env or SSM CURRENT_SHA)" \
   grep_q 'CURRENT_SHA' "${DEPLOY_SH}"
 check "fetches per-SHA compose from S3" \
   grep_q '/deploy/${IMAGE_TAG}/docker-compose.deploy.yml' "${DEPLOY_SH}"
+check "reads PREV_SHA for automatic rollback" \
+  grep_q 'PREV_SHA' "${DEPLOY_SH}"
+check "polls Docker health status before declaring deploy complete" \
+  grep_q 'Health.Status' "${DEPLOY_SH}"
 
 if [[ $fail -ne 0 ]]; then
   echo

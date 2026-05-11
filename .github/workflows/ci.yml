@@ -401,6 +401,18 @@ jobs:
           aws s3 cp docker-compose.deploy.yml "s3://${S3_BUCKET}/deploy/${SHA}/docker-compose.deploy.yml"
           aws s3 cp scripts/deploy_ec2.sh "s3://${S3_BUCKET}/deploy/${SHA}/deploy_ec2.sh"
 
+      - name: Save current SHA as rollback target
+        run: |
+          CURRENT=$(aws ssm get-parameter \
+            --name /rs-recruitment/infra/CURRENT_SHA \
+            --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          if [[ -n "${CURRENT}" ]]; then
+            aws ssm put-parameter \
+              --name /rs-recruitment/infra/PREV_SHA \
+              --value "${CURRENT}" \
+              --type String --overwrite
+          fi
+
       - name: Trigger deploy via SSM Run Command
         id: ssm
         run: |
