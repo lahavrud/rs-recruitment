@@ -38,7 +38,18 @@ from src.core.infrastructure.security import get_password_hash
 from src.core.infrastructure.transactions import transactional
 from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.main import app
-from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+from src.models import (
+    ActivationToken,  # noqa: F401  -- force SQLModel registration before create_all
+    Application,
+    AuditLog,  # noqa: F401
+    CandidateProfile,
+    CompanyProfile,
+    InviteToken,  # noqa: F401
+    Job,
+    PasswordResetToken,  # noqa: F401
+    RefreshToken,  # noqa: F401
+    User,
+)
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
 
@@ -53,6 +64,62 @@ _EMAIL_TASK_TARGETS = [
     # the router enqueues after commit — patch at the router level instead.
     "src.api.admin_applications.enqueue_email_task",
 ]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _fast_bcrypt_for_tests():
+    """Reduce bcrypt cost factor in tests from 12 (~250ms) to 4 (~1ms).
+
+    The default cost of 12 is fine for prod but multiplied across every
+    test that creates a User (admin, company, candidate fixtures + the
+    register / login / password-reset flows) it dominated local pytest
+    runtime. Real bcrypt behavior is preserved (verify_password still
+    works, hashes round-trip correctly) — we only lower the work factor.
+    """
+    import bcrypt
+
+    _original = bcrypt.gensalt
+    bcrypt.gensalt = lambda rounds=12, prefix=b"2b": _original(  # noqa: E731
+        rounds=4, prefix=prefix
+    )
+    yield
+    bcrypt.gensalt = _original
+
+
+@pytest.fixture(autouse=True)
+def _mock_redis_pool():
+    """Patch `get_redis_pool` so every caller sees an AsyncMock, not a real
+    Redis connection.
+
+    CI has no Redis. Without this, every `await get_redis_pool()` in
+    src/ — invite_tokens.{generate,validate,consume,revoke},
+    password_reset._per_email_rate_limit_ok, security.is_access_token_blacklisted
+    + blacklist, auth._check_lockout / _record_failed_attempt /
+    _clear_failed_attempts, health_check.ping, enqueue_email_task — opens
+    a TCP connection that hangs for the asyncpg/redis default timeout
+    (~5–15 s) before raising. That dominated CI: tests that incidentally
+    touched any of these paths cost 5–15 s each.
+
+    The existing per-target mocks (mock_enqueue_email, mock_auth_redis,
+    mock_invite_tokens, etc.) catch SOME callers but not all — and they
+    only patch at the import site, missing functions called via the
+    underlying module. A single patch on `src.core.tasks.get_redis_pool`
+    catches everyone.
+
+    Tests that want to assert against the real Redis client (e.g.,
+    `tests/core/infrastructure/test_invite_tokens.py`) still install
+    their own per-test patch, which takes precedence.
+    """
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = b"1"  # default: keys exist
+    mock_redis.ttl.return_value = -2  # default: no lockout
+    mock_redis.incr.return_value = 1
+    with patch(
+        "src.core.tasks.get_redis_pool",
+        new_callable=AsyncMock,
+        return_value=mock_redis,
+    ):
+        yield mock_redis
 
 
 @pytest.fixture(autouse=True)
@@ -209,20 +276,31 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
+async def _create_tables_once() -> None:
+    """Create all tables on the per-worker DB. Called once per worker, not per test."""
+    async with test_engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_testing_environment():
     """Set up testing environment + per-worker database before any tests run.
 
     Solo runs use the existing DATABASE_URL DB. Under pytest-xdist each worker
     creates its own DB (rs_recruitment_test_gw0, _gw1, …) so workers cannot
-    collide on the shared autouse table.delete() cleanup.
+    collide on the shared autouse cleanup.
+
+    Table creation runs ONCE per worker (here), not per test — `create_all`
+    is a no-op when the tables already exist, but it still does a metadata
+    introspection roundtrip on every call, which adds up over hundreds of
+    tests.
     """
     # Enable testing mode (disables rate limiting and config validation)
     settings.testing = True
 
-    if WORKER_ID != "master":
-        import asyncio
+    import asyncio
 
+    if WORKER_ID != "master":
         worker_dbname = _per_worker_dbname(_BASE_DATABASE_URL, WORKER_ID)
         admin_url = _admin_url(_BASE_DATABASE_URL)
 
@@ -262,6 +340,7 @@ def setup_testing_environment():
                 await engine.dispose()
 
         asyncio.run(_create_db())
+        asyncio.run(_create_tables_once())
         try:
             yield
         finally:
@@ -271,29 +350,49 @@ def setup_testing_environment():
             settings.testing = False
         return
 
+    asyncio.run(_create_tables_once())
     yield
     settings.testing = False
 
 
+# Build the TRUNCATE statement once at import time — table list is constant.
+_TRUNCATE_SQL: str | None = None
+
+
+def _truncate_sql() -> str | None:
+    """One-shot TRUNCATE for every SQLModel table, in dependency order.
+
+    Returns None if there are no tables (defensive — shouldn't happen).
+    RESTART IDENTITY resets sequences so IDs are stable across tests.
+    CASCADE is defensive: with `sorted_tables` reversed it shouldn't fire,
+    but it covers any future tables not yet in metadata's sort order.
+    """
+    global _TRUNCATE_SQL
+    if _TRUNCATE_SQL is None:
+        names = [f'"{t.name}"' for t in SQLModel.metadata.sorted_tables]
+        if not names:
+            return None
+        _TRUNCATE_SQL = f"TRUNCATE {', '.join(names)} RESTART IDENTITY CASCADE"
+    return _TRUNCATE_SQL
+
+
 @pytest.fixture(scope="function", autouse=True)
 async def test_db() -> AsyncGenerator[None, None]:
-    """Create test database tables and clean up between tests.
+    """Reset DB state between tests via a single TRUNCATE statement.
 
-    Optimized approach:
-    1. Create tables once (first test)
-    2. Use DELETE statements to clean data between tests (faster than DROP/CREATE)
-    3. Drop tables only at the end
+    Replaces the prior per-test `metadata.create_all` (now session-scoped in
+    `setup_testing_environment`) + N-table `delete()` loop. One TRUNCATE
+    instead of N DELETEs cuts per-test cleanup from a linear-in-tables
+    roundtrip count to a single statement.
     """
-    # Create tables if they don't exist (idempotent)
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
     yield
-    # Dialect-agnostic cleanup using SQLModel metadata table references.
-    # Avoids raw SQL with "user" which is a reserved word in PostgreSQL.
-    # Reversed sorted_tables respects FK dependency order automatically.
+    sql = _truncate_sql()
+    if sql is None:
+        return
+    from sqlalchemy import text
+
     async with test_engine.begin() as conn:
-        for table in reversed(SQLModel.metadata.sorted_tables):
-            await conn.execute(table.delete())
+        await conn.execute(text(sql))
 
 
 @pytest.fixture

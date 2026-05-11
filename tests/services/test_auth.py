@@ -1,14 +1,10 @@
 """Unit tests for authentication service layer."""
 
 import base64
-import os
-import typing
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
-from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import verify_password
 from src.enums import UserRole
@@ -22,18 +18,6 @@ from src.services.exceptions import (
 )
 from tests.conftest import FAKE_LOGO
 from tests.conftest import FAKE_SIG_B64 as FAKE_SIGNATURE_B64
-
-TEST_DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
-)
-
-test_engine = create_async_engine(
-    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
-)
-TestSessionLocal = async_sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
-)
 
 FAKE_LOGO_NAME = "logo.png"
 FAKE_LOGO_TYPE = "image/png"
@@ -52,21 +36,6 @@ def _make_user_create(email: str = "company@example.com") -> UserCreate:
             contact_mobile_phone="0501234567",
         ),
     )
-
-
-@pytest.fixture(scope="function")
-async def test_db():
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-
-
-@pytest.fixture
-async def session(test_db) -> typing.AsyncGenerator[AsyncSession, None]:
-    async with TestSessionLocal() as session:
-        yield session
 
 
 @pytest.mark.asyncio
