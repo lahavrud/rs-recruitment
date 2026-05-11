@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
 import {
   deleteCandidate,
   fetchResumeBlob,
@@ -91,12 +92,15 @@ export default function AdminCandidatesPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     window.history.replaceState({}, "", window.location.pathname);
-    getCandidate(Number(id))
-      .then((c) => { if (!cancelled) setDetail(c); })
-      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
-    return () => { cancelled = true; };
+    getCandidate(Number(id), ctrl.signal)
+      .then((c) => setDetail(c))
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        toast.error(t("common.genericError"));
+      });
+    return () => ctrl.abort();
   }, [t, toast]);
 
   async function handleDeleteConfirm() {
@@ -327,20 +331,17 @@ function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
       setAppsError(false);
       return;
     }
-    let cancelled = false;
+    const ctrl = new AbortController();
     setApplications(null);
     setAppsError(false);
     /* eslint-enable react-hooks/set-state-in-effect */
-    getApplications({ candidate_id: candidate.id, limit: 100 })
-      .then((page) => {
-        if (!cancelled) setApplications(page.items);
-      })
-      .catch(() => {
-        if (!cancelled) setAppsError(true);
+    getApplications({ candidate_id: candidate.id, limit: 100 }, ctrl.signal)
+      .then((page) => setApplications(page.items))
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        setAppsError(true);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => ctrl.abort();
   }, [candidate]);
 
   if (!candidate) return null;
