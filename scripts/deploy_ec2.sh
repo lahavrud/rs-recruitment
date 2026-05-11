@@ -65,4 +65,24 @@ docker compose -f "${APP_DIR}/docker-compose.deploy.yml" restart frontend
 echo "==> Running database migrations"
 docker compose -f "${APP_DIR}/docker-compose.deploy.yml" exec -T api uv run alembic upgrade head
 
+# Reclaim disk by keeping only the N most recent SHA-tagged images per
+# repo (newest first). Without this, every deploy leaves ~200-500 MB per
+# image lingering and the EC2 disk fills up. Keeping 3 means: the image
+# we just deployed + the two prior — enough room for a fast rollback to
+# the last-known-good without pulling. `|| true` ensures prune problems
+# never fail an otherwise-successful deploy.
+echo "==> Pruning old SHA-tagged images (keep newest 3 per repo)"
+KEEP_IMAGES=3
+for repo in \
+    "${ECR_REGISTRY}/rs-recruitment/api" \
+    "${ECR_REGISTRY}/rs-recruitment/frontend"; do
+  docker images "$repo" --format '{{.CreatedAt}}|{{.Repository}}:{{.Tag}}' \
+    | sort -r \
+    | awk -F'|' -v keep="$KEEP_IMAGES" 'NR > keep {print $2}' \
+    | xargs -r docker rmi -f \
+    || true
+done
+# Sweep up any layers left dangling after the rmi -f calls above.
+docker image prune -f || true
+
 echo "==> Deploy complete (IMAGE_TAG=${IMAGE_TAG})"
