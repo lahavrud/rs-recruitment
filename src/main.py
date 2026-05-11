@@ -113,3 +113,10 @@ async def health_check() -> dict[str, str]:
         "environment": settings.environment,
         "redis": redis_status,
     }
+
+
+@app.get("/api/debug/sentry-test")
+async def sentry_test() -> None:
+    # Intentionally raises to verify Sentry capture end-to-end (release
+    # tagging, source maps, alerting). Safe to remove once validated.
+    raise RuntimeError("Sentry test exception — safe to ignore")

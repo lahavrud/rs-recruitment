@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import App from "@/App";
+import ErrorFallback from "@/components/ErrorFallback";
 import "@/i18n";
 import "@/index.css";
 
@@ -17,7 +18,7 @@ document.documentElement.lang = "he";
 document.documentElement.dir = "rtl";
 
 createRoot(document.getElementById("root")!).render(
-  <Sentry.ErrorBoundary fallback={<p>שגיאה בלתי צפויה. אנא רענן את הדף.</p>}>
+  <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
     <App />
   </Sentry.ErrorBoundary>,
 );
