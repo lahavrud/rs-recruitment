@@ -214,6 +214,21 @@ async def test_reject_company_already_approved(mock_email, session: AsyncSession
         await reject_company(user.id, session)
 
 
+@pytest.mark.asyncio
+async def test_reject_company_wrong_role(session: AsyncSession):
+    admin = User(
+        email="rejectadmin@example.com",
+        hashed_password=get_password_hash("password"),
+        role=UserRole.ADMIN,
+        is_active=False,
+    )
+    session.add(admin)
+    await session.commit()
+
+    with pytest.raises(CompanyNotPendingError):
+        await reject_company(admin.id, session)
+
+
 # ── list_active_companies ─────────────────────────────────────────────────────
 
 
