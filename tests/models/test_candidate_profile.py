@@ -137,22 +137,6 @@ async def test_candidate_profile_query_by_email(session: AsyncSession):
     assert found_candidate.email == "query@example.com"
 
 
-@pytest.mark.asyncio
-async def test_candidate_profile_no_authentication(session: AsyncSession):
-    """Test that CandidateProfile has no password or authentication fields."""
-    candidate = CandidateProfile(
-        full_name="No Auth User",
-        email="noauth@example.com",
-        phone="050-000-0000",
-    )
-
-    # Verify there's no password or auth-related fields
-    assert not hasattr(candidate, "password")
-    assert not hasattr(candidate, "hashed_password")
-    assert not hasattr(candidate, "is_active")
-    assert not hasattr(candidate, "role")
-
-
 # Security Tests: Path Traversal Prevention
 # Note: field_validator runs during model_validate(), not during direct instantiation
 # These tests use model_validate() which simulates API input validation

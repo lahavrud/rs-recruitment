@@ -117,14 +117,14 @@ async def test_create_job_company_not_found(session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_get_job_success(session: AsyncSession, job: Job):
+async def test_get_job_success(session: AsyncSession, pending_job: Job):
     """Test getting a job by ID."""
-    assert job.id is not None
-    result = await get_job(job.id, session)
+    assert pending_job.id is not None
+    result = await get_job(pending_job.id, session)
 
-    assert result.id == job.id
-    assert result.title == job.title
-    assert result.status == job.status
+    assert result.id == pending_job.id
+    assert result.title == pending_job.title
+    assert result.status == pending_job.status
 
 
 @pytest.mark.asyncio

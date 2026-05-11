@@ -9,8 +9,7 @@ from sqlalchemy import select
 from src.models import CompanyProfile, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
-from tests.conftest import TestSessionLocal
-from tests.factories import FAKE_LOGO, FAKE_SIG_B64
+from tests.conftest import FAKE_LOGO, FAKE_SIG_B64, TestSessionLocal
 
 
 @pytest.mark.asyncio
@@ -198,25 +197,12 @@ async def test_reject_company_already_approved(
 
 
 @pytest.mark.asyncio
-async def test_admin_company_endpoints_require_auth(test_db):
-    """Test that admin company endpoints require authentication."""
-    from httpx import ASGITransport, AsyncClient
-
-    from src.core.infrastructure.database import get_session
-    from src.main import app
-    from tests.conftest import override_get_session
-
-    app.dependency_overrides.clear()
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Override only database, not auth
-        app.dependency_overrides[get_session] = override_get_session
-
-        response = await client.get("/api/admin/companies/pending")
-        assert response.status_code == 401  # Unauthorized (no auth token)
-
-    app.dependency_overrides.clear()
+async def test_admin_company_endpoints_require_auth(
+    unauthenticated_client: AsyncClient,
+):
+    """Admin company endpoints reject requests without an auth token."""
+    response = await unauthenticated_client.get("/api/admin/companies/pending")
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

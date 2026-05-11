@@ -55,14 +55,14 @@ async def test_get_company_jobs(
 
 
 @pytest.mark.asyncio
-async def test_get_job_success(company_client: AsyncClient, job: Job):
+async def test_get_job_success(company_client: AsyncClient, pending_job: Job):
     """Test getting a specific job."""
-    response = await company_client.get(f"/api/jobs/{job.id}")
+    response = await company_client.get(f"/api/jobs/{pending_job.id}")
     assert response.status_code == 200
 
     data = response.json()
-    assert data["id"] == job.id
-    assert data["title"] == job.title
+    assert data["id"] == pending_job.id
+    assert data["title"] == pending_job.title
     assert data["status"] == "PENDING_APPROVAL"
 
 
@@ -75,16 +75,10 @@ async def test_get_job_not_found(company_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_job_read_endpoints_require_auth(test_db):
-    """Test that job read endpoints require authentication."""
-    from httpx import ASGITransport, AsyncClient
+async def test_job_read_endpoints_require_auth(unauthenticated_client: AsyncClient):
+    """Job read endpoints reject requests without an auth token."""
+    response = await unauthenticated_client.get("/api/jobs/")
+    assert response.status_code == 401
 
-    from src.main import app
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/jobs/")
-        assert response.status_code == 401  # Unauthorized (no auth token)
-
-        response = await client.get("/api/jobs/1")
-        assert response.status_code == 401
+    response = await unauthenticated_client.get("/api/jobs/1")
+    assert response.status_code == 401

@@ -12,7 +12,7 @@ from src.models import CompanyProfile, Job
 async def test_export_my_company_data_returns_full_payload(
     company_client: AsyncClient,
     company_profile: CompanyProfile,
-    job: Job,
+    pending_job: Job,
 ):
     """Happy path: returns user, profile and jobs."""
     fake_storage = AsyncMock()
@@ -30,7 +30,7 @@ async def test_export_my_company_data_returns_full_payload(
     assert data["company_profile"]["name"] == company_profile.name
     assert isinstance(data["jobs"], list)
     job_ids = [j["id"] for j in data["jobs"]]
-    assert job.id in job_ids
+    assert pending_job.id in job_ids
 
 
 @pytest.mark.asyncio

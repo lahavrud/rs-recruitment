@@ -100,8 +100,7 @@ async def test_get_public_job_pending_not_visible(
     """Test that pending jobs are not visible via public endpoint."""
     response = await public_client.get(f"/api/public/jobs/{pending_job.id}")
     assert response.status_code == 404
-    detail = response.json()["detail"].lower()
-    assert "not published" in detail or "not found" in detail
+    assert response.json()["detail"] == f"Job with ID {pending_job.id} is not published"
 
 
 @pytest.mark.asyncio
@@ -111,8 +110,7 @@ async def test_get_public_job_closed_not_visible(
     """Test that closed jobs are not visible via public endpoint."""
     response = await public_client.get(f"/api/public/jobs/{closed_job.id}")
     assert response.status_code == 404
-    detail = response.json()["detail"].lower()
-    assert "not published" in detail or "not found" in detail
+    assert response.json()["detail"] == f"Job with ID {closed_job.id} is not published"
 
 
 @pytest.mark.asyncio
