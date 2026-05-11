@@ -20,8 +20,8 @@ from src.services.exceptions import (
     InvalidCredentialsError,
     PendingApprovalError,
 )
-from tests.factories import FAKE_LOGO
-from tests.factories import FAKE_SIG_B64 as FAKE_SIGNATURE_B64
+from tests.conftest import FAKE_LOGO
+from tests.conftest import FAKE_SIG_B64 as FAKE_SIGNATURE_B64
 
 TEST_DATABASE_URL = os.environ.get(
     "DATABASE_URL",

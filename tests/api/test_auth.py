@@ -1,37 +1,18 @@
 """Tests for authentication endpoints."""
 
-import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.pool import NullPool
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import verify_password
 from src.main import app
 from src.models import User
 from src.services.exceptions import InvalidInviteTokenError
-from tests.factories import FAKE_PNG
-from tests.factories import FAKE_SIG_B64 as _FAKE_SIG_B64
-
-TEST_DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
-)
-
-test_engine = create_async_engine(
-    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
-)
-TestSessionLocal = async_sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
-)
+from tests.conftest import FAKE_PNG, TestSessionLocal
+from tests.conftest import FAKE_SIG_B64 as _FAKE_SIG_B64
 
 FAKE_LOGO_FILE = ("logo.png", FAKE_PNG, "image/png")
 FAKE_SIGNATURE_B64 = _FAKE_SIG_B64
