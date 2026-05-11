@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
 import {
   approveJob,
   contactJob,
@@ -99,12 +100,15 @@ export default function AdminJobsPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
     if (!id || Number.isNaN(Number(id))) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     window.history.replaceState({}, "", window.location.pathname);
-    getJob(Number(id))
-      .then((job) => { if (!cancelled) setDetail(job); })
-      .catch(() => { if (!cancelled) toast.error(t("common.genericError")); });
-    return () => { cancelled = true; };
+    getJob(Number(id), ctrl.signal)
+      .then((job) => setDetail(job))
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        toast.error(t("common.genericError"));
+      });
+    return () => ctrl.abort();
   }, [t, toast]);
 
   const STATUS_LABELS: Record<string, string> = {
@@ -719,7 +723,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
 
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     /* eslint-disable react-hooks/set-state-in-effect */
     setCompanies(null);
     setCompaniesError(false);
@@ -734,9 +738,8 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
       salary_max: undefined,
     });
     /* eslint-enable react-hooks/set-state-in-effect */
-    getActiveCompanies({ limit: 100 })
+    getActiveCompanies({ limit: 100 }, ctrl.signal)
       .then((page) => {
-        if (cancelled) return;
         setCompanies(page.items);
         if (page.items.length > 0) {
           setForm((prev) => ({
@@ -745,12 +748,11 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
           }));
         }
       })
-      .catch(() => {
-        if (!cancelled) setCompaniesError(true);
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        setCompaniesError(true);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => ctrl.abort();
   }, [open]);
 
   function set<K extends keyof JobAdminCreate>(key: K, value: JobAdminCreate[K]) {
