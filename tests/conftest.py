@@ -158,13 +158,18 @@ def _provide_post_commit_hooks_context():
         _post_commit_hooks.reset(token)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_password_reset_rate_limit():
     """Disable the per-email password-reset rate limit in tests.
 
     The real implementation increments a Redis counter — across multiple test
     runs against a shared local Redis, a victim email accumulates count and
     the limit starts rejecting tokens, surfacing as flaky test failures.
+
+    Not autouse: only the two test files that exercise the password-reset
+    flow need this. Those files declare a module-level autouse fixture that
+    pulls this one in (see tests/api/test_password_reset.py and
+    tests/services/test_password_reset.py).
     """
     with patch(
         "src.services.password_reset._per_email_rate_limit_ok",
@@ -376,7 +381,7 @@ def _truncate_sql() -> str | None:
     return _TRUNCATE_SQL
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="function")
 async def test_db() -> AsyncGenerator[None, None]:
     """Reset DB state between tests via a single TRUNCATE statement.
 
@@ -384,6 +389,15 @@ async def test_db() -> AsyncGenerator[None, None]:
     `setup_testing_environment`) + N-table `delete()` loop. One TRUNCATE
     instead of N DELETEs cuts per-test cleanup from a linear-in-tables
     roundtrip count to a single statement.
+
+    NOT autouse: pure-Pydantic / pure-template tests (e.g. `test_schemas.py`,
+    `tests/templates/test_email.py`, `test_file_validation.py`) never touch
+    the DB and shouldn't pay the TRUNCATE cost. Tests that DO touch the DB
+    pull this in transitively via `session`, `admin_user`, `admin_client`,
+    `company_client`, etc. — every fixture that writes to the DB declares
+    `test_db` as a dependency. A direct test_db parameter is needed only by
+    the handful of tests that bypass those fixtures and use `TestSessionLocal`
+    inline.
     """
     yield
     sql = _truncate_sql()
