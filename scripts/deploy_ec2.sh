@@ -65,6 +65,47 @@ docker compose -f "${APP_DIR}/docker-compose.deploy.yml" restart frontend
 echo "==> Running database migrations"
 docker compose -f "${APP_DIR}/docker-compose.deploy.yml" exec -T api uv run alembic upgrade head
 
+echo "==> Waiting for api container to become healthy (90s)"
+COMPOSE_FILE="${APP_DIR}/docker-compose.deploy.yml"
+deadline=$(( $(date +%s) + 90 ))
+healthy=false
+while [[ $(date +%s) -lt $deadline ]]; do
+  CONTAINER_ID=$(docker compose -f "${COMPOSE_FILE}" ps -q api 2>/dev/null || echo "")
+  if [[ -n "${CONTAINER_ID}" ]]; then
+    HC_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${CONTAINER_ID}" 2>/dev/null || echo "")
+    case "${HC_STATUS}" in
+      healthy)   healthy=true; break ;;
+      unhealthy) break ;;
+    esac
+  fi
+  sleep 5
+done
+
+if ! $healthy; then
+  echo "==> Health check FAILED — rolling back to previous SHA"
+  PREV_SHA=$(aws ssm get-parameter \
+    --name /rs-recruitment/infra/PREV_SHA \
+    --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+  if [[ -z "${PREV_SHA}" ]]; then
+    echo "ERROR: No PREV_SHA in SSM — cannot roll back automatically"
+    exit 1
+  fi
+  echo "==> Fetching previous compose (${PREV_SHA})"
+  aws s3 cp "s3://${S3_BUCKET}/deploy/${PREV_SHA}/docker-compose.deploy.yml" \
+    "${COMPOSE_FILE}"
+  echo "==> Restarting with previous images"
+  IMAGE_TAG="${PREV_SHA}" docker compose -f "${COMPOSE_FILE}" pull
+  IMAGE_TAG="${PREV_SHA}" docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
+  IMAGE_TAG="${PREV_SHA}" docker compose -f "${COMPOSE_FILE}" restart frontend
+  echo "==> Restoring CURRENT_SHA to ${PREV_SHA}"
+  aws ssm put-parameter \
+    --name /rs-recruitment/infra/CURRENT_SHA \
+    --value "${PREV_SHA}" \
+    --type String --overwrite
+  echo "==> Rolled back to ${PREV_SHA} — deploy failed"
+  exit 1
+fi
+
 # Reclaim disk by keeping only the N most recent SHA-tagged images per
 # repo (newest first). Without this, every deploy leaves ~200-500 MB per
 # image lingering and the EC2 disk fills up. Keeping 3 means: the image
