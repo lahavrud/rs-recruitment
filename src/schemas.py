@@ -332,19 +332,21 @@ class JobUpdate(BaseModel):
         "salary_max",
     )
     @classmethod
-    def reject_explicit_null(cls, v):
+    def reject_explicit_null(cls, v: object) -> object:
         if v is None:
             raise ValueError("Field cannot be set to null on update")
         return v
 
     @field_validator("requirements")
     @classmethod
-    def _validate_requirements_list(cls, v):
+    def _validate_requirements_list(
+        cls, v: list[JobRequirementItem]
+    ) -> list[JobRequirementItem]:
         return _validate_requirements(v)
 
     @field_validator("tags")
     @classmethod
-    def _validate_tags_list(cls, v):
+    def _validate_tags_list(cls, v: list[str]) -> list[str]:
         return _validate_tags(v)
 
     @model_validator(mode="after")

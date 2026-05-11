@@ -18,6 +18,7 @@ import type {
   CompanyProfileRead,
   InviteTokenCreate,
   InviteTokenRead,
+  InviteTokenStatus,
   JobAdminCreate,
   JobAdminUpdate,
   JobRead,
@@ -35,17 +36,20 @@ export async function createInvite(data: InviteTokenCreate): Promise<InviteToken
 export interface InvitesListParams {
   cursor?: string | null;
   limit?: number;
+  status?: InviteTokenStatus;
 }
 
 export async function getInvites(
   params?: InvitesListParams,
+  signal?: AbortSignal,
 ): Promise<CursorPage<InviteTokenRead>> {
   const query: Record<string, string | number> = {};
   if (params?.cursor) query.cursor = params.cursor;
   if (params?.limit != null) query.limit = params.limit;
+  if (params?.status) query.status = params.status;
   const res = await api.get<CursorPage<InviteTokenRead>>(
     "/api/admin/companies/invites",
-    { params: query },
+    { params: query, signal },
   );
   return res.data;
 }
@@ -65,13 +69,14 @@ export interface PendingCompaniesParams {
 
 export async function getPendingCompanies(
   params?: PendingCompaniesParams,
+  signal?: AbortSignal,
 ): Promise<CursorPage<PendingCompanyRead>> {
   const query: Record<string, string | number> = {};
   if (params?.cursor) query.cursor = params.cursor;
   if (params?.limit != null) query.limit = params.limit;
   const res = await api.get<CursorPage<PendingCompanyRead>>(
     "/api/admin/companies/pending",
-    { params: query },
+    { params: query, signal },
   );
   return res.data;
 }
@@ -259,12 +264,14 @@ export interface CandidateListParams {
 
 export async function getCandidates(
   params?: CandidateListParams,
+  signal?: AbortSignal,
 ): Promise<CursorPage<CandidateProfileRead>> {
   const query: Record<string, string | number> = {};
   if (params?.cursor) query.cursor = params.cursor;
   if (params?.limit != null) query.limit = params.limit;
   const res = await api.get<CursorPage<CandidateProfileRead>>("/api/admin/candidates", {
     params: query,
+    signal,
   });
   return res.data;
 }
