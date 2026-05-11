@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.database_helpers import get_by_id_or_raise
 from src.core.infrastructure.pagination import (
     CursorPage,
     apply_cursor,
@@ -59,13 +60,9 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
         JobNotFoundError: If job not found
         JobNotPendingError: If job is not pending approval
     """
-    # Get the job
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    job = await get_by_id_or_raise(
+        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
     )
-    job = result.scalar_one_or_none()
-    if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
 
     # Validate it's pending
     if job.status != JobStatus.PENDING_APPROVAL:
@@ -119,13 +116,9 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
         JobNotFoundError: If job not found
         JobNotPendingError: If job is not pending approval
     """
-    # Get the job
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    job = await get_by_id_or_raise(
+        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
     )
-    job = result.scalar_one_or_none()
-    if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
 
     # Validate it's pending
     if job.status != JobStatus.PENDING_APPROVAL:
@@ -180,12 +173,9 @@ async def contact_job(job_id: int, admin_note: str, session: AsyncSession) -> No
     Raises:
         JobNotFoundError: If job not found
     """
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    job = await get_by_id_or_raise(
+        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
     )
-    job = result.scalar_one_or_none()
-    if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
 
     result = await session.execute(
         select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]

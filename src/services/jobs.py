@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.database_helpers import get_by_id_or_raise
 from src.core.infrastructure.pagination import (
     CursorPage,
     apply_cursor,
@@ -46,12 +47,12 @@ async def create_job(
         CompanyNotFoundError: If company not found
     """
     # Verify company exists
-    result = await session.execute(
-        select(CompanyProfile).where(CompanyProfile.id == company_id)  # pyright: ignore[reportArgumentType]
+    company = await get_by_id_or_raise(
+        session,
+        CompanyProfile,
+        company_id,
+        lambda pk: CompanyNotFoundError(f"Company with ID {pk} not found"),
     )
-    company = result.scalar_one_or_none()
-    if not company:
-        raise CompanyNotFoundError(f"Company with ID {company_id} not found")
 
     # Create job with PENDING_APPROVAL status
     new_job = Job(
@@ -104,12 +105,9 @@ async def get_job(job_id: int, session: AsyncSession) -> JobRead:
     Raises:
         JobNotFoundError: If job not found
     """
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    job = await get_by_id_or_raise(
+        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
     )
-    job = result.scalar_one_or_none()
-    if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
     return JobRead.model_validate(job)
 
 
@@ -165,13 +163,9 @@ async def update_job(
         JobNotOwnedByCompanyError: If job is not owned by the company
         JobCannotBeUpdatedError: If job status doesn't allow updates
     """
-    # Get the job
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    job = await get_by_id_or_raise(
+        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
     )
-    job = result.scalar_one_or_none()
-    if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
 
     # Verify ownership
     if job.company_id != company_id:
@@ -254,13 +248,9 @@ async def delete_job(job_id: int, company_id: int, session: AsyncSession) -> Non
         JobNotOwnedByCompanyError: If job is not owned by the company
         JobCannotBeDeletedError: If job status doesn't allow deletion
     """
-    # Get the job
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    job = await get_by_id_or_raise(
+        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
     )
-    job = result.scalar_one_or_none()
-    if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
 
     # Verify ownership
     if job.company_id != company_id:
