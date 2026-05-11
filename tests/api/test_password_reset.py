@@ -14,6 +14,14 @@ from src.core.infrastructure.security import (
 from src.enums import UserRole
 from src.models import PasswordResetToken, RefreshToken, User
 
+
+# Pull in the (no-longer-autouse) per-email rate-limit mock for every test in
+# this file. Kept module-local so the global suite doesn't pay this setup.
+@pytest.fixture(autouse=True)
+def _bypass_password_reset_rate_limit(mock_password_reset_rate_limit):
+    pass
+
+
 # `public_client` and `test_db` autouse fixtures come from tests/conftest.py.
 
 

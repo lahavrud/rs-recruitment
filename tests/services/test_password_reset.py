@@ -24,6 +24,13 @@ from src.services.password_reset import (
 )
 
 
+# Pull in the (no-longer-autouse) per-email rate-limit mock for every test in
+# this file. Kept module-local so the global suite doesn't pay this setup.
+@pytest.fixture(autouse=True)
+def _bypass_password_reset_rate_limit(mock_password_reset_rate_limit):
+    pass
+
+
 async def _make_user(
     session: AsyncSession, email: str = "user@example.com", password: str = "OldPass1!"
 ) -> User:
