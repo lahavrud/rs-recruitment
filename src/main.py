@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -28,6 +29,13 @@ from src.api import (
 from src.core.infrastructure.config import settings, validate_settings
 from src.core.infrastructure.database import init_db
 from src.core.tasks import close_redis_pool
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+        traces_sample_rate=0.0,
+    )
 
 
 @asynccontextmanager

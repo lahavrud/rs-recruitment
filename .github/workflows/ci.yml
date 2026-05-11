@@ -380,12 +380,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Fetch Sentry DSN
+        id: sentry
+        run: |
+          DSN=$(aws ssm get-parameter --name /rs-recruitment/prod/sentry_dsn \
+            --with-decryption --query Parameter.Value --output text 2>/dev/null || echo "")
+          echo "dsn=$DSN" >> "$GITHUB_OUTPUT"
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
           context: frontend
           push: true
           tags: ${{ secrets.ECR_REGISTRY }}/rs-recruitment/frontend:${{ github.sha }}
+          build-args: VITE_SENTRY_DSN=${{ steps.sentry.outputs.dsn }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
