@@ -1,12 +1,10 @@
 """Tests for authentication dependencies."""
 
-import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.dependencies import (
     get_current_admin,
@@ -16,25 +14,6 @@ from src.core.infrastructure.dependencies import (
 from src.core.infrastructure.security import create_access_token, decode_access_token
 from src.enums import UserRole
 from src.models import User
-
-TEST_DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
-)
-
-test_engine = create_async_engine(
-    TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
-)
-TestSessionLocal = async_sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
-)
-
-
-@pytest.fixture(scope="function")
-async def session():
-    """Create test database session."""
-    async with TestSessionLocal() as session:
-        yield session
 
 
 @pytest.fixture
