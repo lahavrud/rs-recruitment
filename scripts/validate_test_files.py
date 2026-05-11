@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Validate that source files have corresponding test files.
+"""Validate the 1:1 mapping between source files and test files.
 
-This script ensures test coverage by checking:
-- src/services/X.py → tests/services/test_X.py must exist
-- src/api/X.py → tests/api/test_X.py must exist
-- src/core/infrastructure/X.py → tests/core/infrastructure/test_X.py must exist
+Enforces two invariants:
+- Every src/<dir>/X.py has a matching tests/<dir>/test_X.py (forward check)
+- Every tests/<dir>/test_X.py has a matching src/<dir>/X.py (reverse check)
+
+The reverse check catches orphan test files left behind after a source file
+is renamed, split, or deleted.
 """
 
 import sys
@@ -15,65 +17,70 @@ SOURCE_TO_TEST_MAPPING = {
     "src/services": "tests/services",
     "src/api": "tests/api",
     "src/core/infrastructure": "tests/core/infrastructure",
+    "src/templates": "tests/templates",
 }
 
-# Files that don't require tests (exceptions, simple factories, etc.)
-EXCLUDED_FILES = {
-    # All previously excluded files now have tests
+# Source files that don't require tests (exceptions, simple factories, etc.)
+EXCLUDED_SOURCE_FILES: set[str] = set()
+
+# Test files allowed to exist without a matching source file.
+# Use this only for cross-cutting behavioral tests that don't map to a single
+# module (e.g. fail-closed behavior that spans multiple infrastructure pieces).
+EXCLUDED_TEST_FILES: set[str] = {
+    # Verifies system-wide fail-closed behavior when Redis is unavailable;
+    # exercises code paths across security + dependencies, not a single module.
+    "tests/core/infrastructure/test_redis_fail_closed.py",
 }
 
 
 def get_expected_test_file(source_file: Path) -> Path | None:
-    """Get the expected test file path for a source file.
-
-    Args:
-        source_file: Path to source file
-
-    Returns:
-        Expected test file path, or None if not in a mapped directory
-    """
+    """Get the expected test file path for a source file."""
     source_str = str(source_file)
 
     for source_dir, test_dir in SOURCE_TO_TEST_MAPPING.items():
         if source_str.startswith(source_dir):
-            # Get relative path from source directory
             relative_path = source_file.relative_to(source_dir)
-
-            # Convert to test file path
-            # e.g., src/services/auth.py -> tests/services/test_auth.py
             test_file_name = f"test_{relative_path.name}"
-            test_file_path = Path(test_dir) / test_file_name
-
-            return test_file_path
+            return Path(test_dir) / test_file_name
 
     return None
 
 
-def check_test_files() -> list[str]:
-    """Check that source files have corresponding test files.
+def get_expected_source_file(test_file: Path) -> Path | None:
+    """Get the expected source file path for a test file."""
+    test_str = str(test_file)
 
-    Returns:
-        List of violation messages (empty if no violations)
-    """
-    violations = []
+    for source_dir, test_dir in SOURCE_TO_TEST_MAPPING.items():
+        if test_str.startswith(test_dir):
+            relative_path = test_file.relative_to(test_dir)
+            # test_X.py -> X.py
+            if not relative_path.name.startswith("test_"):
+                return None
+            source_file_name = relative_path.name[len("test_") :]
+            return Path(source_dir) / source_file_name
+
+    return None
+
+
+def check_missing_test_files() -> list[str]:
+    """Find source files without a matching test file."""
+    violations: list[str] = []
     src_path = Path("src")
 
     if not src_path.exists():
-        return [f"❌ Source directory '{src_path}' not found"]
+        return [f"Source directory '{src_path}' not found"]
 
-    for source_dir in SOURCE_TO_TEST_MAPPING.keys():
+    for source_dir in SOURCE_TO_TEST_MAPPING:
         dir_path = Path(source_dir)
         if not dir_path.exists():
             continue
 
         for py_file in dir_path.rglob("*.py"):
-            # Skip __init__.py files
             if py_file.name == "__init__.py":
                 continue
 
-            # Skip excluded files
             file_str = str(py_file).replace("\\", "/")
-            if file_str in EXCLUDED_FILES:
+            if file_str in EXCLUDED_SOURCE_FILES:
                 continue
 
             expected_test = get_expected_test_file(py_file)
@@ -86,19 +93,59 @@ def check_test_files() -> list[str]:
     return violations
 
 
-def main() -> None:
-    """Main validation function."""
-    violations = check_test_files()
+def check_orphan_test_files() -> list[str]:
+    """Find test files without a matching source file."""
+    violations: list[str] = []
 
-    if violations:
+    for test_dir in SOURCE_TO_TEST_MAPPING.values():
+        dir_path = Path(test_dir)
+        if not dir_path.exists():
+            continue
+
+        for py_file in dir_path.rglob("test_*.py"):
+            file_str = str(py_file).replace("\\", "/")
+            if file_str in EXCLUDED_TEST_FILES:
+                continue
+
+            expected_source = get_expected_source_file(py_file)
+            if expected_source is None:
+                continue
+
+            if not expected_source.exists():
+                violations.append(
+                    f"{py_file}: Orphan test file — no matching '{expected_source}'"
+                )
+
+    return violations
+
+
+def main() -> None:
+    missing = check_missing_test_files()
+    orphans = check_orphan_test_files()
+
+    if missing:
         print("❌ Missing test files detected:")
         print("Source files must have corresponding test files.\n")
-        for violation in violations:
-            print(f"  {violation}")
+        for v in missing:
+            print(f"  {v}")
+
+    if orphans:
+        if missing:
+            print()
+        print("❌ Orphan test files detected:")
+        print(
+            "Test files must have a corresponding source file. "
+            "Delete the test, restore the source, or whitelist the test in "
+            "EXCLUDED_TEST_FILES if it is intentionally cross-cutting.\n"
+        )
+        for v in orphans:
+            print(f"  {v}")
+
+    if missing or orphans:
         sys.exit(1)
-    else:
-        print("✅ All source files have corresponding test files")
-        sys.exit(0)
+
+    print("✅ All source files have matching test files (and vice versa)")
+    sys.exit(0)
 
 
 if __name__ == "__main__":

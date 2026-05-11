@@ -28,8 +28,8 @@ from src.services.admin_companies import (
 from src.services.admin_company_profiles import admin_create_company
 from src.services.auth import register_company_user
 from src.services.exceptions import CompanyNotFoundError, CompanyNotPendingError
-from tests.factories import FAKE_LOGO as _LOGO
-from tests.factories import FAKE_SIG_B64 as _SIG
+from tests.conftest import FAKE_LOGO as _LOGO
+from tests.conftest import FAKE_SIG_B64 as _SIG
 
 
 def _company_create(email: str, name: str) -> UserCreate:
@@ -212,6 +212,21 @@ async def test_reject_company_already_approved(mock_email, session: AsyncSession
 
     with pytest.raises(CompanyNotPendingError):
         await reject_company(user.id, session)
+
+
+@pytest.mark.asyncio
+async def test_reject_company_wrong_role(session: AsyncSession):
+    admin = User(
+        email="rejectadmin@example.com",
+        hashed_password=get_password_hash("password"),
+        role=UserRole.ADMIN,
+        is_active=False,
+    )
+    session.add(admin)
+    await session.commit()
+
+    with pytest.raises(CompanyNotPendingError):
+        await reject_company(admin.id, session)
 
 
 # ── list_active_companies ─────────────────────────────────────────────────────

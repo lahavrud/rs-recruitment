@@ -8,8 +8,7 @@ from sqlalchemy import select
 
 from src.enums import JobStatus
 from src.models import CompanyProfile, Job
-from tests.conftest import TestSessionLocal
-from tests.factories import FAKE_LOGO, FAKE_SIG_B64
+from tests.conftest import FAKE_LOGO, FAKE_SIG_B64, TestSessionLocal
 
 
 @pytest.mark.asyncio
@@ -304,36 +303,21 @@ async def test_contact_job_works_for_published_job(
 
 
 @pytest.mark.asyncio
-async def test_admin_job_endpoints_require_auth(test_db):
-    """Test that admin job endpoints require authentication."""
-    from httpx import ASGITransport, AsyncClient
+async def test_admin_job_endpoints_require_auth(unauthenticated_client: AsyncClient):
+    """Admin job endpoints reject requests without an auth token."""
+    response = await unauthenticated_client.get("/api/admin/jobs/pending")
+    assert response.status_code == 401
 
-    from src.core.infrastructure.database import get_session
-    from src.main import app
-    from tests.conftest import override_get_session
+    response = await unauthenticated_client.post("/api/admin/jobs/1/approve")
+    assert response.status_code == 401
 
-    app.dependency_overrides.clear()
+    response = await unauthenticated_client.post("/api/admin/jobs/1/reject")
+    assert response.status_code == 401
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Override only database, not auth
-        app.dependency_overrides[get_session] = override_get_session
-
-        response = await client.get("/api/admin/jobs/pending")
-        assert response.status_code == 401  # Unauthorized (no auth token)
-
-        response = await client.post("/api/admin/jobs/1/approve")
-        assert response.status_code == 401
-
-        response = await client.post("/api/admin/jobs/1/reject")
-        assert response.status_code == 401
-
-        response = await client.post(
-            "/api/admin/jobs/1/contact", json={"admin_note": ""}
-        )
-        assert response.status_code == 401
-
-    app.dependency_overrides.clear()
+    response = await unauthenticated_client.post(
+        "/api/admin/jobs/1/contact", json={"admin_note": ""}
+    )
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

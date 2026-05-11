@@ -13,7 +13,6 @@ from src.services.exceptions import CompanyNotFoundError, JobNotFoundError
 from src.services.jobs_admin_crud import (
     admin_create_job,
     delete_job,
-    get_job,
     list_jobs,
     update_job,
 )
@@ -50,38 +49,6 @@ async def test_admin_create_job_published_by_default(
 async def test_admin_create_job_unknown_company(session: AsyncSession):
     with pytest.raises(CompanyNotFoundError):
         await admin_create_job(_payload(company_id=99999), session)
-
-
-# ── get_job ───────────────────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_get_job_returns_any_status(
-    session: AsyncSession, company_with_user: CompanyProfile
-):
-    closed = Job(
-        company_id=company_with_user.id,
-        title="Closed Role",
-        description="x",
-        requirements="x",
-        location="x",
-        status=JobStatus.CLOSED,
-        salary_min=15000,
-        salary_max=25000,
-    )
-    session.add(closed)
-    await session.commit()
-    await session.refresh(closed)
-
-    fetched = await get_job(closed.id, session)
-    assert fetched.id == closed.id
-    assert fetched.status == JobStatus.CLOSED
-
-
-@pytest.mark.asyncio
-async def test_get_job_not_found(session: AsyncSession):
-    with pytest.raises(JobNotFoundError):
-        await get_job(99999, session)
 
 
 # ── update_job ────────────────────────────────────────────────────────────────
