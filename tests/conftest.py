@@ -72,13 +72,9 @@ def _fast_bcrypt_for_tests():
 
     The default cost of 12 is fine for prod but multiplied across every
     test that creates a User (admin, company, candidate fixtures + the
-    register / login / password-reset flows) it dominated CI runtime:
-    profiling showed ~85s burned in 13 tests by bcrypt alone, far more
-    than any DB-cleanup cost.
-
-    Real bcrypt behavior is preserved (verify_password still works,
-    hashes round-trip correctly) — we just lower the work factor. The
-    monkeypatch is restored at session teardown.
+    register / login / password-reset flows) it dominated local pytest
+    runtime. Real bcrypt behavior is preserved (verify_password still
+    works, hashes round-trip correctly) — we only lower the work factor.
     """
     import bcrypt
 
@@ -88,6 +84,42 @@ def _fast_bcrypt_for_tests():
     )
     yield
     bcrypt.gensalt = _original
+
+
+@pytest.fixture(autouse=True)
+def _mock_redis_pool():
+    """Patch `get_redis_pool` so every caller sees an AsyncMock, not a real
+    Redis connection.
+
+    CI has no Redis. Without this, every `await get_redis_pool()` in
+    src/ — invite_tokens.{generate,validate,consume,revoke},
+    password_reset._per_email_rate_limit_ok, security.is_access_token_blacklisted
+    + blacklist, auth._check_lockout / _record_failed_attempt /
+    _clear_failed_attempts, health_check.ping, enqueue_email_task — opens
+    a TCP connection that hangs for the asyncpg/redis default timeout
+    (~5–15 s) before raising. That dominated CI: tests that incidentally
+    touched any of these paths cost 5–15 s each.
+
+    The existing per-target mocks (mock_enqueue_email, mock_auth_redis,
+    mock_invite_tokens, etc.) catch SOME callers but not all — and they
+    only patch at the import site, missing functions called via the
+    underlying module. A single patch on `src.core.tasks.get_redis_pool`
+    catches everyone.
+
+    Tests that want to assert against the real Redis client (e.g.,
+    `tests/core/infrastructure/test_invite_tokens.py`) still install
+    their own per-test patch, which takes precedence.
+    """
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = b"1"  # default: keys exist
+    mock_redis.ttl.return_value = -2  # default: no lockout
+    mock_redis.incr.return_value = 1
+    with patch(
+        "src.core.tasks.get_redis_pool",
+        new_callable=AsyncMock,
+        return_value=mock_redis,
+    ):
+        yield mock_redis
 
 
 @pytest.fixture(autouse=True)
