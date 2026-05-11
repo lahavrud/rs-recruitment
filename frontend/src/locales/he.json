@@ -218,6 +218,7 @@
     "resetPassword": {
       "title": "הגדרת סיסמה חדשה",
       "subtitle": "בחרו סיסמה חדשה לחשבון שלכם.",
+      "checking": "בודק את הקישור…",
       "passwordLabel": "סיסמה חדשה",
       "confirmLabel": "אימות סיסמה",
       "submitText": "עדכון סיסמה",

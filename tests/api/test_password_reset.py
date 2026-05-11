@@ -210,6 +210,106 @@ async def test_reset_password_rejects_expired_token(
 
 
 @pytest.mark.asyncio
+async def test_validate_reset_token_returns_200_for_active_token(
+    public_client: AsyncClient, session
+):
+    user = await _make_user(session, email="v1@example.com")
+    raw_token = "raw-validate-active"
+    session.add(
+        PasswordResetToken(
+            token_hash=hash_token(raw_token),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            used=False,
+        )
+    )
+    await session.commit()
+
+    resp = await public_client.get(
+        "/auth/reset-password/validate", params={"token": raw_token}
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"valid": True}
+
+
+@pytest.mark.asyncio
+async def test_validate_reset_token_does_not_consume_token(
+    public_client: AsyncClient, session
+):
+    """Validation must leave the token usable — otherwise the form submit dies."""
+    user = await _make_user(session, email="v2@example.com")
+    raw_token = "raw-validate-nonconsume"
+    session.add(
+        PasswordResetToken(
+            token_hash=hash_token(raw_token),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            used=False,
+        )
+    )
+    await session.commit()
+
+    await public_client.get(
+        "/auth/reset-password/validate", params={"token": raw_token}
+    )
+    resp = await public_client.post(
+        "/auth/reset-password",
+        json={"token": raw_token, "new_password": "FreshPass1!"},
+    )
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_validate_reset_token_rejects_used(public_client: AsyncClient, session):
+    user = await _make_user(session, email="v3@example.com")
+    raw_token = "raw-validate-used"
+    session.add(
+        PasswordResetToken(
+            token_hash=hash_token(raw_token),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            used=True,
+        )
+    )
+    await session.commit()
+
+    resp = await public_client.get(
+        "/auth/reset-password/validate", params={"token": raw_token}
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_validate_reset_token_rejects_expired(
+    public_client: AsyncClient, session
+):
+    user = await _make_user(session, email="v4@example.com")
+    raw_token = "raw-validate-expired"
+    session.add(
+        PasswordResetToken(
+            token_hash=hash_token(raw_token),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            used=False,
+        )
+    )
+    await session.commit()
+
+    resp = await public_client.get(
+        "/auth/reset-password/validate", params={"token": raw_token}
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_validate_reset_token_rejects_unknown(public_client: AsyncClient):
+    resp = await public_client.get(
+        "/auth/reset-password/validate", params={"token": "totally-bogus"}
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_reset_password_rejects_unknown_token(public_client: AsyncClient):
     resp = await public_client.post(
         "/auth/reset-password",

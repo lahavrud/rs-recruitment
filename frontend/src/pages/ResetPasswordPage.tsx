@@ -1,11 +1,13 @@
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
-import { resetPassword } from "@/services/auth";
+import { resetPassword, validateResetToken } from "@/services/auth";
 import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
+
+type TokenState = "checking" | "valid" | "invalid";
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation();
@@ -18,8 +20,25 @@ export default function ResetPasswordPage() {
   const [fieldErrors, setFieldErrors] = useState({ password: "", confirm: "" });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [tokenRejected, setTokenRejected] = useState(false);
+  const [tokenState, setTokenState] = useState<TokenState>(() =>
+    token ? "checking" : "invalid",
+  );
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    validateResetToken(token)
+      .then(() => {
+        if (!cancelled) setTokenState("valid");
+      })
+      .catch(() => {
+        if (!cancelled) setTokenState("invalid");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
@@ -69,7 +88,9 @@ export default function ResetPasswordPage() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
-        if (status === 400) setTokenRejected(true);
+        // 400 here means the token was valid at page-load but expired or got
+        // used between then and submit — same UX as a stale link on arrival.
+        if (status === 400) setTokenState("invalid");
         else if (status === 429) setError(t("auth.resetPassword.errors.tooManyAttempts"));
         else if (status === 422) {
           const detail = err.response?.data?.detail;
@@ -89,7 +110,15 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (!token || tokenRejected) {
+  if (tokenState === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-void">
+        <p className="text-sm text-white/30">{t("auth.resetPassword.checking")}</p>
+      </div>
+    );
+  }
+
+  if (tokenState === "invalid") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-void px-4 py-8">
         <div className="w-full max-w-md rounded-xl border border-warning/30 bg-card p-10 text-center">
