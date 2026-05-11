@@ -46,8 +46,13 @@ async def job(session: AsyncSession, company_with_user: CompanyProfile) -> Job:
     job = Job(
         company_id=company_with_user.id,
         title="Senior Python Developer",
+        short_description="Short blurb for testing.",
         description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+        requirements=[
+            {"text": "5+ years experience with Python, FastAPI, PostgreSQL"},
+            {"text": "Req 2"},
+            {"text": "Req 3"},
+        ],
         location="Tel Aviv, Israel",
         status=JobStatus.PENDING_APPROVAL,
         salary_min=15000,
@@ -76,8 +81,13 @@ async def test_create_job_success(
 
     job_data = JobCreate(
         title="Senior Python Developer",
+        short_description="Short blurb for testing.",
         description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+        requirements=[
+            {"text": "5+ years experience with Python, FastAPI, PostgreSQL"},
+            {"text": "Req 2"},
+            {"text": "Req 3"},
+        ],
         location="Tel Aviv, Israel",
         salary_min=20000,
         salary_max=30000,
@@ -105,8 +115,9 @@ async def test_create_job_company_not_found(session: AsyncSession):
     """Test creating a job with non-existent company."""
     job_data = JobCreate(
         title="Senior Python Developer",
+        short_description="Short blurb for testing.",
         description="Description",
-        requirements="Requirements",
+        requirements=[{"text": "Requirements"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location",
         salary_min=10000,
         salary_max=15000,
@@ -144,8 +155,9 @@ async def test_list_company_jobs(
     job1 = Job(
         company_id=company_with_user.id,
         title="Job 1",
+        short_description="Short blurb for testing.",
         description="Description 1",
-        requirements="Requirements 1",
+        requirements=[{"text": "Requirements 1"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location 1",
         salary_min=15000,
         salary_max=25000,
@@ -153,8 +165,9 @@ async def test_list_company_jobs(
     job2 = Job(
         company_id=company_with_user.id,
         title="Job 2",
+        short_description="Short blurb for testing.",
         description="Description 2",
-        requirements="Requirements 2",
+        requirements=[{"text": "Requirements 2"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location 2",
         salary_min=15000,
         salary_max=25000,

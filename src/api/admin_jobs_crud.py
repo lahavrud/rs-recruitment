@@ -15,7 +15,7 @@ from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorP
 from src.core.infrastructure.transactions import transactional
 from src.enums import JobStatus
 from src.models import User
-from src.schemas import JobAdminCreate, JobRead, JobUpdate
+from src.schemas import JobAdminCreate, JobAdminUpdate, JobRead
 from src.services.exceptions import (
     CompanyNotFoundError,
     InvalidCursorError,
@@ -80,7 +80,7 @@ async def get_job_endpoint(
 @router.put("/jobs/{job_id}", response_model=JobRead)
 async def update_job_endpoint(
     job_id: int,
-    data: JobUpdate,
+    data: JobAdminUpdate,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> JobRead:

@@ -22,10 +22,21 @@ async def list_published_jobs(
     cursor: str | None = None,
     limit: int | None = None,
 ) -> CursorPage[JobPublicRead]:
-    """One page of published jobs, newest first."""
+    """One page of published jobs, featured first then newest.
+
+    Featured-first is applied as a leading order term so that within any
+    given page, featured jobs surface at the top. The cursor still encodes
+    only `(created_at, id)` — for the typical small public board where page
+    one covers all (or nearly all) jobs, this gives the intended UX.
+    """
     page_size = clamp_limit(limit)
+    base = (
+        select(Job)
+        .where(Job.status == JobStatus.PUBLISHED)  # pyright: ignore[reportArgumentType]
+        .order_by(Job.is_featured.desc())  # pyright: ignore[reportArgumentType]
+    )
     query = apply_cursor(
-        select(Job).where(Job.status == JobStatus.PUBLISHED),  # pyright: ignore[reportArgumentType]
+        base,
         sort_col=Job.created_at,  # pyright: ignore[reportArgumentType]
         id_col=Job.id,  # pyright: ignore[reportArgumentType]
         cursor=cursor,

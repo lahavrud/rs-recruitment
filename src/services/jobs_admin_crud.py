@@ -19,7 +19,7 @@ from src.core.infrastructure.pagination import (
 )
 from src.enums import JobStatus
 from src.models import Application, CompanyProfile, Job
-from src.schemas import JobAdminCreate, JobRead, JobUpdate
+from src.schemas import JobAdminCreate, JobAdminUpdate, JobRead
 from src.services.exceptions import CompanyNotFoundError, JobNotFoundError
 
 
@@ -70,8 +70,11 @@ async def admin_create_job(data: JobAdminCreate, session: AsyncSession) -> JobRe
     job = Job(
         company_id=data.company_id,
         title=data.title,
+        short_description=data.short_description,
         description=data.description,
-        requirements=data.requirements,
+        requirements=[r.model_dump() for r in data.requirements],
+        tags=list(data.tags),
+        is_featured=data.is_featured,
         location=data.location,
         salary_min=data.salary_min,
         salary_max=data.salary_max,
@@ -83,7 +86,9 @@ async def admin_create_job(data: JobAdminCreate, session: AsyncSession) -> JobRe
     return JobRead.model_validate(job)
 
 
-async def update_job(job_id: int, data: JobUpdate, session: AsyncSession) -> JobRead:
+async def update_job(
+    job_id: int, data: JobAdminUpdate, session: AsyncSession
+) -> JobRead:
     """Apply a partial update to a job. Admin can edit any field at any status.
 
     Raises:
@@ -93,7 +98,10 @@ async def update_job(job_id: int, data: JobUpdate, session: AsyncSession) -> Job
         session, Job, job_id, lambda pk: JobNotFoundError(f"Job {pk} not found")
     )
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    # model_dump serializes nested pydantic items (e.g. JobRequirementItem)
+    # to plain dicts, which is exactly what the JSONB column wants.
+    payload = data.model_dump(exclude_unset=True)
+    for field, value in payload.items():
         setattr(job, field, value)
     job.updated_at = datetime.now(timezone.utc)
 

@@ -15,8 +15,13 @@ async def test_job_creation(session: AsyncSession, company_with_user: CompanyPro
     job = Job(
         company_id=company_with_user.id,
         title="Senior Python Developer",
+        short_description="Short blurb for testing.",
         description="We are looking for a senior Python developer...",
-        requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+        requirements=[
+            {"text": "5+ years experience with Python, FastAPI, PostgreSQL"},
+            {"text": "Req 2"},
+            {"text": "Req 3"},
+        ],
         location="Tel Aviv, Israel",
         salary_min=15000,
         salary_max=25000,
@@ -45,7 +50,11 @@ async def test_job_required_fields(
             company_id=company_with_user.id,
             # title is missing - should fail
             description="Description",
-            requirements="Requirements",
+            requirements=[
+                {"text": "Requirements"},
+                {"text": "Req 2"},
+                {"text": "Req 3"},
+            ],
             location="Location",
         )
         session.add(job)
@@ -61,8 +70,9 @@ async def test_job_salary_range_db_constraint_rejects_inverted(
     job = Job(
         company_id=company_with_user.id,
         title="Test Job",
+        short_description="Short blurb for testing.",
         description="d",
-        requirements="r",
+        requirements=[{"text": "r"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="l",
         salary_min=20000,
         salary_max=10000,
@@ -81,8 +91,9 @@ async def test_job_salary_range_db_rejects_null(
     job = Job(
         company_id=company_with_user.id,
         title="Test Job",
+        short_description="Short blurb for testing.",
         description="d",
-        requirements="r",
+        requirements=[{"text": "r"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="l",
         salary_min=15000,
         salary_max=None,  # type: ignore[arg-type]
@@ -101,8 +112,9 @@ async def test_job_salary_range_db_constraint_allows_equal(
     job = Job(
         company_id=company_with_user.id,
         title="Test Job",
+        short_description="Short blurb for testing.",
         description="d",
-        requirements="r",
+        requirements=[{"text": "r"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="l",
         salary_min=15000,
         salary_max=15000,

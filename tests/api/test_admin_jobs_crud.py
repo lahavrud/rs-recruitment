@@ -11,8 +11,14 @@ def _payload(company_id: int, **overrides) -> dict:
     base = {
         "company_id": company_id,
         "title": "QA Engineer",
+        "short_description": "תפקיד QA בצוות פיתוח קטן",
         "description": "ביצוע בדיקות אוטומטיות ומאניאוליות",
-        "requirements": "ניסיון של 2 שנים לפחות",
+        "requirements": [
+            {"text": "ניסיון של 2 שנים לפחות"},
+            {"text": "שליטה ב-Python"},
+            {"text": "היכרות עם בדיקות אוטומטיות"},
+        ],
+        "tags": [],
         "location": "רמת גן",
         "salary_min": 14000,
         "salary_max": 20000,

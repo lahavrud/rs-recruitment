@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from pydantic import field_validator
 from sqlalchemy import CheckConstraint, DateTime, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from src.enums import ApplicationStatus, InviteTokenStatus, JobStatus, UserRole
@@ -190,8 +191,17 @@ class Job(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     company_id: int = Field(foreign_key="companyprofile.id", index=True)
     title: str
+    short_description: str
     description: str
-    requirements: str
+    requirements: list[dict] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default="[]"),
+    )
+    tags: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default="[]"),
+    )
+    is_featured: bool = Field(default=False, index=True)
     location: str
     salary_min: int
     salary_max: int

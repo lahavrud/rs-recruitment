@@ -9,7 +9,9 @@ interface PageHeaderProps {
 
 export default function PageHeader({ eyebrow, subtitle, action, className = "" }: PageHeaderProps) {
   return (
-    <div className={`mb-6 flex items-start justify-between gap-4 ${className}`}>
+    <div
+      className={`mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between ${className}`}
+    >
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
           {eyebrow}
@@ -19,7 +21,7 @@ export default function PageHeader({ eyebrow, subtitle, action, className = "" }
           <p className="mt-4 text-sm text-white/40">{subtitle}</p>
         )}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="w-full sm:w-auto sm:shrink-0">{action}</div>}
     </div>
   );
 }

@@ -17,8 +17,10 @@ async def test_get_by_id_found(
     job = Job(
         company_id=company_with_user.id,
         title="Test Job",
+        short_description="Short blurb.",
         description="Description",
-        requirements="Requirements",
+        requirements=[{"text": "Req one"}, {"text": "Req two"}],
+        tags=[],
         location="Tel Aviv",
         status=JobStatus.PENDING_APPROVAL,
         salary_min=10000,
@@ -48,8 +50,10 @@ async def test_get_by_id_or_raise_found(
     job = Job(
         company_id=company_with_user.id,
         title="Test Job",
+        short_description="Short blurb.",
         description="Description",
-        requirements="Requirements",
+        requirements=[{"text": "Req one"}, {"text": "Req two"}],
+        tags=[],
         location="Tel Aviv",
         status=JobStatus.PENDING_APPROVAL,
         salary_min=10000,

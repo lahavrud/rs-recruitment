@@ -31,8 +31,9 @@ async def test_list_published_jobs(
     job1 = Job(
         company_id=company_with_user.id,
         title="Older Job",
+        short_description="Short blurb for testing.",
         description="Description 1",
-        requirements="Requirements 1",
+        requirements=[{"text": "Requirements 1"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location 1",
         status=JobStatus.PUBLISHED,
         created_at=now - timedelta(hours=1),
@@ -42,8 +43,9 @@ async def test_list_published_jobs(
     job2 = Job(
         company_id=company_with_user.id,
         title="Newer Job",
+        short_description="Short blurb for testing.",
         description="Description 2",
-        requirements="Requirements 2",
+        requirements=[{"text": "Requirements 2"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location 2",
         status=JobStatus.PUBLISHED,
         created_at=now,
@@ -54,8 +56,9 @@ async def test_list_published_jobs(
     job3 = Job(
         company_id=company_with_user.id,
         title="Pending Job",
+        short_description="Short blurb for testing.",
         description="Description 3",
-        requirements="Requirements 3",
+        requirements=[{"text": "Requirements 3"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location 3",
         status=JobStatus.PENDING_APPROVAL,
         created_at=now + timedelta(hours=1),
@@ -92,8 +95,13 @@ async def test_get_published_job_success(
     job = Job(
         company_id=company_with_user.id,
         title="Senior Python Developer",
+        short_description="Short blurb for testing.",
         description="We are looking for a developer...",
-        requirements="Python experience",
+        requirements=[
+            {"text": "Python experience"},
+            {"text": "Req 2"},
+            {"text": "Req 3"},
+        ],
         location="Tel Aviv",
         status=JobStatus.PUBLISHED,
         salary_min=15000,
@@ -131,8 +139,9 @@ async def test_get_published_job_not_published(
     job = Job(
         company_id=company_with_user.id,
         title="Pending Job",
+        short_description="Short blurb for testing.",
         description="Description",
-        requirements="Requirements",
+        requirements=[{"text": "Requirements"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location",
         status=JobStatus.PENDING_APPROVAL,
         salary_min=15000,

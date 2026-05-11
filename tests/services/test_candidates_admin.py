@@ -170,8 +170,9 @@ async def test_delete_candidate_cascades_applications(
     job = Job(
         company_id=company.id,
         title="Role",
+        short_description="Short blurb for testing.",
         description="x",
-        requirements="x",
+        requirements=[{"text": "x"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="x",
         status=JobStatus.PUBLISHED,
         salary_min=15000,
@@ -246,8 +247,9 @@ async def _make_closed_job(
     job = Job(
         company_id=company.id,
         title="Closed Role",
+        short_description="Short blurb for testing.",
         description="x",
-        requirements="x",
+        requirements=[{"text": "x"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="x",
         status=JobStatus.CLOSED,
         salary_min=15000,
@@ -360,8 +362,9 @@ async def test_purge_preserves_candidate_with_any_active_application(
     active = Job(
         company_id=company_profile.id,
         title="Open",
+        short_description="Short blurb for testing.",
         description="x",
-        requirements="x",
+        requirements=[{"text": "x"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="x",
         status=JobStatus.PUBLISHED,
         salary_min=15000,

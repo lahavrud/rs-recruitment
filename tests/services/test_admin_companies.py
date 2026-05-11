@@ -430,8 +430,9 @@ async def test_delete_active_company_cascades_jobs_and_applications(
 
     job = Job(
         title="Engineer",
+        short_description="Short blurb for testing.",
         description="Desc",
-        requirements="Python",
+        requirements=[{"text": "Python"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="TLV",
         company_id=cp.id,
         salary_min=15000,

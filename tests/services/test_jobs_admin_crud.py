@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.enums import ApplicationStatus, JobStatus
 from src.models import Application, CandidateProfile, CompanyProfile, Job
-from src.schemas import JobAdminCreate, JobUpdate
+from src.schemas import JobAdminCreate, JobAdminUpdate
 from src.services.exceptions import CompanyNotFoundError, JobNotFoundError
 from src.services.jobs_admin_crud import (
     admin_create_job,
@@ -22,8 +22,9 @@ def _payload(company_id: int, title: str = "Backend Engineer") -> JobAdminCreate
     return JobAdminCreate(
         company_id=company_id,
         title=title,
+        short_description="Short blurb for testing.",
         description="ניהול שרתים ופיתוח backend",
-        requirements="3+ שנות ניסיון",
+        requirements=[{"text": "3+ שנות ניסיון"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="תל אביב",
         salary_min=15000,
         salary_max=22000,
@@ -63,7 +64,7 @@ async def test_update_job_partial_keeps_unset_fields(
 
     updated = await update_job(
         created.id,
-        JobUpdate(title="Senior Backend Engineer", status=JobStatus.CLOSED),
+        JobAdminUpdate(title="Senior Backend Engineer", status=JobStatus.CLOSED),
         session,
     )
     await session.commit()
@@ -77,7 +78,7 @@ async def test_update_job_partial_keeps_unset_fields(
 @pytest.mark.asyncio
 async def test_update_job_not_found(session: AsyncSession):
     with pytest.raises(JobNotFoundError):
-        await update_job(99999, JobUpdate(title="anything"), session)
+        await update_job(99999, JobAdminUpdate(title="anything"), session)
 
 
 # ── delete_job ────────────────────────────────────────────────────────────────
@@ -142,8 +143,9 @@ async def test_list_jobs_filters_by_status(
             Job(
                 company_id=company_with_user.id,
                 title=f"Role {i}",
+                short_description="Short blurb for testing.",
                 description="x",
-                requirements="x",
+                requirements=[{"text": "x"}, {"text": "Req 2"}, {"text": "Req 3"}],
                 location="x",
                 status=status,
                 created_at=base + timedelta(minutes=i),
@@ -168,8 +170,9 @@ async def test_list_jobs_paginates_through_all(
             Job(
                 company_id=company_with_user.id,
                 title=f"Role {i:02d}",
+                short_description="Short blurb for testing.",
                 description="x",
-                requirements="x",
+                requirements=[{"text": "x"}, {"text": "Req 2"}, {"text": "Req 3"}],
                 location="x",
                 status=JobStatus.PUBLISHED,
                 created_at=base + timedelta(minutes=i),

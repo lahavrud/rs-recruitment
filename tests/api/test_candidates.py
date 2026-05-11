@@ -306,8 +306,13 @@ async def test_apply_endpoint_reuses_existing_profile(
         job2 = Job(
             company_id=company.id,  # type: ignore[arg-type]
             title="Junior Python Developer",
+            short_description="Short blurb for testing.",
             description="We are looking for a junior Python developer...",
-            requirements="1+ years experience with Python",
+            requirements=[
+                {"text": "1+ years experience with Python"},
+                {"text": "Req 2"},
+                {"text": "Req 3"},
+            ],
             location="Tel Aviv, Israel",
             salary_min=15000,
             salary_max=25000,

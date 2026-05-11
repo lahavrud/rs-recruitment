@@ -78,14 +78,26 @@ COMPANIES = [
     },
 ]
 
+
+def _reqs(*items: str) -> list[dict]:
+    return [{"text": t} for t in items]
+
+
 # ── משרות ──
 JOBS_BY_COMPANY = [
     # פתרונות מתקנים
     [
         {
             "title": "מנהל מתקנים בכיר",
+            "short_description": "אחריות מלאה על קמפוס מסחרי פעיל בלב תל אביב.",
             "description": "ניהול קמפוס מסחרי — מיזוג, חשמל, אינסטלציה וניקיון.",
-            "requirements": "5+ שנות ניסיון בניהול מתקנים. תואר הנדסה.",
+            "requirements": _reqs(
+                "5+ שנות ניסיון בניהול מתקנים",
+                "תואר הנדסה",
+                "ניסיון בניהול צוותים רב-תחומיים",
+            ),
+            "tags": ["רכב צמוד", "ניהול בכיר", "קמפוס מסחרי"],
+            "is_featured": True,
             "location": "תל אביב",
             "salary_min": 18000,
             "salary_max": 25000,
@@ -93,8 +105,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "טכנאי מיזוג אוויר",
+            "short_description": "תפקיד שטח עם רכב חברה ולקוחות מגוונים באזור המרכז.",
             "description": "התקנה ותחזוקת מערכות מיזוג אצל לקוחות מגוונים.",
-            "requirements": "3+ שנות ניסיון. תעודת מיזוג. רישיון נהיגה.",
+            "requirements": _reqs(
+                "3+ שנות ניסיון",
+                "תעודת מיזוג",
+                "רישיון נהיגה בתוקף",
+            ),
+            "tags": ["רכב צמוד", "תפקיד שטח"],
+            "is_featured": False,
             "location": "תל אביב",
             "salary_min": 12000,
             "salary_max": 17000,
@@ -102,8 +121,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מהנדס מערכות בניין",
+            "short_description": "תפקיד הנדסי במרכזים מסחריים בהרצליה פיתוח.",
             "description": "ניהול מערכות BMS ואופטימיזציית צריכת אנרגיה.",
-            "requirements": "תואר הנדסה מכנית/חשמלית. 3+ שנות ניסיון ב-BMS.",
+            "requirements": _reqs(
+                "תואר הנדסה מכנית או חשמלית",
+                "3+ שנות ניסיון ב-BMS",
+                "ידע בקרי מערכת מתקדמים",
+            ),
+            "tags": ["BMS", "הנדסה", "אנרגיה"],
+            "is_featured": False,
             "location": "הרצליה",
             "salary_min": 15000,
             "salary_max": 22000,
@@ -111,8 +137,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מנהל תחזוקה חשמלית",
+            "short_description": "ניהול צוות חשמלאים על-פני 5 נכסי לקוח באזור גוש דן.",
             "description": "פיקוח על צוות חשמלאים ב-5 נכסי לקוח.",
-            "requirements": "הנדסאי חשמל. 5+ שנות ניסיון. רישיון משרד האנרגיה.",
+            "requirements": _reqs(
+                "הנדסאי חשמל",
+                "5+ שנות ניסיון",
+                "רישיון משרד האנרגיה",
+            ),
+            "tags": ["ניהול צוות"],
+            "is_featured": False,
             "location": "תל אביב",
             "salary_min": 14000,
             "salary_max": 20000,
@@ -120,8 +153,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "ראש צוות אינסטלציה",
+            "short_description": "ניהול תחזוקת אינסטלציה בקמפוס בית חולים פעיל.",
             "description": "ניהול תחזוקת אינסטלציה בקמפוס בית חולים.",
-            "requirements": "10+ שנות ניסיון. 3+ שנות ניהול. תעודת מים.",
+            "requirements": _reqs(
+                "10+ שנות ניסיון",
+                "3+ שנות ניהול",
+                "תעודת מים",
+            ),
+            "tags": ["בית חולים", "ניהול"],
+            "is_featured": False,
             "location": "רמת גן",
             "salary_min": 16000,
             "salary_max": 22000,
@@ -132,8 +172,15 @@ JOBS_BY_COMPANY = [
     [
         {
             "title": "מנהל מבצעי ביטחון",
+            "short_description": "ניהול אבטחת 8 מבנים מסחריים וצוות של 40 מאבטחים.",
             "description": "ניהול אבטחת 8 מבנים מסחריים ו-40 מאבטחים.",
-            "requirements": "5+ שנות ניסיון. רישיון מנהל ביטחון ממשרד הפנים.",
+            "requirements": _reqs(
+                "5+ שנות ניסיון בתחום הביטחון",
+                "רישיון מנהל ביטחון ממשרד הפנים",
+                "כושר ניהולי גבוה",
+            ),
+            "tags": ["רכב צמוד", "ניהול בכיר", "כוננות"],
+            "is_featured": True,
             "location": "תל אביב",
             "salary_min": 18000,
             "salary_max": 24000,
@@ -141,8 +188,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "רכז בטיחות אש",
+            "short_description": "הטמעת תוכניות בטיחות אש במספר אתרי לקוחות בצפון.",
             "description": "הטמעת תוכניות בטיחות אש ופיקוח על ציוד כיבוי.",
-            "requirements": "תעודת בטיחות אש. 3+ שנות ניסיון. הדרכת עזרה ראשונה.",
+            "requirements": _reqs(
+                "תעודת בטיחות אש בתוקף",
+                "3+ שנות ניסיון",
+                "הדרכת עזרה ראשונה",
+            ),
+            "tags": ["בטיחות", "תפקיד שטח"],
+            "is_featured": False,
             "location": "חיפה",
             "salary_min": 12000,
             "salary_max": 16000,
@@ -150,8 +204,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "טכנאי בקרת כניסה",
+            "short_description": "התקנת מערכות בקרת כניסה ובקרת גישה אצל לקוחות.",
             "description": "התקנת מערכות RFID, ביומטריה ואינטרקום.",
-            "requirements": "2+ שנות ניסיון בבקרת כניסה. רקע אלקטרוניקה.",
+            "requirements": _reqs(
+                "2+ שנות ניסיון בבקרת כניסה",
+                "רקע באלקטרוניקה",
+                "ידע במערכות RFID",
+            ),
+            "tags": ["טכנאות", "RFID"],
+            "is_featured": False,
             "location": "פתח תקווה",
             "salary_min": 10000,
             "salary_max": 14000,
@@ -159,8 +220,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מאבטח — קמפוס היי-טק",
+            "short_description": "תפקיד אבטחה בקמפוס טכנולוגי באזור הרצליה פיתוח.",
             "description": "סיורים, ניטור CCTV וקבלת אורחים בקמפוס טכנולוגי.",
-            "requirements": "רישיון מאבטח בתוקף. עברית ואנגלית בסיסית.",
+            "requirements": _reqs(
+                "רישיון מאבטח בתוקף",
+                "עברית ואנגלית בסיסית",
+                "כושר גופני סביר",
+            ),
+            "tags": ["משמרות"],
+            "is_featured": False,
             "location": "הרצליה",
             "salary_min": 8000,
             "salary_max": 11000,
@@ -168,8 +236,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מנהל מערכות CCTV",
+            "short_description": "ניהול תשתית CCTV ארגונית הכוללת 200+ מצלמות.",
             "description": "ניהול Milestone XProtect, בריאות מצלמות ואחסון.",
-            "requirements": "הסמכת Milestone. 3+ שנות ניסיון. זמינות כוננות.",
+            "requirements": _reqs(
+                "הסמכת Milestone XProtect",
+                "3+ שנות ניסיון",
+                "זמינות לכוננות",
+            ),
+            "tags": ["CCTV", "Milestone", "כוננות"],
+            "is_featured": False,
             "location": "תל אביב",
             "salary_min": 14000,
             "salary_max": 19000,
@@ -180,8 +255,15 @@ JOBS_BY_COMPANY = [
     [
         {
             "title": "מנהל פעילות ניקיון",
+            "short_description": "ניהול 12 נכסים פעילים וצוות של 80+ עובדים בירושלים.",
             "description": "ניהול ניקיון ב-12 נכסים וצוות של 80+ עובדים.",
-            "requirements": "5+ שנות ניסיון בניהול ניקיון. שליטה בעברית ובערבית.",
+            "requirements": _reqs(
+                "5+ שנות ניסיון בניהול ניקיון",
+                "שליטה בעברית ובערבית",
+                "ניסיון ניהול צוותים גדולים",
+            ),
+            "tags": ["ניהול בכיר", "רכב צמוד"],
+            "is_featured": True,
             "location": "ירושלים",
             "salary_min": 16000,
             "salary_max": 22000,
@@ -189,8 +271,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מומחה ניקיון תעשייתי",
+            "short_description": "תפקיד מקצועי במפעלי מזון ומחסנים לוגיסטיים באשדוד.",
             "description": "ניקיון מפעלי מזון ומחסנים. תפעול ציוד תעשייתי.",
-            "requirements": "2+ שנות ניסיון. הסמכת חומרים מסוכנים.",
+            "requirements": _reqs(
+                "2+ שנות ניסיון בניקיון תעשייתי",
+                "הסמכת חומרים מסוכנים",
+                "כושר גופני",
+            ),
+            "tags": ["תעשייה", "חומרים מסוכנים"],
+            "is_featured": False,
             "location": "אשדוד",
             "salary_min": 9000,
             "salary_max": 13000,
@@ -198,8 +287,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מנהל פסולת ומיחזור",
+            "short_description": "פיקוח על מערך מיחזור ופינוי פסולת ללקוחות עסקיים.",
             "description": "פיקוח על מיחזור ופינוי פסולת עבור לקוחות עסקיים.",
-            "requirements": "3+ שנות ניסיון. ידע ברגולציית משרד הסביבה.",
+            "requirements": _reqs(
+                "3+ שנות ניסיון בתחום הפסולת",
+                "ידע ברגולציית משרד הסביבה",
+                "יכולת עבודה מול רשויות",
+            ),
+            "tags": ["סביבה", "רגולציה"],
+            "is_featured": False,
             "location": "ראשון לציון",
             "salary_min": 11000,
             "salary_max": 16000,
@@ -207,8 +303,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "מפקח איכות ניקיון",
+            "short_description": "ביקורות איכות בלתי מוכרזות באתרי לקוחות בכל הארץ.",
             "description": "ביקורות איכות בלתי מוכרזות בכל אתרי הלקוחות.",
-            "requirements": "2+ שנות ניסיון. עין חדה לפרטים. רכב פרטי.",
+            "requirements": _reqs(
+                "2+ שנות ניסיון",
+                "עין חדה לפרטים",
+                "רכב פרטי",
+            ),
+            "tags": ["רכב צמוד", "תפקיד שטח"],
+            "is_featured": False,
             "location": "תל אביב",
             "salary_min": 10000,
             "salary_max": 14000,
@@ -216,8 +319,15 @@ JOBS_BY_COMPANY = [
         },
         {
             "title": "ראש צוות ניקיון",
+            "short_description": "ניהול צוות בקומפלקס משרדי ממשלתי באזור ירושלים.",
             "description": "ניהול 6 עובדים בקומפלקס משרדי ממשלתי.",
-            "requirements": "ניסיון ניהולי. אוריינות מחשב. אישור ביטחון.",
+            "requirements": _reqs(
+                "ניסיון ניהולי",
+                "אוריינות מחשב",
+                "אישור ביטחון",
+            ),
+            "tags": ["ממשלתי"],
+            "is_featured": False,
             "location": "ירושלים",
             "salary_min": 9000,
             "salary_max": 13000,
@@ -433,8 +543,11 @@ async def seed() -> None:
                     job = Job(
                         company_id=profile.id,
                         title=j["title"],
+                        short_description=j["short_description"],
                         description=j["description"],
                         requirements=j["requirements"],
+                        tags=j["tags"],
+                        is_featured=j["is_featured"],
                         location=j["location"],
                         salary_min=j["salary_min"],
                         salary_max=j["salary_max"],

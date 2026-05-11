@@ -58,8 +58,10 @@ async def create_job(
     new_job = Job(
         company_id=company_id,
         title=job_data.title,
+        short_description=job_data.short_description,
         description=job_data.description,
-        requirements=job_data.requirements,
+        requirements=[r.model_dump() for r in job_data.requirements],
+        tags=list(job_data.tags),
         location=job_data.location,
         salary_min=job_data.salary_min,
         salary_max=job_data.salary_max,
@@ -186,10 +188,14 @@ async def update_job(
     # Update fields
     if job_data.title is not None:
         job.title = job_data.title
+    if job_data.short_description is not None:
+        job.short_description = job_data.short_description
     if job_data.description is not None:
         job.description = job_data.description
     if job_data.requirements is not None:
-        job.requirements = job_data.requirements
+        job.requirements = [r.model_dump() for r in job_data.requirements]
+    if job_data.tags is not None:
+        job.tags = list(job_data.tags)
     if job_data.location is not None:
         job.location = job_data.location
     if job_data.salary_min is not None:

@@ -24,37 +24,76 @@ function formatDate(iso: string): string {
 
 function DetailSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl animate-pulse">
+    <div className="mx-auto max-w-4xl animate-pulse pb-24 lg:pb-0">
+      {/* Back link */}
       <div className="mb-6 h-4 w-24 rounded bg-white/8 sm:mb-8" />
-      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8">
-        {/* Left */}
-        <div className="rounded-xl border border-white/5 bg-card p-5 sm:p-10">
-          <div className="space-y-3">
-            <div className="h-6 w-2/3 rounded bg-white/8" />
-            <div className="h-4 w-1/4 rounded bg-white/5" />
+      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:items-start lg:gap-8">
+        {/* Article */}
+        <div className="rounded-xl border border-white/8 bg-card p-5 sm:p-10">
+          {/* Header: title + location (left) / status badge (right) */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-2.5">
+              <div className="h-6 w-2/3 rounded bg-white/10 sm:h-7" />
+              <div className="h-4 w-1/3 rounded bg-white/6" />
+            </div>
+            <div className="h-6 w-16 shrink-0 rounded-full bg-white/6" />
           </div>
-          <div className="my-8 h-px bg-white/5" />
-          <div className="space-y-2">
-            <div className="h-3 w-20 rounded bg-white/5" />
-            {[1, 0.9, 0.85, 0.7, 0.8].map((w, i) => (
-              <div key={i} className="h-3 rounded bg-white/5" style={{ width: `${w * 100}%` }} />
-            ))}
+          {/* Tag chips */}
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            <div className="h-6 w-20 rounded-full bg-white/6" />
+            <div className="h-6 w-24 rounded-full bg-white/6" />
+            <div className="h-6 w-16 rounded-full bg-white/6" />
           </div>
-          <div className="mt-8 space-y-2">
-            <div className="h-3 w-20 rounded bg-white/5" />
-            {[0.95, 0.75, 0.6].map((w, i) => (
-              <div key={i} className="h-3 rounded bg-white/5" style={{ width: `${w * 100}%` }} />
-            ))}
+          {/* Posted + salary row */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <div className="h-3 w-28 rounded bg-white/5" />
+            <div className="h-4 w-36 rounded bg-white/6" />
+          </div>
+
+          <div className="my-6 h-px bg-white/8 sm:my-8" />
+
+          {/* About the role */}
+          <div>
+            <div className="mb-3 h-3 w-20 rounded bg-white/6" />
+            <div className="space-y-2">
+              {[1, 0.9, 0.85, 0.7, 0.8].map((w, i) => (
+                <div key={i} className="h-3 rounded bg-white/5" style={{ width: `${w * 100}%` }} />
+              ))}
+            </div>
+          </div>
+
+          {/* Requirements — bullet list */}
+          <div className="mt-8">
+            <div className="mb-3 h-3 w-20 rounded bg-white/6" />
+            <ul className="space-y-2">
+              {[0.85, 0.7, 0.78, 0.6].map((w, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className="inline-block size-1.5 shrink-0 rounded-full bg-white/15" />
+                  <div className="h-3 rounded bg-white/5" style={{ width: `${w * 100}%` }} />
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-        {/* Right sidebar — desktop only */}
-        <div className="mt-4 hidden rounded-xl border border-white/5 bg-card p-6 lg:mt-0 lg:block">
-          <div className="space-y-3">
-            <div className="h-5 w-3/4 rounded bg-white/8" />
-            <div className="h-3 w-1/2 rounded bg-white/5" />
-            <div className="h-3 w-2/5 rounded bg-white/5" />
+
+        {/* Desktop sidebar — hidden on mobile (replaced by fixed bottom bar) */}
+        <aside className="mt-0 hidden lg:sticky lg:top-6 lg:block">
+          <div className="rounded-xl border border-white/8 bg-card p-6">
+            <div className="h-5 w-3/4 rounded bg-white/10" />
+            <div className="mt-2 h-3 w-1/2 rounded bg-white/6" />
+            <div className="mt-2 h-3 w-2/5 rounded bg-white/5" />
+            <div className="mt-2 h-4 w-3/5 rounded bg-white/6" />
+            <div className="mt-5 h-px bg-white/8" />
+            <div className="mt-5 h-11 rounded-sm bg-white/6" />
           </div>
-          <div className="mt-6 h-10 rounded-sm bg-white/5" />
+        </aside>
+      </div>
+
+      {/* Fixed mobile apply bar (lg:hidden) — matches real layout */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-void/95 px-4 py-3 backdrop-blur-md lg:hidden">
+        <div className="mx-auto flex max-w-4xl items-center gap-3">
+          <div className="h-4 w-28 rounded bg-white/8" />
+          <div className="h-11 flex-1 rounded-sm bg-white/8" />
         </div>
       </div>
     </div>
@@ -153,7 +192,7 @@ export default function JobDetailPage() {
     "@context": "https://schema.org",
     "@type": "JobPosting",
     title: job.title,
-    description: `${job.description}\n\n${job.requirements}`,
+    description: `${job.description}\n\n${job.requirements.map((r) => r.text).join("\n")}`,
     datePosted: job.created_at,
     url: `${SITE_URL}/jobs/${job.id}`,
     hiringOrganization: { "@type": "Organization", name: SITE_NAME, sameAs: SITE_URL },
@@ -175,7 +214,7 @@ export default function JobDetailPage() {
     <div className="mx-auto max-w-4xl pb-24 lg:pb-0">
       <SeoHead
         title={job.title}
-        description={job.description.slice(0, 160)}
+        description={job.short_description || job.description.slice(0, 160)}
         canonical={`${SITE_URL}/jobs/${job.id}`}
         ogType="article"
         structuredData={jobPosting}
@@ -202,7 +241,25 @@ export default function JobDetailPage() {
 
       <div className="lg:grid lg:grid-cols-[1fr_280px] lg:items-start lg:gap-8">
         {/* ── Main article ── */}
-        <article className="rounded-xl border border-white/8 bg-card p-5 sm:p-10">
+        <article
+          className={[
+            "rounded-xl border bg-card p-5 sm:p-10",
+            job.is_featured ? "border-gold/40" : "border-white/8",
+          ].join(" ")}
+        >
+          {job.is_featured && (
+            <p className="mb-3 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-gold">
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="size-2.5"
+                aria-hidden="true"
+              >
+                <path d="M12 2c.7 2.5 2.5 3.5 2.5 6a2.5 2.5 0 0 1-5 0c0-1 .4-1.7 1-2.3C9 7 9 5 12 2zm0 8c3.5 0 6 2.8 6 6.3a6 6 0 1 1-12 0c0-2 1-3.5 2.4-4.5-.1 1.6.7 2.7 1.9 3.3-.7-2.2.7-3.5 1.7-5.1z" />
+              </svg>
+              {t("publicJobs.board.featured")}
+            </p>
+          )}
           {/* Header: title, status badge, location, posted, salary */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -218,6 +275,18 @@ export default function JobDetailPage() {
               {t("publicJobs.detail.open")}
             </span>
           </div>
+          {job.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {job.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-copper/25 bg-copper/10 px-2.5 py-0.5 text-xs font-medium text-copper/90"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <p className="text-xs text-white/30">
               {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
@@ -243,14 +312,24 @@ export default function JobDetailPage() {
           </div>
 
           {/* Requirements */}
-          <div className="mt-8">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
-              {t("publicJobs.detail.requirements")}
-            </p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65 sm:text-[15px]">
-              {job.requirements}
-            </p>
-          </div>
+          {job.requirements.length > 0 && (
+            <div className="mt-8">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+                {t("publicJobs.detail.requirements")}
+              </p>
+              <ul className="space-y-2 text-sm leading-relaxed text-white/65 sm:text-[15px]">
+                {job.requirements.map((req, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="mt-2 inline-block size-1.5 shrink-0 rounded-full bg-copper/70"
+                    />
+                    <span>{req.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </article>
 
         {/* ── Sticky desktop sidebar (hidden on mobile — replaced by fixed bottom bar) ── */}
