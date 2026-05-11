@@ -21,10 +21,10 @@ from src.services.exceptions import (
     InvalidCursorError,
     JobNotFoundError,
 )
+from src.services.jobs import get_job
 from src.services.jobs_admin_crud import (
     admin_create_job,
     delete_job,
-    get_job,
     list_jobs,
     update_job,
 )

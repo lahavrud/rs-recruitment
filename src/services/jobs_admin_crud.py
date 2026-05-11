@@ -53,21 +53,6 @@ async def list_jobs(
     )
 
 
-async def get_job(job_id: int, session: AsyncSession) -> JobRead:
-    """Fetch a single job by id, regardless of status.
-
-    Raises:
-        JobNotFoundError: If no job with that id exists.
-    """
-    result = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
-    )
-    job = result.scalar_one_or_none()
-    if job is None:
-        raise JobNotFoundError(f"Job {job_id} not found")
-    return JobRead.model_validate(job)
-
-
 async def admin_create_job(data: JobAdminCreate, session: AsyncSession) -> JobRead:
     """Create a job directly under an existing company profile.
 
