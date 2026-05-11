@@ -386,6 +386,11 @@ jobs:
           context: frontend
           push: true
           tags: ${{ secrets.ECR_REGISTRY }}/rs-recruitment/frontend:${{ github.sha }}
+          build-args: |
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
+            VITE_RELEASE=${{ github.sha }}
+          secrets: | # pragma: allowlist secret
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 

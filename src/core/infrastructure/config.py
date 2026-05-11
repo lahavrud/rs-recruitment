@@ -117,6 +117,9 @@ class Settings(BaseSettings):
     rs_contract_template_s3_key: str = "assets/rs-contract.pdf"
     rs_signature_s3_key: str = "assets/rs-signature.png"
 
+    # Observability
+    sentry_dsn: str = ""  # Empty = Sentry disabled (dev/test)
+
     # Environment
     environment: Literal["development", "production"] = "development"
 

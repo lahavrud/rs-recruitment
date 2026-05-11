@@ -2,11 +2,18 @@
 # Build context is `frontend/`. TLS certs are bind-mounted at runtime
 # (./frontend/tls:/etc/nginx/tls) — never baked into the image.
 FROM node:20-alpine AS build
+ARG VITE_SENTRY_DSN
+ARG VITE_RELEASE
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+ENV VITE_RELEASE=$VITE_RELEASE
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . ./
-RUN npm run build
+# sentry_auth_token is a BuildKit secret — never written to any layer
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN=$(cat /run/secrets/sentry_auth_token 2>/dev/null || true) \
+    npm run build
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
