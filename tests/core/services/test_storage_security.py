@@ -202,3 +202,26 @@ class TestLocalStorageProviderSecurity:
         # But we also test that directories are not treated as files
         with pytest.raises(ValueError, match="Path traversal"):
             await provider.get_file_url("subdir/..")
+
+    @pytest.mark.asyncio
+    async def test_symlink_to_outside_storage_is_rejected(
+        self, provider: LocalStorageProvider, tmp_path
+    ):
+        """A symlink inside storage_path pointing OUTSIDE must be rejected.
+
+        Existing tests cover the upfront string-match guard (`..`, leading `/`)
+        but never reach the `resolved.relative_to(self.storage_path)` check.
+        A symlink slips past the string guard, so this check is the only thing
+        protecting against an attacker who can plant a link in the storage dir.
+        """
+        outside = tmp_path / "secret_target"
+        outside.write_bytes(b"sensitive")
+
+        link = provider.storage_path / "innocent_name"
+        link.symlink_to(outside)
+
+        with pytest.raises(ValueError, match="resolves outside storage directory"):
+            await provider.get_file_url("innocent_name")
+
+        with pytest.raises(ValueError, match="resolves outside storage directory"):
+            await provider.delete_file("innocent_name")

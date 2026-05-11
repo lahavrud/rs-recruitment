@@ -60,6 +60,43 @@ async def test_audit_log_invalid_cursor_returns_400(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_audit_log_paginates_through_all_rows(
+    admin_client: AsyncClient, session: AsyncSession
+):
+    """A cursor walk over the audit log returns every row exactly once."""
+    total = 7
+    for i in range(total):
+        session.add(
+            AuditLog(
+                actor_user_id=1,
+                action="company.approve",
+                target_type="CompanyProfile",
+                target_id=i,
+            )
+        )
+    await session.commit()
+
+    seen: set[int] = set()
+    cursor: str | None = None
+    pages = 0
+    while True:
+        params = {"limit": 3}
+        if cursor is not None:
+            params["cursor"] = cursor
+        response = await admin_client.get("/api/admin/audit-log", params=params)
+        assert response.status_code == 200
+        body = response.json()
+        seen.update(item["target_id"] for item in body["items"])
+        pages += 1
+        cursor = body["next_cursor"]
+        if cursor is None:
+            break
+        assert pages < 10, "pagination did not terminate"
+
+    assert seen == set(range(total))
+
+
+@pytest.mark.asyncio
 async def test_candidate_delete_writes_audit_row(
     admin_client: AsyncClient, candidate_profile, session: AsyncSession
 ):
