@@ -15,6 +15,9 @@ quote-style = "double"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+# --durations=20 surfaces the 20 slowest tests in every run. Free diagnostic
+# signal; used to validate future runtime-optimization work in the suite.
+addopts = "--durations=20"
 filterwarnings = [
     "ignore::DeprecationWarning:jose.*",
 ]
