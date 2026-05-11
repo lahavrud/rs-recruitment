@@ -1,31 +1,42 @@
 """Public job board service functions (no authentication required)."""
 
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.pagination import (
+    CursorPage,
+    apply_cursor,
+    build_cursor_page,
+    clamp_limit,
+)
 from src.enums import JobStatus
 from src.models import Job
 from src.schemas import JobPublicRead
 from src.services.exceptions import JobNotFoundError
 
 
-async def list_published_jobs(session: AsyncSession) -> list[JobPublicRead]:
-    """List all published jobs for public job board.
-
-    Args:
-        session: Database session
-
-    Returns:
-        List of published jobs as JobPublicRead schemas,
-        ordered by creation date (newest first)
-    """
-    result = await session.execute(
-        select(Job)
-        .where(Job.status == JobStatus.PUBLISHED)  # pyright: ignore[reportArgumentType]
-        .order_by(desc(Job.created_at))  # pyright: ignore[reportArgumentType]
+async def list_published_jobs(
+    session: AsyncSession,
+    *,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> CursorPage[JobPublicRead]:
+    """One page of published jobs, newest first."""
+    page_size = clamp_limit(limit)
+    query = apply_cursor(
+        select(Job).where(Job.status == JobStatus.PUBLISHED),  # pyright: ignore[reportArgumentType]
+        sort_col=Job.created_at,  # pyright: ignore[reportArgumentType]
+        id_col=Job.id,  # pyright: ignore[reportArgumentType]
+        cursor=cursor,
+        limit=page_size,
     )
-    jobs = result.scalars().all()
-    return [JobPublicRead.model_validate(job) for job in jobs]
+    rows = list((await session.execute(query)).scalars().all())
+    return build_cursor_page(
+        rows,
+        serializer=JobPublicRead.model_validate,
+        cursor_key=lambda j: (j.created_at, j.id),
+        limit=page_size,
+    )
 
 
 async def get_published_job(job_id: int, session: AsyncSession) -> JobPublicRead:

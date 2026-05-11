@@ -5,6 +5,12 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.pagination import (
+    CursorPage,
+    apply_cursor,
+    build_cursor_page,
+    clamp_limit,
+)
 from src.core.tasks import enqueue_email_task
 from src.enums import JobStatus
 from src.models import CompanyProfile, Job, User
@@ -13,22 +19,28 @@ from src.services.exceptions import JobNotFoundError, JobNotPendingError
 from src.templates.email import build_job_contact_html
 
 
-async def list_pending_jobs(session: AsyncSession) -> list[JobRead]:
-    """List all pending jobs for admin approval.
-
-    Args:
-        session: Database session
-
-    Returns:
-        List of pending jobs as JobRead schemas, ordered by creation date (oldest first)
-    """
-    result = await session.execute(
-        select(Job)
-        .where(Job.status == JobStatus.PENDING_APPROVAL)  # pyright: ignore[reportArgumentType]
-        .order_by(Job.created_at)  # pyright: ignore[reportArgumentType]
+async def list_pending_jobs(
+    session: AsyncSession,
+    *,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> CursorPage[JobRead]:
+    """One page of pending-approval jobs, newest first."""
+    page_size = clamp_limit(limit)
+    query = apply_cursor(
+        select(Job).where(Job.status == JobStatus.PENDING_APPROVAL),  # pyright: ignore[reportArgumentType]
+        sort_col=Job.created_at,  # pyright: ignore[reportArgumentType]
+        id_col=Job.id,  # pyright: ignore[reportArgumentType]
+        cursor=cursor,
+        limit=page_size,
     )
-    jobs = result.scalars().all()
-    return [JobRead.model_validate(job) for job in jobs]
+    rows = list((await session.execute(query)).scalars().all())
+    return build_cursor_page(
+        rows,
+        serializer=JobRead.model_validate,
+        cursor_key=lambda j: (j.created_at, j.id),
+        limit=page_size,
+    )
 
 
 async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
