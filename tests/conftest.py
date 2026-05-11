@@ -66,6 +66,30 @@ _EMAIL_TASK_TARGETS = [
 ]
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _fast_bcrypt_for_tests():
+    """Reduce bcrypt cost factor in tests from 12 (~250ms) to 4 (~1ms).
+
+    The default cost of 12 is fine for prod but multiplied across every
+    test that creates a User (admin, company, candidate fixtures + the
+    register / login / password-reset flows) it dominated CI runtime:
+    profiling showed ~85s burned in 13 tests by bcrypt alone, far more
+    than any DB-cleanup cost.
+
+    Real bcrypt behavior is preserved (verify_password still works,
+    hashes round-trip correctly) — we just lower the work factor. The
+    monkeypatch is restored at session teardown.
+    """
+    import bcrypt
+
+    _original = bcrypt.gensalt
+    bcrypt.gensalt = lambda rounds=12, prefix=b"2b": _original(  # noqa: E731
+        rounds=4, prefix=prefix
+    )
+    yield
+    bcrypt.gensalt = _original
+
+
 @pytest.fixture(autouse=True)
 def mock_enqueue_email():
     """Patch enqueue_email_task in every service module for all tests.
