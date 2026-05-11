@@ -18,38 +18,81 @@ on:
       - "LICENSE"
 
 jobs:
-  # Detect whether any Docker-relevant files changed in this PR. If not, the
-  # docker-build smoke test (~5 min) is skipped — pytest already exercises main.py
-  # imports + lifespan, so the only thing docker-build adds is catching breakage
-  # in the image / deps / entrypoint themselves.
+  # Compute which areas of the repo changed in this PR so downstream jobs
+  # can skip when irrelevant. GitHub Actions bills per-job rounded up to
+  # the minute, so skipping a 4-second job saves a full billed minute.
+  #
+  # On push-to-main (or any non-PR event) every flag is forced to 'true'
+  # so the deploy gate runs the full suite.
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      docker_relevant: ${{ steps.diff.outputs.docker_relevant }}
+      backend: ${{ steps.diff.outputs.backend }}
+      frontend: ${{ steps.diff.outputs.frontend }}
+      deploy: ${{ steps.diff.outputs.deploy }}
+      docker: ${{ steps.diff.outputs.docker }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: diff
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "docker_relevant=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "backend=true"
+              echo "frontend=true"
+              echo "deploy=true"
+              echo "docker=true"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
-          if git diff --name-only "$BASE" "$HEAD" | grep -qE '^(Dockerfile|frontend/Dockerfile|requirements\.txt|pyproject\.toml|frontend/package(-lock)?\.json|docker-compose.*\.yml|scripts/deploy_ec2\.sh|src/main\.py|\.github/workflows/ci\.yml)$'; then
-            echo "docker_relevant=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "docker_relevant=false" >> "$GITHUB_OUTPUT"
+          FILES=$(git diff --name-only "$BASE" "$HEAD")
+          match() { grep -qE "$1" <<<"$FILES"; }
+
+          backend=false; frontend=false; deploy=false; docker=false
+
+          # Workflow edits invalidate every assumption — run everything.
+          if match '^\.github/workflows/'; then
+            backend=true; frontend=true; deploy=true; docker=true
+          fi
+          if match '^(src/|tests/|scripts/.*\.py|requirements\.txt|pyproject\.toml|uv\.lock)'; then
+            backend=true
+          fi
+          if match '^frontend/'; then
+            frontend=true
+          fi
+          if match '^(Dockerfile|frontend/Dockerfile|docker-compose.*\.yml|scripts/deploy_ec2\.sh|scripts/validate_deploy_artifacts\.sh)'; then
+            deploy=true
+          fi
+          if match '^(Dockerfile|frontend/Dockerfile|requirements\.txt|pyproject\.toml|frontend/package(-lock)?\.json|docker-compose.*\.yml|scripts/deploy_ec2\.sh|src/main\.py)'; then
+            docker=true
+            # docker-build smoke-tests the backend image, so guard it with
+            # the same checks the image depends on.
+            backend=true
           fi
 
-  lint:
+          {
+            echo "backend=$backend"
+            echo "frontend=$frontend"
+            echo "deploy=$deploy"
+            echo "docker=$docker"
+          } >> "$GITHUB_OUTPUT"
+
+  # Combined ruff + structural validation. Previously split as `lint` plus a
+  # 5-way `validate` matrix — the matrix paid a 1-minute billing floor per
+  # shard for ~8 seconds of real work each. CVE auditing moved to the
+  # weekly security-audit workflow.
+  backend-checks:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1 # Shallow clone for faster checkout
+          fetch-depth: 1
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -72,41 +115,30 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -r requirements.txt
 
-      - name: Run Ruff Linter
+      - name: Ruff lint
         run: uv run ruff check .
 
-      - name: Run Ruff Format Check
+      - name: Ruff format check
         run: uv run ruff format --check .
 
-      - name: Audit Python dependencies for known CVEs
-        run: uv tool run pip-audit -r requirements.txt
-        continue-on-error: true
+      - name: validate_imports
+        run: python scripts/validate_imports.py
 
-  validate:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        script:
-          - validate_imports
-          - check_file_sizes
-          - validate_type_hints
-          - validate_blocking_io
-          - validate_test_files
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - name: check_file_sizes
+        run: python scripts/check_file_sizes.py
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: validate_type_hints
+        run: python scripts/validate_type_hints.py
 
-      - name: Run ${{ matrix.script }}
-        run: python scripts/${{ matrix.script }}.py
+      - name: validate_blocking_io
+        run: python scripts/validate_blocking_io.py
+
+      - name: validate_test_files
+        run: python scripts/validate_test_files.py
 
   test:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
     services:
@@ -134,7 +166,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1 # Shallow clone for faster checkout
+          fetch-depth: 1
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -180,6 +212,8 @@ jobs:
           if-no-files-found: warn
 
   frontend-lint:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -202,6 +236,8 @@ jobs:
         run: npx tsc -b --noEmit
 
   validate-deploy-artifacts:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.deploy == 'true'
     name: Validate deploy artifacts (HTTPS contract)
     runs-on: ubuntu-latest
     steps:
@@ -214,8 +250,8 @@ jobs:
     runs-on: ubuntu-latest
     # Skip on push to main (deploy job builds), on draft PRs, and when no
     # Docker-relevant files changed (see detect-changes job above).
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.docker_relevant == 'true'
-    needs: [detect-changes, lint, validate, test, frontend-lint]
+    needs: [detect-changes, backend-checks, test]
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.docker == 'true'
     env:
       JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long" # pragma: allowlist secret
       PG_TEST_PASSWORD: "test" # pragma: allowlist secret
@@ -223,7 +259,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1 # Shallow clone for faster checkout
+          fetch-depth: 1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -311,7 +347,7 @@ jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [lint, validate, test, frontend-lint, validate-deploy-artifacts]
+    needs: [backend-checks, test, frontend-lint, validate-deploy-artifacts]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       id-token: write # Required for OIDC token exchange
