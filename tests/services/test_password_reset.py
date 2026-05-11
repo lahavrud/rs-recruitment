@@ -20,6 +20,7 @@ from src.services.password_reset import (
     _EMAIL_RATE_LIMIT_MAX,
     request_password_reset,
     reset_password,
+    validate_password_reset_token,
 )
 
 
@@ -237,3 +238,66 @@ async def test_reset_password_rejects_unknown_token(session: AsyncSession):
     with pytest.raises(InvalidPasswordResetTokenError):
         async with transactional(session):
             await reset_password("nonexistent-token", "WhateverPass1!", session)
+
+
+@pytest.mark.asyncio
+async def test_validate_token_returns_on_active(session: AsyncSession):
+    user = await _make_user(session, email="ok@example.com")
+    raw_token = "raw-validate-ok"
+    session.add(
+        PasswordResetToken(
+            token_hash=hash_token(raw_token),
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            used=False,
+        )
+    )
+    await session.commit()
+
+    await validate_password_reset_token(raw_token, session)  # must not raise
+
+
+@pytest.mark.asyncio
+async def test_validate_token_does_not_mark_used(session: AsyncSession):
+    user = await _make_user(session, email="noconsume@example.com")
+    raw_token = "raw-validate-noconsume"
+    record = PasswordResetToken(
+        token_hash=hash_token(raw_token),
+        user_id=user.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        used=False,
+    )
+    session.add(record)
+    await session.commit()
+
+    await validate_password_reset_token(raw_token, session)
+    await session.refresh(record)
+    assert record.used is False
+
+
+@pytest.mark.asyncio
+async def test_validate_token_rejects_used_expired_unknown(session: AsyncSession):
+    user = await _make_user(session, email="rejects@example.com")
+    raw_used = "raw-validate-used"
+    raw_expired = "raw-validate-expired"
+    session.add_all(
+        [
+            PasswordResetToken(
+                token_hash=hash_token(raw_used),
+                user_id=user.id,
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                used=True,
+            ),
+            PasswordResetToken(
+                token_hash=hash_token(raw_expired),
+                user_id=user.id,
+                expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                used=False,
+            ),
+        ]
+    )
+    await session.commit()
+
+    for bad in (raw_used, raw_expired, "totally-bogus"):
+        with pytest.raises(InvalidPasswordResetTokenError):
+            await validate_password_reset_token(bad, session)

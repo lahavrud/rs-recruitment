@@ -1,6 +1,6 @@
 """Password-reset endpoints (forgot-password + reset-password)."""
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
@@ -9,7 +9,11 @@ from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.transactions import transactional
 from src.schemas import ForgotPasswordRequest, ResetPasswordRequest
 from src.services.exceptions import InvalidPasswordResetTokenError
-from src.services.password_reset import request_password_reset, reset_password
+from src.services.password_reset import (
+    request_password_reset,
+    reset_password,
+    validate_password_reset_token,
+)
 
 limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -35,6 +39,26 @@ async def forgot_password(
     async with transactional(session):
         await request_password_reset(body.email, session)
     return _GENERIC_FORGOT_RESPONSE
+
+
+@router.get("/reset-password/validate", status_code=status.HTTP_200_OK)
+@limiter.limit("30/hour")
+async def validate_reset_token(
+    request: Request,
+    token: str = Query(..., min_length=1, max_length=200),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Check whether a reset token is still usable, without consuming it.
+
+    Lets the frontend show the invalid-token page immediately on load
+    rather than after the user fills in a new password.  Same 400 mapping
+    as the consume endpoint, so the page can branch on status alone.
+    """
+    try:
+        await validate_password_reset_token(token, session)
+    except InvalidPasswordResetTokenError as e:
+        raise service_exception_to_http(e) from e
+    return {"valid": True}
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)

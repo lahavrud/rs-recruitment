@@ -121,6 +121,33 @@ async def request_password_reset(email: str, session: AsyncSession) -> None:
     )
 
 
+async def _load_active_reset_token(
+    raw_token: str, session: AsyncSession
+) -> PasswordResetToken:
+    """Load a reset token row only if it's still usable (not used / not expired)."""
+    result = await session.execute(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == hash_token(raw_token)  # pyright: ignore[reportArgumentType]
+        )
+    )
+    record = result.scalar_one_or_none()
+    if record is None or record.used:
+        raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
+    if record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        raise InvalidPasswordResetTokenError("פג תוקף הקישור")
+    return record
+
+
+async def validate_password_reset_token(raw_token: str, session: AsyncSession) -> None:
+    """Raise if the token isn't usable; otherwise return.  Does NOT consume it.
+
+    Used by the frontend to gate the reset-password form on a usable link —
+    so a stale link goes straight to the error page instead of letting the
+    user fill in a new password before discovering it.
+    """
+    await _load_active_reset_token(raw_token, session)
+
+
 async def reset_password(
     raw_token: str, new_password: str, session: AsyncSession
 ) -> User:
@@ -129,19 +156,7 @@ async def reset_password(
     Raises:
         InvalidPasswordResetTokenError: token missing, used, or expired.
     """
-    token_hash = hash_token(raw_token)
-    now = datetime.now(timezone.utc)
-
-    result = await session.execute(
-        select(PasswordResetToken).where(
-            PasswordResetToken.token_hash == token_hash  # pyright: ignore[reportArgumentType]
-        )
-    )
-    record = result.scalar_one_or_none()
-    if record is None or record.used:
-        raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
-    if record.expires_at.replace(tzinfo=timezone.utc) < now:
-        raise InvalidPasswordResetTokenError("פג תוקף הקישור")
+    record = await _load_active_reset_token(raw_token, session)
 
     user_result = await session.execute(
         select(User).where(User.id == record.user_id)  # pyright: ignore[reportArgumentType]
