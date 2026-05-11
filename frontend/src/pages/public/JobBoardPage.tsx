@@ -3,12 +3,12 @@ import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJobs } from "@/services/jobs";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
 import SearchInput from "@/components/ui/SearchInput";
 import RangeSlider from "@/components/ui/RangeSlider";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
 import type { JobPublicRead } from "@/types/api";
-import axios from "axios";
 
 const SALARY_STEP = 500;
 
@@ -293,10 +293,15 @@ export default function JobBoardPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [jobs, setJobs] = useState<JobPublicRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const fetcher = useCallback((cursor: string | null) => getPublicJobs(cursor), []);
+  const {
+    items: jobs,
+    isLoading: loading,
+    error: fetchError,
+    sentinelRef,
+  } = useInfiniteList<JobPublicRead>(fetcher);
 
   const initialQuery = searchParams.get("q") ?? "";
   const initialLocationCsv = searchParams.get("loc");
@@ -313,32 +318,6 @@ export default function JobBoardPage() {
     if (lo == null || hi == null || !Number.isFinite(lo) || !Number.isFinite(hi)) return null;
     return [lo, hi];
   });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchJobs() {
-      try {
-        const data = await getPublicJobs();
-        if (!cancelled) setJobs(data);
-      } catch (err) {
-        if (!cancelled) {
-          if (axios.isAxiosError(err)) {
-            setError(t("publicJobs.board.errorLoad"));
-          } else {
-            setError(t("publicJobs.board.errorGeneric"));
-          }
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchJobs();
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
 
   // Lock body scroll while the mobile filter drawer is open.
   useEffect(() => {
@@ -455,10 +434,10 @@ export default function JobBoardPage() {
     setSalaryRange(null);
   }, []);
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-center text-sm text-danger">
-        {error}
+        {t("publicJobs.board.errorLoad")}
       </div>
     );
   }
@@ -692,6 +671,7 @@ export default function JobBoardPage() {
               ))}
             </div>
           )}
+          <div ref={sentinelRef} />
         </div>
       </div>
 
