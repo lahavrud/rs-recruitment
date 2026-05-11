@@ -1,0 +1,53 @@
+"""Password-reset endpoints (forgot-password + reset-password)."""
+
+from fastapi import APIRouter, Depends, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.infrastructure.database import get_session
+from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.limiter import get_limiter
+from src.core.infrastructure.transactions import transactional
+from src.schemas import ForgotPasswordRequest, ResetPasswordRequest
+from src.services.exceptions import InvalidPasswordResetTokenError
+from src.services.password_reset import request_password_reset, reset_password
+
+limiter = get_limiter()
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+_GENERIC_FORGOT_RESPONSE = {
+    "message": "אם הכתובת רשומה במערכת, ישלח אליה קישור לאיפוס סיסמה."
+}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+@limiter.limit("5/hour")
+async def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Always returns the same response — never reveals whether the email exists.
+
+    The IP-level rate limit (`5/hour`) covers enumeration-via-many-emails;
+    a per-email Redis limit inside `request_password_reset` protects a single
+    victim's inbox from spam.
+    """
+    async with transactional(session):
+        await request_password_reset(body.email, session)
+    return _GENERIC_FORGOT_RESPONSE
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+@limiter.limit("10/hour")
+async def reset_password_endpoint(
+    request: Request,
+    body: ResetPasswordRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Consume a reset token and set a new password."""
+    try:
+        async with transactional(session):
+            await reset_password(body.token, body.new_password, session)
+    except InvalidPasswordResetTokenError as e:
+        raise service_exception_to_http(e) from e
+    return {"message": "הסיסמה עודכנה בהצלחה"}

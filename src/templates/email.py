@@ -236,6 +236,23 @@ def build_new_registration_html(
     return _wrap("בקשת הרשמה חדשה — RS Recruiting", body)
 
 
+def build_password_reset_html(reset_url: str) -> str:
+    """HTML email sent to a user who requested a password reset."""
+    body = (
+        _h("איפוס סיסמה")
+        + _p("קיבלנו בקשה לאיפוס הסיסמה לחשבון שלך ב-RS Recruiting.")
+        + _p("לחצו על הכפתור להגדרת סיסמה חדשה. הקישור תקף ל-60 דקות בלבד.")
+        + _cta(reset_url, "איפוס הסיסמה")
+        + _rule()
+        + _p(
+            "אם לא ביקשתם איפוס סיסמה, ניתן להתעלם מההודעה — "
+            "החשבון לא ישתנה ללא לחיצה על הקישור.",
+            muted=True,
+        )
+    )
+    return _wrap("איפוס סיסמה — RS Recruiting", body)
+
+
 def build_new_job_html(
     job_title: str,
     company_name: str,

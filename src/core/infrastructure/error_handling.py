@@ -16,6 +16,7 @@ from src.services.exceptions import (
     InvalidCredentialsError,
     InvalidCursorError,
     InvalidInviteTokenError,
+    InvalidPasswordResetTokenError,
     InviteAlreadyRevokedError,
     InviteNotFoundError,
     InvitePendingForEmailError,
@@ -46,6 +47,7 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     PendingActivationError: status.HTTP_403_FORBIDDEN,
     # Bad request — invalid activation token
     InvalidActivationTokenError: status.HTTP_400_BAD_REQUEST,
+    InvalidPasswordResetTokenError: status.HTTP_400_BAD_REQUEST,
     # Unauthorized errors (401)
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
     # Too many requests (429)

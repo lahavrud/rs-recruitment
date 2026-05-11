@@ -79,6 +79,26 @@ class RefreshToken(SQLModel, table=True):
     )
 
 
+class PasswordResetToken(SQLModel, table=True):
+    """Single-use password-reset tokens.
+
+    Stored as SHA-256 hashes; only the raw token (in the reset email link)
+    can prove ownership. Marked `used=True` on successful reset.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    token_hash: str = Field(unique=True, index=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    used: bool = Field(default=False)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
 class User(SQLModel, table=True):
     """Authenticated user entity (Admins & Companies).
 

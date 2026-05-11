@@ -195,6 +195,30 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Schema for requesting a password reset email.
+
+    `email` is a plain `str` (not `EmailStr`) so malformed addresses produce
+    the same 200-OK as valid ones — Pydantic's 422 on `EmailStr` would
+    distinguish "well-formed unknown email" from "malformed input" and leak
+    a signal back to an attacker.
+    """
+
+    email: str = Field(..., max_length=255)
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for completing a password reset with a token + new password."""
+
+    token: str = Field(..., min_length=1, max_length=200)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return _validate_password_complexity(v)
+
+
 # Job Schemas
 class JobCreate(BaseModel):
     """Schema for creating a job posting."""
