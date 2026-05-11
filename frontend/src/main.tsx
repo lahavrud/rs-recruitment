@@ -8,6 +8,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.MODE,
+    release: import.meta.env.VITE_RELEASE,
     tracesSampleRate: 0.0,
   });
 }
@@ -15,4 +16,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 document.documentElement.lang = "he";
 document.documentElement.dir = "rtl";
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <Sentry.ErrorBoundary fallback={<p>שגיאה בלתי צפויה. אנא רענן את הדף.</p>}>
+    <App />
+  </Sentry.ErrorBoundary>,
+);

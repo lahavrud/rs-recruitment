@@ -1,4 +1,5 @@
 import logging
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -34,6 +35,7 @@ if settings.sentry_dsn:
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         environment=settings.environment,
+        release=os.environ.get("SENTRY_RELEASE"),
         traces_sample_rate=0.0,
     )
 

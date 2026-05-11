@@ -46,6 +46,7 @@ services:
     image: ${ECR_REGISTRY}/rs-recruitment/api:${IMAGE_TAG}
     environment:
       - ENVIRONMENT=production
+      - SENTRY_RELEASE=${IMAGE_TAG}
     volumes:
       - app-data:/app/data
     depends_on:
@@ -71,6 +72,7 @@ services:
     command: ["arq", "src.core.tasks.WorkerSettings"]
     environment:
       - ENVIRONMENT=production
+      - SENTRY_RELEASE=${IMAGE_TAG}
     depends_on:
       redis:
         condition: service_healthy
