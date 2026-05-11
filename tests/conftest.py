@@ -38,7 +38,18 @@ from src.core.infrastructure.security import get_password_hash
 from src.core.infrastructure.transactions import transactional
 from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.main import app
-from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+from src.models import (
+    ActivationToken,  # noqa: F401  -- force SQLModel registration before create_all
+    Application,
+    AuditLog,  # noqa: F401
+    CandidateProfile,
+    CompanyProfile,
+    InviteToken,  # noqa: F401
+    Job,
+    PasswordResetToken,  # noqa: F401
+    RefreshToken,  # noqa: F401
+    User,
+)
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
 
