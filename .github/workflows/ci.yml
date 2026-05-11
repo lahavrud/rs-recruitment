@@ -380,10 +380,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Fetch Sentry DSN
+      - name: Fetch frontend Sentry DSN
         id: sentry
         run: |
-          DSN=$(aws ssm get-parameter --name /rs-recruitment/prod/sentry_dsn \
+          DSN=$(aws ssm get-parameter --name /rs-recruitment/infra/VITE_SENTRY_DSN \
             --with-decryption --query Parameter.Value --output text 2>/dev/null || echo "")
           echo "dsn=$DSN" >> "$GITHUB_OUTPUT"
 
