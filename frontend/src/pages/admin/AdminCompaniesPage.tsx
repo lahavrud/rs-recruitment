@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -35,8 +35,8 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
-import FunnelIcon from "@/components/admin/FunnelIcon";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import MobileEntityCard from "@/components/admin/MobileEntityCard";
 import DropdownMenu, {
@@ -47,7 +47,6 @@ import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
-import CompanyName from "@/components/ui/CompanyName";
 
 type Tab = "active" | "pending" | "invites";
 
@@ -68,11 +67,16 @@ export default function AdminCompaniesPage() {
   const { t } = useTranslation();
   usePageTitle(t("admin.companies.title"));
   const toast = useToast();
-  const [view, setView] = useState<Tab>("pending");
+  const [view, setView] = useState<Tab>(() => {
+    const v = new URLSearchParams(window.location.search).get("view");
+    if (v === "active" || v === "pending" || v === "invites") return v;
+    return "active";
+  });
   const [query, setQuery] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [inviting, setInviting] = useState(false);
+  const [inviting, setInviting] = useState(() => {
+    return new URLSearchParams(window.location.search).get("action") === "invite";
+  });
   const [externalDetail, setExternalDetail] = useState<CompanyProfileRead | null>(null);
 
   // Auto-open company detail when navigated from another page via ?detail=<profile_id>
@@ -93,12 +97,59 @@ export default function AdminCompaniesPage() {
     return () => ctrl.abort();
   }, [t, toast]);
 
+  // Strip the bootstrap `?action=` and `?view=` params after they've been
+  // consumed so a hard refresh doesn't re-trigger them.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("action") || url.searchParams.has("view")) {
+      url.searchParams.delete("action");
+      url.searchParams.delete("view");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, []);
+
   function handleInvite() {
     setView("invites");
     setInviting(true);
   }
 
-  const activeFilterCount = (query.trim() ? 1 : 0) + (view !== "pending" ? 1 : 0);
+  // View counts shown in the segmented pills. First-page fetches; capped
+  // counts surface as "N+".
+  type ViewCount = { n: number; capped: boolean } | null;
+  const [pendingCount, setPendingCount] = useState<ViewCount>(null);
+  const [activeCount, setActiveCount] = useState<ViewCount>(null);
+  const [invitesCount, setInvitesCount] = useState<ViewCount>(null);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    function toCount<T>(p: { items: T[]; next_cursor: string | null }): ViewCount {
+      return { n: p.items.length, capped: p.next_cursor != null };
+    }
+    getPendingCompanies({ limit: 100 }, ctrl.signal)
+      .then((p) => setPendingCount(toCount(p)))
+      .catch(() => {});
+    getActiveCompanies({ limit: 100 }, ctrl.signal)
+      .then((p) => setActiveCount(toCount(p)))
+      .catch(() => {});
+    getInvites(
+      { status: InviteTokenStatus.PENDING, limit: 100 },
+      ctrl.signal,
+    )
+      .then((p) => setInvitesCount(toCount(p)))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
+  function formatCount(c: ViewCount): string {
+    if (c == null) return "—";
+    return c.capped ? `${c.n}+` : String(c.n);
+  }
+
+  const viewCounts: Record<Tab, ViewCount> = {
+    pending: pendingCount,
+    active: activeCount,
+    invites: invitesCount,
+  };
+
 
   return (
     <div>
@@ -109,16 +160,16 @@ export default function AdminCompaniesPage() {
         eyebrow={t("admin.companies.title")}
         subtitle={t("admin.companies.subtitle")}
         action={
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex w-full gap-2 sm:w-auto sm:items-center">
             <button
               onClick={() => setCreating(true)}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
+              className="flex-1 rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold sm:flex-initial"
             >
               {t("admin.companies.newCompany")}
             </button>
             <button
               onClick={handleInvite}
-              className="rounded-sm border border-copper/40 px-4 py-2 text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper"
+              className="flex-1 rounded-sm border border-copper/40 px-4 py-2 text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper sm:flex-initial"
             >
               {t("admin.companies.inviteForm.newInviteButton")}
             </button>
@@ -126,104 +177,63 @@ export default function AdminCompaniesPage() {
         }
       />
 
-      {/* Search + filter trigger */}
-      <div className="mb-3 flex items-stretch gap-2">
-        <div className="flex-1">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder={t("admin.companies.searchPlaceholder")}
-            clearable
+      {/* View pills — primary axis of the page, with live counts.
+          On mobile, the active-companies pill sits on its own row above
+          the other two; on `sm+` all three share a single centered row. */}
+      <div className="mb-4 flex flex-wrap justify-center gap-1.5">
+        {(["active", "pending", "invites"] as Tab[]).map((key, i) => {
+          const active = view === key;
+          const c = viewCounts[key];
+          return (
+            <Fragment key={key}>
+              <button
+                type="button"
+                onClick={() => setView(key)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition active:scale-[0.97] ${
+                  active
+                    ? "bg-copper text-white shadow-sm shadow-black/30"
+                    : "border border-white/12 text-white/60 hover:border-white/30 hover:text-white/85"
+                }`}
+              >
+                <span>{t(`admin.companies.tabs.${key}`)}</span>
+                <span
+                  className={`inline-flex min-w-[1.5rem] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-white/8 text-white/55"
+                  }`}
+                >
+                  {formatCount(c)}
+                </span>
+              </button>
+              {/* Mobile-only flex-wrap break after the first pill. */}
+              {i === 0 && (
+                <div className="basis-full sm:hidden" aria-hidden="true" />
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className="mb-3">
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={t("admin.companies.searchPlaceholder")}
+          clearable
+        />
+      </div>
+
+      {query.trim() && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <ActiveFilterChip
+            label={`${t("common.search")}: "${query.trim()}"`}
+            onRemove={() => setQuery("")}
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setFilterOpen((o) => !o)}
-          aria-expanded={filterOpen}
-          aria-label={t("admin.companies.openFilters")}
-          className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
-            filterOpen
-              ? "border-copper/50 bg-copper/10 text-white"
-              : "border-white/15 bg-card-raised/40 text-white/75 hover:border-copper/40 hover:text-white"
-          }`}
-        >
-          <FunnelIcon />
-          <span className="hidden sm:inline">{t("admin.companies.filters")}</span>
-          {activeFilterCount > 0 && (
-            <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Active filter chips */}
-      {activeFilterCount > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {view !== "pending" && (
-            <ActiveFilterChip
-              label={`${t("admin.companies.viewLabel")}: ${t(`admin.companies.tabs.${view}`)}`}
-              onRemove={() => setView("pending")}
-            />
-          )}
-          {query.trim() && (
-            <ActiveFilterChip
-              label={`${t("common.search")}: "${query.trim()}"`}
-              onRemove={() => setQuery("")}
-            />
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setQuery("");
-              setView("pending");
-            }}
-            className="text-[11px] text-copper/70 transition hover:text-copper"
-          >
-            {t("publicJobs.board.clearFilters")}
-          </button>
-        </div>
       )}
-
-      {/* Filter panel — animated open/close */}
-      <div
-        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
-          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
-        <div className="overflow-hidden">
-          <div
-            className={`space-y-4 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 ${
-              filterOpen ? "opacity-100 delay-100" : "opacity-0"
-            }`}
-          >
-            <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-copper">
-                {t("admin.companies.viewLabel")}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {(["pending", "active", "invites"] as Tab[]).map((key) => {
-                  const active = view === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setView(key)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                        active
-                          ? "bg-copper text-white"
-                          : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
-                      }`}
-                    >
-                      {t(`admin.companies.tabs.${key}`)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {view === "active" && (
         <ActiveTab
@@ -336,7 +346,14 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
   return (
     <>
       {isLoading ? (
-        <TableSkeleton rows={5} columns={3} />
+        <>
+          <div className="md:hidden">
+            <MobileListSkeleton rows={5} />
+          </div>
+          <div className="hidden md:block">
+            <TableSkeleton rows={5} columns={3} />
+          </div>
+        </>
       ) : error ? (
         <ErrorState message={t("admin.companies.active.loadError")} onRetry={reload} />
       ) : companies.length === 0 ? (
@@ -392,7 +409,11 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
               return (
                 <MobileEntityCard
                   key={row.company_profile.id}
-                  title={<CompanyName name={row.company_profile.name} />}
+                  title={
+                    <span className="font-medium text-white/90">
+                      {row.company_profile.name}
+                    </span>
+                  }
                   actions={actions}
                 >
                   <CompanyDetailBody
@@ -428,7 +449,9 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
                     className="cursor-pointer transition hover:bg-white/3"
                   >
                     <td className="px-4 py-3">
-                      <CompanyName name={row.company_profile.name} />
+                      <span className="font-medium text-white/90">
+                        {row.company_profile.name}
+                      </span>
                       <p className="text-xs text-white/40">
                         {row.user?.email ?? t("admin.companies.noUserAccount")}
                       </p>
@@ -596,7 +619,14 @@ function PendingTab({ query: _query }: { query: string }) {
   return (
     <>
       {isLoading ? (
-        <TableSkeleton rows={4} columns={3} />
+        <>
+          <div className="md:hidden">
+            <MobileListSkeleton rows={4} />
+          </div>
+          <div className="hidden md:block">
+            <TableSkeleton rows={4} columns={3} />
+          </div>
+        </>
       ) : error ? (
         <ErrorState message={t("admin.companies.loadError")} onRetry={reload} />
       ) : companies.length === 0 ? (
@@ -613,7 +643,9 @@ function PendingTab({ query: _query }: { query: string }) {
                 className="flex flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <CompanyName name={row.company_profile.name} />
+                  <span className="font-medium text-white/90">
+                    {row.company_profile.name}
+                  </span>
                   <p className="text-xs text-white/45">{row.user.email}</p>
                   <p className="mt-1 text-xs text-white/35">
                     {t("admin.companies.contactLabel")}:{" "}
@@ -736,7 +768,14 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
   return (
     <>
       {isLoading ? (
-        <TableSkeleton rows={5} columns={4} />
+        <>
+          <div className="md:hidden">
+            <MobileListSkeleton rows={5} />
+          </div>
+          <div className="hidden md:block">
+            <TableSkeleton rows={5} columns={4} />
+          </div>
+        </>
       ) : error ? (
         <ErrorState
           message={t("admin.companies.inviteList.loadError")}
@@ -1645,6 +1684,14 @@ function InviteFlowExplainer() {
       label: t("admin.companies.inviteForm.flow.step4"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 11V7a4 4 0 1 0-8 0v4M5 11h14v8H5Z" />
+        </svg>
+      ),
+    },
+    {
+      label: t("admin.companies.inviteForm.flow.step5"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2ZM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
         </svg>
       ),
@@ -1655,14 +1702,14 @@ function InviteFlowExplainer() {
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
         {t("admin.companies.inviteForm.flow.title")}
       </p>
-      <ol className="flex items-start gap-1.5">
+      {/* dir="ltr" so the step sequence renders left-to-right regardless of
+          document direction. Hebrew labels inside each cell still render RTL
+          naturally because the characters themselves carry direction. */}
+      <ol dir="ltr" className="flex items-start gap-1">
         {steps.map((step, i) => (
-          <li
-            key={i}
-            className="flex flex-1 items-start gap-1.5"
-          >
+          <li key={i} className="flex flex-1 items-start gap-1">
             <div className="flex flex-1 flex-col items-center text-center">
-              <div className="flex size-8 items-center justify-center rounded-full border border-copper/35 bg-copper/10 text-copper">
+              <div className="flex size-7 items-center justify-center rounded-full border border-copper/35 bg-copper/10 text-copper">
                 {step.icon}
               </div>
               <p className="mt-1.5 leading-tight text-[10px] text-white/65">
@@ -1673,12 +1720,12 @@ function InviteFlowExplainer() {
               <svg
                 viewBox="0 0 16 16"
                 fill="currentColor"
-                className="mt-3 size-3 shrink-0 text-white/25 rtl:rotate-180"
+                className="mt-2.5 size-3 shrink-0 text-white/25"
                 aria-hidden="true"
               >
                 <path
                   fillRule="evenodd"
-                  d="M10.78 11.78a.75.75 0 0 1-1.06 0L5.47 7.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 1 1 1.06 1.06L7.06 7l3.72 3.72a.75.75 0 0 1 0 1.06Z"
+                  d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06L7.28 11.78a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z"
                   clipRule="evenodd"
                 />
               </svg>

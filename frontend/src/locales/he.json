@@ -278,15 +278,76 @@
   "dashboard": {
     "title": "לוח בקרה",
     "welcomeBack": "ברוך השב,",
-    "adminLinks": {
-      "pendingCompanies": "חברות ממתינות",
-      "pendingCompaniesDesc": "בדוק ואשר רישומי חברות.",
-      "pendingJobs": "משרות ממתינות",
-      "pendingJobsDesc": "אשר או דחה פרסומי משרות לפני פרסומן.",
-      "applications": "מועמדויות",
-      "applicationsDesc": "עקוב ועדכן סטטוסי מועמדות.",
+    "sectionsTitle": "כל הכלים",
+    "greeting": {
+      "morning": "בוקר טוב",
+      "afternoon": "צהריים טובים",
+      "evening": "ערב טוב",
+      "night": "לילה טוב"
+    },
+    "heroSubtitle": {
+      "admin": "מה ממתין לך היום? סקירה מהירה של הפעילות בפלטפורמה.",
+      "company": "ברוך השב. ניהול המשרות שלך תחת הכלים שלמטה."
+    },
+    "stats": {
+      "title": "סקירה",
+      "activeCompanies": "חברות פעילות",
+      "publishedJobs": "משרות פעילות",
       "candidates": "מועמדים",
-      "candidatesDesc": "עיין בפרופילי מועמדים."
+      "hired": "התקבלו לעבודה",
+      "statusBreakdown": "התפלגות מועמדויות",
+      "noApplications": "אין מועמדויות עדיין.",
+      "topJobs": "משרות מובילות לפי מועמדויות",
+      "noTopJobs": "אין נתוני מועמדויות עדיין."
+    },
+    "quickActions": {
+      "title": "פעולות מהירות",
+      "invite": {
+        "label": "הזמנה חדשה",
+        "hint": "שלח הזמנת רישום לחברה"
+      },
+      "companies": {
+        "label": "ניהול חברות",
+        "hint": "פעילות, ממתינות, הזמנות"
+      },
+      "jobs": {
+        "label": "ניהול משרות",
+        "hint": "אישור, עריכה, מחיקה"
+      },
+      "candidates": {
+        "label": "מאגר מועמדים",
+        "hint": "פרופילים והיסטוריית מועמדות"
+      }
+    },
+    "inbox": {
+      "title": "ממתין לטיפול",
+      "allClear": "אין משימות פתוחות, סבבה.",
+      "invites": {
+        "label": "הזמנות פתוחות",
+        "hint": "נשלחו ועדיין לא נענו",
+        "empty": "אין הזמנות פתוחות"
+      },
+      "companies": {
+        "label": "חברות לאישור",
+        "hint": "השלימו רישום וממתינות לאישור",
+        "empty": "אין חברות לאישור"
+      },
+      "jobs": {
+        "label": "משרות לבדיקה",
+        "hint": "ממתינות לאישור מנהל",
+        "empty": "אין משרות לבדיקה"
+      },
+      "applications": {
+        "label": "מועמדויות חדשות",
+        "hint": "הוגשו ועדיין לא נסקרו",
+        "empty": "אין מועמדויות חדשות"
+      }
+    },
+    "adminLinks": {
+      "companies": "חברות",
+      "jobs": "משרות",
+      "applications": "מועמדויות",
+      "candidates": "מועמדים"
     },
     "companyLinks": {
       "myJobs": "המשרות שלי",
@@ -376,8 +437,10 @@
       "resetSalary": "איפוס",
       "salaryMinAria": "שכר מינימלי",
       "salaryMaxAria": "שכר מקסימלי",
-      "resultsCount_one": "משרה אחת תואמת",
-      "resultsCount_other": "{{count}} משרות תואמות",
+      "resultsCount": {
+        "one": "משרה אחת תואמת",
+        "other": "{{count}} משרות תואמות"
+      },
       "searchPlaceholder": "חפש לפי שם משרה, מיקום, תיאור…",
       "open": "פתוח",
       "posted": "פורסם",
@@ -464,6 +527,10 @@
     }
   },
   "admin": {
+    "filters": {
+      "selectedCount": "{{count}} נבחרו",
+      "clearSelection": "נקה בחירה"
+    },
     "companies": {
       "title": "חברות",
       "subtitle": "ניהול רישומי חברות והזמנות.",
@@ -533,8 +600,9 @@
           "title": "איך זה עובד",
           "step1": "שליחת הזמנה",
           "step2": "החברה משלימה הרשמה",
-          "step3": "אישור הפרופיל",
-          "step4": "החברה מפרסמת משרות"
+          "step3": "אישור הפרופיל על ידי מנהל",
+          "step4": "אישור הפרופיל על ידי החברה",
+          "step5": "החברה מפרסמת משרות"
         },
         "emailLabel": "כתובת אימייל",
         "emailPlaceholder": "contact@company.com",
@@ -662,7 +730,7 @@
       "featuredUnsetTitle": "הסרת סימון מומלצת",
       "featuredUnsetMessage": "השינוי יחול בעת שמירת השינויים. המשרה תוסר מקרוסלת המשרות הנבחרות בעמוד הבית, ותחזור להופיע במיקום הרגיל ללא הסרט הזהוב.",
       "statusChangeConfirmTitle": "שינוי סטטוס משרה",
-      "statusChangeConfirmMessage": "השינוי יחול בעת שמירת השינויים.",
+      "statusChangeConfirmMessage": "השינוי יחול רק בעת שמירת השינויים. סטטוס המשרה קובע את הנראות שלה בלוח הציבורי — \"ממתין לאישור\" שומר את המשרה פרטית עד אישור מנהל, \"פורסם\" מציג אותה ללוח המשרות וזמינה להגשת מועמדות, ו\"סגור\" מסיר אותה מהלוח וחוסם הגשת מועמדויות חדשות. החברה לא תקבל הודעת אימייל על שינוי סטטוס.",
       "saveConfirmTitle": "שמירת שינויים",
       "saveConfirmMessage": "השינויים יוחלו מיידית. אם שונו פרטי המשרה (כותרת, תיאור, דרישות, תגיות, מיקום או שכר) — החברה תקבל הודעת אימייל. שינוי סטטוס או סימון כמומלצת לא יישלח לחברה.",
       "expandLabel": "פתח פרטים",
@@ -721,7 +789,14 @@
       "loading": "טוען…",
       "empty": "לא נמצאו מועמדויות.",
       "loadError": "טעינת המועמדויות נכשלה.",
+      "searchPlaceholder": "חיפוש לפי שם מועמד, אימייל, שם משרה…",
+      "filters": "סינון",
+      "openFilters": "פתח סינון",
       "filterAll": "הכל",
+      "filterByJob": "סינון לפי משרה",
+      "allJobs": "כל המשרות",
+      "filterByCompany": "סינון לפי חברה",
+      "allCompanies": "כל החברות",
       "table": {
         "candidate": "מועמד",
         "job": "משרה",
@@ -785,6 +860,14 @@
       "empty": "לא נמצאו מועמדים.",
       "loadError": "טעינת המועמדים נכשלה.",
       "searchPlaceholder": "חיפוש לפי שם או אימייל…",
+      "filters": "סינון",
+      "openFilters": "פתח סינון",
+      "filterByJob": "סינון לפי משרה",
+      "allJobs": "כל המשרות",
+      "filterByCompany": "סינון לפי חברה",
+      "allCompanies": "כל החברות",
+      "emailAction": "שלח דוא״ל",
+      "emailSubject": "RS Recruiting — בנוגע למועמדות שלך, {{name}}",
       "noFile": "לא הועלה",
       "table": {
         "name": "מועמד",

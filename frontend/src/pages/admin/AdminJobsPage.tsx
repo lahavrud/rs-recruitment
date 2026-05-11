@@ -29,6 +29,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
 import RangeSlider from "@/components/ui/RangeSlider";
+import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
 import JobTagsInput from "@/components/ui/JobTagsInput";
 import DropdownMenu, {
@@ -70,7 +71,17 @@ export default function AdminJobsPage() {
   usePageTitle(t("admin.jobs.title"));
   const toast = useToast();
 
-  const [filter, setFilter] = useState<FilterValue>(ALL_FILTER);
+  const [filter, setFilter] = useState<FilterValue>(() => {
+    const s = new URLSearchParams(window.location.search).get("status");
+    if (
+      s === JobStatus.PENDING_APPROVAL ||
+      s === JobStatus.PUBLISHED ||
+      s === JobStatus.CLOSED
+    ) {
+      return s;
+    }
+    return ALL_FILTER;
+  });
 
   const fetcher = useCallback(
     (cursor: string | null): Promise<CursorPage<JobRead>> => {
@@ -104,8 +115,8 @@ export default function AdminJobsPage() {
   // Status is the only filter that re-fetches server-side (see fetcher above);
   // everything else narrows the in-memory result.
   const [query, setQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [companyFilter, setCompanyFilter] = useState<number | null>(null);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [companyFilter, setCompanyFilter] = useState<number[]>([]);
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [salaryRange, setSalaryRange] = useState<[number, number] | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -162,8 +173,8 @@ export default function AdminJobsPage() {
         ].some((s) => s.toLowerCase().includes(q));
         if (!matches) return false;
       }
-      if (selectedLocation && j.location !== selectedLocation) return false;
-      if (companyFilter != null && j.company_id !== companyFilter) return false;
+      if (selectedLocations.length > 0 && !selectedLocations.includes(j.location)) return false;
+      if (companyFilter.length > 0 && !companyFilter.includes(j.company_id)) return false;
       if (featuredOnly && !j.is_featured) return false;
       if (isSalaryActive) {
         const [filterLo, filterHi] = effectiveSalaryRange;
@@ -178,7 +189,7 @@ export default function AdminJobsPage() {
   }, [
     jobs,
     query,
-    selectedLocation,
+    selectedLocations,
     companyFilter,
     featuredOnly,
     effectiveSalaryRange,
@@ -187,15 +198,15 @@ export default function AdminJobsPage() {
 
   const activeFilterCount =
     (query.trim() ? 1 : 0) +
-    (selectedLocation ? 1 : 0) +
-    (companyFilter != null ? 1 : 0) +
+    selectedLocations.length +
+    companyFilter.length +
     (featuredOnly ? 1 : 0) +
     (isSalaryActive ? 1 : 0);
 
   function clearFilters() {
     setQuery("");
-    setSelectedLocation(null);
-    setCompanyFilter(null);
+    setSelectedLocations([]);
+    setCompanyFilter([]);
     setFeaturedOnly(false);
     setSalaryRange(null);
   }
@@ -371,40 +382,34 @@ export default function AdminJobsPage() {
               onRemove={() => setQuery("")}
             />
           )}
-          {selectedLocation && (
+          {selectedLocations.map((loc) => (
             <ActiveFilterChip
-              label={`${t("publicJobs.board.locationLabel")}: ${selectedLocation}`}
-              onRemove={() => setSelectedLocation(null)}
+              key={`loc-${loc}`}
+              label={`${t("publicJobs.board.locationLabel")}: ${loc}`}
+              onRemove={() =>
+                setSelectedLocations((prev) => prev.filter((x) => x !== loc))
+              }
             />
-          )}
+          ))}
           {isSalaryActive && (
             <ActiveFilterChip
               label={`${t("publicJobs.board.salaryRange")}: ${effectiveSalaryRange[0].toLocaleString("he-IL")}–${effectiveSalaryRange[1].toLocaleString("he-IL")} ₪`}
               onRemove={() => setSalaryRange(null)}
             />
           )}
-          {companyFilter != null && (
+          {companyFilter.map((id) => (
             <ActiveFilterChip
-              label={`${t("admin.jobs.fields.company")}: ${companyNameById.get(companyFilter) ?? `#${companyFilter}`}`}
-              onRemove={() => setCompanyFilter(null)}
+              key={`co-${id}`}
+              label={`${t("admin.jobs.fields.company")}: ${companyNameById.get(id) ?? `#${id}`}`}
+              onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
             />
-          )}
+          ))}
           {featuredOnly && (
             <ActiveFilterChip
               label={t("admin.jobs.featuredOnly")}
               onRemove={() => setFeaturedOnly(false)}
             />
           )}
-          <button
-            type="button"
-            onClick={() => {
-              clearFilters();
-              setFilter(ALL_FILTER);
-            }}
-            className="text-[11px] text-copper/70 transition hover:text-copper"
-          >
-            {t("publicJobs.board.clearFilters")}
-          </button>
         </div>
       )}
 
@@ -454,31 +459,38 @@ export default function AdminJobsPage() {
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setSelectedLocation(null)}
+                  onClick={() => setSelectedLocations([])}
                   className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                    !selectedLocation
+                    selectedLocations.length === 0
                       ? "bg-copper text-white"
                       : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
                   }`}
                 >
                   {t("publicJobs.board.allLocations")}
                 </button>
-                {uniqueLocations.map((loc) => (
-                  <button
-                    key={loc}
-                    type="button"
-                    onClick={() =>
-                      setSelectedLocation(selectedLocation === loc ? null : loc)
-                    }
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                      selectedLocation === loc
-                        ? "bg-copper text-white"
-                        : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
-                    }`}
-                  >
-                    {loc}
-                  </button>
-                ))}
+                {uniqueLocations.map((loc) => {
+                  const active = selectedLocations.includes(loc);
+                  return (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() =>
+                        setSelectedLocations((prev) =>
+                          active
+                            ? prev.filter((x) => x !== loc)
+                            : [...prev, loc],
+                        )
+                      }
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                        active
+                          ? "bg-copper text-white"
+                          : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
+                      }`}
+                    >
+                      {loc}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -511,26 +523,20 @@ export default function AdminJobsPage() {
             />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-copper">
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
                 {t("admin.jobs.fields.company")}
-              </span>
-              <select
-                value={companyFilter ?? ""}
-                onChange={(e) =>
-                  setCompanyFilter(e.target.value ? Number(e.target.value) : null)
-                }
-                className={selectCls}
-              >
-                <option value="">{t("admin.jobs.companyAll")}</option>
-                {uniqueCompanies.map((id) => (
-                  <option key={id} value={id} className="bg-well">
-                    {companyNameById.get(id) ??
-                      t("admin.jobs.companyLabel", { id })}
-                  </option>
-                ))}
-              </select>
-            </label>
+              </p>
+              <SearchableMultiSelect<number>
+                values={companyFilter}
+                onChange={setCompanyFilter}
+                options={uniqueCompanies.map((id) => ({
+                  value: id,
+                  label: companyNameById.get(id) ?? `#${id}`,
+                }))}
+                placeholder={t("admin.jobs.companyAll")}
+              />
+            </div>
             <label className="mt-auto inline-flex items-center gap-2 text-sm text-white/80">
               <input
                 type="checkbox"
@@ -1583,6 +1589,7 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
         title={t("admin.jobs.editModalTitle")}
         description={job.title}
         size="lg"
+        preventOutsideClose
         footer={
           <>
             <button
@@ -1890,6 +1897,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
       onOpenChange={(o) => !o && onClose()}
       title={t("admin.jobs.newJobModalTitle")}
       size="lg"
+      preventOutsideClose
       footer={
         <>
           <button

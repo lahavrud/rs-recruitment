@@ -158,8 +158,8 @@ interface FilterPanelProps {
   query: string;
   onQueryChange: (q: string) => void;
   locations: string[];
-  selectedLocation: string | null;
-  onLocationChange: (loc: string | null) => void;
+  selectedLocations: string[];
+  onLocationsChange: (next: string[]) => void;
   salaryBounds: SalaryBounds;
   salaryRange: [number, number];
   onSalaryChange: (range: [number, number]) => void;
@@ -174,8 +174,8 @@ function FilterPanel({
   query,
   onQueryChange,
   locations,
-  selectedLocation,
-  onLocationChange,
+  selectedLocations,
+  onLocationsChange,
   salaryBounds,
   salaryRange,
   onSalaryChange,
@@ -211,33 +211,40 @@ function FilterPanel({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => onLocationChange(null)}
+              onClick={() => onLocationsChange([])}
               className={[
                 "rounded-full px-3 py-1.5 text-xs font-medium transition",
-                !selectedLocation
+                selectedLocations.length === 0
                   ? "bg-copper text-white"
                   : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85",
               ].join(" ")}
             >
               {t("publicJobs.board.allLocations")}
             </button>
-            {locations.map((loc) => (
+            {locations.map((loc) => {
+              const active = selectedLocations.includes(loc);
+              return (
               <button
                 key={loc}
                 type="button"
                 onClick={() =>
-                  onLocationChange(selectedLocation === loc ? null : loc)
+                  onLocationsChange(
+                    active
+                      ? selectedLocations.filter((x) => x !== loc)
+                      : [...selectedLocations, loc],
+                  )
                 }
                 className={[
                   "rounded-full px-3 py-1.5 text-xs font-medium transition",
-                  selectedLocation === loc
+                  active
                     ? "bg-copper text-white"
                     : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85",
                 ].join(" ")}
               >
                 {loc}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -292,12 +299,14 @@ export default function JobBoardPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const initialQuery = searchParams.get("q") ?? "";
-  const initialLocation = searchParams.get("loc");
+  const initialLocationCsv = searchParams.get("loc");
   const initialSmin = searchParams.get("smin");
   const initialSmax = searchParams.get("smax");
 
   const [query, setQuery] = useState(initialQuery);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(initialLocation);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>(() =>
+    initialLocationCsv ? initialLocationCsv.split(",").filter(Boolean) : [],
+  );
   const [salaryRange, setSalaryRange] = useState<[number, number] | null>(() => {
     const lo = initialSmin ? Number(initialSmin) : null;
     const hi = initialSmax ? Number(initialSmax) : null;
@@ -374,7 +383,10 @@ export default function JobBoardPage() {
       else next.delete(key);
     };
     setOrDelete("q", query.trim() || null);
-    setOrDelete("loc", selectedLocation);
+    setOrDelete(
+      "loc",
+      selectedLocations.length > 0 ? selectedLocations.join(",") : null,
+    );
     if (isSalaryActive) {
       setOrDelete("smin", String(effectiveSalaryRange[0]));
       setOrDelete("smax", String(effectiveSalaryRange[1]));
@@ -386,7 +398,7 @@ export default function JobBoardPage() {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, selectedLocation, effectiveSalaryRange, isSalaryActive]);
+  }, [query, selectedLocations, effectiveSalaryRange, isSalaryActive]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -403,7 +415,8 @@ export default function JobBoardPage() {
           requirementsText,
           tagsText,
         ].some((s) => s.toLowerCase().includes(q));
-      const matchesLocation = !selectedLocation || j.location === selectedLocation;
+      const matchesLocation =
+        selectedLocations.length === 0 || selectedLocations.includes(j.location);
 
       let matchesSalary = true;
       if (isSalaryActive) {
@@ -422,10 +435,10 @@ export default function JobBoardPage() {
 
       return matchesQuery && matchesLocation && matchesSalary;
     });
-  }, [jobs, query, selectedLocation, effectiveSalaryRange, isSalaryActive]);
+  }, [jobs, query, selectedLocations, effectiveSalaryRange, isSalaryActive]);
 
   const activeFilterCount =
-    (query.trim() ? 1 : 0) + (selectedLocation ? 1 : 0) + (isSalaryActive ? 1 : 0);
+    (query.trim() ? 1 : 0) + selectedLocations.length + (isSalaryActive ? 1 : 0);
   const hasActiveFilter = activeFilterCount > 0;
 
   const handleSalaryChange = useCallback((next: [number, number]) => {
@@ -438,7 +451,7 @@ export default function JobBoardPage() {
 
   const clearFilters = useCallback(() => {
     setQuery("");
-    setSelectedLocation(null);
+    setSelectedLocations([]);
     setSalaryRange(null);
   }, []);
 
@@ -454,8 +467,8 @@ export default function JobBoardPage() {
     query,
     onQueryChange: setQuery,
     locations: uniqueLocations,
-    selectedLocation,
-    onLocationChange: setSelectedLocation,
+    selectedLocations,
+    onLocationsChange: setSelectedLocations,
     salaryBounds,
     salaryRange: effectiveSalaryRange,
     onSalaryChange: handleSalaryChange,
@@ -562,12 +575,15 @@ export default function JobBoardPage() {
                     onRemove={() => setQuery("")}
                   />
                 )}
-                {selectedLocation && (
+                {selectedLocations.map((loc) => (
                   <FilterChip
-                    label={`${t("publicJobs.board.locationLabel")}: ${selectedLocation}`}
-                    onRemove={() => setSelectedLocation(null)}
+                    key={`loc-${loc}`}
+                    label={`${t("publicJobs.board.locationLabel")}: ${loc}`}
+                    onRemove={() =>
+                      setSelectedLocations((prev) => prev.filter((x) => x !== loc))
+                    }
                   />
-                )}
+                ))}
                 {isSalaryActive && (
                   <FilterChip
                     label={`${t("publicJobs.board.salaryRange")}: ${formatSalaryShort(effectiveSalaryRange[0])} – ${formatSalaryShort(effectiveSalaryRange[1])}`}
@@ -576,7 +592,9 @@ export default function JobBoardPage() {
                 )}
               </div>
               <p className="text-xs text-white/40">
-                {t("publicJobs.board.resultsCount", { count: filtered.length })}
+                {filtered.length === 1
+                  ? t("publicJobs.board.resultsCount.one")
+                  : t("publicJobs.board.resultsCount.other", { count: filtered.length })}
               </p>
             </div>
           )}

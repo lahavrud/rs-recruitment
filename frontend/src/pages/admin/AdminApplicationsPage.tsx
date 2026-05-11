@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteApplication,
+  fetchResumeBlob,
+  getActiveCompanies,
   getApplications,
+  getJobs,
   updateApplicationNotes,
   updateApplicationStatus,
-  fetchResumeBlob,
 } from "@/services/admin";
 import type { ApplicationListParams } from "@/services/admin";
 import { ApplicationStatus } from "@/types/api";
@@ -17,6 +19,11 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import SearchInput from "@/components/ui/SearchInput";
+import FunnelIcon from "@/components/admin/FunnelIcon";
+import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
+import MobileEntityCard from "@/components/admin/MobileEntityCard";
+import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
 import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -86,13 +93,26 @@ export default function AdminApplicationsPage() {
   usePageTitle(t("admin.applications.title"));
   const toast = useToast();
 
-  const [filter, setFilter] = useState<FilterValue>(ALL_FILTER);
-
-  // Pre-fill job/candidate filters from URL params (?job=<id> or ?candidate=<id>)
-  const [filterJobId, setFilterJobId] = useState<number | undefined>(() => {
-    const val = new URLSearchParams(window.location.search).get("job");
-    return val && !Number.isNaN(Number(val)) ? Number(val) : undefined;
+  const [filter, setFilter] = useState<FilterValue>(() => {
+    const s = new URLSearchParams(window.location.search).get("status");
+    if (
+      s === ApplicationStatus.NEW ||
+      s === ApplicationStatus.APPROVED_BY_ADMIN ||
+      s === ApplicationStatus.REJECTED ||
+      s === ApplicationStatus.HIRED
+    ) {
+      return s;
+    }
+    return ALL_FILTER;
   });
+
+  // Job filter: multi-select (client-side). URL ?job=<id> seeds the array.
+  const [jobFilter, setJobFilter] = useState<number[]>(() => {
+    const val = new URLSearchParams(window.location.search).get("job");
+    return val && !Number.isNaN(Number(val)) ? [Number(val)] : [];
+  });
+  // Candidate filter: still single, URL-driven (?candidate=<id>) — there's no
+  // UI to pick more than one from the panel.
   const [filterCandidateId, setFilterCandidateId] = useState<number | undefined>(() => {
     const val = new URLSearchParams(window.location.search).get("candidate");
     return val && !Number.isNaN(Number(val)) ? Number(val) : undefined;
@@ -100,20 +120,20 @@ export default function AdminApplicationsPage() {
 
   // Clean URL params on mount after reading them
   useEffect(() => {
-    if (filterJobId != null || filterCandidateId != null) {
+    if (jobFilter.length > 0 || filterCandidateId != null) {
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [filterJobId, filterCandidateId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetcher = useCallback(
     (cursor: string | null): Promise<CursorPage<ApplicationWithDetails>> => {
       const params: ApplicationListParams = { cursor };
       if (filter !== ALL_FILTER) params.status = filter as ApplicationStatus;
-      if (filterJobId != null) params.job_id = filterJobId;
       if (filterCandidateId != null) params.candidate_id = filterCandidateId;
       return getApplications(params);
     },
-    [filter, filterJobId, filterCandidateId],
+    [filter, filterCandidateId],
   );
 
   const {
@@ -137,6 +157,76 @@ export default function AdminApplicationsPage() {
     null,
   );
   const [pendingDelete, setPendingDelete] = useState(false);
+
+  // Client-side filters (status + job/candidate are server-side via fetcher).
+  const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState<number[]>([]);
+
+  // Cache of all jobs and active companies for the filter selects.
+  const [allJobs, setAllJobs] = useState<{ id: number; title: string; company_id: number }[]>([]);
+  const [companyNameById, setCompanyNameById] = useState<Map<number, string>>(
+    new Map(),
+  );
+  const [jobTitleById, setJobTitleById] = useState<Map<number, string>>(
+    new Map(),
+  );
+  useEffect(() => {
+    const ctrl = new AbortController();
+    Promise.all([
+      getJobs({ limit: 100 }, ctrl.signal),
+      getActiveCompanies({ limit: 100 }, ctrl.signal),
+    ])
+      .then(([jobsPage, companiesPage]) => {
+        setAllJobs(
+          jobsPage.items.map((j) => ({
+            id: j.id,
+            title: j.title,
+            company_id: j.company_id,
+          })),
+        );
+        setJobTitleById(new Map(jobsPage.items.map((j) => [j.id, j.title])));
+        setCompanyNameById(
+          new Map(
+            companiesPage.items.map((row) => [
+              row.company_profile.id,
+              row.company_profile.name,
+            ]),
+          ),
+        );
+      })
+      .catch(() => {
+        /* best-effort */
+      });
+    return () => ctrl.abort();
+  }, []);
+
+  const filteredApplications = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const jobSet = new Set(jobFilter);
+    const companySet = new Set(companyFilter);
+    return applications.filter((a) => {
+      if (jobSet.size > 0 && !jobSet.has(a.job_id)) return false;
+      if (companySet.size > 0 && !companySet.has(a.job.company_id)) return false;
+      if (!q) return true;
+      return [
+        a.candidate.full_name,
+        a.candidate.email,
+        a.candidate.phone ?? "",
+        a.job.title,
+        a.job.location,
+        a.admin_notes ?? "",
+      ].some((s) => s.toLowerCase().includes(q));
+    });
+  }, [applications, query, jobFilter, companyFilter]);
+
+  const activeFilterCount =
+    (query.trim() ? 1 : 0) +
+    (filter !== ALL_FILTER ? 1 : 0) +
+    jobFilter.length +
+    (filterCandidateId != null ? 1 : 0) +
+    companyFilter.length;
+
 
   // Auto-open application passed via navigation state (e.g. from Candidate detail)
   useEffect(() => {
@@ -183,45 +273,160 @@ export default function AdminApplicationsPage() {
         subtitle={t("admin.applications.subtitle")}
       />
 
-      {(filterJobId != null || filterCandidateId != null) && (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-copper/30 bg-copper/10 py-1 ps-3 pe-2 text-xs text-copper">
-            {filterJobId != null
-              ? `${t("common.filteredByJob")} #${filterJobId}`
-              : `${t("common.filteredByCandidate")} #${filterCandidateId}`}
-            <button
-              type="button"
-              aria-label={t("common.clearFilter")}
-              onClick={() => { setFilterJobId(undefined); setFilterCandidateId(undefined); }}
-              className="rounded-full p-0.5 hover:bg-copper/20"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="currentColor" className="size-3" aria-hidden="true">
-                <path d="M4.22 3.22a.75.75 0 0 0-1.06 1.06L4.94 6 3.16 7.78a.75.75 0 1 0 1.06 1.06L6 7.06l1.78 1.78a.75.75 0 1 0 1.06-1.06L7.06 6l1.78-1.78a.75.75 0 0 0-1.06-1.06L6 4.94 4.22 3.22Z" />
-              </svg>
-            </button>
-          </span>
+      {/* Search + filter trigger */}
+      <div className="mb-3 flex items-stretch gap-2">
+        <div className="flex-1">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder={t("admin.applications.searchPlaceholder")}
+            clearable
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilterOpen((o) => !o)}
+          aria-expanded={filterOpen}
+          aria-label={t("admin.applications.openFilters")}
+          className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
+            filterOpen
+              ? "border-copper/50 bg-copper/10 text-white"
+              : "border-white/15 bg-card-raised/40 text-white/75 hover:border-copper/40 hover:text-white"
+          }`}
+        >
+          <FunnelIcon />
+          <span className="hidden sm:inline">{t("admin.applications.filters")}</span>
+          {activeFilterCount > 0 && (
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Active filter chips */}
+      {activeFilterCount > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {filter !== ALL_FILTER && (
+            <ActiveFilterChip
+              label={`${t("admin.applications.table.status")}: ${STATUS_LABELS[filter]}`}
+              onRemove={() => setFilter(ALL_FILTER)}
+            />
+          )}
+          {query.trim() && (
+            <ActiveFilterChip
+              label={`${t("common.search")}: "${query.trim()}"`}
+              onRemove={() => setQuery("")}
+            />
+          )}
+          {jobFilter.map((id) => (
+            <ActiveFilterChip
+              key={`job-${id}`}
+              label={`${t("common.filteredByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
+              onRemove={() => setJobFilter((prev) => prev.filter((x) => x !== id))}
+            />
+          ))}
+          {filterCandidateId != null && (
+            <ActiveFilterChip
+              label={`${t("common.filteredByCandidate")} #${filterCandidateId}`}
+              onRemove={() => setFilterCandidateId(undefined)}
+            />
+          )}
+          {companyFilter.map((id) => (
+            <ActiveFilterChip
+              key={`co-${id}`}
+              label={`${t("admin.applications.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
+              onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
+            />
+          ))}
         </div>
       )}
 
-      <div className="mb-5 flex flex-wrap gap-2">
-        {filterTabs.map((tab) => {
-          const active = filter === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                active
-                  ? "bg-copper text-white"
-                  : "border border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
-              }`}
-            >
-              {tab === ALL_FILTER
-                ? t("admin.applications.filterAll")
-                : STATUS_LABELS[tab]}
-            </button>
-          );
-        })}
+      {/* Filter panel — animated open/close */}
+      <div
+        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
+          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={`space-y-4 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 ${
+              filterOpen ? "opacity-100 delay-100" : "opacity-0"
+            }`}
+          >
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                {t("admin.applications.table.status")}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {filterTabs.map((tab) => {
+                  const active = filter === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setFilter(tab)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                        active
+                          ? "bg-copper text-white"
+                          : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
+                      }`}
+                    >
+                      {tab === ALL_FILTER
+                        ? t("admin.applications.filterAll")
+                        : STATUS_LABELS[tab]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Company first → in RTL it lands on the visual right */}
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                  {t("admin.applications.filterByCompany")}
+                </p>
+                <SearchableMultiSelect<number>
+                  values={companyFilter}
+                  onChange={(next) => {
+                    setCompanyFilter(next);
+                    // Drop any selected jobs that no longer match an active company.
+                    if (next.length > 0 && jobFilter.length > 0) {
+                      const allowed = new Set(
+                        allJobs
+                          .filter((j) => next.includes(j.company_id))
+                          .map((j) => j.id),
+                      );
+                      setJobFilter((prev) => prev.filter((id) => allowed.has(id)));
+                    }
+                  }}
+                  options={Array.from(companyNameById.entries()).map(([id, name]) => ({
+                    value: id,
+                    label: name,
+                  }))}
+                  placeholder={t("admin.applications.allCompanies")}
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                  {t("admin.applications.filterByJob")}
+                </p>
+                <SearchableMultiSelect<number>
+                  values={jobFilter}
+                  onChange={setJobFilter}
+                  options={allJobs
+                    .filter(
+                      (j) =>
+                        companyFilter.length === 0 ||
+                        companyFilter.includes(j.company_id),
+                    )
+                    .map((j) => ({ value: j.id, label: j.title }))}
+                  placeholder={t("admin.applications.allJobs")}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -233,34 +438,71 @@ export default function AdminApplicationsPage() {
           eyebrow={t("admin.applications.title")}
           headline={t("admin.applications.empty")}
         />
+      ) : filteredApplications.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
+          <p className="text-sm text-white/40">
+            {t("publicJobs.board.noResults")}
+          </p>
+        </div>
       ) : (
         <>
-          {/* Mobile */}
+          {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
           <div className="space-y-2 md:hidden">
-            {applications.map((app) => (
-              <button
-                key={app.id}
-                onClick={() => setDetail(app)}
-                className="w-full rounded-xl border border-white/8 bg-card px-4 py-3 text-start transition hover:border-white/15"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-white/85">
-                      {app.candidate.full_name}
-                    </p>
-                    <p className="truncate text-xs text-white/50">{app.job.title}</p>
-                  </div>
-                  <span
-                    className={`mt-0.5 shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status]}`}
+            {filteredApplications.map((app) => {
+              const actions = (
+                <DropdownMenu
+                  ariaLabel={t("admin.applications.rowActionsLabel")}
+                  trigger={
+                    <button
+                      type="button"
+                      className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span aria-hidden>⋮</span>
+                    </button>
+                  }
+                >
+                  <DropdownMenuItem onSelect={() => setStatusModal(app)}>
+                    {t("admin.applications.updateStatusAction")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setNotesModal(app)}>
+                    {t("admin.applications.editNotesAction")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="danger"
+                    onSelect={() => setDeleteCandidate(app)}
                   >
-                    {STATUS_LABELS[app.status]}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-white/35">
-                  {formatDate(app.created_at)}
-                </p>
-              </button>
-            ))}
+                    {t("admin.applications.deleteAction")}
+                  </DropdownMenuItem>
+                </DropdownMenu>
+              );
+              return (
+                <MobileEntityCard
+                  key={app.id}
+                  title={
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-white/85">
+                        {app.candidate.full_name}
+                      </p>
+                      <p className="truncate text-[11px] font-normal text-white/50">
+                        {app.job.title}
+                      </p>
+                    </div>
+                  }
+                  badge={
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${STATUS_COLORS[app.status]}`}
+                    >
+                      {STATUS_LABELS[app.status]}
+                    </span>
+                  }
+                  actions={actions}
+                >
+                  <ApplicationDetailBody app={app} />
+                </MobileEntityCard>
+              );
+            })}
           </div>
 
           {/* Desktop */}
@@ -284,7 +526,7 @@ export default function AdminApplicationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/6">
-                {applications.map((app) => (
+                {filteredApplications.map((app) => (
                   <tr
                     key={app.id}
                     onClick={() => setDetail(app)}
@@ -449,7 +691,6 @@ function DetailDialog({
   onDelete,
 }: DetailProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   if (!app) return null;
   const c = app.candidate;
   return (
@@ -482,99 +723,124 @@ function DetailDialog({
         </>
       }
     >
-      <div className="space-y-4 text-sm">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/8 pb-3">
-          <button
-            type="button"
-            onClick={() => { onClose(); navigate(`/admin/candidates?detail=${app.candidate_id}`); }}
-            className="text-xs text-copper/70 underline-offset-2 transition hover:text-copper hover:underline"
-          >
-            {t("common.viewCandidate")}
-          </button>
-          <button
-            type="button"
-            onClick={() => { onClose(); navigate(`/admin/jobs?detail=${app.job_id}`); }}
-            className="text-xs text-copper/70 underline-offset-2 transition hover:text-copper hover:underline"
-          >
-            {t("common.viewJob")}
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
-          <span className="text-white/60">{c.email}</span>
-          {c.phone && <span className="text-white/60">{c.phone}</span>}
-          {c.linkedin_url && (
-            <a
-              href={c.linkedin_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-copper hover:text-gold"
-            >
-              {t("admin.applications.details.linkedin")} ↗
-            </a>
-          )}
-          {c.resume_path ? (
-            <ResumeLink
-              fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
-              label={t("admin.applications.details.resume")}
-            />
-          ) : (
-            <span className="text-white/40">
-              {t("admin.applications.details.resume")}:{" "}
-              {t("admin.applications.details.noFile")}
-            </span>
-          )}
-        </div>
+      <ApplicationDetailBody app={app} onLeavePage={onClose} />
+    </Dialog>
+  );
+}
 
-        {(c.service_concept ||
-          c.salary_expectations ||
-          c.personality_strength ||
-          c.personality_weakness) && (
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-            {c.service_concept && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.applications.details.serviceConcept")}
-                </dt>
-                <dd className="text-white/70">{c.service_concept}</dd>
-              </>
-            )}
-            {c.salary_expectations && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.applications.details.salaryExpectations")}
-                </dt>
-                <dd className="text-white/70">{c.salary_expectations}</dd>
-              </>
-            )}
-            {c.personality_strength && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.applications.details.strength")}
-                </dt>
-                <dd className="text-white/70">{c.personality_strength}</dd>
-              </>
-            )}
-            {c.personality_weakness && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.applications.details.weakness")}
-                </dt>
-                <dd className="text-white/70">{c.personality_weakness}</dd>
-              </>
-            )}
-          </dl>
+/** Detail body shared by the desktop dialog and the mobile inline expansion. */
+function ApplicationDetailBody({
+  app,
+  onLeavePage,
+}: {
+  app: ApplicationWithDetails;
+  onLeavePage?: () => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const c = app.candidate;
+  const linkBtnCls =
+    "inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-copper/90 transition hover:border-copper/30 hover:bg-copper/10 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:text-copper/80 sm:hover:bg-transparent sm:hover:text-copper sm:hover:underline";
+  return (
+    <div className="space-y-4 text-sm">
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/8 pb-3">
+        <button
+          type="button"
+          onClick={() => {
+            onLeavePage?.();
+            navigate(`/admin/candidates?detail=${app.candidate_id}`);
+          }}
+          className={linkBtnCls}
+        >
+          {t("common.viewCandidate")}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onLeavePage?.();
+            navigate(`/admin/jobs?detail=${app.job_id}`);
+          }}
+          className={linkBtnCls}
+        >
+          {t("common.viewJob")}
+        </button>
+        <span className="text-xs text-white/40">{formatDate(app.created_at)}</span>
+      </div>
+      <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <span className="text-white/60">{c.email}</span>
+        {c.phone && <span className="text-white/60">{c.phone}</span>}
+        {c.linkedin_url && (
+          <a
+            href={c.linkedin_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-copper hover:text-gold"
+          >
+            {t("admin.applications.details.linkedin")} ↗
+          </a>
         )}
-
-        {app.admin_notes && (
-          <div className="rounded-md border border-white/8 bg-card p-3 text-white/70">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-              {t("admin.applications.modal.adminNotes")}
-            </p>
-            <p className="mt-1 whitespace-pre-wrap">{app.admin_notes}</p>
-          </div>
+        {c.resume_path ? (
+          <ResumeLink
+            fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
+            label={t("admin.applications.details.resume")}
+          />
+        ) : (
+          <span className="text-white/40">
+            {t("admin.applications.details.resume")}:{" "}
+            {t("admin.applications.details.noFile")}
+          </span>
         )}
       </div>
-    </Dialog>
+
+      {(c.service_concept ||
+        c.salary_expectations ||
+        c.personality_strength ||
+        c.personality_weakness) && (
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          {c.service_concept && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.applications.details.serviceConcept")}
+              </dt>
+              <dd className="text-white/70">{c.service_concept}</dd>
+            </>
+          )}
+          {c.salary_expectations && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.applications.details.salaryExpectations")}
+              </dt>
+              <dd className="text-white/70">{c.salary_expectations}</dd>
+            </>
+          )}
+          {c.personality_strength && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.applications.details.strength")}
+              </dt>
+              <dd className="text-white/70">{c.personality_strength}</dd>
+            </>
+          )}
+          {c.personality_weakness && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.applications.details.weakness")}
+              </dt>
+              <dd className="text-white/70">{c.personality_weakness}</dd>
+            </>
+          )}
+        </dl>
+      )}
+
+      {app.admin_notes && (
+        <div className="rounded-md border border-white/8 bg-card p-3 text-white/70">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+            {t("admin.applications.modal.adminNotes")}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap">{app.admin_notes}</p>
+        </div>
+      )}
+    </div>
   );
 }
 

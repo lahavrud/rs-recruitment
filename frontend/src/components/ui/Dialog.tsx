@@ -13,6 +13,14 @@ interface DialogProps {
   /** Footer slot — typically action buttons. */
   footer?: ReactNode;
   size?: Size;
+  /**
+   * When `true`, clicks on the overlay (or interactions outside the content)
+   * will NOT close the dialog. Useful when a child opens its own confirm
+   * dialog in a separate portal — Radix would otherwise treat that confirm
+   * click as an outside click on the parent and dismiss it. Escape and the
+   * close button still work.
+   */
+  preventOutsideClose?: boolean;
 }
 
 const sizeCls: Record<Size, string> = {
@@ -34,6 +42,7 @@ export default function Dialog({
   children,
   footer,
   size = "md",
+  preventOutsideClose = false,
 }: DialogProps) {
   const { t } = useTranslation();
   return (
@@ -47,6 +56,12 @@ export default function Dialog({
           // immediately on open. Radix still focuses the Content wrapper for
           // screen readers; users tab from there.
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={
+            preventOutsideClose ? (e) => e.preventDefault() : undefined
+          }
+          onInteractOutside={
+            preventOutsideClose ? (e) => e.preventDefault() : undefined
+          }
           className={[
             "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-1.5rem)] -translate-x-1/2 -translate-y-1/2 sm:w-[calc(100vw-2rem)]",
             "rounded-xl border border-white/8 bg-card-raised p-4 text-white/85 shadow-2xl shadow-black/60 sm:p-6",

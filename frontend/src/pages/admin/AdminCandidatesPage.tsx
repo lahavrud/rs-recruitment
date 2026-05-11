@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import {
   deleteCandidate,
   fetchResumeBlob,
+  getActiveCompanies,
   getApplications,
   getCandidate,
   getCandidates,
+  getJobs,
   updateCandidate,
 } from "@/services/admin";
 import type {
@@ -21,6 +23,11 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import SearchInput from "@/components/ui/SearchInput";
+import MobileEntityCard from "@/components/admin/MobileEntityCard";
+import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
+import FunnelIcon from "@/components/admin/FunnelIcon";
+import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
 import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -88,6 +95,104 @@ export default function AdminCandidatesPage() {
   const [deletePending, setDeletePending] = useState<CandidateProfileRead | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
 
+  // Client-side filters on the loaded candidate set.
+  const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [jobFilter, setJobFilter] = useState<number[]>([]);
+  const [companyFilter, setCompanyFilter] = useState<number[]>([]);
+
+  // Cache jobs + companies for the filter selects, and applications for the
+  // candidate→job / candidate→company lookup.
+  const [allJobs, setAllJobs] = useState<{ id: number; title: string; company_id: number }[]>([]);
+  const [companyNameById, setCompanyNameById] = useState<Map<number, string>>(
+    new Map(),
+  );
+  const [jobTitleById, setJobTitleById] = useState<Map<number, string>>(
+    new Map(),
+  );
+  const [appCache, setAppCache] = useState<ApplicationWithDetails[]>([]);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    Promise.all([
+      getJobs({ limit: 100 }, ctrl.signal),
+      getActiveCompanies({ limit: 100 }, ctrl.signal),
+      getApplications({ limit: 100 }, ctrl.signal),
+    ])
+      .then(([jobsPage, companiesPage, appsPage]) => {
+        setAllJobs(
+          jobsPage.items.map((j) => ({
+            id: j.id,
+            title: j.title,
+            company_id: j.company_id,
+          })),
+        );
+        setJobTitleById(new Map(jobsPage.items.map((j) => [j.id, j.title])));
+        setCompanyNameById(
+          new Map(
+            companiesPage.items.map((row) => [
+              row.company_profile.id,
+              row.company_profile.name,
+            ]),
+          ),
+        );
+        setAppCache(appsPage.items);
+      })
+      .catch(() => {
+        /* best-effort */
+      });
+    return () => ctrl.abort();
+  }, []);
+
+  // candidate_id → set of job IDs / company IDs they applied to.
+  const candidateAppliedJobs = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    for (const a of appCache) {
+      if (!map.has(a.candidate_id)) map.set(a.candidate_id, new Set());
+      map.get(a.candidate_id)!.add(a.job_id);
+    }
+    return map;
+  }, [appCache]);
+
+  const candidateAppliedCompanies = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    for (const a of appCache) {
+      if (!map.has(a.candidate_id)) map.set(a.candidate_id, new Set());
+      map.get(a.candidate_id)!.add(a.job.company_id);
+    }
+    return map;
+  }, [appCache]);
+
+  const filteredCandidates = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return candidates.filter((c) => {
+      if (jobFilter.length > 0) {
+        const jobs = candidateAppliedJobs.get(c.id);
+        if (!jobs || !jobFilter.some((id) => jobs.has(id))) return false;
+      }
+      if (companyFilter.length > 0) {
+        const companies = candidateAppliedCompanies.get(c.id);
+        if (!companies || !companyFilter.some((id) => companies.has(id))) return false;
+      }
+      if (!q) return true;
+      return [c.full_name, c.email, c.phone ?? "", c.linkedin_url ?? ""].some((s) =>
+        s.toLowerCase().includes(q),
+      );
+    });
+  }, [
+    candidates,
+    query,
+    jobFilter,
+    companyFilter,
+    candidateAppliedJobs,
+    candidateAppliedCompanies,
+  ]);
+
+  const activeFilterCount =
+    (query.trim() ? 1 : 0) +
+    jobFilter.length +
+    companyFilter.length;
+
+
   // Auto-open detail modal when navigated from another page via ?detail=<id>
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("detail");
@@ -129,6 +234,119 @@ export default function AdminCandidatesPage() {
         subtitle={t("admin.candidates.subtitle")}
       />
 
+      {/* Search + filter trigger */}
+      <div className="mb-3 flex items-stretch gap-2">
+        <div className="flex-1">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder={t("admin.candidates.searchPlaceholder")}
+            clearable
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilterOpen((o) => !o)}
+          aria-expanded={filterOpen}
+          aria-label={t("admin.candidates.openFilters")}
+          className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
+            filterOpen
+              ? "border-copper/50 bg-copper/10 text-white"
+              : "border-white/15 bg-card-raised/40 text-white/75 hover:border-copper/40 hover:text-white"
+          }`}
+        >
+          <FunnelIcon />
+          <span className="hidden sm:inline">{t("admin.candidates.filters")}</span>
+          {activeFilterCount > 0 && (
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeFilterCount > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {query.trim() && (
+            <ActiveFilterChip
+              label={`${t("common.search")}: "${query.trim()}"`}
+              onRemove={() => setQuery("")}
+            />
+          )}
+          {jobFilter.map((id) => (
+            <ActiveFilterChip
+              key={`job-${id}`}
+              label={`${t("admin.candidates.filterByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
+              onRemove={() => setJobFilter((prev) => prev.filter((x) => x !== id))}
+            />
+          ))}
+          {companyFilter.map((id) => (
+            <ActiveFilterChip
+              key={`co-${id}`}
+              label={`${t("admin.candidates.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
+              onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
+            />
+          ))}
+        </div>
+      )}
+
+      <div
+        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
+          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={`grid grid-cols-1 gap-3 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 sm:grid-cols-2 ${
+              filterOpen ? "opacity-100 delay-100" : "opacity-0"
+            }`}
+          >
+            {/* Company first → in RTL it lands on the visual right */}
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                {t("admin.candidates.filterByCompany")}
+              </p>
+              <SearchableMultiSelect<number>
+                values={companyFilter}
+                onChange={(next) => {
+                  setCompanyFilter(next);
+                  if (next.length > 0 && jobFilter.length > 0) {
+                    const allowed = new Set(
+                      allJobs
+                        .filter((j) => next.includes(j.company_id))
+                        .map((j) => j.id),
+                    );
+                    setJobFilter((prev) => prev.filter((id) => allowed.has(id)));
+                  }
+                }}
+                options={Array.from(companyNameById.entries()).map(([id, name]) => ({
+                  value: id,
+                  label: name,
+                }))}
+                placeholder={t("admin.candidates.allCompanies")}
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                {t("admin.candidates.filterByJob")}
+              </p>
+              <SearchableMultiSelect<number>
+                values={jobFilter}
+                onChange={setJobFilter}
+                options={allJobs
+                  .filter(
+                    (j) =>
+                      companyFilter.length === 0 ||
+                      companyFilter.includes(j.company_id),
+                  )
+                  .map((j) => ({ value: j.id, label: j.title }))}
+                placeholder={t("admin.candidates.allJobs")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {isLoading ? (
         <TableSkeleton rows={6} columns={4} />
       ) : error ? (
@@ -138,21 +356,69 @@ export default function AdminCandidatesPage() {
           eyebrow={t("admin.candidates.title")}
           headline={t("admin.candidates.empty")}
         />
+      ) : filteredCandidates.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
+          <p className="text-sm text-white/40">
+            {t("publicJobs.board.noResults")}
+          </p>
+        </div>
       ) : (
         <>
-          {/* Mobile cards */}
+          {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
           <div className="space-y-2 md:hidden">
-            {candidates.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setDetail(c)}
-                className="w-full rounded-xl border border-white/8 bg-card px-4 py-3 text-start transition hover:border-white/15"
-              >
-                <p className="truncate font-medium text-white/85">{c.full_name}</p>
-                <p className="truncate text-xs text-white/50">{c.email}</p>
-                <p className="mt-2 text-xs text-white/35">{formatDate(c.created_at)}</p>
-              </button>
-            ))}
+            {filteredCandidates.map((c) => {
+              const actions = (
+                <DropdownMenu
+                  ariaLabel={t("admin.candidates.rowActionsLabel")}
+                  trigger={
+                    <button
+                      type="button"
+                      className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span aria-hidden>⋮</span>
+                    </button>
+                  }
+                >
+                  <DropdownMenuItem onSelect={() => setEditing(c)}>
+                    {t("admin.candidates.editAction")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      window.open(
+                        `mailto:${c.email}?subject=${encodeURIComponent(
+                          t("admin.candidates.emailSubject", { name: c.full_name }),
+                        )}`,
+                        "_self",
+                      )
+                    }
+                  >
+                    {t("admin.candidates.emailAction")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="danger"
+                    onSelect={() => setDeletePending(c)}
+                  >
+                    {t("admin.candidates.deleteAction")}
+                  </DropdownMenuItem>
+                </DropdownMenu>
+              );
+              return (
+                <MobileEntityCard
+                  key={c.id}
+                  title={<span className="truncate text-white/85">{c.full_name}</span>}
+                  badge={
+                    <span className="text-[11px] text-white/40">
+                      {formatDate(c.created_at)}
+                    </span>
+                  }
+                  actions={actions}
+                >
+                  <CandidateDetailBody candidate={c} />
+                </MobileEntityCard>
+              );
+            })}
           </div>
 
           {/* Desktop table */}
@@ -179,7 +445,7 @@ export default function AdminCandidatesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/6">
-                {candidates.map((c) => (
+                {filteredCandidates.map((c) => (
                   <tr
                     key={c.id}
                     onClick={() => setDetail(c)}
@@ -315,7 +581,6 @@ interface DetailProps {
 
 function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [applications, setApplications] = useState<ApplicationWithDetails[] | null>(
     null,
   );
@@ -346,11 +611,6 @@ function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
 
   if (!candidate) return null;
   const c = candidate;
-  const hasAnswers =
-    c.service_concept ||
-    c.salary_expectations ||
-    c.personality_strength ||
-    c.personality_weakness;
 
   return (
     <Dialog
@@ -376,105 +636,168 @@ function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
         </>
       }
     >
-      <div className="space-y-5 text-sm">
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
-          {c.phone && <span className="text-white/60">{c.phone}</span>}
-          {c.linkedin_url && (
-            <a
-              href={c.linkedin_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-copper hover:text-gold"
-            >
-              LinkedIn ↗
-            </a>
-          )}
-          {c.resume_path ? (
-            <ResumeLink
-              fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
-              label={t("admin.candidates.table.resume")}
-            />
-          ) : (
-            <span className="text-white/40">
-              {t("admin.candidates.table.resume")}: {t("admin.candidates.noFile")}
-            </span>
-          )}
-        </div>
-
-        {hasAnswers && (
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-            {c.service_concept && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.candidates.details.serviceConcept")}
-                </dt>
-                <dd className="text-white/70">{c.service_concept}</dd>
-              </>
-            )}
-            {c.salary_expectations && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.candidates.details.salaryExpectations")}
-                </dt>
-                <dd className="text-white/70">{c.salary_expectations}</dd>
-              </>
-            )}
-            {c.personality_strength && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.candidates.details.strength")}
-                </dt>
-                <dd className="text-white/70">{c.personality_strength}</dd>
-              </>
-            )}
-            {c.personality_weakness && (
-              <>
-                <dt className="text-white/35">
-                  {t("admin.candidates.details.weakness")}
-                </dt>
-                <dd className="text-white/70">{c.personality_weakness}</dd>
-              </>
-            )}
-          </dl>
-        )}
-
-        {/* Applications by this candidate */}
-        <div className="border-t border-white/8 pt-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-            {t("admin.candidates.applicationsSection")}
-          </p>
-          {appsError ? (
-            <p className="mt-3 text-xs text-danger">
-              {t("admin.candidates.errors.applicationsLoadFailed")}
-            </p>
-          ) : applications == null ? (
-            <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
-          ) : applications.length === 0 ? (
-            <p className="mt-3 text-xs text-white/35">
-              {t("admin.candidates.noApplications")}
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-1.5">
-              {applications.map((a) => (
-                <li key={a.id}>
-                  <button
-                    type="button"
-                    onClick={() => { onClose(); navigate(`/admin/applications?candidate=${a.candidate_id}`, { state: { autoOpen: a } }); }}
-                    className="flex w-full items-center justify-between rounded-sm border border-white/6 bg-card px-3 py-2 transition hover:border-copper/25 hover:bg-card-raised"
-                  >
-                    <span className="text-white/80">{a.job.title}</span>
-                    <span className="text-xs text-white/40">
-                      {t(`admin.applications.statusLabels.${a.status}`)} ·{" "}
-                      {formatDate(a.created_at)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      <CandidateDetailBody
+        candidate={c}
+        applications={applications}
+        appsError={appsError}
+        onLeavePage={onClose}
+      />
     </Dialog>
+  );
+}
+
+/** Detail body shared by the desktop dialog and the mobile inline expansion. */
+function CandidateDetailBody({
+  candidate,
+  applications: appsProp,
+  appsError: appsErrorProp,
+  onLeavePage,
+}: {
+  candidate: CandidateProfileRead;
+  applications?: ApplicationWithDetails[] | null;
+  appsError?: boolean;
+  onLeavePage?: () => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const c = candidate;
+  const hasAnswers =
+    c.service_concept ||
+    c.salary_expectations ||
+    c.personality_strength ||
+    c.personality_weakness;
+
+  // Self-fetch the applications list when the parent didn't pass one (mobile).
+  const useLocal = appsProp === undefined;
+  const [localApps, setLocalApps] = useState<ApplicationWithDetails[] | null>(null);
+  const [localAppsError, setLocalAppsError] = useState(false);
+  useEffect(() => {
+    if (!useLocal) return;
+    const ctrl = new AbortController();
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setLocalApps(null);
+    setLocalAppsError(false);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    getApplications({ candidate_id: candidate.id, limit: 100 }, ctrl.signal)
+      .then((page) => setLocalApps(page.items))
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        setLocalAppsError(true);
+      });
+    return () => ctrl.abort();
+  }, [candidate.id, useLocal]);
+  const applications = useLocal ? localApps : appsProp;
+  const appsError = useLocal ? localAppsError : (appsErrorProp ?? false);
+
+  return (
+    <div className="space-y-5 text-sm">
+      <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <a
+          href={`mailto:${c.email}?subject=${encodeURIComponent(t("admin.candidates.emailSubject", { name: c.full_name }))}`}
+          className="text-copper/85 transition hover:text-copper hover:underline"
+        >
+          {c.email}
+        </a>
+        {c.phone && <span className="text-white/60">{c.phone}</span>}
+        {c.linkedin_url && (
+          <a
+            href={c.linkedin_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-copper hover:text-gold"
+          >
+            LinkedIn ↗
+          </a>
+        )}
+        {c.resume_path ? (
+          <ResumeLink
+            fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
+            label={t("admin.candidates.table.resume")}
+          />
+        ) : (
+          <span className="text-white/40">
+            {t("admin.candidates.table.resume")}: {t("admin.candidates.noFile")}
+          </span>
+        )}
+      </div>
+
+      {hasAnswers && (
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          {c.service_concept && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.candidates.details.serviceConcept")}
+              </dt>
+              <dd className="text-white/70">{c.service_concept}</dd>
+            </>
+          )}
+          {c.salary_expectations && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.candidates.details.salaryExpectations")}
+              </dt>
+              <dd className="text-white/70">{c.salary_expectations}</dd>
+            </>
+          )}
+          {c.personality_strength && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.candidates.details.strength")}
+              </dt>
+              <dd className="text-white/70">{c.personality_strength}</dd>
+            </>
+          )}
+          {c.personality_weakness && (
+            <>
+              <dt className="text-white/35">
+                {t("admin.candidates.details.weakness")}
+              </dt>
+              <dd className="text-white/70">{c.personality_weakness}</dd>
+            </>
+          )}
+        </dl>
+      )}
+
+      <div className="border-t border-white/8 pt-4">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+          {t("admin.candidates.applicationsSection")}
+        </p>
+        {appsError ? (
+          <p className="mt-3 text-xs text-danger">
+            {t("admin.candidates.errors.applicationsLoadFailed")}
+          </p>
+        ) : applications == null ? (
+          <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
+        ) : applications.length === 0 ? (
+          <p className="mt-3 text-xs text-white/35">
+            {t("admin.candidates.noApplications")}
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {applications.map((a) => (
+              <li key={a.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLeavePage?.();
+                    navigate(`/admin/applications?candidate=${a.candidate_id}`, {
+                      state: { autoOpen: a },
+                    });
+                  }}
+                  className="flex w-full items-center justify-between rounded-sm border border-white/6 bg-card px-3 py-2 transition hover:border-copper/25 hover:bg-card-raised"
+                >
+                  <span className="text-white/80">{a.job.title}</span>
+                  <span className="text-xs text-white/40">
+                    {t(`admin.applications.statusLabels.${a.status}`)} ·{" "}
+                    {formatDate(a.created_at)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 
