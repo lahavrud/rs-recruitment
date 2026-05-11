@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -35,6 +35,10 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import SearchInput from "@/components/ui/SearchInput";
+import FunnelIcon from "@/components/admin/FunnelIcon";
+import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
+import MobileEntityCard from "@/components/admin/MobileEntityCard";
 import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -64,7 +68,9 @@ export default function AdminCompaniesPage() {
   const { t } = useTranslation();
   usePageTitle(t("admin.companies.title"));
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>("pending");
+  const [view, setView] = useState<Tab>("pending");
+  const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [externalDetail, setExternalDetail] = useState<CompanyProfileRead | null>(null);
@@ -77,7 +83,7 @@ export default function AdminCompaniesPage() {
     window.history.replaceState({}, "", window.location.pathname);
     getCompanyProfile(Number(id), ctrl.signal)
       .then((profile) => {
-        setTab("active");
+        setView("active");
         setExternalDetail(profile);
       })
       .catch((e) => {
@@ -88,9 +94,11 @@ export default function AdminCompaniesPage() {
   }, [t, toast]);
 
   function handleInvite() {
-    setTab("invites");
+    setView("invites");
     setInviting(true);
   }
+
+  const activeFilterCount = (query.trim() ? 1 : 0) + (view !== "pending" ? 1 : 0);
 
   return (
     <div>
@@ -118,34 +126,116 @@ export default function AdminCompaniesPage() {
         }
       />
 
-      <div className="mb-5 flex flex-wrap gap-2">
-        {(["pending", "active", "invites"] as Tab[]).map((key) => {
-          const active = tab === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                active
-                  ? "bg-copper text-white"
-                  : "border border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
-              }`}
-            >
-              {t(`admin.companies.tabs.${key}`)}
-            </button>
-          );
-        })}
+      {/* Search + filter trigger */}
+      <div className="mb-3 flex items-stretch gap-2">
+        <div className="flex-1">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder={t("admin.companies.searchPlaceholder")}
+            clearable
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilterOpen((o) => !o)}
+          aria-expanded={filterOpen}
+          aria-label={t("admin.companies.openFilters")}
+          className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
+            filterOpen
+              ? "border-copper/50 bg-copper/10 text-white"
+              : "border-white/15 bg-card-raised/40 text-white/75 hover:border-copper/40 hover:text-white"
+          }`}
+        >
+          <FunnelIcon />
+          <span className="hidden sm:inline">{t("admin.companies.filters")}</span>
+          {activeFilterCount > 0 && (
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {tab === "active" && (
+      {/* Active filter chips */}
+      {activeFilterCount > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {view !== "pending" && (
+            <ActiveFilterChip
+              label={`${t("admin.companies.viewLabel")}: ${t(`admin.companies.tabs.${view}`)}`}
+              onRemove={() => setView("pending")}
+            />
+          )}
+          {query.trim() && (
+            <ActiveFilterChip
+              label={`${t("common.search")}: "${query.trim()}"`}
+              onRemove={() => setQuery("")}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setView("pending");
+            }}
+            className="text-[11px] text-copper/70 transition hover:text-copper"
+          >
+            {t("publicJobs.board.clearFilters")}
+          </button>
+        </div>
+      )}
+
+      {/* Filter panel — animated open/close */}
+      <div
+        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
+          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={`space-y-4 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 ${
+              filterOpen ? "opacity-100 delay-100" : "opacity-0"
+            }`}
+          >
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                {t("admin.companies.viewLabel")}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(["pending", "active", "invites"] as Tab[]).map((key) => {
+                  const active = view === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setView(key)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                        active
+                          ? "bg-copper text-white"
+                          : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
+                      }`}
+                    >
+                      {t(`admin.companies.tabs.${key}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {view === "active" && (
         <ActiveTab
+          query={query}
           externalDetail={externalDetail}
           onExternalDetailClose={() => setExternalDetail(null)}
         />
       )}
-      {tab === "pending" && <PendingTab />}
-      {tab === "invites" && (
+      {view === "pending" && <PendingTab query={query} />}
+      {view === "invites" && (
         <InvitesTab
+          query={query}
           externalOpen={inviting}
           onExternalClose={() => setInviting(false)}
         />
@@ -156,7 +246,7 @@ export default function AdminCompaniesPage() {
         onClose={() => setCreating(false)}
         onCreated={(profile) => {
           setCreating(false);
-          setTab("active");
+          setView("active");
           setExternalDetail(profile);
         }}
       />
@@ -167,11 +257,12 @@ export default function AdminCompaniesPage() {
 // ── Active tab ─────────────────────────────────────────────────────────────
 
 interface ActiveTabProps {
+  query: string;
   externalDetail?: CompanyProfileRead | null;
   onExternalDetailClose?: () => void;
 }
 
-function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
+function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabProps) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -191,6 +282,24 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
     updateItem,
     removeItem,
   } = useInfiniteList<ActiveCompanyRead>(fetcher);
+
+  const filteredCompanies = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter((row) => {
+      const p = row.company_profile;
+      const u = row.user;
+      return [
+        p.name,
+        p.contact_first_name,
+        p.contact_last_name,
+        p.contact_mobile_phone,
+        p.contact_landline_phone ?? "",
+        u?.email ?? "",
+      ]
+        .some((s) => s.toLowerCase().includes(q));
+    });
+  }, [companies, query]);
 
   const [detail, setDetail] = useState<CompanyProfileRead | null>(null);
   const [editing, setEditing] = useState<CompanyProfileRead | null>(null);
@@ -235,21 +344,64 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
           eyebrow={t("admin.companies.tabs.active")}
           headline={t("admin.companies.active.empty")}
         />
+      ) : filteredCompanies.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
+          <p className="text-sm text-white/40">
+            {t("publicJobs.board.noResults")}
+          </p>
+        </div>
       ) : (
         <>
+          {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
           <div className="space-y-2 md:hidden">
-            {companies.map((row) => (
-              <button
-                key={row.company_profile.id}
-                onClick={() => setDetail(row.company_profile)}
-                className="w-full rounded-xl border border-white/8 bg-card px-4 py-3 text-start transition hover:border-white/15"
-              >
-                <CompanyName name={row.company_profile.name} className="truncate block" />
-                <p className="truncate text-xs text-white/50">
-                  {row.user?.email ?? t("admin.companies.noUserAccount")}
-                </p>
-              </button>
-            ))}
+            {filteredCompanies.map((row) => {
+              const actions = (
+                <DropdownMenu
+                  ariaLabel={t("admin.companies.rowActionsLabel")}
+                  trigger={
+                    <button
+                      type="button"
+                      className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span aria-hidden>⋮</span>
+                    </button>
+                  }
+                >
+                  <DropdownMenuItem onSelect={() => setEditing(row.company_profile)}>
+                    {t("admin.companies.editAction")}
+                  </DropdownMenuItem>
+                  {row.user?.email && (
+                    <DropdownMenuItem
+                      onSelect={() =>
+                        window.open(`mailto:${row.user!.email}`, "_self")
+                      }
+                    >
+                      {t("admin.companies.emailAction")}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="danger"
+                    onSelect={() => setDeletePending(row)}
+                  >
+                    {t("admin.companies.deleteAction")}
+                  </DropdownMenuItem>
+                </DropdownMenu>
+              );
+              return (
+                <MobileEntityCard
+                  key={row.company_profile.id}
+                  title={<CompanyName name={row.company_profile.name} />}
+                  actions={actions}
+                >
+                  <CompanyDetailBody
+                    profile={row.company_profile}
+                    user={row.user}
+                  />
+                </MobileEntityCard>
+              );
+            })}
           </div>
 
           <div className="hidden overflow-x-auto rounded-xl border border-white/8 bg-card md:block">
@@ -269,7 +421,7 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/6">
-                {companies.map((row) => (
+                {filteredCompanies.map((row) => (
                   <tr
                     key={row.company_profile.id}
                     onClick={() => setDetail(row.company_profile)}
@@ -315,6 +467,15 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
                         >
                           {t("admin.companies.editAction")}
                         </DropdownMenuItem>
+                        {row.user?.email && (
+                          <DropdownMenuItem
+                            onSelect={() =>
+                              window.open(`mailto:${row.user!.email}`, "_self")
+                            }
+                          >
+                            {t("admin.companies.emailAction")}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="danger"
@@ -383,7 +544,8 @@ function ActiveTab({ externalDetail, onExternalDetailClose }: ActiveTabProps) {
 
 // ── Pending tab ────────────────────────────────────────────────────────────
 
-function PendingTab() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function PendingTab({ query: _query }: { query: string }) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -505,11 +667,13 @@ function PendingTab() {
 // ── Invites tab ────────────────────────────────────────────────────────────
 
 interface InvitesTabProps {
+  query: string;
   externalOpen?: boolean;
   onExternalClose?: () => void;
 }
 
-function InvitesTab({ externalOpen, onExternalClose }: InvitesTabProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTabProps) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -708,7 +872,6 @@ interface DetailProps {
 
 function CompanyDetailDialog({ profile, onClose, onEdit }: DetailProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [jobs, setJobs] = useState<JobRead[] | null>(null);
   const [jobsError, setJobsError] = useState(false);
 
@@ -750,81 +913,144 @@ function CompanyDetailDialog({ profile, onClose, onEdit }: DetailProps) {
         </button>
       }
     >
-      <div className="space-y-4 text-sm">
-        <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-          <dt className="text-white/35">{t("admin.companies.fields.companyId")}</dt>
-          <dd className="text-white/70">
-            {profile.company_id || t("admin.companies.noCompanyId")}
-          </dd>
-          {profile.address && (
-            <>
-              <dt className="text-white/35">{t("admin.companies.fields.address")}</dt>
-              <dd className="text-white/70">{profile.address}</dd>
-            </>
-          )}
-          {(profile.contact_first_name || profile.contact_last_name) && (
-            <>
-              <dt className="text-white/35">{t("admin.companies.contactLabel")}</dt>
-              <dd className="text-white/70">
-                {profile.contact_first_name} {profile.contact_last_name}
-              </dd>
-            </>
-          )}
-          {profile.contact_mobile_phone && (
-            <>
-              <dt className="text-white/35">
-                {t("admin.companies.fields.contactMobile")}
-              </dt>
-              <dd className="text-white/70">{profile.contact_mobile_phone}</dd>
-            </>
-          )}
-          {profile.contact_landline_phone && (
-            <>
-              <dt className="text-white/35">
-                {t("admin.companies.fields.contactLandline")}
-              </dt>
-              <dd className="text-white/70">{profile.contact_landline_phone}</dd>
-            </>
-          )}
-          {profile.user_id == null && (
-            <>
-              <dt className="text-white/35">—</dt>
-              <dd className="text-white/40">{t("admin.companies.noUserAccount")}</dd>
-            </>
-          )}
-        </dl>
-
-        <div className="border-t border-white/8 pt-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-            {t("admin.companies.jobsSection")}
-          </p>
-          {jobsError ? (
-            <p className="mt-3 text-xs text-danger">
-              {t("admin.companies.errors.jobsLoadFailed")}
-            </p>
-          ) : jobs == null ? (
-            <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
-          ) : jobs.length === 0 ? (
-            <p className="mt-3 text-xs text-white/35">{t("admin.companies.noJobs")}</p>
-          ) : (
-            <ul className="mt-3 space-y-1.5">
-              {jobs.map((j) => (
-                <li key={j.id}>
-                  <button
-                    type="button"
-                    onClick={() => { onClose(); navigate(`/admin/jobs?detail=${j.id}`); }}
-                    className="flex w-full items-center justify-between rounded-sm border border-white/6 bg-card px-3 py-2 transition hover:border-copper/25 hover:bg-card-raised"
-                  >
-                    <span className="text-white/80">{j.title}</span>
-                    <span className="text-xs text-white/40">{j.location}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      <CompanyDetailBody profile={profile} jobs={jobs} jobsError={jobsError} onLeavePage={onClose} />
     </Dialog>
+  );
+}
+
+/**
+ * Body content shared by the desktop CompanyDetailDialog and the mobile
+ * inline expansion. Renders the profile fields + jobs section.
+ */
+function CompanyDetailBody({
+  profile,
+  user,
+  jobs: jobsProp,
+  jobsError: jobsErrorProp,
+  onLeavePage,
+}: {
+  profile: CompanyProfileRead;
+  user?: { email: string } | null;
+  jobs?: JobRead[] | null;
+  jobsError?: boolean;
+  onLeavePage?: () => void;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [localJobs, setLocalJobs] = useState<JobRead[] | null>(null);
+  const [localJobsError, setLocalJobsError] = useState(false);
+  // Self-fetch the jobs list when the parent didn't provide one (mobile inline).
+  const useLocal = jobsProp === undefined;
+  useEffect(() => {
+    if (!useLocal) return;
+    const ctrl = new AbortController();
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setLocalJobs(null);
+    setLocalJobsError(false);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    getJobs({ limit: 100 }, ctrl.signal)
+      .then((page) =>
+        setLocalJobs(page.items.filter((j) => j.company_id === profile.id)),
+      )
+      .catch((e) => {
+        if (axios.isCancel(e)) return;
+        setLocalJobsError(true);
+      });
+    return () => ctrl.abort();
+  }, [profile.id, useLocal]);
+  const jobs = useLocal ? localJobs : jobsProp;
+  const jobsError = useLocal ? localJobsError : (jobsErrorProp ?? false);
+  return (
+    <div className="space-y-4 text-sm">
+      <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+        <dt className="text-white/35">{t("admin.companies.fields.companyId")}</dt>
+        <dd className="text-white/70">
+          {profile.company_id || t("admin.companies.noCompanyId")}
+        </dd>
+        {user?.email && (
+          <>
+            <dt className="text-white/35">{t("admin.companies.fields.email")}</dt>
+            <dd className="text-white/70">
+              <a
+                href={`mailto:${user.email}`}
+                className="text-copper/85 transition hover:text-copper hover:underline"
+              >
+                {user.email}
+              </a>
+            </dd>
+          </>
+        )}
+        {profile.address && (
+          <>
+            <dt className="text-white/35">{t("admin.companies.fields.address")}</dt>
+            <dd className="text-white/70">{profile.address}</dd>
+          </>
+        )}
+        {(profile.contact_first_name || profile.contact_last_name) && (
+          <>
+            <dt className="text-white/35">{t("admin.companies.contactLabel")}</dt>
+            <dd className="text-white/70">
+              {profile.contact_first_name} {profile.contact_last_name}
+            </dd>
+          </>
+        )}
+        {profile.contact_mobile_phone && (
+          <>
+            <dt className="text-white/35">
+              {t("admin.companies.fields.contactMobile")}
+            </dt>
+            <dd className="text-white/70">{profile.contact_mobile_phone}</dd>
+          </>
+        )}
+        {profile.contact_landline_phone && (
+          <>
+            <dt className="text-white/35">
+              {t("admin.companies.fields.contactLandline")}
+            </dt>
+            <dd className="text-white/70">{profile.contact_landline_phone}</dd>
+          </>
+        )}
+        {profile.user_id == null && (
+          <>
+            <dt className="text-white/35">—</dt>
+            <dd className="text-white/40">{t("admin.companies.noUserAccount")}</dd>
+          </>
+        )}
+      </dl>
+
+      <div className="border-t border-white/8 pt-4">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+          {t("admin.companies.jobsSection")}
+        </p>
+        {jobsError ? (
+          <p className="mt-3 text-xs text-danger">
+            {t("admin.companies.errors.jobsLoadFailed")}
+          </p>
+        ) : jobs == null ? (
+          <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
+        ) : jobs.length === 0 ? (
+          <p className="mt-3 text-xs text-white/35">{t("admin.companies.noJobs")}</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {jobs.map((j) => (
+              <li key={j.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLeavePage?.();
+                    navigate(`/admin/jobs?detail=${j.id}`);
+                  }}
+                  className="flex w-full items-center justify-between rounded-sm border border-white/6 bg-card px-3 py-2 transition hover:border-copper/25 hover:bg-card-raised"
+                >
+                  <span className="text-white/80">{j.title}</span>
+                  <span className="text-xs text-white/40">{j.location}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -973,14 +1199,16 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const [form, setForm] = useState<Partial<CompanyProfileAdminCreate>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     /* eslint-disable react-hooks/set-state-in-effect */
     setForm({});
-    setValidationError(null);
+    setErrors({});
+    setConfirmCreateOpen(false);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open]);
 
@@ -989,38 +1217,52 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
     value: CompanyProfileAdminCreate[K],
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear that field's error on edit.
+    if (errors[key as string]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key as string];
+        return next;
+      });
+    }
   }
 
-  async function handleSave() {
-    setValidationError(null);
-    if (
-      !form.name?.trim() ||
-      !form.company_id?.trim() ||
-      !form.address?.trim() ||
-      !form.contact_first_name?.trim() ||
-      !form.contact_last_name?.trim() ||
-      !form.contact_mobile_phone?.trim()
-    ) {
-      setValidationError(t("admin.companies.validation.allRequired"));
-      return;
-    }
-    if (!COMPANY_ID_RE.test(form.company_id)) {
-      setValidationError(t("admin.companies.validation.companyId"));
-      return;
-    }
-    if (!MOBILE_RE.test(form.contact_mobile_phone)) {
-      setValidationError(t("admin.companies.validation.mobile"));
-      return;
-    }
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (!form.name?.trim()) e.name = t("common.validation.required");
+    if (!form.company_id?.trim())
+      e.company_id = t("common.validation.required");
+    else if (!COMPANY_ID_RE.test(form.company_id))
+      e.company_id = t("admin.companies.validation.companyId");
+    if (!form.address?.trim()) e.address = t("common.validation.required");
+    if (!form.contact_first_name?.trim())
+      e.contact_first_name = t("common.validation.required");
+    if (!form.contact_last_name?.trim())
+      e.contact_last_name = t("common.validation.required");
+    if (!form.contact_mobile_phone?.trim())
+      e.contact_mobile_phone = t("common.validation.required");
+    else if (!MOBILE_RE.test(form.contact_mobile_phone))
+      e.contact_mobile_phone = t("admin.companies.validation.mobile");
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  function requestSave() {
+    if (!validate()) return;
+    setConfirmCreateOpen(true);
+  }
+
+  async function executeSave() {
+    setConfirmCreateOpen(false);
     setSaving(true);
     try {
       const created = await adminCreateCompany({
-        name: form.name,
-        company_id: form.company_id,
-        address: form.address,
-        contact_first_name: form.contact_first_name,
-        contact_last_name: form.contact_last_name,
-        contact_mobile_phone: form.contact_mobile_phone,
+        name: form.name!,
+        company_id: form.company_id!,
+        address: form.address!,
+        contact_first_name: form.contact_first_name!,
+        contact_last_name: form.contact_last_name!,
+        contact_mobile_phone: form.contact_mobile_phone!,
         contact_landline_phone: form.contact_landline_phone || null,
       });
       toast.success(t("admin.companies.createdToast"));
@@ -1032,42 +1274,61 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
     }
   }
 
+  const hasErrors = Object.keys(errors).length > 0;
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => !o && onClose()}
-      title={t("admin.companies.newCompanyModalTitle")}
-      size="lg"
-      footer={
-        <>
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-60"
-          >
-            {saving ? t("common.saving") : t("common.save")}
-          </button>
-        </>
-      }
-    >
-      <CompanyProfileFields
-        form={form}
-        setField={(k, v) =>
-          set(
-            k as keyof CompanyProfileAdminCreate,
-            v as CompanyProfileAdminCreate[keyof CompanyProfileAdminCreate],
-          )
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => !o && onClose()}
+        title={t("admin.companies.newCompanyModalTitle")}
+        description={t("admin.companies.newCompanyModalDescription")}
+        size="lg"
+        footer={
+          <>
+            <button
+              onClick={onClose}
+              disabled={saving}
+              className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              onClick={requestSave}
+              disabled={saving}
+              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition active:scale-95 hover:bg-gold disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving ? t("common.saving") : t("admin.companies.createSubmit")}
+            </button>
+          </>
         }
+      >
+        <CompanyProfileFields
+          form={form}
+          setField={(k, v) =>
+            set(
+              k as keyof CompanyProfileAdminCreate,
+              v as CompanyProfileAdminCreate[keyof CompanyProfileAdminCreate],
+            )
+          }
+          errors={errors}
+          showRequired
+        />
+        {hasErrors && (
+          <p className="mt-3 text-xs text-danger">
+            {t("admin.companies.validation.fixErrors")}
+          </p>
+        )}
+      </Dialog>
+      <ConfirmDialog
+        open={confirmCreateOpen}
+        onOpenChange={(o) => !o && setConfirmCreateOpen(false)}
+        title={t("admin.companies.createConfirmTitle")}
+        message={t("admin.companies.createConfirmMessage", { name: form.name })}
+        confirmLabel={t("admin.companies.createSubmit")}
+        onConfirm={executeSave}
       />
-      {validationError && <p className="mt-3 text-xs text-danger">{validationError}</p>}
-    </Dialog>
+    </>
   );
 }
 
@@ -1076,71 +1337,153 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
 interface ProfileFieldsProps {
   form: CompanyProfileAdminUpdate | Partial<CompanyProfileAdminCreate>;
   setField: (key: string, value: string) => void;
+  errors?: Record<string, string>;
+  /** If true, mark required fields with an asterisk and show inline hints. */
+  showRequired?: boolean;
 }
 
-function CompanyProfileFields({ form, setField }: ProfileFieldsProps) {
+function CompanyProfileFields({
+  form,
+  setField,
+  errors,
+  showRequired = false,
+}: ProfileFieldsProps) {
   const { t } = useTranslation();
   return (
-    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-      <Field label={t("admin.companies.fields.name")} full>
-        <input
-          type="text"
-          value={form.name ?? ""}
-          onChange={(e) => setField("name", e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-      <Field label={t("admin.companies.fields.companyId")}>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={form.company_id ?? ""}
-          onChange={(e) => setField("company_id", e.target.value)}
-          className={inputCls}
-          placeholder="123456789"
-        />
-      </Field>
-      <Field label={t("admin.companies.fields.address")}>
-        <input
-          type="text"
-          value={form.address ?? ""}
-          onChange={(e) => setField("address", e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-      <Field label={t("admin.companies.fields.contactFirstName")}>
-        <input
-          type="text"
-          value={form.contact_first_name ?? ""}
-          onChange={(e) => setField("contact_first_name", e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-      <Field label={t("admin.companies.fields.contactLastName")}>
-        <input
-          type="text"
-          value={form.contact_last_name ?? ""}
-          onChange={(e) => setField("contact_last_name", e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-      <Field label={t("admin.companies.fields.contactMobile")}>
-        <input
-          type="tel"
-          value={form.contact_mobile_phone ?? ""}
-          onChange={(e) => setField("contact_mobile_phone", e.target.value)}
-          className={inputCls}
-          placeholder="0501234567"
-        />
-      </Field>
-      <Field label={t("admin.companies.fields.contactLandline")}>
-        <input
-          type="tel"
-          value={form.contact_landline_phone ?? ""}
-          onChange={(e) => setField("contact_landline_phone", e.target.value)}
-          className={inputCls}
-        />
-      </Field>
+    <div className="space-y-5">
+      {/* Section: Company */}
+      <section>
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+          {t("admin.companies.formSections.company")}
+        </p>
+        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <Field
+            label={t("admin.companies.fields.name")}
+            required={showRequired}
+            full
+          >
+            <input
+              type="text"
+              value={form.name ?? ""}
+              onChange={(e) => setField("name", e.target.value)}
+              className={inputCls}
+              placeholder={t("admin.companies.placeholders.name")}
+              aria-invalid={!!errors?.name}
+            />
+            {errors?.name && (
+              <p className="mt-1 text-xs text-danger">{errors.name}</p>
+            )}
+          </Field>
+          <Field
+            label={t("admin.companies.fields.companyId")}
+            required={showRequired}
+            hint={showRequired ? t("admin.companies.hints.companyId") : undefined}
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.company_id ?? ""}
+              onChange={(e) => setField("company_id", e.target.value)}
+              className={inputCls}
+              placeholder="123456789"
+              aria-invalid={!!errors?.company_id}
+              maxLength={9}
+            />
+            {errors?.company_id && (
+              <p className="mt-1 text-xs text-danger">{errors.company_id}</p>
+            )}
+          </Field>
+          <Field
+            label={t("admin.companies.fields.address")}
+            required={showRequired}
+          >
+            <input
+              type="text"
+              value={form.address ?? ""}
+              onChange={(e) => setField("address", e.target.value)}
+              className={inputCls}
+              placeholder={t("admin.companies.placeholders.address")}
+              aria-invalid={!!errors?.address}
+            />
+            {errors?.address && (
+              <p className="mt-1 text-xs text-danger">{errors.address}</p>
+            )}
+          </Field>
+        </div>
+      </section>
+
+      {/* Section: Contact person */}
+      <section>
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+          {t("admin.companies.formSections.contact")}
+        </p>
+        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <Field
+            label={t("admin.companies.fields.contactFirstName")}
+            required={showRequired}
+          >
+            <input
+              type="text"
+              value={form.contact_first_name ?? ""}
+              onChange={(e) => setField("contact_first_name", e.target.value)}
+              className={inputCls}
+              autoComplete="given-name"
+              aria-invalid={!!errors?.contact_first_name}
+            />
+            {errors?.contact_first_name && (
+              <p className="mt-1 text-xs text-danger">{errors.contact_first_name}</p>
+            )}
+          </Field>
+          <Field
+            label={t("admin.companies.fields.contactLastName")}
+            required={showRequired}
+          >
+            <input
+              type="text"
+              value={form.contact_last_name ?? ""}
+              onChange={(e) => setField("contact_last_name", e.target.value)}
+              className={inputCls}
+              autoComplete="family-name"
+              aria-invalid={!!errors?.contact_last_name}
+            />
+            {errors?.contact_last_name && (
+              <p className="mt-1 text-xs text-danger">{errors.contact_last_name}</p>
+            )}
+          </Field>
+          <Field
+            label={t("admin.companies.fields.contactMobile")}
+            required={showRequired}
+            hint={showRequired ? t("admin.companies.hints.mobile") : undefined}
+          >
+            <input
+              type="tel"
+              value={form.contact_mobile_phone ?? ""}
+              onChange={(e) => setField("contact_mobile_phone", e.target.value)}
+              className={inputCls}
+              placeholder="0501234567"
+              autoComplete="tel"
+              aria-invalid={!!errors?.contact_mobile_phone}
+              maxLength={10}
+            />
+            {errors?.contact_mobile_phone && (
+              <p className="mt-1 text-xs text-danger">{errors.contact_mobile_phone}</p>
+            )}
+          </Field>
+          <Field
+            label={t("admin.companies.fields.contactLandline")}
+            optional
+          >
+            <input
+              type="tel"
+              value={form.contact_landline_phone ?? ""}
+              onChange={(e) => setField("contact_landline_phone", e.target.value)}
+              className={inputCls}
+              placeholder="03-1234567"
+              autoComplete="tel"
+            />
+          </Field>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1149,15 +1492,29 @@ function Field({
   label,
   children,
   full,
+  required,
+  optional,
+  hint,
 }: {
   label: string;
   children: React.ReactNode;
   full?: boolean;
+  required?: boolean;
+  optional?: boolean;
+  hint?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <label className={`block ${full ? "sm:col-span-2" : ""}`}>
-      <span className="block text-xs text-white/45">{label}</span>
+      <span className="flex items-center gap-1.5 text-xs text-white/55">
+        <span>{label}</span>
+        {required && <span className="text-copper/80">*</span>}
+        {optional && (
+          <span className="text-[10px] text-white/30">({t("common.optional")})</span>
+        )}
+      </span>
       <span className="mt-1 block">{children}</span>
+      {hint && <span className="mt-1 block text-[11px] text-white/30">{hint}</span>}
     </label>
   );
 }
@@ -1238,6 +1595,7 @@ function InviteFormDialog({ open, onClose, onCreated }: InviteFormProps) {
         </>
       }
     >
+      <InviteFlowExplainer />
       <label className="block text-sm">
         <span className="block text-xs text-white/45">
           {t("admin.companies.inviteForm.emailLabel")}
@@ -1252,5 +1610,82 @@ function InviteFormDialog({ open, onClose, onCreated }: InviteFormProps) {
       </label>
       {errorKey && <p className="mt-3 text-xs text-danger">{t(errorKey)}</p>}
     </Dialog>
+  );
+}
+
+/** Short visual flow of what happens after the admin sends an invite. */
+function InviteFlowExplainer() {
+  const { t } = useTranslation();
+  const steps = [
+    {
+      label: t("admin.companies.inviteForm.flow.step1"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 6 9-6M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+        </svg>
+      ),
+    },
+    {
+      label: t("admin.companies.inviteForm.flow.step2"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10-3v6m3-3h-6" />
+        </svg>
+      ),
+    },
+    {
+      label: t("admin.companies.inviteForm.flow.step3"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12l5 5L20 7" />
+        </svg>
+      ),
+    },
+    {
+      label: t("admin.companies.inviteForm.flow.step4"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2ZM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+      ),
+    },
+  ];
+  return (
+    <div className="mb-5 rounded-md border border-white/8 bg-card/40 p-3">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+        {t("admin.companies.inviteForm.flow.title")}
+      </p>
+      <ol className="flex items-start gap-1.5">
+        {steps.map((step, i) => (
+          <li
+            key={i}
+            className="flex flex-1 items-start gap-1.5"
+          >
+            <div className="flex flex-1 flex-col items-center text-center">
+              <div className="flex size-8 items-center justify-center rounded-full border border-copper/35 bg-copper/10 text-copper">
+                {step.icon}
+              </div>
+              <p className="mt-1.5 leading-tight text-[10px] text-white/65">
+                {step.label}
+              </p>
+            </div>
+            {i < steps.length - 1 && (
+              <svg
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="mt-3 size-3 shrink-0 text-white/25 rtl:rotate-180"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10.78 11.78a.75.75 0 0 1-1.06 0L5.47 7.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 1 1 1.06 1.06L7.06 7l3.72 3.72a.75.75 0 0 1 0 1.06Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

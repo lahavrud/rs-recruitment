@@ -28,8 +28,13 @@ async def _make_published_job(
     job = Job(
         company_id=company_with_user.id,
         title=title,
+        short_description="Short blurb for testing.",
         description="We are looking for a senior Python developer...",
-        requirements="5+ years experience",
+        requirements=[
+            {"text": "5+ years experience"},
+            {"text": "Req 2"},
+            {"text": "Req 3"},
+        ],
         location="Tel Aviv, Israel",
         salary_min=15000,
         salary_max=25000,

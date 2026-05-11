@@ -26,8 +26,13 @@ async def test_get_company_jobs(
         job1 = Job(
             company_id=company_profile.id,
             title="Job 1",
+            short_description="Short blurb for testing.",
             description="Description 1",
-            requirements="Requirements 1",
+            requirements=[
+                {"text": "Requirements 1"},
+                {"text": "Req 2"},
+                {"text": "Req 3"},
+            ],
             location="Location 1",
             salary_min=15000,
             salary_max=25000,
@@ -35,8 +40,13 @@ async def test_get_company_jobs(
         job2 = Job(
             company_id=company_profile.id,
             title="Job 2",
+            short_description="Short blurb for testing.",
             description="Description 2",
-            requirements="Requirements 2",
+            requirements=[
+                {"text": "Requirements 2"},
+                {"text": "Req 2"},
+                {"text": "Req 3"},
+            ],
             location="Location 2",
             salary_min=15000,
             salary_max=25000,

@@ -301,8 +301,13 @@ def test_invalid_linkedin_url(schema_class, url, error_match):
 
 _JOB_BASE = {
     "title": "Backend Engineer",
+    "short_description": "Backend role on the platform team.",
     "description": "Build services.",
-    "requirements": "Python, FastAPI.",
+    "requirements": [
+        {"text": "Python fluency"},
+        {"text": "FastAPI experience"},
+        {"text": "PostgreSQL"},
+    ],
     "location": "Tel Aviv",
 }
 

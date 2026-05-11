@@ -30,8 +30,13 @@ async def test_get_pending_jobs(
         job2 = Job(
             company_id=company_profile.id,
             title="Frontend Developer",
+            short_description="Short blurb for testing.",
             description="We are looking for a frontend developer...",
-            requirements="3+ years experience with React",
+            requirements=[
+                {"text": "3+ years experience with React"},
+                {"text": "Req 2"},
+                {"text": "Req 3"},
+            ],
             location="Remote",
             status=JobStatus.PENDING_APPROVAL,
             salary_min=15000,
@@ -62,8 +67,9 @@ async def test_get_pending_jobs_excludes_published_and_closed(
         published_job = Job(
             company_id=company_profile.id,
             title="Published Job",
+            short_description="Short blurb for testing.",
             description="This is published",
-            requirements="N/A",
+            requirements=[{"text": "N/A"}, {"text": "Req 2"}, {"text": "Req 3"}],
             location="N/A",
             status=JobStatus.PUBLISHED,
             salary_min=15000,
@@ -72,8 +78,9 @@ async def test_get_pending_jobs_excludes_published_and_closed(
         closed_job = Job(
             company_id=company_profile.id,
             title="Closed Job",
+            short_description="Short blurb for testing.",
             description="This is closed",
-            requirements="N/A",
+            requirements=[{"text": "N/A"}, {"text": "Req 2"}, {"text": "Req 3"}],
             location="N/A",
             status=JobStatus.CLOSED,
             salary_min=15000,
@@ -138,8 +145,9 @@ async def test_approve_job_already_published(
         job = Job(
             company_id=company_profile.id,
             title="Published Job",
+            short_description="Short blurb for testing.",
             description="This is published",
-            requirements="N/A",
+            requirements=[{"text": "N/A"}, {"text": "Req 2"}, {"text": "Req 3"}],
             location="N/A",
             status=JobStatus.PUBLISHED,
             salary_min=15000,
@@ -198,8 +206,9 @@ async def test_reject_job_already_published(
         job = Job(
             company_id=company_profile.id,
             title="Published Job",
+            short_description="Short blurb for testing.",
             description="This is published",
-            requirements="N/A",
+            requirements=[{"text": "N/A"}, {"text": "Req 2"}, {"text": "Req 3"}],
             location="N/A",
             status=JobStatus.PUBLISHED,
             salary_min=15000,
@@ -282,8 +291,13 @@ async def test_contact_job_works_for_published_job(
         job = Job(
             company_id=company_profile.id,
             title="Published Job",
+            short_description="Short blurb for testing.",
             description="Description",
-            requirements="Requirements",
+            requirements=[
+                {"text": "Requirements"},
+                {"text": "Req 2"},
+                {"text": "Req 3"},
+            ],
             location="Tel Aviv",
             status=JobStatus.PUBLISHED,
             salary_min=15000,

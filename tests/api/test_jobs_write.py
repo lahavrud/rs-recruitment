@@ -25,8 +25,14 @@ async def test_create_job_success(
 
     job_data = {
         "title": "Senior Python Developer",
+        "short_description": "Senior Python role on a small backend team.",
         "description": "We are looking for a senior Python developer...",
-        "requirements": "5+ years experience with Python, FastAPI, PostgreSQL",
+        "requirements": [
+            {"text": "5+ years Python"},
+            {"text": "FastAPI"},
+            {"text": "PostgreSQL"},
+        ],
+        "tags": [],
         "location": "Tel Aviv, Israel",
         "salary_min": 20000,
         "salary_max": 30000,
@@ -187,8 +193,14 @@ async def test_create_job_with_salary(
         "/api/jobs/",
         json={
             "title": "Facility Manager",
+            "short_description": "Lead a small facilities team in central Tel Aviv.",
             "description": "Manage facilities.",
-            "requirements": "3+ years experience.",
+            "requirements": [
+                {"text": "3+ years experience"},
+                {"text": "Facilities leadership"},
+                {"text": "Hebrew + English"},
+            ],
+            "tags": [],
             "location": "Tel Aviv",
             "salary_min": 15000,
             "salary_max": 20000,

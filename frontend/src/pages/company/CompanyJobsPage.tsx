@@ -6,9 +6,16 @@ import {
   getCompanyJobs,
   updateJob,
 } from "@/services/companyJobs";
-import { JobStatus } from "@/types/api";
-import type { JobCreate, JobRead, JobUpdate } from "@/types/api";
+import { JobStatus, JOB_SHORT_DESC_MAX, JOB_REQ_MIN_COUNT } from "@/types/api";
+import type {
+  JobCreate,
+  JobRead,
+  JobRequirementItem,
+  JobUpdate,
+} from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
+import JobTagsInput from "@/components/ui/JobTagsInput";
 import { inputCls, textareaCls } from "@/styles/forms";
 
 function formatDate(iso: string) {
@@ -19,7 +26,19 @@ function formatDate(iso: string) {
   });
 }
 
-const EMPTY_FORM: JobCreate = { title: "", description: "", requirements: "", location: "", salary_min: 0, salary_max: 0 };
+const emptyRequirements = (): JobRequirementItem[] =>
+  Array.from({ length: JOB_REQ_MIN_COUNT }, () => ({ text: "" }));
+
+const EMPTY_FORM: JobCreate = {
+  title: "",
+  short_description: "",
+  description: "",
+  requirements: emptyRequirements(),
+  tags: [],
+  location: "",
+  salary_min: 0,
+  salary_max: 0,
+};
 
 interface JobFormProps {
   initial: JobCreate;
@@ -34,16 +53,24 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  function set(field: keyof JobCreate, val: string | number) {
+  function set<K extends keyof JobCreate>(field: K, val: JobCreate[K]) {
     setForm((prev) => ({ ...prev, [field]: val }));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const filledReqs = form.requirements.filter((r) => r.text.trim().length > 0);
+    if (filledReqs.length < JOB_REQ_MIN_COUNT) {
+      setErr(t("common.validation.requirementsMin", { min: JOB_REQ_MIN_COUNT }));
+      return;
+    }
     setSaving(true);
     setErr(null);
     try {
-      await onSubmit(form);
+      await onSubmit({
+        ...form,
+        requirements: filledReqs.map((r) => ({ text: r.text.trim() })),
+      });
     } catch {
       setErr(t("company.jobs.errors.saveFailed"));
       setSaving(false);
@@ -109,6 +136,25 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
+            {t("company.jobs.form.shortDescription")} <span className="text-copper/80">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            maxLength={JOB_SHORT_DESC_MAX}
+            value={form.short_description}
+            onChange={(e) => set("short_description", e.target.value)}
+            className={`mt-1 ${inputCls}`}
+            placeholder={t("company.jobs.placeholders.shortDescription")}
+          />
+          <p className="mt-1 text-[11px] text-white/35">
+            {t("common.charsRemaining", {
+              count: JOB_SHORT_DESC_MAX - form.short_description.length,
+            })}
+          </p>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm text-white/50">
             {t("company.jobs.form.description")} <span className="text-copper/80">*</span>
           </label>
           <textarea
@@ -125,15 +171,20 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
           <label className="block text-sm text-white/50">
             {t("company.jobs.form.requirements")} <span className="text-copper/80">*</span>
           </label>
-          <textarea
-            required
-            maxLength={5000}
-            rows={4}
-            value={form.requirements}
-            onChange={(e) => set("requirements", e.target.value)}
-            className={`mt-1 ${textareaCls}`}
-            placeholder={t("company.jobs.placeholders.requirements")}
-          />
+          <div className="mt-1">
+            <JobRequirementsInput
+              value={form.requirements}
+              onChange={(reqs) => set("requirements", reqs)}
+            />
+          </div>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm text-white/50">
+            {t("company.jobs.form.tags")}
+          </label>
+          <div className="mt-1">
+            <JobTagsInput value={form.tags} onChange={(tags) => set("tags", tags)} />
+          </div>
         </div>
       </div>
 
@@ -248,8 +299,13 @@ export default function CompanyJobsPage() {
               typeof mode === "object" && mode.type === "edit"
                 ? {
                     title: mode.job.title,
+                    short_description: mode.job.short_description,
                     description: mode.job.description,
-                    requirements: mode.job.requirements,
+                    requirements:
+                      mode.job.requirements.length > 0
+                        ? mode.job.requirements.map((r) => ({ text: r.text }))
+                        : emptyRequirements(),
+                    tags: [...mode.job.tags],
                     location: mode.job.location,
                     salary_min: mode.job.salary_min ?? 0,
                     salary_max: mode.job.salary_max ?? 0,
@@ -298,7 +354,19 @@ export default function CompanyJobsPage() {
                   <p className="mt-1 text-xs text-white/25">
                     {t("company.jobs.postedLabel")} {formatDate(job.created_at)}
                   </p>
-                  <p className="mt-2 line-clamp-2 text-sm text-white/50">{job.description}</p>
+                  <p className="mt-2 line-clamp-2 text-sm text-white/50">{job.short_description || job.description}</p>
+                  {job.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {job.tags.slice(0, 4).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-copper/25 bg-copper/10 px-2 py-0.5 text-[11px] font-medium text-copper/90"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 gap-2">

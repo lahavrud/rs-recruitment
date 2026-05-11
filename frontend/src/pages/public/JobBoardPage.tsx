@@ -6,6 +6,7 @@ import { getPublicJobs } from "@/services/jobs";
 import SearchInput from "@/components/ui/SearchInput";
 import RangeSlider from "@/components/ui/RangeSlider";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
+import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
 import type { JobPublicRead } from "@/types/api";
 import axios from "axios";
 
@@ -30,11 +31,6 @@ function formatCardSalary(min: number | null, max: number | null): string | null
   if (min != null && max != null) return `${fmt(min)}–${fmt(max)} ₪`;
   if (min != null) return `מ-${fmt(min)} ₪`;
   return `עד ${fmt(max!)} ₪`;
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).trimEnd() + "…";
 }
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -62,22 +58,73 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
   );
 }
 
+function FilterSidebarSkeleton() {
+  return (
+    <div className="animate-pulse rounded-xl border border-white/8 bg-card-raised/40 p-5">
+      {/* "Filters" heading */}
+      <div className="mb-5 h-4 w-16 rounded bg-white/10" />
+      {/* Location section: label + 4 chip pills wrapped */}
+      <div className="mb-6">
+        <div className="mb-2.5 h-3 w-20 rounded bg-white/8" />
+        <div className="flex flex-wrap gap-2">
+          <div className="h-7 w-16 rounded-full bg-white/6" />
+          <div className="h-7 w-20 rounded-full bg-white/6" />
+          <div className="h-7 w-14 rounded-full bg-white/6" />
+          <div className="h-7 w-24 rounded-full bg-white/6" />
+        </div>
+      </div>
+      {/* Salary section: label + slider track */}
+      <div>
+        <div className="mb-3 h-3 w-24 rounded bg-white/8" />
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <div className="h-3 w-12 rounded bg-white/6" />
+            <div className="h-3 w-12 rounded bg-white/6" />
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-white/6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchBarSkeleton() {
+  return (
+    <div className="mb-5 flex animate-pulse items-stretch gap-2">
+      <div className="h-10 flex-1 rounded-md bg-white/6" />
+      {/* mobile filter trigger button placeholder */}
+      <div className="h-10 w-24 shrink-0 rounded-md bg-white/6 lg:hidden" />
+    </div>
+  );
+}
+
 function CardSkeleton() {
   return (
-    <div className="animate-pulse rounded-xl border border-white/5 bg-card p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="animate-pulse rounded-xl border border-white/8 bg-card p-5 sm:p-6">
+      {/* Title + location (left) / status badge (right) */}
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
-          <div className="h-4 w-3/4 rounded bg-white/8" />
-          <div className="h-3 w-1/3 rounded bg-white/5" />
+          <div className="h-4 w-3/4 rounded bg-white/10" />
+          <div className="h-3 w-1/3 rounded bg-white/6" />
         </div>
-        <div className="h-5 w-12 shrink-0 rounded-full bg-white/5" />
+        <div className="h-5 w-14 shrink-0 rounded-full bg-white/6" />
       </div>
-      <div className="mt-4 space-y-2">
-        <div className="h-3 rounded bg-white/5" />
-        <div className="h-3 w-5/6 rounded bg-white/5" />
-        <div className="h-3 w-4/6 rounded bg-white/5" />
+      {/* short_description — line-clamp-3 on mobile, can expand on sm+ */}
+      <div className="mt-3 space-y-2">
+        <div className="h-3 rounded bg-white/6" />
+        <div className="h-3 w-11/12 rounded bg-white/6" />
+        <div className="h-3 w-3/4 rounded bg-white/6" />
       </div>
-      <div className="mt-5 h-3 w-1/4 rounded bg-white/4" />
+      {/* Tag chips */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="h-5 w-16 rounded-full bg-white/6" />
+        <div className="h-5 w-20 rounded-full bg-white/6" />
+        <div className="h-5 w-14 rounded-full bg-white/6" />
+      </div>
+      {/* Salary line */}
+      <div className="mt-4 h-3 w-2/5 rounded bg-white/6" />
+      {/* Posted date */}
+      <div className="mt-2 h-3 w-1/4 rounded bg-white/5" />
     </div>
   );
 }
@@ -344,20 +391,31 @@ export default function JobBoardPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return jobs.filter((j) => {
+      const requirementsText = j.requirements.map((r) => r.text).join(" ");
+      const tagsText = j.tags.join(" ");
       const matchesQuery =
         !q ||
-        [j.title, j.location, j.description, j.requirements].some((s) =>
-          s.toLowerCase().includes(q),
-        );
+        [
+          j.title,
+          j.location,
+          j.short_description,
+          j.description,
+          requirementsText,
+          tagsText,
+        ].some((s) => s.toLowerCase().includes(q));
       const matchesLocation = !selectedLocation || j.location === selectedLocation;
 
       let matchesSalary = true;
       if (isSalaryActive) {
         const [filterLo, filterHi] = effectiveSalaryRange;
-        // Jobs without salary listed: always show.
+        // Jobs without any salary information: always show.
         if (j.salary_min != null || j.salary_max != null) {
-          const jobLo = j.salary_min ?? j.salary_max ?? 0;
-          const jobHi = j.salary_max ?? j.salary_min ?? Number.POSITIVE_INFINITY;
+          // Treat a single-bound job as open-ended on the missing side so a
+          // job listing only "מ-10,000 ₪" still matches a filter that caps lower.
+          const jobLo = j.salary_min ?? Number.NEGATIVE_INFINITY;
+          const jobHi = j.salary_max ?? Number.POSITIVE_INFINITY;
+          // Include the job whenever its range overlaps or touches the filter
+          // range — e.g. filter 10,000–13,000 includes a 12,000–15,000 role.
           matchesSalary = jobHi >= filterLo && jobLo <= filterHi;
         }
       }
@@ -430,9 +488,17 @@ export default function JobBoardPage() {
         </p>
       </div>
 
-      <div className={showFilters ? "lg:grid lg:grid-cols-[240px_1fr] lg:gap-8" : ""}>
-        {/* Filter sidebar (desktop only) */}
-        {showFilters && (
+      <div
+        className={
+          loading || showFilters ? "lg:grid lg:grid-cols-[240px_1fr] lg:gap-8" : ""
+        }
+      >
+        {/* Filter sidebar (desktop only) — skeleton mirrors real layout during load */}
+        {loading ? (
+          <aside className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
+            <FilterSidebarSkeleton />
+          </aside>
+        ) : showFilters ? (
           <aside className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
             <div className="rounded-xl border border-white/8 bg-card-raised/40 p-5">
               <p className="mb-4 text-sm font-medium text-white/85">
@@ -441,11 +507,12 @@ export default function JobBoardPage() {
               <FilterPanel {...baseFilterPanelProps} />
             </div>
           </aside>
-        )}
+        ) : null}
 
         {/* Results column */}
         <div className="min-w-0">
           {/* Search + mobile filter trigger */}
+          {loading && <SearchBarSkeleton />}
           {!loading && jobs.length > 0 && (
             <div className="mb-5 flex items-stretch gap-2">
               <div className="flex-1">
@@ -547,8 +614,14 @@ export default function JobBoardPage() {
                     pathname: `/jobs/${job.id}`,
                     search: searchParams.toString(),
                   }}
-                  className="group block rounded-xl border border-white/8 bg-card p-5 transition duration-200 hover:border-copper/25 hover:bg-card-raised sm:p-6"
+                  className={[
+                    "group relative block rounded-xl border bg-card p-5 transition duration-200 sm:p-6",
+                    job.is_featured
+                      ? "border-gold/40 hover:border-gold/60 hover:bg-card-raised"
+                      : "border-white/8 hover:border-copper/25 hover:bg-card-raised",
+                  ].join(" ")}
                 >
+                  {job.is_featured && <FeaturedRibbon label={t("publicJobs.board.featured")} />}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h2 className="truncate font-medium text-white/85 transition duration-200 group-hover:text-white/95">
@@ -571,13 +644,22 @@ export default function JobBoardPage() {
                         <span className="truncate">{job.location}</span>
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
-                      {t("publicJobs.board.open")}
-                    </span>
                   </div>
-                  <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/50 sm:line-clamp-none">
-                    {truncate(job.description, 160)}
+                  <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/55 sm:line-clamp-none">
+                    {job.short_description}
                   </p>
+                  {job.tags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {job.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-copper/25 bg-copper/10 px-2 py-0.5 text-[11px] font-medium text-copper/90"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-4 flex items-center gap-1.5 text-xs">
                     <span className="text-white/35">{t("common.salary")}:</span>
                     <span className="font-medium text-copper/85">

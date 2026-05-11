@@ -22,7 +22,10 @@ async def list_published_jobs(session: AsyncSession) -> list[JobPublicRead]:
     result = await session.execute(
         select(Job)
         .where(Job.status == JobStatus.PUBLISHED)  # pyright: ignore[reportArgumentType]
-        .order_by(desc(Job.created_at))  # pyright: ignore[reportArgumentType]
+        .order_by(
+            desc(Job.is_featured),  # pyright: ignore[reportArgumentType]
+            desc(Job.created_at),  # pyright: ignore[reportArgumentType]
+        )
     )
     jobs = result.scalars().all()
     return [JobPublicRead.model_validate(job) for job in jobs]

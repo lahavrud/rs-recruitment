@@ -227,15 +227,72 @@ class ResetPasswordRequest(BaseModel):
 
 
 # Job Schemas
+JOB_SHORT_DESC_MAX = 140
+JOB_TAG_MAX_LEN = 30
+JOB_TAG_MAX_COUNT = 6
+JOB_REQ_TEXT_MAX = 200
+JOB_REQ_MIN_COUNT = 3
+JOB_REQ_MAX_COUNT = 15
+
+
+class JobRequirementItem(BaseModel):
+    """A single requirement bullet."""
+
+    text: str = Field(..., min_length=1, max_length=JOB_REQ_TEXT_MAX)
+
+    @field_validator("text")
+    @classmethod
+    def _strip(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("requirement text cannot be empty")
+        return stripped
+
+
+def _validate_requirements(
+    v: list[JobRequirementItem],
+) -> list[JobRequirementItem]:
+    if not (JOB_REQ_MIN_COUNT <= len(v) <= JOB_REQ_MAX_COUNT):
+        raise ValueError(
+            f"requirements must have between {JOB_REQ_MIN_COUNT} and "
+            f"{JOB_REQ_MAX_COUNT} items"
+        )
+    return v
+
+
+def _validate_tags(v: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for raw in v:
+        tag = raw.strip()
+        if not tag:
+            continue
+        if len(tag) > JOB_TAG_MAX_LEN:
+            raise ValueError(f"tag must be at most {JOB_TAG_MAX_LEN} characters")
+        key = tag.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(tag)
+    if len(cleaned) > JOB_TAG_MAX_COUNT:
+        raise ValueError(f"at most {JOB_TAG_MAX_COUNT} tags allowed")
+    return cleaned
+
+
 class JobCreate(BaseModel):
     """Schema for creating a job posting."""
 
     title: str = Field(..., max_length=200)
+    short_description: str = Field(..., min_length=1, max_length=JOB_SHORT_DESC_MAX)
     description: str = Field(..., max_length=5000)
-    requirements: str = Field(..., max_length=5000)
+    requirements: list[JobRequirementItem]
+    tags: list[str] = Field(default_factory=list)
     location: str = Field(..., max_length=100)
     salary_min: int = Field(..., ge=0)
     salary_max: int = Field(..., ge=0)
+
+    _validate_requirements = field_validator("requirements")(_validate_requirements)
+    _validate_tags = field_validator("tags")(_validate_tags)
 
     @model_validator(mode="after")
     def _check_salary_range(self):
@@ -245,17 +302,20 @@ class JobCreate(BaseModel):
 
 
 class JobUpdate(BaseModel):
-    """Schema for updating a job posting.
+    """Schema for a company updating their job posting.
 
-    All fields are Optional only for partial-update semantics (omit to leave
-    unchanged). Fields backed by NOT NULL columns — title, description,
-    requirements, location, salary_min, salary_max — reject an explicit
-    ``null`` so a PATCH cannot bypass the database constraint.
+    Fields backed by NOT NULL columns reject an explicit ``null`` so a PATCH
+    cannot bypass the database constraint. ``is_featured`` is intentionally
+    omitted — only admins toggle that flag (see ``JobAdminUpdate``).
     """
 
     title: str | None = Field(None, max_length=200)
+    short_description: str | None = Field(
+        None, min_length=1, max_length=JOB_SHORT_DESC_MAX
+    )
     description: str | None = Field(None, max_length=5000)
-    requirements: str | None = Field(None, max_length=5000)
+    requirements: list[JobRequirementItem] | None = None
+    tags: list[str] | None = None
     location: str | None = Field(None, max_length=100)
     salary_min: int | None = Field(None, ge=0)
     salary_max: int | None = Field(None, ge=0)
@@ -263,17 +323,29 @@ class JobUpdate(BaseModel):
 
     @field_validator(
         "title",
+        "short_description",
         "description",
         "requirements",
+        "tags",
         "location",
         "salary_min",
         "salary_max",
     )
     @classmethod
-    def reject_explicit_null(cls, v: str | int | None) -> str | int:
+    def reject_explicit_null(cls, v):
         if v is None:
             raise ValueError("Field cannot be set to null on update")
         return v
+
+    @field_validator("requirements")
+    @classmethod
+    def _validate_requirements_list(cls, v):
+        return _validate_requirements(v)
+
+    @field_validator("tags")
+    @classmethod
+    def _validate_tags_list(cls, v):
+        return _validate_tags(v)
 
     @model_validator(mode="after")
     def _check_salary_range(self):
@@ -294,18 +366,37 @@ class JobAdminCreate(BaseModel):
 
     company_id: int
     title: str = Field(..., max_length=200)
+    short_description: str = Field(..., min_length=1, max_length=JOB_SHORT_DESC_MAX)
     description: str = Field(..., max_length=5000)
-    requirements: str = Field(..., max_length=5000)
+    requirements: list[JobRequirementItem]
+    tags: list[str] = Field(default_factory=list)
+    is_featured: bool = False
     location: str = Field(..., max_length=100)
     salary_min: int = Field(..., ge=0)
     salary_max: int = Field(..., ge=0)
     status: JobStatus = JobStatus.PUBLISHED
+
+    _validate_requirements = field_validator("requirements")(_validate_requirements)
+    _validate_tags = field_validator("tags")(_validate_tags)
 
     @model_validator(mode="after")
     def _check_salary_range(self):
         if self.salary_min > self.salary_max:
             raise ValueError("salary_min must be <= salary_max")
         return self
+
+
+class JobAdminUpdate(JobUpdate):
+    """Admin-only update schema. Adds ``is_featured`` toggle."""
+
+    is_featured: bool | None = None
+
+    @field_validator("is_featured")
+    @classmethod
+    def _reject_null_featured(cls, v: bool | None) -> bool:
+        if v is None:
+            raise ValueError("Field cannot be set to null on update")
+        return v
 
 
 class JobRead(BaseModel):
@@ -316,8 +407,11 @@ class JobRead(BaseModel):
     id: int
     company_id: int
     title: str
+    short_description: str
     description: str
-    requirements: str
+    requirements: list[JobRequirementItem]
+    tags: list[str]
+    is_featured: bool
     location: str
     salary_min: int
     salary_max: int
@@ -353,8 +447,11 @@ class JobPublicRead(BaseModel):
 
     id: int
     title: str
+    short_description: str
     description: str
-    requirements: str
+    requirements: list[JobRequirementItem]
+    tags: list[str]
+    is_featured: bool
     location: str
     salary_min: int
     salary_max: int

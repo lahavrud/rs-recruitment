@@ -571,6 +571,13 @@ async def company_with_user(session: AsyncSession) -> CompanyProfile:
 # ==================== Job Fixtures ====================
 
 
+_DEFAULT_REQUIREMENTS: list[dict] = [
+    {"text": "5+ years Python experience"},
+    {"text": "FastAPI fluency"},
+    {"text": "PostgreSQL fundamentals"},
+]
+
+
 @pytest.fixture
 async def pending_job(company_profile: CompanyProfile) -> Job:
     """Create a pending job for testing."""
@@ -578,8 +585,10 @@ async def pending_job(company_profile: CompanyProfile) -> Job:
         job = Job(
             company_id=company_profile.id,
             title="Senior Python Developer",
+            short_description="Senior Python role on a small backend team.",
             description="We are looking for a senior Python developer...",
-            requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+            requirements=list(_DEFAULT_REQUIREMENTS),
+            tags=["Remote", "Senior"],
             location="Tel Aviv, Israel",
             salary_min=15000,
             salary_max=25000,
@@ -598,8 +607,10 @@ async def published_job(company_profile: CompanyProfile) -> Job:
         job = Job(
             company_id=company_profile.id,
             title="Senior Python Developer",
+            short_description="Senior Python role on a small backend team.",
             description="We are looking for a senior Python developer...",
-            requirements="5+ years experience with Python, FastAPI, PostgreSQL",
+            requirements=list(_DEFAULT_REQUIREMENTS),
+            tags=["Remote", "Senior"],
             location="Tel Aviv, Israel",
             salary_min=15000,
             salary_max=25000,
@@ -618,8 +629,10 @@ async def closed_job(company_profile: CompanyProfile) -> Job:
         job = Job(
             company_id=company_profile.id,
             title="Closed Position",
+            short_description="An older role that has since been closed.",
             description="This position is closed",
-            requirements="N/A",
+            requirements=list(_DEFAULT_REQUIREMENTS),
+            tags=[],
             location="N/A",
             salary_min=10000,
             salary_max=15000,

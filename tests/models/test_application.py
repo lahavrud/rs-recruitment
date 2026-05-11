@@ -37,8 +37,9 @@ async def job_and_candidate(session: AsyncSession) -> dict[str, Job | CandidateP
     job = Job(
         company_id=company.id,
         title="Python Developer",
+        short_description="Short blurb for testing.",
         description="Description",
-        requirements="Requirements",
+        requirements=[{"text": "Requirements"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Tel Aviv",
         status=JobStatus.PUBLISHED,
         salary_min=15000,

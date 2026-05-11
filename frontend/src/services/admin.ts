@@ -19,9 +19,9 @@ import type {
   InviteTokenCreate,
   InviteTokenRead,
   JobAdminCreate,
+  JobAdminUpdate,
   JobRead,
   JobStatus,
-  JobUpdate,
   PendingCompanyRead,
 } from "@/types/api";
 
@@ -194,7 +194,7 @@ export async function createJob(body: JobAdminCreate): Promise<JobRead> {
   return res.data;
 }
 
-export async function updateJob(id: number, body: JobUpdate): Promise<JobRead> {
+export async function updateJob(id: number, body: JobAdminUpdate): Promise<JobRead> {
   const res = await api.put<JobRead>(`/api/admin/jobs/${id}`, body);
   return res.data;
 }

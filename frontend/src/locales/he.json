@@ -61,9 +61,19 @@
       "emailInvalid": "כתובת אימייל לא תקינה",
       "phoneInvalid": "מספר טלפון לא תקין",
       "linkedinInvalid": "יש להזין קישור LinkedIn תקין (https://linkedin.com/...)",
-      "salaryMaxBelowMin": "המקסימום חייב להיות גבוה מהמינימום"
+      "salaryMaxBelowMin": "המקסימום חייב להיות גבוה מהמינימום",
+      "requirementsMin": "יש להזין לפחות {{min}} דרישות"
     },
+    "addRequirement": "הוסף דרישה",
+    "removeRequirement": "הסר דרישה",
+    "requirementCount": "{{count}} מתוך {{min}}–{{max}}",
+    "addTag": "הוסף תגית",
+    "removeTag": "הסר תגית",
+    "tagHint": "עד {{max}} תגיות. Enter או פסיק להוספת תגית.",
+    "charsRemaining": "נותרו {{count}} תווים",
     "clear": "נקה",
+    "expand": "פתח פרטים",
+    "collapse": "סגור פרטים",
     "viewCandidate": "צפה במועמד",
     "viewJob": "צפה במשרה",
     "viewCompany": "צפה בחברה",
@@ -370,7 +380,8 @@
       "resultsCount_other": "{{count}} משרות תואמות",
       "searchPlaceholder": "חפש לפי שם משרה, מיקום, תיאור…",
       "open": "פתוח",
-      "posted": "פורסם"
+      "posted": "פורסם",
+      "featured": "משרה חמה"
     },
     "detail": {
       "loading": "טוען משרה...",
@@ -472,6 +483,29 @@
         "active": "חברות פעילות",
         "invites": "הזמנות"
       },
+      "searchPlaceholder": "חיפוש לפי שם חברה, איש קשר או דוא״ל…",
+      "filters": "סינון",
+      "openFilters": "פתח סינון",
+      "viewLabel": "תצוגה",
+      "saveConfirmTitle": "שמירת שינויים",
+      "saveConfirmMessage": "השינויים יוחלו מיידית על פרופיל החברה. להמשיך?",
+      "createSubmit": "צור חברה",
+      "createConfirmTitle": "יצירת חברה",
+      "createConfirmMessage": "החברה \"{{name}}\" תיווצר ותופיע ברשימת החברות הפעילות. להמשיך?",
+      "newCompanyModalDescription": "פרטי החברה ואיש הקשר העיקרי",
+      "placeholders": {
+        "name": "לדוגמה: פתרונות מתקנים בע״מ",
+        "address": "רח׳ הרכבת 5, תל אביב"
+      },
+      "hints": {
+        "companyId": "9 ספרות, ללא רווחים או מקפים",
+        "mobile": "פורמט ישראלי: 05X-XXXXXXX"
+      },
+      "formSections": {
+        "company": "פרטי חברה",
+        "contact": "איש קשר",
+        "documents": "מסמכים"
+      },
       "active": {
         "loading": "טוען…",
         "empty": "לא נמצאו חברות פעילות.",
@@ -495,6 +529,13 @@
         "title": "הזמנה חדשה",
         "newInviteButton": "הזמנה חדשה",
         "cancelButton": "ביטול",
+        "flow": {
+          "title": "איך זה עובד",
+          "step1": "שליחת הזמנה",
+          "step2": "החברה משלימה הרשמה",
+          "step3": "אישור הפרופיל",
+          "step4": "החברה מפרסמת משרות"
+        },
         "emailLabel": "כתובת אימייל",
         "emailPlaceholder": "contact@company.com",
         "companyNameLabel": "שם החברה",
@@ -544,6 +585,7 @@
       "rowActionsLabel": "פעולות נוספות",
       "viewAction": "פרטים מלאים",
       "editAction": "עריכת פרופיל",
+      "emailAction": "שלח דוא״ל",
       "deleteAction": "מחיקה",
       "approveAction": "אישור",
       "rejectAction": "דחייה",
@@ -565,6 +607,7 @@
       "noJobs": "אין משרות עבור חברה זו.",
       "fields": {
         "name": "שם החברה",
+        "email": "דוא״ל",
         "companyId": "ח.פ",
         "address": "כתובת",
         "contactFirstName": "שם פרטי",
@@ -575,7 +618,8 @@
       "validation": {
         "companyId": "ח.פ חייב להיות בן 9 ספרות",
         "mobile": "מספר נייד ישראלי תקין (05X-XXXXXXX)",
-        "allRequired": "יש למלא את כל השדות הנדרשים"
+        "allRequired": "יש למלא את כל השדות הנדרשים",
+        "fixErrors": "יש לתקן את השגיאות בטופס ולנסות שוב."
       },
       "errors": {
         "createFailed": "יצירת החברה נכשלה. נסה שוב.",
@@ -598,15 +642,31 @@
       "rejectConfirm": "לדחות פרסום משרה זה? הוא יסומן כסגור.",
       "rejectConfirmTitle": "דחיית משרה",
       "loadError": "טעינת המשרות נכשלה.",
-      "email": "אימייל",
-      "emailModalTitle": "שליחת הודעה לחברה",
-      "emailModalLabel": "הודעה (אופציונלי)",
-      "emailModalPlaceholder": "הוסף הערות לחברה לגבי המשרה…",
-      "emailSend": "שליחה",
-      "emailSending": "שולח…",
-      "emailSuccess": "ההודעה נשלחה.",
-      "emailError": "שליחת ההודעה נכשלה.",
+      "email": "שלח דוא״ל",
+      "emailSubjectPrefix": "RS Recruiting — בנוגע למשרה: {{title}}",
+      "emailNoAddress": "אין כתובת דוא״ל זמינה עבור החברה.",
+      "candidatesLabel": "מועמדים",
+      "candidatesView": "צפה ברשימה",
       "filterAll": "הכל",
+      "searchPlaceholder": "חיפוש בשם משרה, מיקום, תיאור…",
+      "moreFilters": "סינון נוסף",
+      "filters": "סינון",
+      "openFilters": "פתח סינון",
+      "activeFilters": "סינון פעיל",
+      "companyAll": "כל החברות",
+      "featuredOnly": "משרות מומלצות בלבד",
+      "featuredOnHint": "המשרה מסומנת כמומלצת",
+      "featuredOffHint": "סמן כמשרה מומלצת",
+      "featuredSetTitle": "סימון משרה כמומלצת",
+      "featuredSetMessage": "השינוי יחול בעת שמירת השינויים. המשרה תופיע בקרוסלת המשרות הנבחרות בעמוד הבית, בראש לוח המשרות, ועם סרט זהוב על הכרטיס.",
+      "featuredUnsetTitle": "הסרת סימון מומלצת",
+      "featuredUnsetMessage": "השינוי יחול בעת שמירת השינויים. המשרה תוסר מקרוסלת המשרות הנבחרות בעמוד הבית, ותחזור להופיע במיקום הרגיל ללא הסרט הזהוב.",
+      "statusChangeConfirmTitle": "שינוי סטטוס משרה",
+      "statusChangeConfirmMessage": "השינוי יחול בעת שמירת השינויים.",
+      "saveConfirmTitle": "שמירת שינויים",
+      "saveConfirmMessage": "השינויים יוחלו מיידית. אם שונו פרטי המשרה (כותרת, תיאור, דרישות, תגיות, מיקום או שכר) — החברה תקבל הודעת אימייל. שינוי סטטוס או סימון כמומלצת לא יישלח לחברה.",
+      "expandLabel": "פתח פרטים",
+      "collapseLabel": "סגור פרטים",
       "newJob": "משרה חדשה",
       "newJobModalTitle": "יצירת משרה חדשה",
       "editModalTitle": "עריכת משרה",
@@ -630,10 +690,23 @@
       "fields": {
         "company": "חברה",
         "title": "כותרת המשרה",
+        "shortDescription": "תיאור קצר",
+        "shortDescriptionHint": "{{count}} / {{max}} תווים — מופיע על כרטיס המשרה",
         "description": "תיאור",
+        "descriptionResizeHint": "ניתן להגדיל את הקופסה על-ידי גרירת הפינה",
         "requirements": "דרישות",
+        "tags": "תגיות",
         "location": "מיקום",
-        "status": "סטטוס"
+        "status": "סטטוס",
+        "salaryRange": "טווח שכר",
+        "featured": "משרה מומלצת",
+        "featuredHint": "סמן כדי להבליט את המשרה בראש לוח המשרות",
+        "featuredToggleAria": "סמן או הסר משרה מומלצת"
+      },
+      "formSections": {
+        "basics": "פרטים בסיסיים",
+        "content": "תוכן המשרה",
+        "lists": "דרישות ותגיות"
       },
       "errors": {
         "saveFailed": "שמירת המשרה נכשלה. נסה שוב.",
@@ -781,12 +854,15 @@
       "form": {
         "jobTitle": "כותרת המשרה",
         "location": "מיקום",
-        "description": "תיאור",
-        "requirements": "דרישות"
+        "shortDescription": "תיאור קצר",
+        "description": "תיאור מלא",
+        "requirements": "דרישות",
+        "tags": "תגיות"
       },
       "placeholders": {
         "jobTitle": "למשל: מנהל חשבונות ראשי",
         "location": "למשל: תל אביב",
+        "shortDescription": "משפט אחד שמסביר את המשרה — יופיע על כרטיס המשרה",
         "description": "תאר את התפקיד והאחריויות…",
         "requirements": "רשום כישורים ודרישות נדרשות…"
       },

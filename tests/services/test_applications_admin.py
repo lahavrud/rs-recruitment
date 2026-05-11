@@ -28,8 +28,9 @@ async def _make_application(
     job = Job(
         company_id=company.id,
         title="Test Job",
+        short_description="Short blurb for testing.",
         description="Description",
-        requirements="Requirements",
+        requirements=[{"text": "Requirements"}, {"text": "Req 2"}, {"text": "Req 3"}],
         location="Location",
         status=job_status,
         salary_min=15000,

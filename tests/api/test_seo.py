@@ -44,8 +44,14 @@ async def test_sitemap_xml_includes_published_jobs(
         json={
             "company_id": 1,
             "title": "Sitemap Test Job",
+            "short_description": "Sitemap fixture job for SEO test.",
             "description": "desc",
-            "requirements": "req",
+            "requirements": [
+                {"text": "req 1"},
+                {"text": "req 2"},
+                {"text": "req 3"},
+            ],
+            "tags": [],
             "location": "תל אביב",
             "status": "PUBLISHED",
         },
@@ -110,8 +116,9 @@ async def test_og_job_escapes_html_in_title(
         job = Job(
             company_id=company_profile.id,
             title='Position <script>alert("xss")</script>',
+            short_description="Short blurb for testing.",
             description="Role with <b>tricky</b> characters & symbols.",
-            requirements="n/a",
+            requirements=[{"text": "n/a"}, {"text": "Req 2"}, {"text": "Req 3"}],
             location="Tel Aviv",
             salary_min=10000,
             salary_max=20000,
