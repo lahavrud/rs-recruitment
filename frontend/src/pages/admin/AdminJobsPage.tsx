@@ -38,6 +38,7 @@ import DropdownMenu, {
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
+import { focusFirstError } from "@/utils/focusFirstError";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls, selectCls, textareaCls } from "@/styles/forms";
@@ -47,6 +48,32 @@ const ALL_STATUSES = [
   JobStatus.PUBLISHED,
   JobStatus.CLOSED,
 ];
+
+// Order in which fields are scanned when auto-focusing the first invalid
+// field on submit. Mirrors the visual order in the dialog so users see the
+// scroll/focus move through the form top-to-bottom.
+const JOB_EDIT_FIELD_ORDER = [
+  "title",
+  "location",
+  "salary_min",
+  "salary_max",
+  "short_description",
+  "description",
+  "requirements",
+  "tags",
+] as const;
+
+const JOB_CREATE_FIELD_ORDER = [
+  "company_id",
+  "title",
+  "location",
+  "salary_min",
+  "salary_max",
+  "short_description",
+  "description",
+  "requirements",
+  "tags",
+] as const;
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING_APPROVAL: "bg-warning/10 text-warning",
@@ -1555,7 +1582,11 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
     if (form.salary_max == null || form.salary_max < 0) e.salary_max = t("common.validation.required");
     else if (form.salary_min != null && form.salary_max < form.salary_min) e.salary_max = t("common.validation.salaryMaxBelowMin");
     setErrors(e);
-    return Object.keys(e).length === 0;
+    if (Object.keys(e).length > 0) {
+      focusFirstError(e, JOB_EDIT_FIELD_ORDER);
+      return false;
+    }
+    return true;
   }
 
   function requestSave() {
@@ -1620,7 +1651,7 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
         <div className="space-y-2 text-sm">
           <FormSection title={t("admin.jobs.formSections.basics")} defaultOpen>
             <div className="space-y-3">
-              <Field label={t("admin.jobs.fields.title")} full>
+              <Field label={t("admin.jobs.fields.title")} full name="title">
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -1636,7 +1667,7 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
                 {errors.title && <p className="mt-1 text-xs text-danger">{errors.title}</p>}
               </Field>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label={t("admin.jobs.fields.location")}>
+                <Field label={t("admin.jobs.fields.location")} name="location">
                   <input
                     type="text"
                     value={form.location ?? ""}
@@ -1655,7 +1686,11 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
                   />
                 </Field>
               </div>
-              <Field label={t("admin.jobs.fields.salaryRange")} full>
+              <Field
+                label={t("admin.jobs.fields.salaryRange")}
+                full
+                name="salary_min"
+              >
                 <SalaryRangeField
                   min={form.salary_min}
                   max={form.salary_max}
@@ -1670,7 +1705,11 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
           </FormSection>
           <FormSection title={t("admin.jobs.formSections.content")}>
             <div className="space-y-3">
-              <Field label={t("admin.jobs.fields.shortDescription")} full>
+              <Field
+                label={t("admin.jobs.fields.shortDescription")}
+                full
+                name="short_description"
+              >
                 <input
                   type="text"
                   maxLength={JOB_SHORT_DESC_MAX}
@@ -1686,7 +1725,11 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
                 </p>
                 {errors.short_description && <p className="mt-1 text-xs text-danger">{errors.short_description}</p>}
               </Field>
-              <Field label={t("admin.jobs.fields.description")} full>
+              <Field
+                label={t("admin.jobs.fields.description")}
+                full
+                name="description"
+              >
                 <AutoGrowTextarea
                   value={form.description ?? ""}
                   onChange={(v) => set("description", v)}
@@ -1699,7 +1742,11 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
           </FormSection>
           <FormSection title={t("admin.jobs.formSections.lists")}>
             <div className="space-y-3">
-              <Field label={t("admin.jobs.fields.requirements")} full>
+              <Field
+                label={t("admin.jobs.fields.requirements")}
+                full
+                name="requirements"
+              >
                 <JobRequirementsInput
                   value={form.requirements ?? []}
                   onChange={(reqs: JobRequirementItem[]) => set("requirements", reqs)}
@@ -1862,7 +1909,11 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
     if (form.salary_max == null || form.salary_max < 0) e.salary_max = t("common.validation.required");
     else if (form.salary_min != null && form.salary_max < form.salary_min) e.salary_max = t("common.validation.salaryMaxBelowMin");
     setErrors(e);
-    return Object.keys(e).length === 0;
+    if (Object.keys(e).length > 0) {
+      focusFirstError(e, JOB_CREATE_FIELD_ORDER);
+      return false;
+    }
+    return true;
   }
 
   function requestSave() {
@@ -1928,7 +1979,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
       <div className="space-y-2 text-sm">
         <FormSection title={t("admin.jobs.formSections.basics")} defaultOpen>
           <div className="space-y-3">
-            <Field label={t("admin.jobs.fields.company")} full>
+            <Field label={t("admin.jobs.fields.company")} full name="company_id">
               {companiesError ? (
                 <p className="text-xs text-danger">
                   {t("admin.jobs.errors.companiesLoadFailed")}
@@ -1953,7 +2004,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
                 </select>
               )}
             </Field>
-            <Field label={t("admin.jobs.fields.title")} full>
+            <Field label={t("admin.jobs.fields.title")} full name="title">
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -1969,7 +2020,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
               {errors.title && <p className="mt-1 text-xs text-danger">{errors.title}</p>}
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label={t("admin.jobs.fields.location")}>
+              <Field label={t("admin.jobs.fields.location")} name="location">
                 <input
                   type="text"
                   value={form.location ?? ""}
@@ -1985,7 +2036,11 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
                 />
               </Field>
             </div>
-            <Field label={t("admin.jobs.fields.salaryRange")} full>
+            <Field
+              label={t("admin.jobs.fields.salaryRange")}
+              full
+              name="salary_min"
+            >
               <SalaryRangeField
                 min={form.salary_min}
                 max={form.salary_max}
@@ -1999,7 +2054,11 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
         </FormSection>
         <FormSection title={t("admin.jobs.formSections.content")}>
           <div className="space-y-3">
-            <Field label={t("admin.jobs.fields.shortDescription")} full>
+            <Field
+              label={t("admin.jobs.fields.shortDescription")}
+              full
+              name="short_description"
+            >
               <input
                 type="text"
                 maxLength={JOB_SHORT_DESC_MAX}
@@ -2015,7 +2074,11 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
               </p>
               {errors.short_description && <p className="mt-1 text-xs text-danger">{errors.short_description}</p>}
             </Field>
-            <Field label={t("admin.jobs.fields.description")} full>
+            <Field
+              label={t("admin.jobs.fields.description")}
+              full
+              name="description"
+            >
               <AutoGrowTextarea
                 value={form.description ?? ""}
                 onChange={(v) => set("description", v)}
@@ -2028,7 +2091,11 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
         </FormSection>
         <FormSection title={t("admin.jobs.formSections.lists")}>
           <div className="space-y-3">
-            <Field label={t("admin.jobs.fields.requirements")} full>
+            <Field
+              label={t("admin.jobs.fields.requirements")}
+              full
+              name="requirements"
+            >
               <JobRequirementsInput
                 value={form.requirements ?? []}
                 onChange={(reqs) => set("requirements", reqs)}
@@ -2083,13 +2150,18 @@ function Field({
   label,
   children,
   full,
+  name,
 }: {
   label: string;
   children: React.ReactNode;
   full?: boolean;
+  name?: string;
 }) {
   return (
-    <label className={`block ${full ? "sm:col-span-2" : ""}`}>
+    <label
+      className={`block ${full ? "sm:col-span-2" : ""}`}
+      data-field={name}
+    >
       <span className="block text-xs text-white/45">{label}</span>
       <span className="mt-1 block">{children}</span>
     </label>

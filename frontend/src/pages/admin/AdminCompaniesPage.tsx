@@ -44,6 +44,7 @@ import DropdownMenu, {
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
+import { focusFirstError } from "@/utils/focusFirstError";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
@@ -60,6 +61,15 @@ function formatDate(iso: string): string {
 
 const COMPANY_ID_RE = /^\d{9}$/;
 const MOBILE_RE = /^05[0-9]\d{7}$/;
+
+const CREATE_COMPANY_FIELD_ORDER = [
+  "name",
+  "company_id",
+  "address",
+  "contact_first_name",
+  "contact_last_name",
+  "contact_mobile_phone",
+] as const;
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
@@ -1283,7 +1293,11 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
     else if (!MOBILE_RE.test(form.contact_mobile_phone))
       e.contact_mobile_phone = t("admin.companies.validation.mobile");
     setErrors(e);
-    return Object.keys(e).length === 0;
+    if (Object.keys(e).length > 0) {
+      focusFirstError(e, CREATE_COMPANY_FIELD_ORDER);
+      return false;
+    }
+    return true;
   }
 
   function requestSave() {
@@ -1400,6 +1414,7 @@ function CompanyProfileFields({
             label={t("admin.companies.fields.name")}
             required={showRequired}
             full
+            name="name"
           >
             <input
               type="text"
@@ -1417,6 +1432,7 @@ function CompanyProfileFields({
             label={t("admin.companies.fields.companyId")}
             required={showRequired}
             hint={showRequired ? t("admin.companies.hints.companyId") : undefined}
+            name="company_id"
           >
             <input
               type="text"
@@ -1435,6 +1451,7 @@ function CompanyProfileFields({
           <Field
             label={t("admin.companies.fields.address")}
             required={showRequired}
+            name="address"
           >
             <input
               type="text"
@@ -1460,6 +1477,7 @@ function CompanyProfileFields({
           <Field
             label={t("admin.companies.fields.contactFirstName")}
             required={showRequired}
+            name="contact_first_name"
           >
             <input
               type="text"
@@ -1476,6 +1494,7 @@ function CompanyProfileFields({
           <Field
             label={t("admin.companies.fields.contactLastName")}
             required={showRequired}
+            name="contact_last_name"
           >
             <input
               type="text"
@@ -1493,6 +1512,7 @@ function CompanyProfileFields({
             label={t("admin.companies.fields.contactMobile")}
             required={showRequired}
             hint={showRequired ? t("admin.companies.hints.mobile") : undefined}
+            name="contact_mobile_phone"
           >
             <input
               type="tel"
@@ -1534,6 +1554,7 @@ function Field({
   required,
   optional,
   hint,
+  name,
 }: {
   label: string;
   children: React.ReactNode;
@@ -1541,10 +1562,14 @@ function Field({
   required?: boolean;
   optional?: boolean;
   hint?: string;
+  name?: string;
 }) {
   const { t } = useTranslation();
   return (
-    <label className={`block ${full ? "sm:col-span-2" : ""}`}>
+    <label
+      className={`block ${full ? "sm:col-span-2" : ""}`}
+      data-field={name}
+    >
       <span className="flex items-center gap-1.5 text-xs text-white/55">
         <span>{label}</span>
         {required && <span className="text-copper/80">*</span>}
