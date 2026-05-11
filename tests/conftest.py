@@ -48,6 +48,7 @@ _EMAIL_TASK_TARGETS = [
     "src.services.jobs.enqueue_email_task",
     "src.services.jobs_admin.enqueue_email_task",
     "src.services.candidates.enqueue_email_task",
+    "src.services.password_reset.enqueue_email_task",
     # applications_admin no longer imports enqueue_email_task directly;
     # the router enqueues after commit — patch at the router level instead.
     "src.api.admin_applications.enqueue_email_task",
@@ -88,6 +89,22 @@ def _provide_post_commit_hooks_context():
         yield
     finally:
         _post_commit_hooks.reset(token)
+
+
+@pytest.fixture(autouse=True)
+def mock_password_reset_rate_limit():
+    """Disable the per-email password-reset rate limit in tests.
+
+    The real implementation increments a Redis counter — across multiple test
+    runs against a shared local Redis, a victim email accumulates count and
+    the limit starts rejecting tokens, surfacing as flaky test failures.
+    """
+    with patch(
+        "src.services.password_reset._per_email_rate_limit_ok",
+        new_callable=AsyncMock,
+        return_value=True,
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)

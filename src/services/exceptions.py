@@ -51,6 +51,12 @@ class InvalidActivationTokenError(AuthError):
     pass
 
 
+class InvalidPasswordResetTokenError(AuthError):
+    """Raised when a password-reset token is missing, expired, or already used."""
+
+    pass
+
+
 class AccountLockedError(AuthError):
     """Raised when an account is locked after too many failed login attempts."""
 
