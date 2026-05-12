@@ -793,14 +793,14 @@ function ResumeStep({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  function onDragOver(e: DragEvent<HTMLDivElement>) {
+  function onDragOver(e: DragEvent<HTMLButtonElement>) {
     e.preventDefault();
     if (!dragging) setDragging(true);
   }
   function onDragLeave() {
     setDragging(false);
   }
-  function onDrop(e: DragEvent<HTMLDivElement>) {
+  function onDrop(e: DragEvent<HTMLButtonElement>) {
     e.preventDefault();
     setDragging(false);
     const dropped = e.dataTransfer.files?.[0] ?? null;
