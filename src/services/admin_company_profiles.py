@@ -6,17 +6,22 @@ approval/rejection lifecycle that's keyed by `User.id` lives in
 `admin_companies.py`.
 """
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database_helpers import get_by_id_or_raise
-from src.models import Application, CompanyProfile, Job
+from src.models import CompanyProfile, User
 from src.schemas import (
     CompanyProfileAdminCreate,
     CompanyProfileAdminUpdate,
     CompanyProfileRead,
 )
-from src.services.exceptions import CompanyNotFoundError, CompanyNotPendingError
+from src.services.exceptions import (
+    CompanyNotFoundError,
+    CompanyNotPendingError,
+    EmailAlreadyExistsError,
+)
 
 
 async def get_company_profile(
@@ -50,6 +55,7 @@ async def admin_create_company(
         name=data.name,
         company_id=data.company_id,
         address=data.address,
+        contact_email=data.contact_email,
         contact_first_name=data.contact_first_name,
         contact_last_name=data.contact_last_name,
         contact_mobile_phone=data.contact_mobile_phone,
@@ -68,7 +74,8 @@ async def delete_orphan_company_profile(profile_id: int, session: AsyncSession) 
     CompanyNotPendingError if the profile is linked to a user, to prevent
     accidental deletion of active or pending company accounts.
 
-    Delete order: Applications → Jobs → CompanyProfile.
+    Job and Application rows cascade from companyprofile.id at the DB level
+    (migration c4d2a8f1e9b7).
 
     Raises:
         CompanyNotFoundError: If no profile with that id exists.
@@ -85,19 +92,6 @@ async def delete_orphan_company_profile(profile_id: int, session: AsyncSession) 
             f"Company profile {profile_id} is linked to user {profile.user_id}; "
             "use the company-user delete endpoint instead"
         )
-
-    job_ids_result = await session.execute(
-        select(Job.id).where(Job.company_id == profile_id)  # pyright: ignore[reportArgumentType]
-    )
-    job_ids = [r[0] for r in job_ids_result.all()]
-    if job_ids:
-        await session.execute(
-            delete(Application).where(Application.job_id.in_(job_ids))  # pyright: ignore[reportAttributeAccessIssue]
-        )
-        await session.execute(
-            delete(Job).where(Job.id.in_(job_ids))  # pyright: ignore[reportAttributeAccessIssue]
-        )
-        await session.flush()
 
     await session.delete(profile)
     await session.flush()
@@ -123,7 +117,27 @@ async def update_company_profile(
         lambda pk: CompanyNotFoundError(f"Company profile {pk} not found"),
     )
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    payload = data.model_dump(exclude_unset=True)
+
+    # contact_email is the canonical invariant: when a user is attached, it
+    # must equal user.email. So an admin edit that changes contact_email on an
+    # attached profile must also update the user's login email atomically.
+    new_email = payload.get("contact_email")
+    if new_email is not None and profile.user_id is not None:
+        user_result = await session.execute(
+            select(User).where(User.id == profile.user_id)  # pyright: ignore[reportArgumentType]
+        )
+        user = user_result.scalar_one()
+        if user.email != new_email:
+            user.email = new_email
+            try:
+                await session.flush()
+            except IntegrityError as e:
+                # user.email has UNIQUE — another account already uses this
+                # address. Surface as a domain exception, not a 500.
+                raise EmailAlreadyExistsError(new_email) from e
+
+    for field, value in payload.items():
         setattr(profile, field, value)
 
     await session.flush()

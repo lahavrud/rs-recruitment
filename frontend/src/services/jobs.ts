@@ -49,9 +49,13 @@ export async function submitApplication(
     data.append("resume", resume, resume.name);
   }
 
+  // Explicit multipart Content-Type — the api instance defaults to
+  // application/json, which would cause axios to JSON-stringify the
+  // FormData and the backend's Form(...) parsers to see no fields.
   const response = await api.post<CandidateProfileRead>(
     `/api/jobs/${jobId}/apply`,
     data,
+    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return response.data;
 }

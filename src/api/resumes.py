@@ -36,9 +36,16 @@ async def download_resume(
 
     storage = get_storage_provider()
 
+    # Storage layout: every uploaded resume lives under the `resumes/`
+    # subdirectory (local) or under the `resumes/` key prefix (S3) — see
+    # LocalStorageProvider.upload_file and applications._validate_and_upload_resume.
+    # The frontend strips that prefix when calling this route (the path-param
+    # regex doesn't allow slashes), so we re-add it here.
+    storage_key = f"resumes/{file_key}"
+
     if settings.storage_provider == "local":
         storage_root = Path(settings.local_storage_path).resolve()
-        file_path = (storage_root / file_key).resolve()
+        file_path = (storage_root / storage_key).resolve()
         # Ensure resolved path stays inside the storage directory
         try:
             file_path.relative_to(storage_root)
@@ -55,7 +62,7 @@ async def download_resume(
         return FileResponse(path=file_path, filename=file_key)
 
     try:
-        url = await storage.get_file_url(file_key)
+        url = await storage.get_file_url(storage_key)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

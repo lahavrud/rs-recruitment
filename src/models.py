@@ -4,7 +4,14 @@ import os
 from datetime import datetime, timezone
 
 from pydantic import field_validator
-from sqlalchemy import CheckConstraint, DateTime, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship, SQLModel
 
@@ -49,7 +56,14 @@ class ActivationToken(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     token: str = Field(unique=True, index=True)
-    company_user_id: int = Field(foreign_key="user.id", index=True)
+    company_user_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
@@ -69,7 +83,14 @@ class RefreshToken(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     token_hash: str = Field(unique=True, index=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
+    user_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
     expires_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
@@ -89,7 +110,14 @@ class PasswordResetToken(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     token_hash: str = Field(unique=True, index=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
+    user_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
     expires_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
@@ -124,7 +152,11 @@ class User(SQLModel, table=True):
     # See `tests/models/test_user.py::test_admin_user_company_profile_is_none`.
     company_profile: CompanyProfile = Relationship(
         back_populates="user",
-        sa_relationship_kwargs={"uselist": False},
+        # `passive_deletes="all"` tells SQLAlchemy to leave FK rows alone and
+        # rely on the DB's ON DELETE CASCADE (migration c4d2a8f1e9b7) — without
+        # it, SA would issue `UPDATE companyprofile SET user_id=NULL` first and
+        # orphan the profile instead of cascading.
+        sa_relationship_kwargs={"uselist": False, "passive_deletes": "all"},
     )
 
 
@@ -136,11 +168,19 @@ class CompanyProfile(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: int | None = Field(
-        default=None, foreign_key="user.id", unique=True, index=True
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=True,
+            unique=True,
+            index=True,
+        ),
     )
     name: str
     logo_url: str | None = None
     company_id: str  # ח.פ — 9-digit Israeli company registration number
+    contact_email: str = Field(index=True, max_length=255)
     contact_first_name: str
     contact_last_name: str
     contact_mobile_phone: str
@@ -189,7 +229,14 @@ class Job(SQLModel, table=True):
     )
 
     id: int | None = Field(default=None, primary_key=True)
-    company_id: int = Field(foreign_key="companyprofile.id", index=True)
+    company_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("companyprofile.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
     title: str
     short_description: str
     description: str
@@ -308,8 +355,22 @@ class Application(SQLModel, table=True):
     )
 
     id: int | None = Field(default=None, primary_key=True)
-    job_id: int = Field(foreign_key="job.id", index=True)
-    candidate_id: int = Field(foreign_key="candidateprofile.id", index=True)
+    job_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("job.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    candidate_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("candidateprofile.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
     status: ApplicationStatus = Field(default=ApplicationStatus.NEW, index=True)
     admin_notes: str | None = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(

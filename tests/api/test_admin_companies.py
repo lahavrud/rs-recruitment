@@ -222,6 +222,7 @@ _ADMIN_CREATE_PAYLOAD = {
     "name": "חברה ישירה",
     "company_id": "987654321",
     "address": "רח׳ הישר 7, חיפה",
+    "contact_email": "yashir@example.com",
     "contact_first_name": "אורי",
     "contact_last_name": "ישיר",
     "contact_mobile_phone": "0508887777",

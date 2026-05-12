@@ -221,7 +221,7 @@ async def test_create_candidate_profile_sends_candidate_confirmation_email(
 
     async with transactional(session):
         await create_candidate_profile(
-            candidate_data=_default_candidate(phone="123-456-7890"),
+            candidate_data=_default_candidate(phone="050-123-4567"),
             job_id=job.id,
             session=session,
         )
@@ -266,7 +266,7 @@ async def test_create_candidate_profile_admin_email_falls_back_to_all_admins(
 
     async with transactional(session):
         await create_candidate_profile(
-            candidate_data=_default_candidate(phone="123-456-7890"),
+            candidate_data=_default_candidate(phone="050-123-4567"),
             job_id=job.id,
             session=session,
         )
@@ -297,7 +297,7 @@ async def test_create_candidate_profile_admin_email_uses_env_var_when_set(
 
     async with transactional(session):
         await create_candidate_profile(
-            candidate_data=_default_candidate(phone="123-456-7890"),
+            candidate_data=_default_candidate(phone="050-123-4567"),
             job_id=job.id,
             session=session,
         )

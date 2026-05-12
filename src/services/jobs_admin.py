@@ -75,18 +75,21 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
     job.updated_at = datetime.now(timezone.utc)
     await session.flush()
 
-    # Get company and user for email
-    # Foreign key constraints guarantee company and user exist
+    # Emails only go out when the company has an active user account.
+    # Admin-created (orphan) profiles have no inbox to deliver to, so we
+    # skip the send — the contact_email captured on the profile is for
+    # reference only until a user is attached.
     result = await session.execute(
         select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
     )
     company = result.scalar_one()
+    if company.user_id is None:
+        return JobRead.model_validate(job)
     result = await session.execute(
         select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
     )
     user = result.scalar_one()
 
-    # Send approval email to company
     await enqueue_email_task(
         to=user.email,
         subject="Job Posting Approved",
@@ -126,25 +129,25 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
             f"Job {job_id} is not pending approval (current status: {job.status})"
         )
 
-    # Get company and user for email before updating
-    # Foreign key constraints guarantee company and user exist
+    # See approve_job — skip the email send when there's no attached user.
     result = await session.execute(
         select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
     )
     company = result.scalar_one()
-    result = await session.execute(
-        select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = result.scalar_one()
     job_title = job.title
     job_location = job.location
 
-    # Reject the job (set status to CLOSED)
     job.status = JobStatus.CLOSED
     job.updated_at = datetime.now(timezone.utc)
     await session.flush()
 
-    # Send rejection email to company
+    if company.user_id is None:
+        return
+    result = await session.execute(
+        select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
+    )
+    user = result.scalar_one()
+
     await enqueue_email_task(
         to=user.email,
         subject="Job Posting Rejected",
@@ -181,6 +184,8 @@ async def contact_job(job_id: int, admin_note: str, session: AsyncSession) -> No
         select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
     )
     company = result.scalar_one()
+    if company.user_id is None:
+        return
     result = await session.execute(
         select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
     )

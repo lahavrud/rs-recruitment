@@ -160,6 +160,7 @@ async def test_delete_candidate_cascades_applications(
         user_id=user.id,
         name="DelTest Co",
         company_id="123456789",
+        contact_email=user.email,
         contact_first_name="א",
         contact_last_name="ב",
         contact_mobile_phone="0501234567",

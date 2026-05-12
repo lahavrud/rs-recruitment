@@ -56,6 +56,10 @@ export default function Dialog({
           // immediately on open. Radix still focuses the Content wrapper for
           // screen readers; users tab from there.
           onOpenAutoFocus={(e) => e.preventDefault()}
+          // When no `description` is provided we render no Radix Description
+          // node; tell Radix that's intentional so it stops warning about a
+          // missing `aria-describedby`.
+          {...(description ? {} : { "aria-describedby": undefined })}
           onPointerDownOutside={
             preventOutsideClose ? (e) => e.preventDefault() : undefined
           }

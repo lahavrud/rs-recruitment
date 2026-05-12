@@ -19,6 +19,7 @@ def _admin_create_payload(name: str = "אדמין-קומפ") -> CompanyProfileAd
         name=name,
         company_id="123456789",
         address="רח׳ אדמין 1, תל אביב",
+        contact_email="admin-contact@example.com",
         contact_first_name="אורי",
         contact_last_name="אדמין",
         contact_mobile_phone="0509999999",

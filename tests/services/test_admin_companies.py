@@ -14,6 +14,7 @@ from src.models import (
     CandidateProfile,
     CompanyProfile,
     Job,
+    PasswordResetToken,
     RefreshToken,
     User,
 )
@@ -303,6 +304,7 @@ async def test_list_active_companies_includes_admin_created_profiles(
         name="ללא חשבון",
         company_id="111222333",
         address="רח' כלשהי 1",
+        contact_email="lelo-heshbon@example.com",
         contact_first_name="אורי",
         contact_last_name="ישיר",
         contact_mobile_phone="0501234567",
@@ -358,6 +360,47 @@ async def test_delete_active_company_with_activation_and_refresh_tokens(
         select(User).where(User.id == user_id)  # pyright: ignore[reportArgumentType]
     )
     assert result.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.enqueue_email_task")
+async def test_delete_active_company_with_password_reset_token(
+    mock_email, session: AsyncSession
+):
+    """Regression: PasswordResetToken (added in e7f3a2b1c8d4) FK-references
+    user.id. Deleting a company that ever requested a password reset used to
+    raise a FK violation. The CASCADE migration c4d2a8f1e9b7 fixed it.
+    """
+    mock_email.return_value = "job-id"
+    user = await _register(
+        _company_create("pwreset@example.com", "PwReset Co"), session
+    )
+    user_id = user.id
+
+    from datetime import datetime, timezone
+
+    reset_token = PasswordResetToken(
+        token_hash="fake-reset-hash",
+        user_id=user_id,
+        expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+        used=False,
+    )
+    session.add(reset_token)
+    await session.commit()
+
+    await delete_active_company(user_id, session)
+    await session.commit()
+
+    assert (
+        await session.execute(select(User).where(User.id == user_id))  # pyright: ignore[reportArgumentType]
+    ).scalar_one_or_none() is None
+    assert (
+        await session.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.user_id == user_id  # type: ignore[arg-type]
+            )
+        )
+    ).scalar_one_or_none() is None
 
 
 # ── delete_active_company ─────────────────────────────────────────────────────

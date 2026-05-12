@@ -8,10 +8,12 @@ from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
+from src.enums import InviteTokenStatus
 from src.models import User
 from src.schemas import InviteTokenCreate, InviteTokenRead
 from src.services.admin_invites import (
     create_invite,
+    delete_invite,
     list_invites,
     resend_invite,
     revoke_invite,
@@ -51,27 +53,44 @@ async def create_company_invite(
 async def get_company_invites(
     cursor: str | None = None,
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    status: InviteTokenStatus | None = None,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> CursorPage[InviteTokenRead]:
     """List invite tokens, newest first. Expired tokens are marked before returning."""
     try:
-        return await list_invites(session, cursor=cursor, limit=limit)
+        return await list_invites(session, cursor=cursor, limit=limit, status=status)
     except InvalidCursorError as exc:
         raise service_exception_to_http(exc) from exc
 
 
-@router.delete("/companies/invites/{token_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/companies/invites/{token_id}/revoke", status_code=status.HTTP_204_NO_CONTENT
+)
 async def revoke_company_invite(
     token_id: int,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Revoke a pending invite token."""
+    """Revoke a pending invite token (status=REVOKED; row preserved for audit)."""
     try:
         async with transactional(session):
             await revoke_invite(token_id, session)
     except (InviteNotFoundError, InviteAlreadyRevokedError) as e:
+        raise service_exception_to_http(e) from e
+
+
+@router.delete("/companies/invites/{token_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_company_invite(
+    token_id: int,
+    current_admin: User = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Hard-delete an invite row regardless of status."""
+    try:
+        async with transactional(session):
+            await delete_invite(token_id, session)
+    except InviteNotFoundError as e:
         raise service_exception_to_http(e) from e
 
 

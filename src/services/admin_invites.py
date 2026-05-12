@@ -86,8 +86,14 @@ async def list_invites(
     *,
     cursor: str | None = None,
     limit: int | None = None,
+    status: InviteTokenStatus | None = None,
 ) -> CursorPage[InviteTokenRead]:
-    """One page of invite records, newest first; marks expired ones in bulk first."""
+    """One page of invite records, newest first; marks expired ones in bulk first.
+
+    When `status` is provided, only rows with that status are returned. The
+    dashboard inbox and the invites tab both pass `status=PENDING` to count
+    only open invites.
+    """
     now = datetime.now(timezone.utc)
     await session.execute(
         update(InviteToken)
@@ -99,8 +105,11 @@ async def list_invites(
     )
 
     page_size = clamp_limit(limit)
+    base = select(InviteToken)
+    if status is not None:
+        base = base.where(InviteToken.status == status)  # type: ignore[arg-type]
     query = apply_cursor(
-        select(InviteToken),
+        base,
         sort_col=InviteToken.created_at,  # pyright: ignore[reportArgumentType]
         id_col=InviteToken.id,  # pyright: ignore[reportArgumentType]
         cursor=cursor,
@@ -130,6 +139,23 @@ async def revoke_invite(token_id: int, session: AsyncSession) -> None:
 
     await revoke_invite_token(record.token)
     record.status = InviteTokenStatus.REVOKED
+    await session.flush()
+
+
+async def delete_invite(token_id: int, session: AsyncSession) -> None:
+    """Hard-delete an invite row. Also invalidates the live Redis signal.
+
+    Distinct from `revoke_invite`: revoke preserves the row with status=REVOKED
+    so the audit trail survives, while delete removes the record entirely.
+    """
+    result = await session.execute(
+        select(InviteToken).where(InviteToken.id == token_id)  # type: ignore[arg-type]
+    )
+    record = result.scalar_one_or_none()
+    if record is None:
+        raise InviteNotFoundError(f"Invite token with ID {token_id} not found")
+    await revoke_invite_token(record.token)
+    await session.delete(record)
     await session.flush()
 
 
