@@ -7,6 +7,7 @@ import {
   approveCompany,
   createInvite,
   deleteCompany,
+  deleteInvite,
   deleteOrphanCompany,
   getActiveCompanies,
   getCompanyProfile,
@@ -61,11 +62,13 @@ function formatDate(iso: string): string {
 
 const COMPANY_ID_RE = /^\d{9}$/;
 const MOBILE_RE = /^05[0-9]\d{7}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const CREATE_COMPANY_FIELD_ORDER = [
   "name",
   "company_id",
   "address",
+  "contact_email",
   "contact_first_name",
   "contact_last_name",
   "contact_mobile_phone",
@@ -231,7 +234,11 @@ export default function AdminCompaniesPage() {
         <SearchInput
           value={query}
           onChange={setQuery}
-          placeholder={t("admin.companies.searchPlaceholder")}
+          placeholder={
+            view === "invites"
+              ? t("admin.companies.inviteList.searchPlaceholder")
+              : t("admin.companies.searchPlaceholder")
+          }
           clearable
         />
       </div>
@@ -426,10 +433,7 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
                   }
                   actions={actions}
                 >
-                  <CompanyDetailBody
-                    profile={row.company_profile}
-                    user={row.user}
-                  />
+                  <CompanyDetailBody profile={row.company_profile} />
                 </MobileEntityCard>
               );
             })}
@@ -463,7 +467,7 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
                         {row.company_profile.name}
                       </span>
                       <p className="text-xs text-white/40">
-                        {row.user?.email ?? t("admin.companies.noUserAccount")}
+                        {row.company_profile.contact_email}
                       </p>
                     </td>
                     <td className="px-4 py-3 text-white/60">
@@ -577,8 +581,7 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
 
 // ── Pending tab ────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function PendingTab({ query: _query }: { query: string }) {
+function PendingTab({ query }: { query: string }) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -598,8 +601,24 @@ function PendingTab({ query: _query }: { query: string }) {
     removeItem,
   } = useInfiniteList<PendingCompanyRead>(fetcher);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter((row) => {
+      const p = row.company_profile;
+      return [
+        p.name,
+        p.contact_first_name,
+        p.contact_last_name,
+        p.contact_mobile_phone,
+        row.user.email,
+      ].some((s) => s.toLowerCase().includes(q));
+    });
+  }, [companies, query]);
+
   const [rejectPending, setRejectPending] = useState<PendingCompanyRead | null>(null);
   const [pendingMutation, setPendingMutation] = useState(false);
+  const [detail, setDetail] = useState<CompanyProfileRead | null>(null);
 
   async function handleApprove(row: PendingCompanyRead) {
     try {
@@ -626,6 +645,36 @@ function PendingTab({ query: _query }: { query: string }) {
     }
   }
 
+  function renderRowActions(row: PendingCompanyRead) {
+    return (
+      <DropdownMenu
+        ariaLabel={t("admin.companies.rowActionsLabel")}
+        trigger={
+          <button
+            type="button"
+            className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span aria-hidden>⋮</span>
+          </button>
+        }
+      >
+        <DropdownMenuItem onSelect={() => setDetail(row.company_profile)}>
+          {t("admin.companies.viewAction")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => window.open(`mailto:${row.user.email}`, "_self")}
+        >
+          {t("admin.companies.emailAction")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="danger" onSelect={() => setRejectPending(row)}>
+          {t("admin.companies.rejectAction")}
+        </DropdownMenuItem>
+      </DropdownMenu>
+    );
+  }
+
   return (
     <>
       {isLoading ? (
@@ -644,13 +693,52 @@ function PendingTab({ query: _query }: { query: string }) {
           eyebrow={t("admin.companies.tabs.pending")}
           headline={t("admin.companies.empty")}
         />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
+          <p className="text-sm text-white/40">
+            {t("publicJobs.board.noResults")}
+          </p>
+        </div>
       ) : (
         <>
-          <div className="space-y-3">
-            {companies.map((row) => (
+          {/* Mobile: collapsible cards with detail body inline */}
+          <div className="space-y-2 md:hidden">
+            {filtered.map((row) => (
+              <MobileEntityCard
+                key={row.user.id}
+                title={
+                  <span className="font-medium text-white/90">
+                    {row.company_profile.name}
+                  </span>
+                }
+                actions={renderRowActions(row)}
+              >
+                <CompanyDetailBody profile={row.company_profile} />
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => handleApprove(row)}
+                    className="flex-1 rounded-sm bg-success/15 px-4 py-2 text-sm font-medium text-success hover:bg-success/25"
+                  >
+                    {t("admin.companies.approveAction")}
+                  </button>
+                  <button
+                    onClick={() => setRejectPending(row)}
+                    className="flex-1 rounded-sm border border-danger/25 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"
+                  >
+                    {t("admin.companies.rejectAction")}
+                  </button>
+                </div>
+              </MobileEntityCard>
+            ))}
+          </div>
+
+          {/* Desktop: card rows with inline approve + 3-dot menu */}
+          <div className="hidden space-y-3 md:block">
+            {filtered.map((row) => (
               <div
                 key={row.user.id}
-                className="flex flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+                onClick={() => setDetail(row.company_profile)}
+                className="flex cursor-pointer flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 transition hover:bg-card-raised sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <span className="font-medium text-white/90">
@@ -665,19 +753,17 @@ function PendingTab({ query: _query }: { query: string }) {
                     {formatDate(row.user.created_at)}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div
+                  className="flex shrink-0 items-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     onClick={() => handleApprove(row)}
                     className="rounded-sm bg-success/15 px-4 py-1.5 text-sm font-medium text-success hover:bg-success/25"
                   >
                     {t("admin.companies.approveAction")}
                   </button>
-                  <button
-                    onClick={() => setRejectPending(row)}
-                    className="rounded-sm border border-danger/25 px-4 py-1.5 text-sm font-medium text-danger hover:bg-danger/10"
-                  >
-                    {t("admin.companies.rejectAction")}
-                  </button>
+                  {renderRowActions(row)}
                 </div>
               </div>
             ))}
@@ -691,6 +777,13 @@ function PendingTab({ query: _query }: { query: string }) {
           )}
         </>
       )}
+
+      <CompanyDetailDialog
+        profile={detail}
+        onClose={() => setDetail(null)}
+        onEdit={() => setDetail(null)}
+        hideEditButton
+      />
 
       <ConfirmDialog
         open={rejectPending != null}
@@ -714,8 +807,7 @@ interface InvitesTabProps {
   onExternalClose?: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTabProps) {
+function InvitesTab({ query, externalOpen, onExternalClose }: InvitesTabProps) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -734,10 +826,18 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
     reload,
     prependItem,
     updateItem,
+    removeItem,
   } = useInfiniteList<InviteTokenRead>(fetcher);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return invites;
+    return invites.filter((i) => i.email.toLowerCase().includes(q));
+  }, [invites, query]);
 
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [revokePending, setRevokePending] = useState<InviteTokenRead | null>(null);
+  const [deletePending, setDeletePending] = useState<InviteTokenRead | null>(null);
   const [pendingMutation, setPendingMutation] = useState(false);
 
   useEffect(() => {
@@ -766,13 +866,84 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
     }
   }
 
+  async function handleDeleteConfirm() {
+    if (!deletePending) return;
+    setPendingMutation(true);
+    try {
+      await deleteInvite(deletePending.id);
+      removeItem((i) => i.id === deletePending.id);
+      toast.success(t("admin.companies.inviteDeletedToast"));
+      setDeletePending(null);
+    } catch {
+      toast.error(t("admin.companies.inviteList.deleteError"));
+    } finally {
+      setPendingMutation(false);
+    }
+  }
+
   async function handleResend(invite: InviteTokenRead) {
+    const wasPending = invite.status === InviteTokenStatus.PENDING;
     try {
       await resendInvite(invite.id);
-      toast.success(t("admin.companies.resentToast"));
+      // Resend regenerates the token + extends expiry; refresh the row so the
+      // user sees the new expires_at and status flips back to PENDING if it
+      // had drifted to EXPIRED or REVOKED.
+      toast.success(
+        wasPending
+          ? t("admin.companies.resentToast")
+          : t("admin.companies.reactivatedToast"),
+      );
+      reload();
     } catch {
       toast.error(t("admin.companies.inviteList.resendError"));
     }
+  }
+
+  function renderRowMenu(invite: InviteTokenRead) {
+    const isPending = invite.status === InviteTokenStatus.PENDING;
+    const isUsed = invite.status === InviteTokenStatus.USED;
+    // Revoked/expired invites can be reactivated — `resend_invite` only
+    // rejects USED, since once the user has registered, a fresh invite has
+    // no meaning. The label flips to "הפעל מחדש" to convey activation rather
+    // than re-sending the same link.
+    const canResend = !isUsed;
+    return (
+      <DropdownMenu
+        ariaLabel={t("admin.companies.rowActionsLabel")}
+        trigger={
+          <button
+            type="button"
+            className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span aria-hidden>⋮</span>
+          </button>
+        }
+      >
+        {canResend && (
+          <DropdownMenuItem onSelect={() => handleResend(invite)}>
+            {isPending
+              ? t("admin.companies.resendAction")
+              : t("admin.companies.reactivateAction")}
+          </DropdownMenuItem>
+        )}
+        {isPending && (
+          <DropdownMenuItem
+            variant="danger"
+            onSelect={() => setRevokePending(invite)}
+          >
+            {t("admin.companies.revokeAction")}
+          </DropdownMenuItem>
+        )}
+        {(canResend || isPending) && <DropdownMenuSeparator />}
+        <DropdownMenuItem
+          variant="danger"
+          onSelect={() => setDeletePending(invite)}
+        >
+          {t("admin.companies.deleteInviteAction")}
+        </DropdownMenuItem>
+      </DropdownMenu>
+    );
   }
 
   return (
@@ -796,9 +967,34 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
           eyebrow={t("admin.companies.tabs.invites")}
           headline={t("admin.companies.inviteList.empty")}
         />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
+          <p className="text-sm text-white/40">
+            {t("publicJobs.board.noResults")}
+          </p>
+        </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-white/8 bg-card">
+          {/* Mobile: collapsible card per invite */}
+          <div className="space-y-2 md:hidden">
+            {filtered.map((invite) => (
+              <MobileEntityCard
+                key={invite.id}
+                title={
+                  <span className="font-medium text-white/90">
+                    {invite.email}
+                  </span>
+                }
+                badge={<InviteStatusBadge status={invite.status} />}
+                actions={renderRowMenu(invite)}
+              >
+                <InviteDetailBody invite={invite} />
+              </MobileEntityCard>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden overflow-x-auto rounded-xl border border-white/8 bg-card md:block">
             <table className="min-w-full divide-y divide-white/6 text-sm">
               <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
                 <tr>
@@ -818,7 +1014,7 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/6">
-                {invites.map((invite) => (
+                {filtered.map((invite) => (
                   <tr key={invite.id}>
                     <td className="px-4 py-3 text-white/80">{invite.email}</td>
                     <td className="px-4 py-3">
@@ -830,31 +1026,7 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
                     <td className="px-4 py-3 text-white/40">
                       {formatDate(invite.expires_at)}
                     </td>
-                    <td className="px-4 py-3 text-end">
-                      {invite.status === InviteTokenStatus.PENDING && (
-                        <DropdownMenu
-                          ariaLabel={t("admin.companies.rowActionsLabel")}
-                          trigger={
-                            <button
-                              type="button"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition hover:bg-white/8 hover:text-white/80"
-                            >
-                              <span aria-hidden>⋮</span>
-                            </button>
-                          }
-                        >
-                          <DropdownMenuItem onSelect={() => handleResend(invite)}>
-                            {t("admin.companies.resendAction")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="danger"
-                            onSelect={() => setRevokePending(invite)}
-                          >
-                            {t("admin.companies.revokeAction")}
-                          </DropdownMenuItem>
-                        </DropdownMenu>
-                      )}
-                    </td>
+                    <td className="px-4 py-3 text-end">{renderRowMenu(invite)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -888,7 +1060,40 @@ function InvitesTab({ query: _query, externalOpen, onExternalClose }: InvitesTab
         isPending={pendingMutation}
         onConfirm={handleRevokeConfirm}
       />
+
+      <ConfirmDialog
+        open={deletePending != null}
+        onOpenChange={(o) => !o && setDeletePending(null)}
+        title={t("admin.companies.deleteInviteConfirmTitle")}
+        message={t("admin.companies.inviteList.deleteConfirm")}
+        confirmLabel={t("admin.companies.deleteInviteAction")}
+        variant="danger"
+        isPending={pendingMutation}
+        onConfirm={handleDeleteConfirm}
+      />
     </>
+  );
+}
+
+function InviteDetailBody({ invite }: { invite: InviteTokenRead }) {
+  const { t } = useTranslation();
+  return (
+    <dl className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+      <dt className="text-white/35">
+        {t("admin.companies.inviteList.columnStatus")}
+      </dt>
+      <dd>
+        <InviteStatusBadge status={invite.status} />
+      </dd>
+      <dt className="text-white/35">
+        {t("admin.companies.inviteList.columnCreated")}
+      </dt>
+      <dd className="text-white/70">{formatDate(invite.created_at)}</dd>
+      <dt className="text-white/35">
+        {t("admin.companies.inviteList.columnExpires")}
+      </dt>
+      <dd className="text-white/70">{formatDate(invite.expires_at)}</dd>
+    </dl>
   );
 }
 
@@ -917,9 +1122,16 @@ interface DetailProps {
   profile: CompanyProfileRead | null;
   onClose: () => void;
   onEdit: () => void;
+  /** Pending tab shows the same body but hides the Edit CTA. */
+  hideEditButton?: boolean;
 }
 
-function CompanyDetailDialog({ profile, onClose, onEdit }: DetailProps) {
+function CompanyDetailDialog({
+  profile,
+  onClose,
+  onEdit,
+  hideEditButton = false,
+}: DetailProps) {
   const { t } = useTranslation();
   const [jobs, setJobs] = useState<JobRead[] | null>(null);
   const [jobsError, setJobsError] = useState(false);
@@ -954,12 +1166,14 @@ function CompanyDetailDialog({ profile, onClose, onEdit }: DetailProps) {
       description={t("admin.companies.detailDescription")}
       size="lg"
       footer={
-        <button
-          onClick={onEdit}
-          className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
-        >
-          {t("admin.companies.editAction")}
-        </button>
+        hideEditButton ? undefined : (
+          <button
+            onClick={onEdit}
+            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
+          >
+            {t("admin.companies.editAction")}
+          </button>
+        )
       }
     >
       <CompanyDetailBody profile={profile} jobs={jobs} jobsError={jobsError} onLeavePage={onClose} />
@@ -973,13 +1187,11 @@ function CompanyDetailDialog({ profile, onClose, onEdit }: DetailProps) {
  */
 function CompanyDetailBody({
   profile,
-  user,
   jobs: jobsProp,
   jobsError: jobsErrorProp,
   onLeavePage,
 }: {
   profile: CompanyProfileRead;
-  user?: { email: string } | null;
   jobs?: JobRead[] | null;
   jobsError?: boolean;
   onLeavePage?: () => void;
@@ -1016,15 +1228,15 @@ function CompanyDetailBody({
         <dd className="text-white/70">
           {profile.company_id || t("admin.companies.noCompanyId")}
         </dd>
-        {user?.email && (
+        {profile.contact_email && (
           <>
             <dt className="text-white/35">{t("admin.companies.fields.email")}</dt>
             <dd className="text-white/70">
               <a
-                href={`mailto:${user.email}`}
+                href={`mailto:${profile.contact_email}`}
                 className="text-copper/85 transition hover:text-copper hover:underline"
               >
-                {user.email}
+                {profile.contact_email}
               </a>
             </dd>
           </>
@@ -1126,6 +1338,7 @@ function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
       name: profile.name,
       company_id: profile.company_id ?? "",
       address: profile.address ?? "",
+      contact_email: profile.contact_email ?? "",
       contact_first_name: profile.contact_first_name ?? "",
       contact_last_name: profile.contact_last_name ?? "",
       contact_mobile_phone: profile.contact_mobile_phone ?? "",
@@ -1155,6 +1368,7 @@ function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
       !form.name?.trim() ||
       !form.company_id?.trim() ||
       !form.address?.trim() ||
+      !form.contact_email?.trim() ||
       !form.contact_first_name?.trim() ||
       !form.contact_last_name?.trim() ||
       !form.contact_mobile_phone?.trim()
@@ -1163,6 +1377,9 @@ function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
     }
     if (!COMPANY_ID_RE.test(form.company_id)) {
       setValidationError(t("admin.companies.validation.companyId")); return;
+    }
+    if (!EMAIL_RE.test(form.contact_email)) {
+      setValidationError(t("admin.companies.validation.email")); return;
     }
     if (!MOBILE_RE.test(form.contact_mobile_phone)) {
       setValidationError(t("admin.companies.validation.mobile")); return;
@@ -1284,6 +1501,10 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
     else if (!COMPANY_ID_RE.test(form.company_id))
       e.company_id = t("admin.companies.validation.companyId");
     if (!form.address?.trim()) e.address = t("common.validation.required");
+    if (!form.contact_email?.trim())
+      e.contact_email = t("common.validation.required");
+    else if (!EMAIL_RE.test(form.contact_email))
+      e.contact_email = t("admin.companies.validation.email");
     if (!form.contact_first_name?.trim())
       e.contact_first_name = t("common.validation.required");
     if (!form.contact_last_name?.trim())
@@ -1313,6 +1534,7 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
         name: form.name!,
         company_id: form.company_id!,
         address: form.address!,
+        contact_email: form.contact_email!,
         contact_first_name: form.contact_first_name!,
         contact_last_name: form.contact_last_name!,
         contact_mobile_phone: form.contact_mobile_phone!,
@@ -1474,6 +1696,25 @@ function CompanyProfileFields({
           {t("admin.companies.formSections.contact")}
         </p>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <Field
+            label={t("admin.companies.fields.contactEmail")}
+            required={showRequired}
+            full
+            name="contact_email"
+          >
+            <input
+              type="email"
+              value={form.contact_email ?? ""}
+              onChange={(e) => setField("contact_email", e.target.value)}
+              className={inputCls}
+              placeholder="contact@example.com"
+              autoComplete="email"
+              aria-invalid={!!errors?.contact_email}
+            />
+            {errors?.contact_email && (
+              <p className="mt-1 text-xs text-danger">{errors.contact_email}</p>
+            )}
+          </Field>
           <Field
             label={t("admin.companies.fields.contactFirstName")}
             required={showRequired}

@@ -35,6 +35,7 @@ from src.services.admin_company_profiles import (
 from src.services.exceptions import (
     CompanyNotFoundError,
     CompanyNotPendingError,
+    EmailAlreadyExistsError,
     InvalidCursorError,
 )
 
@@ -94,7 +95,7 @@ async def update_company_profile_endpoint(
     try:
         async with transactional(session):
             return await update_company_profile(profile_id, data, session)
-    except CompanyNotFoundError as e:
+    except (CompanyNotFoundError, EmailAlreadyExistsError) as e:
         raise service_exception_to_http(e) from e
 
 

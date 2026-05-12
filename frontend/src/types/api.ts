@@ -69,6 +69,7 @@ export interface CompanyProfileRead {
   logo_url: string | null;
   company_id: string;
   address: string;
+  contact_email: string;
   contact_first_name: string;
   contact_last_name: string;
   contact_mobile_phone: string;
@@ -83,6 +84,7 @@ export interface CompanyProfileAdminCreate {
   name: string;
   company_id: string;
   address: string;
+  contact_email: string;
   contact_first_name: string;
   contact_last_name: string;
   contact_mobile_phone: string;
@@ -94,6 +96,7 @@ export interface CompanyProfileAdminUpdate {
   name?: string;
   company_id?: string;
   address?: string;
+  contact_email?: string;
   contact_first_name?: string;
   contact_last_name?: string;
   contact_mobile_phone?: string;

@@ -499,6 +499,22 @@
       "submittingText": "שולח...",
       "removeFile": "הסרה",
       "fileHint": "PDF, DOC או DOCX — מקסימום {{maxSize}} MB",
+      "steps": {
+        "identity": "זהות",
+        "resume": "קורות חיים",
+        "questions": "שאלות",
+        "indicator": "שלב {{current}} מתוך {{total}}",
+        "back": "חזרה",
+        "continue": "המשך"
+      },
+      "identityStepHint": "ספרו לנו איך לפנות אליכם — שלוש דקות וזה מאחורינו.",
+      "resumeStepHint": "העלו את קובץ קורות החיים — גררו או בחרו מהמחשב.",
+      "questionsStepBanner": "השאלות הבאות אופציונליות. ניתן לשלוח את המועמדות גם בלעדיהן — מענה מסייע לנו להבין את המועמדים מעט מעבר לקובץ.",
+      "resumeDropPrompt": "גררו את הקובץ לכאן",
+      "resumeDropAlt": "או לחצו לבחירה מהמחשב",
+      "resumeReplace": "החלפת קובץ",
+      "fileSizeBytes": "{{kb}} KB",
+      "charCount": "{{count}} / {{max}}",
       "validation": {
         "fullNameRequired": "שם מלא נדרש",
         "fullNameMin": "שם מלא חייב להכיל לפחות 2 תווים",
@@ -508,7 +524,7 @@
         "emailInvalid": "נא להזין כתובת אימייל תקינה",
         "phoneRequired": "מספר טלפון נדרש",
         "phoneInvalid": "מספר טלפון יכול להכיל רק ספרות, רווחים, פלוס, מקף, סוגריים",
-        "phoneMin": "מספר הטלפון חייב להכיל לפחות 5 ספרות",
+        "phoneFormat": "מספר נייד ישראלי תקין (05X-XXXXXXX)",
         "urlInvalid": "נא להזין כתובת URL תקינה",
         "urlProtocol": "כתובת LinkedIn חייבת להתחיל ב-http:// או https://",
         "urlLinkedin": "כתובת LinkedIn חייבת להיות בכתובת linkedin.com",
@@ -638,7 +654,10 @@
         "revokeSuccess": "ההזמנה בוטלה.",
         "revokeError": "ביטול ההזמנה נכשל.",
         "resendSuccess": "ההזמנה נשלחה מחדש.",
-        "resendError": "שליחה מחדש נכשלה."
+        "resendError": "שליחה מחדש נכשלה.",
+        "deleteConfirm": "למחוק הזמנה זו לצמיתות? הקישור ישבות והרשומה תוסר מההיסטוריה.",
+        "deleteError": "מחיקת ההזמנה נכשלה.",
+        "searchPlaceholder": "חיפוש לפי אימייל…"
       },
       "inviteStatusLabels": {
         "pending": "ממתין",
@@ -659,6 +678,9 @@
       "rejectAction": "דחייה",
       "revokeAction": "ביטול הזמנה",
       "resendAction": "שליחה מחדש",
+      "reactivateAction": "הפעלה מחדש",
+      "deleteInviteAction": "מחיקת הזמנה",
+      "deleteInviteConfirmTitle": "מחיקת הזמנה",
       "rejectConfirmTitle": "דחיית חברה",
       "deleteConfirmTitle": "מחיקת חברה",
       "revokeConfirmTitle": "ביטול הזמנה",
@@ -669,6 +691,8 @@
       "savedToast": "הפרופיל עודכן",
       "revokedToast": "ההזמנה בוטלה",
       "resentToast": "ההזמנה נשלחה מחדש",
+      "reactivatedToast": "ההזמנה הופעלה מחדש ונשלחה",
+      "inviteDeletedToast": "ההזמנה נמחקה",
       "noCompanyId": "ללא ח.פ",
       "noUserAccount": "אין חשבון משתמש",
       "jobsSection": "משרות של חברה זו",
@@ -676,6 +700,7 @@
       "fields": {
         "name": "שם החברה",
         "email": "דוא״ל",
+        "contactEmail": "דוא״ל לאיש קשר",
         "companyId": "ח.פ",
         "address": "כתובת",
         "contactFirstName": "שם פרטי",
@@ -686,6 +711,7 @@
       "validation": {
         "companyId": "ח.פ חייב להיות בן 9 ספרות",
         "mobile": "מספר נייד ישראלי תקין (05X-XXXXXXX)",
+        "email": "כתובת דוא״ל תקינה",
         "allRequired": "יש למלא את כל השדות הנדרשים",
         "fixErrors": "יש לתקן את השגיאות בטופס ולנסות שוב."
       },

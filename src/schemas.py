@@ -18,8 +18,11 @@ from src.enums import ApplicationStatus, InviteTokenStatus, JobStatus, UserRole
 
 
 def _validate_phone_value(v: str | None) -> str | None:
-    """Validate phone number format.
+    """Validate phone number format — Israeli mobile only.
 
+    Accepts any input shape that, after stripping spaces / `+` / `-` / `(` / `)`,
+    is exactly 10 digits starting with `05` (e.g. `0501234567`, `050-123-4567`,
+    `+972 50 123 4567` does NOT pass — candidates must use the local form).
     Used by CandidateProfileCreate and CandidateProfileUpdate.
     """
     if v is None or v == "":
@@ -28,8 +31,8 @@ def _validate_phone_value(v: str | None) -> str | None:
     if not re.match(pattern, v):
         raise ValueError("Phone number may only contain digits, spaces, +, -, (, )")
     digits = re.sub(r"\D", "", v)
-    if len(digits) < 5:
-        raise ValueError("Phone number must have at least 5 digits")
+    if not re.fullmatch(r"05\d{8}", digits):
+        raise ValueError("Phone must be a valid Israeli mobile number (05X-XXXXXXX)")
     return v
 
 
@@ -162,6 +165,7 @@ class CompanyProfileRead(BaseModel):
     logo_url: str | None
     company_id: str
     address: str
+    contact_email: EmailStr
     contact_first_name: str
     contact_last_name: str
     contact_mobile_phone: str
@@ -713,6 +717,7 @@ class CompanyProfileAdminCreate(BaseModel):
     name: str = Field(..., max_length=100)
     company_id: str  # ח.פ — 9-digit Israeli company registration number
     address: str = Field(..., max_length=200)
+    contact_email: EmailStr = Field(..., max_length=255)
     contact_first_name: str = Field(..., min_length=2, max_length=100)
     contact_last_name: str = Field(..., min_length=2, max_length=100)
     contact_mobile_phone: str
@@ -748,6 +753,7 @@ class CompanyProfileAdminUpdate(BaseModel):
     name: str | None = Field(None, max_length=100)
     company_id: str | None = None
     address: str | None = Field(None, max_length=200)
+    contact_email: EmailStr | None = Field(None, max_length=255)
     contact_first_name: str | None = Field(None, min_length=2, max_length=100)
     contact_last_name: str | None = Field(None, min_length=2, max_length=100)
     contact_mobile_phone: str | None = None
@@ -756,6 +762,7 @@ class CompanyProfileAdminUpdate(BaseModel):
     @field_validator(
         "name",
         "address",
+        "contact_email",
         "contact_first_name",
         "contact_last_name",
     )

@@ -36,9 +36,16 @@ async def test_download_resume_not_found(admin_client: AsyncClient, tmp_path: Pa
 
 @pytest.mark.asyncio
 async def test_download_resume_success(admin_client: AsyncClient, tmp_path: Path):
-    """Returns 200 and file content for a valid existing resume."""
+    """Returns 200 and file content for a valid existing resume.
+
+    Files live under `<storage>/resumes/<key>` (storage providers prepend
+    the `resumes/` prefix on upload); the route re-adds that prefix before
+    reading from disk.
+    """
     fake_pdf = b"%PDF-1.4 fake content"
-    (tmp_path / "resume.pdf").write_bytes(fake_pdf)
+    resumes_dir = tmp_path / "resumes"
+    resumes_dir.mkdir()
+    (resumes_dir / "resume.pdf").write_bytes(fake_pdf)
 
     mock_settings = MagicMock()
     mock_settings.storage_provider = "local"
@@ -53,19 +60,19 @@ async def test_download_resume_success(admin_client: AsyncClient, tmp_path: Path
 
 @pytest.mark.asyncio
 async def test_download_resume_s3_redirects(admin_client: AsyncClient):
-    """For S3 storage, returns a redirect to the presigned URL."""
+    """For S3 storage, returns a redirect to the presigned URL — and the key
+    passed to the storage provider must include the `resumes/` prefix, since
+    that's where files actually live under the bucket."""
     mock_settings = MagicMock()
     mock_settings.storage_provider = "s3"
 
-    mock_storage = MagicMock()
-    mock_storage.get_file_url = MagicMock(
-        return_value="https://s3.example.com/presigned"
-    )
-    # get_file_url is awaited, so wrap in a coroutine
+    received_keys: list[str] = []
 
-    async def fake_get_url(key):  # noqa: ARG001
+    async def fake_get_url(key: str):
+        received_keys.append(key)
         return "https://s3.example.com/presigned"
 
+    mock_storage = MagicMock()
     mock_storage.get_file_url = fake_get_url
 
     with (
@@ -78,3 +85,4 @@ async def test_download_resume_s3_redirects(admin_client: AsyncClient):
 
     assert response.status_code == 302
     assert response.headers["location"] == "https://s3.example.com/presigned"
+    assert received_keys == ["resumes/abc123.pdf"]

@@ -55,6 +55,10 @@ export async function getInvites(
 }
 
 export async function revokeInvite(tokenId: number): Promise<void> {
+  await api.post(`/api/admin/companies/invites/${tokenId}/revoke`);
+}
+
+export async function deleteInvite(tokenId: number): Promise<void> {
   await api.delete(`/api/admin/companies/invites/${tokenId}`);
 }
 

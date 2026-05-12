@@ -514,6 +514,7 @@ async def seed() -> None:
                     name=c["company_name"],
                     company_id=c["company_id"],
                     address=c["address"],
+                    contact_email=c["email"],
                     contact_first_name=c["contact_first_name"],
                     contact_last_name=c["contact_last_name"],
                     contact_mobile_phone=c["contact_mobile_phone"],

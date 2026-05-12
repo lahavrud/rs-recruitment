@@ -193,14 +193,15 @@ BASE_CREATE = {
 @pytest.mark.parametrize(
     "schema_class,phone,expected",
     [
-        (CandidateProfileCreate, "+972 50 123 4567", "+972 50 123 4567"),
+        (CandidateProfileCreate, "0501234567", "0501234567"),
         (CandidateProfileCreate, "050-123-4567", "050-123-4567"),
-        (CandidateProfileCreate, "(03) 123 4567", "(03) 123 4567"),
-        (CandidateProfileUpdate, "+1 800 555 1234", "+1 800 555 1234"),
+        (CandidateProfileCreate, "050 123 4567", "050 123 4567"),
+        (CandidateProfileUpdate, "(050) 123-4567", "(050) 123-4567"),
     ],
 )
 def test_valid_phone(schema_class, phone, expected):
-    """Test that valid phone numbers are accepted."""
+    """Israeli mobile (10 digits starting with 05) — accepted in any common
+    shape (spaces, dashes, parens), regardless of update vs create."""
     if schema_class is CandidateProfileCreate:
         kwargs = {**BASE_CREATE, "phone": phone}
     else:
@@ -214,9 +215,16 @@ def test_valid_phone(schema_class, phone, expected):
     [
         (CandidateProfileCreate, "", "required"),
         (CandidateProfileCreate, "abc", "digits, spaces"),
-        (CandidateProfileCreate, "123", "at least 5 digits"),
+        # 9 digits, looks Israeli but missing one — the bug that prompted
+        # tightening from min-5-digits to a strict 05\\d{8} match.
+        (CandidateProfileCreate, "051234567", "Israeli mobile"),
+        # Landline (03) — no longer accepted; candidates must use a mobile.
+        (CandidateProfileCreate, "(03) 123 4567", "Israeli mobile"),
+        # International format — same number, but candidates must enter the
+        # local form so we have a uniform shape downstream.
+        (CandidateProfileCreate, "+972 50 123 4567", "Israeli mobile"),
         (CandidateProfileUpdate, "!@#$", "digits, spaces"),
-        (CandidateProfileUpdate, "1234", "at least 5 digits"),
+        (CandidateProfileUpdate, "1234", "Israeli mobile"),
         # phone is NOT NULL in the DB — explicit null on PATCH is rejected
         (CandidateProfileUpdate, None, "null on update"),
     ],

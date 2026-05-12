@@ -13,6 +13,7 @@ def _required_fields() -> dict:
         "name": "Test Company",
         "company_id": "123456789",
         "address": "רח׳ הדוגמה 1, תל אביב",
+        "contact_email": "test-company@example.com",
         "contact_first_name": "ישראל",
         "contact_last_name": "ישראלי",
         "contact_mobile_phone": "0501234567",

@@ -40,6 +40,7 @@ async def _make_pending_company(session: AsyncSession) -> tuple[User, str]:
         name="Test Co",
         company_id="123456789",
         address="רח׳ הדוגמה 1, תל אביב",
+        contact_email=user.email,
         contact_first_name="ישראל",
         contact_last_name="ישראלי",
         contact_mobile_phone="0501234567",

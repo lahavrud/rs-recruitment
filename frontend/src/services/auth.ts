@@ -7,6 +7,7 @@ import type {
 } from "@/types/api";
 import {
   getRefreshToken,
+  getToken,
   removeRefreshToken,
   removeToken,
   setRefreshToken,
@@ -76,9 +77,32 @@ export async function resetPassword(
 }
 
 export function logout(): void {
+  // Capture tokens BEFORE clearing — the server endpoint requires the access
+  // token for auth and the refresh token for revocation. Clearing first
+  // would cause a 401 because no Authorization header would be attached.
+  const accessToken = getToken();
   const refreshToken = getRefreshToken();
   removeToken();
   removeRefreshToken();
-  // Best-effort server-side revocation — fire and forget, don't block the caller
-  void api.post("/auth/logout", refreshToken ? { refresh_token: refreshToken } : null).catch(() => {});
+  // Best-effort server-side revocation. We use `fetch` with `keepalive: true`
+  // instead of axios so the request survives the navigation that almost
+  // always follows logout() — otherwise Firefox cancels it mid-flight and
+  // logs `NS_BINDING_ABORTED`.
+  const baseURL = import.meta.env.DEV
+    ? ""
+    : (import.meta.env.VITE_API_BASE_URL ?? "");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  try {
+    void fetch(`${baseURL}/auth/logout`, {
+      method: "POST",
+      keepalive: true,
+      headers,
+      body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : null),
+    }).catch(() => {});
+  } catch {
+    // sendBeacon-style fire-and-forget — swallow sync errors too
+  }
 }

@@ -42,7 +42,7 @@ async def test_update_candidate_profile_updates_full_name_and_fills_unset(
     candidate = CandidateProfile(
         full_name="John Doe",
         email="john@example.com",
-        phone="000-000-0000",
+        phone="050-000-0000",
         linkedin_url=None,
     )
     session.add(candidate)
@@ -52,7 +52,7 @@ async def test_update_candidate_profile_updates_full_name_and_fills_unset(
     new_data = CandidateProfileCreate(
         full_name="John Smith",
         email="john@example.com",
-        phone="123-456-7890",  # never overwritten
+        phone="050-123-4567",  # never overwritten
         linkedin_url="https://linkedin.com/in/johndoe",
     )
 
@@ -63,7 +63,7 @@ async def test_update_candidate_profile_updates_full_name_and_fills_unset(
     )
 
     assert updated.full_name == "John Smith"
-    assert updated.phone == "000-000-0000"  # preserved
+    assert updated.phone == "050-000-0000"  # preserved
     assert updated.linkedin_url == "https://linkedin.com/in/johndoe"
     assert updated.email == "john@example.com"  # never changes
 
@@ -73,12 +73,12 @@ async def test_update_candidate_profile_requires_session():
     candidate = CandidateProfile(
         full_name="John Doe",
         email="john@example.com",
-        phone="000-000-0000",
+        phone="050-000-0000",
     )
     data = CandidateProfileCreate(
         full_name="John Doe",
         email="john@example.com",
-        phone="000-000-0000",
+        phone="050-000-0000",
     )
     with pytest.raises(ValueError, match="Database session is required"):
         await update_candidate_profile(

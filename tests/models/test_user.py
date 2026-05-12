@@ -84,6 +84,7 @@ async def test_orphan_company_profile_user_is_none(session: AsyncSession):
         user_id=None,
         company_id="999999999",
         address="כתובת לדוגמה",
+        contact_email="pre-invite@example.com",
         contact_first_name="א",
         contact_last_name="ב",
         contact_mobile_phone="0500000000",

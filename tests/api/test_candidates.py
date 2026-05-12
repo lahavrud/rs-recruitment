@@ -25,7 +25,7 @@ async def test_apply_endpoint_success(
         "job_id": published_job.id,
         "full_name": "John Doe",
         "email": "john@example.com",
-        "phone": "123-456-7890",
+        "phone": "050-123-4567",
         "linkedin_url": "https://linkedin.com/in/johndoe",
         "service_concept": "I want to work on exciting projects",
         "salary_expectations": "100k-120k",
@@ -37,7 +37,7 @@ async def test_apply_endpoint_success(
     data = response.json()
     assert data["full_name"] == "John Doe"
     assert data["email"] == "john@example.com"
-    assert data["phone"] == "123-456-7890"
+    assert data["phone"] == "050-123-4567"
     assert data["id"] is not None
 
     # Verify candidate was created in database
@@ -86,7 +86,7 @@ async def test_apply_endpoint_with_resume(
         "job_id": published_job.id,
         "full_name": "Jane Doe",
         "email": "jane@example.com",
-        "phone": "987-654-3210",
+        "phone": "050-987-6543",
     }
 
     files = {"resume": ("resume.pdf", b"%PDF-1.4\x00" * 5, "application/pdf")}

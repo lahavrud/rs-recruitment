@@ -1,4 +1,13 @@
-import { type ChangeEvent, type FocusEvent, type FormEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type FocusEvent,
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
@@ -10,6 +19,10 @@ import axios from "axios";
 const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const TEXT_FIELD_MAX = 2000;
+
+const TOTAL_STEPS = 3;
+type Step = 1 | 2 | 3;
 
 const EMPTY_FORM: Omit<CandidateApplicationForm, "job_id"> = {
   full_name: "",
@@ -22,26 +35,48 @@ const EMPTY_FORM: Omit<CandidateApplicationForm, "job_id"> = {
   personality_strength: "",
 };
 
+const STEP_1_FIELDS = ["full_name", "email", "phone", "linkedin_url"] as const;
+const STEP_3_FIELDS = [
+  "service_concept",
+  "salary_expectations",
+  "personality_strength",
+  "personality_weakness",
+] as const;
+
+const textareaCls = textareaBase + " min-h-[96px]";
+
+// ── Reusable field wrapper ────────────────────────────────────────────────
+
 interface FieldProps {
   label: string;
   id: string;
   required?: boolean;
+  optional?: boolean;
   children: ReactNode;
 }
 
-function Field({ label, id, required, children }: FieldProps) {
+function Field({ label, id, required, optional, children }: FieldProps) {
+  const { t } = useTranslation();
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm text-white/50">
-        {label}
-        {required && <span className="ms-1 text-copper/80">*</span>}
+    <div data-field={id}>
+      <label
+        htmlFor={id}
+        className="flex items-center gap-1.5 text-xs text-white/55"
+      >
+        <span>{label}</span>
+        {required && <span className="text-copper/80">*</span>}
+        {optional && (
+          <span className="text-[10px] text-white/30">
+            ({t("common.optional")})
+          </span>
+        )}
       </label>
       <div className="mt-1.5">{children}</div>
     </div>
   );
 }
 
-const textareaCls = textareaBase + " min-h-[88px]";
+// ── Page ──────────────────────────────────────────────────────────────────
 
 export default function ApplicationPage() {
   const { t } = useTranslation();
@@ -63,81 +98,129 @@ export default function ApplicationPage() {
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // Wizard state — track current step + the highest step reached so the
+  // stepper only lets candidates jump back to steps they've completed.
+  const [step, setStep] = useState<Step>(1);
+  const [maxStep, setMaxStep] = useState<Step>(1);
+
+  // ── Validation ──────────────────────────────────────────────────────────
+
   function validateField(name: string, value: string): string | null {
-    const v = t;
     if (name === "full_name") {
-      if (!value.trim()) return v("publicJobs.application.validation.fullNameRequired");
-      if (value.trim().length < 2) return v("publicJobs.application.validation.fullNameMin");
-      if (value.length > 100) return v("publicJobs.application.validation.fullNameMax");
+      if (!value.trim())
+        return t("publicJobs.application.validation.fullNameRequired");
+      if (value.trim().length < 2)
+        return t("publicJobs.application.validation.fullNameMin");
+      if (value.length > 100)
+        return t("publicJobs.application.validation.fullNameMax");
     }
     if (name === "email") {
-      if (!value.trim()) return v("publicJobs.application.validation.emailRequired");
-      if (value.length > 255) return v("publicJobs.application.validation.emailMax");
+      if (!value.trim())
+        return t("publicJobs.application.validation.emailRequired");
+      if (value.length > 255)
+        return t("publicJobs.application.validation.emailMax");
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) return v("publicJobs.application.validation.emailInvalid");
+      if (!emailRegex.test(value))
+        return t("publicJobs.application.validation.emailInvalid");
     }
     if (name === "phone") {
-      if (!value.trim()) return v("publicJobs.application.validation.phoneRequired");
+      if (!value.trim())
+        return t("publicJobs.application.validation.phoneRequired");
       const phoneRegex = /^[+\d\s()-]*$/;
-      if (!phoneRegex.test(value)) return v("publicJobs.application.validation.phoneInvalid");
-      if (value.replace(/\D/g, "").length < 5) return v("publicJobs.application.validation.phoneMin");
+      if (!phoneRegex.test(value))
+        return t("publicJobs.application.validation.phoneInvalid");
+      // Israeli mobile: exactly 10 digits starting with 05 after stripping
+      // spaces/dashes/parens. Matches backend `_validate_phone_value`.
+      const digits = value.replace(/\D/g, "");
+      if (!/^05\d{8}$/.test(digits))
+        return t("publicJobs.application.validation.phoneFormat");
     }
     if (name === "linkedin_url" && value.trim()) {
       let parsed: URL;
       try {
         parsed = new URL(value);
       } catch {
-        return v("publicJobs.application.validation.urlInvalid");
+        return t("publicJobs.application.validation.urlInvalid");
       }
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return v("publicJobs.application.validation.urlProtocol");
+        return t("publicJobs.application.validation.urlProtocol");
       }
       if (!parsed.hostname.endsWith("linkedin.com")) {
-        return v("publicJobs.application.validation.urlLinkedin");
+        return t("publicJobs.application.validation.urlLinkedin");
       }
     }
-    const textFields = ["service_concept", "salary_expectations", "personality_strength", "personality_weakness"];
-    if (textFields.includes(name) && value.length > 2000) {
-      return v("publicJobs.application.validation.textMax");
+    if (
+      (STEP_3_FIELDS as readonly string[]).includes(name) &&
+      value.length > TEXT_FIELD_MAX
+    ) {
+      return t("publicJobs.application.validation.textMax");
     }
     return null;
   }
 
-  function validateForm(): boolean {
-    const errors: Record<string, string> = {};
-    Object.entries(form).forEach(([key, value]) => {
-      const error = validateField(key, value);
-      if (error) errors[key] = error;
-    });
-    setFieldErrors(errors);
-    if (!resumeFile && !resumeError) {
-      setResumeError(t("publicJobs.application.resumeErrors.required"));
+  function validateStep(target: Step): boolean {
+    const errors: Record<string, string> = { ...fieldErrors };
+    let ok = true;
+
+    if (target === 1) {
+      for (const name of STEP_1_FIELDS) {
+        const err = validateField(name, form[name] ?? "");
+        if (err) {
+          errors[name] = err;
+          ok = false;
+        } else {
+          delete errors[name];
+        }
+      }
+      setFieldErrors(errors);
+      return ok;
     }
-    return Object.keys(errors).length === 0 && !!resumeFile && !resumeError;
+
+    if (target === 2) {
+      if (!resumeFile) {
+        setResumeError(t("publicJobs.application.resumeErrors.required"));
+        return false;
+      }
+      if (resumeError) return false;
+      return true;
+    }
+
+    // Step 3 fields are optional — only validate maxlen.
+    for (const name of STEP_3_FIELDS) {
+      const err = validateField(name, form[name] ?? "");
+      if (err) {
+        errors[name] = err;
+        ok = false;
+      } else {
+        delete errors[name];
+      }
+    }
+    setFieldErrors(errors);
+    return ok;
   }
 
   function handleBlur(e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     const error = validateField(name, value);
-    setFieldErrors(prev => ({ ...prev, [name]: error || "" }));
+    setFieldErrors((prev) => ({ ...prev, [name]: error || "" }));
   }
 
   function handleChange(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (fieldErrors[name]) {
-      setFieldErrors(prev => ({ ...prev, [name]: "" }));
+      setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     }
   }
+
+  // ── Job fetch ───────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!Number.isFinite(jobId)) {
       navigate("/jobs", { replace: true });
       return;
     }
-
     let cancelled = false;
-
     async function fetchJob() {
       try {
         const data = await getPublicJob(jobId);
@@ -154,50 +237,152 @@ export default function ApplicationPage() {
         if (!cancelled) setJobLoading(false);
       }
     }
-
     fetchJob();
     return () => {
       cancelled = true;
     };
   }, [jobId, navigate, t]);
 
-  function handleResumeChange(e: ChangeEvent<HTMLInputElement>) {
+  // ── Resume handling (drag-drop + click) ─────────────────────────────────
+
+  function ingestResume(file: File | null) {
     setResumeError(null);
-    const file = e.target.files?.[0] ?? null;
     if (!file) {
       setResumeFile(null);
       return;
     }
-
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      setResumeError(t("publicJobs.application.resumeErrors.invalidExtension"));
-      e.target.value = "";
+      setResumeError(
+        t("publicJobs.application.resumeErrors.invalidExtension"),
+      );
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setResumeError(t("publicJobs.application.resumeErrors.fileTooBig", { maxSize: MAX_FILE_SIZE_MB }));
-      e.target.value = "";
+      setResumeError(
+        t("publicJobs.application.resumeErrors.fileTooBig", {
+          maxSize: MAX_FILE_SIZE_MB,
+        }),
+      );
       return;
     }
-
     setResumeFile(file);
+  }
+
+  function handleResumeChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    ingestResume(file);
+    // Reset the input so the same file can be re-picked after a remove.
+    e.target.value = "";
   }
 
   function clearResume() {
     setResumeFile(null);
     setResumeError(null);
-    const input = document.getElementById("resume") as HTMLInputElement | null;
-    if (input) input.value = "";
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!Number.isFinite(jobId)) return;
+  // ── Step navigation ─────────────────────────────────────────────────────
 
-    if (!validateForm()) {
+  function handleNext() {
+    if (!validateStep(step)) return;
+    const next = Math.min(step + 1, TOTAL_STEPS) as Step;
+    setStep(next);
+    if (next > maxStep) setMaxStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleBack() {
+    if (step > 1) {
+      setStep((s) => (s - 1) as Step);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function jumpTo(target: Step) {
+    if (target === step || target > maxStep) return;
+    // Backward jumps are always free — the user can edit any reached step.
+    if (target < step) {
+      setStep(target);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    // Forward jumps must clear validation for every intermediate step;
+    // otherwise the candidate could re-break a field on step 1, click
+    // step 3 in the stepper, and skip past the invalid state.
+    for (let s = step; s < target; s++) {
+      if (!validateStep(s as Step)) {
+        setStep(s as Step);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+    }
+    setStep(target);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // The form's onSubmit is ONLY allowed to perform the real network submit,
+  // and only when we're on the final step. Any other submit-shaped event
+  // (a stray Enter keypress, a future button that forgets type="button",
+  // an implicit single-control form submission, etc.) is swallowed. This
+  // is intentional belt-and-braces: a previous version routed non-final
+  // submits through handleNext, which caused the wizard to surprise-submit
+  // when transitioning between steps.
+  function handleFormSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (step !== TOTAL_STEPS) return;
+    void doFinalSubmit();
+  }
+
+  /**
+   * Pull a useful message out of a FastAPI error. Returns a Hebrew message
+   * that mentions the offending field when we can identify one, so
+   * candidates aren't stuck on a generic "something went wrong" toast.
+   */
+  function describeServerError(err: unknown): string {
+    if (!axios.isAxiosError(err)) {
+      return t("publicJobs.application.errors.generic");
+    }
+    const httpStatus = err.response?.status;
+    if (httpStatus === 409) {
+      return t("publicJobs.application.errors.alreadyApplied");
+    }
+    if (httpStatus === 404) {
+      return t("publicJobs.application.errors.jobUnavailable");
+    }
+    const detail = err.response?.data?.detail;
+    if (typeof detail === "string" && detail) return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      // FastAPI 422 shape: [{type, loc: [...], msg, input}, …]
+      const items = detail
+        .map((d: { loc?: unknown[]; msg?: string }) => {
+          const loc = Array.isArray(d.loc) ? d.loc : [];
+          const field = loc.filter((p) => p !== "body").join(".");
+          const msg = d.msg ?? "";
+          return field ? `${field}: ${msg}` : msg;
+        })
+        .filter(Boolean);
+      if (items.length > 0) {
+        return `${t("publicJobs.application.errors.generic")} (${items.join("; ")})`;
+      }
+    }
+    return t("publicJobs.application.errors.generic");
+  }
+
+  async function doFinalSubmit() {
+    if (!Number.isFinite(jobId)) return;
+    // Hard guard — submitting from anywhere other than the final step is a
+    // bug. Bail out instead of POSTing a half-filled application.
+    if (step !== TOTAL_STEPS) return;
+    // Re-validate everything before final submit.
+    if (!validateStep(1)) {
+      setStep(1);
+      return;
+    }
+    if (!validateStep(2)) {
+      setStep(2);
+      return;
+    }
+    if (!validateStep(3)) return;
 
     setSubmitting(true);
     setSubmitError(null);
@@ -206,27 +391,20 @@ export default function ApplicationPage() {
       await submitApplication(jobId, form, resumeFile);
       setSuccess(true);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const status = err.response?.status;
-        if (status === 409) {
-          setSubmitError(t("publicJobs.application.errors.alreadyApplied"));
-        } else if (status === 404) {
-          setSubmitError(t("publicJobs.application.errors.jobUnavailable"));
-        } else {
-          setSubmitError(t("publicJobs.application.errors.generic"));
-        }
-      } else {
-        setSubmitError(t("publicJobs.application.errors.generic"));
-      }
+      setSubmitError(describeServerError(err));
     } finally {
       setSubmitting(false);
     }
   }
 
+  // ── Early returns ───────────────────────────────────────────────────────
+
   if (jobLoading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-white/30">{t("publicJobs.application.loading")}</div>
+        <div className="text-white/30">
+          {t("publicJobs.application.loading")}
+        </div>
       </div>
     );
   }
@@ -234,7 +412,9 @@ export default function ApplicationPage() {
   if (jobError) {
     return (
       <div className="text-center">
-        <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-sm text-danger">{jobError}</div>
+        <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-sm text-danger">
+          {jobError}
+        </div>
         <Link
           to="/jobs"
           className="mt-6 inline-block text-sm text-white/40 transition hover:text-copper"
@@ -271,8 +451,17 @@ export default function ApplicationPage() {
     );
   }
 
+  // ── Main render ─────────────────────────────────────────────────────────
+
+  const stepHint =
+    step === 1
+      ? t("publicJobs.application.identityStepHint")
+      : step === 2
+        ? t("publicJobs.application.resumeStepHint")
+        : null;
+
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl pb-24">
       {job && (
         <SeoHead
           title={`${t("publicJobs.application.applyFor")} ${job.title}`}
@@ -280,9 +469,10 @@ export default function ApplicationPage() {
           canonical={`${SITE_URL}/jobs/${jobId}/apply`}
         />
       )}
+
       <Link
         to={`/jobs/${jobId}`}
-        className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -300,239 +490,572 @@ export default function ApplicationPage() {
         {t("publicJobs.application.backToJob")}
       </Link>
 
-      {/* Job summary card */}
-      <div className="mb-8 rounded-xl border border-white/8 bg-card p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-              {t("publicJobs.application.applyFor")}
+      {/* Compact job header */}
+      <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-4">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+            {t("publicJobs.application.applyFor")}
+          </p>
+          <h1 className="mt-1 truncate text-lg font-semibold text-white/90 sm:text-xl">
+            {job?.title}
+          </h1>
+          {job?.location && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/40">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className="size-3 shrink-0"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {job.location}
             </p>
-            <h1 className="mt-1.5 text-xl font-semibold text-white/90 sm:text-2xl">
-              {job?.title}
-            </h1>
-            {job?.location && (
-              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/40">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="size-3.5 shrink-0"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                {job.location}
-              </p>
-            )}
-          </div>
-          <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-            {t("publicJobs.board.open")}
-          </span>
+          )}
         </div>
+        <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-medium text-success">
+          {t("publicJobs.board.open")}
+        </span>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-10" noValidate>
+      <Stepper step={step} maxStep={maxStep} onJump={jumpTo} />
+
+      <form onSubmit={handleFormSubmit} className="mt-8 space-y-6" noValidate>
         {submitError && (
           <div className="rounded-lg border border-danger/20 bg-danger/10 p-4 text-sm text-danger">
             {submitError}
           </div>
         )}
 
-        <section>
-          <h2 className="mb-5 text-[10px] font-semibold uppercase tracking-widest text-copper">
-            {t("publicJobs.application.personalSection")}
-          </h2>
-          <div className="space-y-4">
-            <Field label={t("publicJobs.application.fullName")} id="full_name" required>
-              <input
-                id="full_name"
-                name="full_name"
-                type="text"
-                required
-                value={form.full_name}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={inputCls}
-                placeholder={t("publicJobs.application.placeholders.fullName")}
-                autoComplete="name"
-              />
-              {fieldErrors.full_name && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.full_name}</p>
-              )}
-            </Field>
+        {stepHint && (
+          <p className="text-sm leading-relaxed text-white/45">{stepHint}</p>
+        )}
 
-            <Field label={t("publicJobs.application.email")} id="email" required>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={inputCls}
-                placeholder={t("publicJobs.application.placeholders.email")}
-                autoComplete="email"
-              />
-              {fieldErrors.email && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
-              )}
-            </Field>
+        <div key={step} className="page-enter">
+          {step === 1 && (
+            <IdentityStep
+              form={form}
+              fieldErrors={fieldErrors}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
+          )}
+          {step === 2 && (
+            <ResumeStep
+              file={resumeFile}
+              error={resumeError}
+              onFile={ingestResume}
+              onPick={handleResumeChange}
+              onClear={clearResume}
+            />
+          )}
+          {step === 3 && (
+            <QuestionsStep
+              form={form}
+              fieldErrors={fieldErrors}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
+          )}
+        </div>
 
-            <Field label={t("publicJobs.application.phone")} id="phone" required>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={form.phone}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={inputCls}
-                placeholder={t("publicJobs.application.placeholders.phone")}
-                autoComplete="tel"
-              />
-              {fieldErrors.phone && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.phone}</p>
-              )}
-            </Field>
+        <StepNav
+          step={step}
+          submitting={submitting}
+          onBack={handleBack}
+          onNext={handleNext}
+        />
+      </form>
+    </div>
+  );
+}
 
-            <Field label={t("publicJobs.application.linkedin")} id="linkedin_url">
-              <input
-                id="linkedin_url"
-                name="linkedin_url"
-                type="url"
-                value={form.linkedin_url}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={inputCls}
-                placeholder={t("publicJobs.application.placeholders.linkedin")}
-              />
-              {fieldErrors.linkedin_url && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.linkedin_url}</p>
-              )}
-            </Field>
-          </div>
-        </section>
+// ── Stepper ──────────────────────────────────────────────────────────────
 
-        <section>
-          <h2 className="mb-5 text-[10px] font-semibold uppercase tracking-widest text-copper">
-            {t("publicJobs.application.resumeSection")}
-          </h2>
-          <Field label={t("publicJobs.application.resumeUpload")} id="resume" required>
-            {resumeFile ? (
-              <div className="flex items-center gap-3 rounded-sm border border-white/10 bg-well px-3 py-2">
-                <span className="flex-1 truncate text-sm text-white/65">
-                  {resumeFile.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={clearResume}
-                  className="shrink-0 text-xs text-danger/70 transition hover:text-danger"
+function Stepper({
+  step,
+  maxStep,
+  onJump,
+}: {
+  step: Step;
+  maxStep: Step;
+  onJump: (s: Step) => void;
+}) {
+  const { t } = useTranslation();
+  const labels: [Step, string][] = [
+    [1, t("publicJobs.application.steps.identity")],
+    [2, t("publicJobs.application.steps.resume")],
+    [3, t("publicJobs.application.steps.questions")],
+  ];
+  return (
+    <div>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+        {t("publicJobs.application.steps.indicator", {
+          current: step,
+          total: TOTAL_STEPS,
+        })}
+      </p>
+      {/* Step 1 sits at the visual start of the row — in RTL that means
+          the right side. Hebrew labels render naturally. */}
+      <ol className="flex items-center gap-2">
+        {labels.map(([n, label], i) => {
+          const isActive = n === step;
+          const isComplete = n < step;
+          const isReachable = n <= maxStep;
+          return (
+            <li
+              key={n}
+              className="flex flex-1 items-center gap-2 first:ms-0 last:me-0"
+            >
+              <button
+                type="button"
+                disabled={!isReachable}
+                onClick={() => onJump(n)}
+                aria-current={isActive ? "step" : undefined}
+                className={[
+                  "group flex flex-1 items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition",
+                  isActive
+                    ? "border-copper bg-copper/15 text-white"
+                    : isComplete
+                      ? "border-copper/30 text-white/70 hover:border-copper/60 hover:bg-copper/10"
+                      : "border-white/10 text-white/35",
+                  !isReachable && "cursor-default",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <span
+                  className={[
+                    "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
+                    isActive
+                      ? "bg-copper text-white"
+                      : isComplete
+                        ? "bg-copper/80 text-white"
+                        : "bg-white/8 text-white/50",
+                  ].join(" ")}
                 >
-                  {t("publicJobs.application.removeFile")}
-                </button>
-              </div>
-            ) : (
-              <input
-                id="resume"
-                name="resume"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleResumeChange}
-                className="block w-full text-sm text-white/40 file:me-3 file:rounded-sm file:border-0 file:bg-copper/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-copper hover:file:bg-copper/20"
-              />
-            )}
-          </Field>
-          {resumeError && <p className="mt-1.5 text-xs text-danger">{resumeError}</p>}
-          <p className="mt-1.5 text-xs text-white/25">
-            {t("publicJobs.application.fileHint", { maxSize: MAX_FILE_SIZE_MB })}
-          </p>
-        </section>
-
-        <section>
-          <h2 className="mb-2 border-b border-white/8 pb-3 text-sm font-semibold text-white/70">
-            {t("publicJobs.application.interviewSection")}
-          </h2>
-          <p className="mb-4 -mt-2 text-xs text-white/30">
-            {t("publicJobs.application.interviewSectionHint")}
-          </p>
-          <div className="space-y-4">
-            <Field label={t("publicJobs.application.serviceConcept")} id="service_concept">
-              <textarea
-                id="service_concept"
-                name="service_concept"
-                value={form.service_concept}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={textareaCls}
-                placeholder={t("publicJobs.application.placeholders.serviceConcept")}
-              />
-              {fieldErrors.service_concept && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.service_concept}</p>
+                  {isComplete ? (
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                      className="size-3"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M14.78 4.22a.75.75 0 0 1 0 1.06l-7 7a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06L7.25 10.69l6.47-6.47a.75.75 0 0 1 1.06 0Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : (
+                    n
+                  )}
+                </span>
+                <span className="truncate font-medium">{label}</span>
+              </button>
+              {i < labels.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className={`h-px flex-1 transition-colors ${
+                    isComplete ? "bg-copper/40" : "bg-white/8"
+                  }`}
+                />
               )}
-            </Field>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
 
-            <Field label={t("publicJobs.application.salaryExpectations")} id="salary_expectations">
-              <textarea
-                id="salary_expectations"
-                name="salary_expectations"
-                value={form.salary_expectations}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={textareaCls}
-                placeholder={t("publicJobs.application.placeholders.salaryExpectations")}
-              />
-              {fieldErrors.salary_expectations && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.salary_expectations}</p>
-              )}
-            </Field>
+// ── Step 1: Identity ─────────────────────────────────────────────────────
 
-            <Field label={t("publicJobs.application.strength")} id="personality_strength">
-              <textarea
-                id="personality_strength"
-                name="personality_strength"
-                value={form.personality_strength}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={textareaCls}
-                placeholder={t("publicJobs.application.placeholders.strength")}
-              />
-              {fieldErrors.personality_strength && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.personality_strength}</p>
-              )}
-            </Field>
+function IdentityStep({
+  form,
+  fieldErrors,
+  onChange,
+  onBlur,
+}: {
+  form: Omit<CandidateApplicationForm, "job_id">;
+  fieldErrors: Record<string, string>;
+  onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onBlur: (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-4">
+      <Field
+        label={t("publicJobs.application.fullName")}
+        id="full_name"
+        required
+      >
+        <input
+          id="full_name"
+          name="full_name"
+          type="text"
+          required
+          value={form.full_name}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={inputCls}
+          placeholder={t("publicJobs.application.placeholders.fullName")}
+          autoComplete="name"
+          aria-invalid={!!fieldErrors.full_name}
+        />
+        {fieldErrors.full_name && (
+          <p className="mt-1 text-xs text-danger">{fieldErrors.full_name}</p>
+        )}
+      </Field>
 
-            <Field label={t("publicJobs.application.weakness")} id="personality_weakness">
-              <textarea
-                id="personality_weakness"
-                name="personality_weakness"
-                value={form.personality_weakness}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={textareaCls}
-                placeholder={t("publicJobs.application.placeholders.weakness")}
+      <Field label={t("publicJobs.application.email")} id="email" required>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          value={form.email}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={inputCls}
+          placeholder={t("publicJobs.application.placeholders.email")}
+          autoComplete="email"
+          aria-invalid={!!fieldErrors.email}
+        />
+        {fieldErrors.email && (
+          <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
+        )}
+      </Field>
+
+      <Field label={t("publicJobs.application.phone")} id="phone" required>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          value={form.phone}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={inputCls}
+          placeholder={t("publicJobs.application.placeholders.phone")}
+          autoComplete="tel"
+          aria-invalid={!!fieldErrors.phone}
+        />
+        {fieldErrors.phone && (
+          <p className="mt-1 text-xs text-danger">{fieldErrors.phone}</p>
+        )}
+      </Field>
+
+      <Field
+        label={t("publicJobs.application.linkedin")}
+        id="linkedin_url"
+        optional
+      >
+        <input
+          id="linkedin_url"
+          name="linkedin_url"
+          type="url"
+          value={form.linkedin_url}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={inputCls}
+          placeholder={t("publicJobs.application.placeholders.linkedin")}
+          aria-invalid={!!fieldErrors.linkedin_url}
+        />
+        {fieldErrors.linkedin_url && (
+          <p className="mt-1 text-xs text-danger">{fieldErrors.linkedin_url}</p>
+        )}
+      </Field>
+    </div>
+  );
+}
+
+// ── Step 2: Resume ───────────────────────────────────────────────────────
+
+function ResumeStep({
+  file,
+  error,
+  onFile,
+  onPick,
+  onClear,
+}: {
+  file: File | null;
+  error: string | null;
+  onFile: (f: File | null) => void;
+  onPick: (e: ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}) {
+  const { t } = useTranslation();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  function onDragOver(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    if (!dragging) setDragging(true);
+  }
+  function onDragLeave() {
+    setDragging(false);
+  }
+  function onDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    const dropped = e.dataTransfer.files?.[0] ?? null;
+    onFile(dropped);
+  }
+
+  return (
+    <div>
+      {file ? (
+        <div className="flex items-center gap-3 rounded-xl border border-copper/30 bg-card-raised p-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-copper/15 text-copper">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="size-5"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Zm0 0v6h6"
               />
-              {fieldErrors.personality_weakness && (
-                <p className="mt-1 text-xs text-danger">{fieldErrors.personality_weakness}</p>
-              )}
-            </Field>
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white/85">
+              {file.name}
+            </p>
+            <p className="mt-0.5 text-xs text-white/40">
+              {t("publicJobs.application.fileSizeBytes", {
+                kb: Math.round(file.size / 1024).toLocaleString("he-IL"),
+              })}
+            </p>
           </div>
-        </section>
-
-        <div className="border-t border-white/8 pt-8">
           <button
-            type="submit"
-            disabled={submitting || !!resumeError}
-            className="rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition hover:bg-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            type="button"
+            onClick={() => {
+              onClear();
+              inputRef.current?.click();
+            }}
+            className="shrink-0 rounded-sm border border-white/15 px-3 py-1.5 text-xs text-white/65 transition hover:border-copper/50 hover:text-copper"
           >
-            {submitting ? t("publicJobs.application.submittingText") : t("publicJobs.application.submitText")}
+            {t("publicJobs.application.resumeReplace")}
           </button>
         </div>
-      </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          aria-label={t("publicJobs.application.resumeUpload")}
+          className={[
+            "flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-200",
+            dragging
+              ? "border-copper bg-copper/10"
+              : "border-white/15 bg-card hover:border-copper/40 hover:bg-card-raised",
+          ].join(" ")}
+        >
+          <span
+            className={`flex size-12 items-center justify-center rounded-full border transition-colors ${
+              dragging
+                ? "border-copper bg-copper/20 text-copper"
+                : "border-copper/30 bg-copper/10 text-copper"
+            }`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="size-5"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 16V4m0 0-4 4m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+              />
+            </svg>
+          </span>
+          <span className="text-sm font-medium text-white/80">
+            {t("publicJobs.application.resumeDropPrompt")}
+          </span>
+          <span className="text-xs text-white/45">
+            {t("publicJobs.application.resumeDropAlt")}
+          </span>
+        </button>
+      )}
+
+      <input
+        ref={inputRef}
+        id="resume"
+        name="resume"
+        type="file"
+        accept=".pdf,.doc,.docx"
+        onChange={onPick}
+        className="sr-only"
+      />
+
+      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
+      <p className="mt-3 text-xs text-white/30">
+        {t("publicJobs.application.fileHint", { maxSize: MAX_FILE_SIZE_MB })}
+      </p>
+    </div>
+  );
+}
+
+// ── Step 3: Optional questions ───────────────────────────────────────────
+
+function QuestionsStep({
+  form,
+  fieldErrors,
+  onChange,
+  onBlur,
+}: {
+  form: Omit<CandidateApplicationForm, "job_id">;
+  fieldErrors: Record<string, string>;
+  onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onBlur: (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+}) {
+  const { t } = useTranslation();
+  const fields: Array<{ name: keyof typeof form; label: string; ph: string }> =
+    [
+      {
+        name: "service_concept",
+        label: t("publicJobs.application.serviceConcept"),
+        ph: t("publicJobs.application.placeholders.serviceConcept"),
+      },
+      {
+        name: "salary_expectations",
+        label: t("publicJobs.application.salaryExpectations"),
+        ph: t("publicJobs.application.placeholders.salaryExpectations"),
+      },
+      {
+        name: "personality_strength",
+        label: t("publicJobs.application.strength"),
+        ph: t("publicJobs.application.placeholders.strength"),
+      },
+      {
+        name: "personality_weakness",
+        label: t("publicJobs.application.weakness"),
+        ph: t("publicJobs.application.placeholders.weakness"),
+      },
+    ];
+  return (
+    <div className="space-y-5">
+      <div className="rounded-lg border border-copper/20 bg-copper/5 p-4">
+        <p className="text-xs leading-relaxed text-white/65">
+          {t("publicJobs.application.questionsStepBanner")}
+        </p>
+      </div>
+
+      {fields.map(({ name, label, ph }) => {
+        const value = form[name] ?? "";
+        const count = value.length;
+        const over = count > TEXT_FIELD_MAX;
+        return (
+          <Field key={name} label={label} id={name} optional>
+            <textarea
+              id={name}
+              name={name}
+              value={value}
+              onChange={onChange}
+              onBlur={onBlur}
+              className={textareaCls}
+              placeholder={ph}
+              maxLength={TEXT_FIELD_MAX}
+              aria-invalid={!!fieldErrors[name]}
+            />
+            <div className="mt-1 flex items-start justify-between gap-2">
+              <span className="text-xs text-danger">
+                {fieldErrors[name] ?? ""}
+              </span>
+              <span
+                className={`shrink-0 text-[11px] tabular-nums ${
+                  over ? "text-danger" : "text-white/30"
+                }`}
+              >
+                {t("publicJobs.application.charCount", {
+                  count,
+                  max: TEXT_FIELD_MAX,
+                })}
+              </span>
+            </div>
+          </Field>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Sticky bottom nav ────────────────────────────────────────────────────
+
+function StepNav({
+  step,
+  submitting,
+  onBack,
+  onNext,
+}: {
+  step: Step;
+  submitting: boolean;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const { t } = useTranslation();
+  const isFinal = step === TOTAL_STEPS;
+  return (
+    <div className="sticky bottom-0 -mx-4 mt-4 border-t border-white/8 bg-page/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-page/80 sm:-mx-6 sm:px-6">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={step === 1}
+          className="rounded-sm border border-white/15 px-4 py-2 text-sm text-white/65 transition hover:border-white/35 hover:text-white/90 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          {t("publicJobs.application.steps.back")}
+        </button>
+        {isFinal ? (
+          // Distinct `key` from the Continue button — guarantees React mounts
+          // a fresh DOM node rather than reusing the same <button> and just
+          // flipping `type` from "button" to "submit". Without this, an
+          // in-flight pointer sequence on the old Continue button could land
+          // on the now-submit button after the step transition and trigger
+          // an unwanted form submission.
+          <button
+            key="step-final-submit"
+            type="submit"
+            disabled={submitting}
+            className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting
+              ? t("publicJobs.application.submittingText")
+              : t("publicJobs.application.submitText")}
+          </button>
+        ) : (
+          <button
+            key="step-continue"
+            type="button"
+            onClick={(e) => {
+              // Defensive: block any onward propagation that could in theory
+              // reach the form and trigger a submit handler in the same tick.
+              e.preventDefault();
+              e.stopPropagation();
+              onNext();
+            }}
+            className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold"
+          >
+            {t("publicJobs.application.steps.continue")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -25,6 +25,7 @@ async def job_and_candidate(session: AsyncSession) -> dict[str, Job | CandidateP
         name="Test Company",
         company_id="123456789",
         address="רח׳ הדוגמה 1, תל אביב",
+        contact_email=user.email,
         contact_first_name="ישראל",
         contact_last_name="ישראלי",
         contact_mobile_phone="0501234567",

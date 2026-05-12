@@ -208,6 +208,10 @@ async def register_company_user(
         logo_url=logo_identifier,
         company_id=profile.company_id,
         address=profile.address,
+        # Self-registered companies inherit contact_email from their user
+        # account — they're the same person. Admin-created (orphan) profiles
+        # capture contact_email separately in CompanyProfileAdminCreate.
+        contact_email=user_data.email,
         contact_first_name=profile.contact_first_name,
         contact_last_name=profile.contact_last_name,
         contact_mobile_phone=profile.contact_mobile_phone,
