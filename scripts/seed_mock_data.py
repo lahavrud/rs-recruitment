@@ -47,34 +47,34 @@ ADMIN_PASSWORD = "Admin123!"  # pragma: allowlist secret
 # ── חברות ──
 COMPANIES = [
     {
-        "email": "ops@integrated-fm.com",
+        "email": "company1@example.com",
         "password": "Company123!",  # pragma: allowlist secret
         "company_name": 'פתרונות מתקנים בע"מ',
         "company_id": "511234561",  # ח.פ — 9 digits
         "address": "רח׳ הברזל 32, תל אביב",
         "contact_first_name": "דוד",
         "contact_last_name": "כהן",
-        "contact_mobile_phone": "0501111111",
+        "contact_mobile_phone": "0500000001",
     },
     {
-        "email": "hr@sharion.com",
+        "email": "company2@example.com",
         "password": "Company123!",  # pragma: allowlist secret
         "company_name": "שריון — אבטחה ותחזוקה",
         "company_id": "511234562",
         "address": "שדרות רוטשילד 15, תל אביב",
         "contact_first_name": "נועה",
         "contact_last_name": "לוי",
-        "contact_mobile_phone": "0502222222",
+        "contact_mobile_phone": "0500000002",
     },
     {
-        "email": "info@cleanpro.com",
+        "email": "company3@example.com",
         "password": "Company123!",  # pragma: allowlist secret
         "company_name": "קלינפרו שירותי מתקנים",
         "company_id": "511234563",
         "address": "רח׳ המסגר 22, תל אביב",
         "contact_first_name": "רן",
         "contact_last_name": "מזרחי",
-        "contact_mobile_phone": "0503333333",
+        "contact_mobile_phone": "0500000003",
     },
 ]
 
@@ -340,9 +340,9 @@ JOBS_BY_COMPANY = [
 CANDIDATES = [
     {
         "full_name": "אחמד פאהום",
-        "email": "ahmed.fahoum@gmail.com",
-        "phone": "054-1234567",
-        "linkedin_url": "https://linkedin.com/in/ahmed-fahoum",
+        "email": "candidate1@example.com",
+        "phone": "0500000101",
+        "linkedin_url": "https://www.linkedin.com/in/example-candidate-1",
         "resume": True,
         "service_concept": (
             "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
@@ -354,9 +354,9 @@ CANDIDATES = [
     },
     {
         "full_name": "מאיה בן-דוד",
-        "email": "maya.bd@gmail.com",
-        "phone": "052-2345678",
-        "linkedin_url": "https://linkedin.com/in/maya-ben-david",
+        "email": "candidate2@example.com",
+        "phone": "0500000102",
+        "linkedin_url": "https://www.linkedin.com/in/example-candidate-2",
         "resume": True,
         "service_concept": (
             "הלקוח צריך להרגיש שיש מישהו שאחראי. "
@@ -368,8 +368,8 @@ CANDIDATES = [
     },
     {
         "full_name": "יוסי ממן",
-        "email": "yossi.maman@gmail.com",
-        "phone": "053-3456789",
+        "email": "candidate3@example.com",
+        "phone": "0500000103",
         "linkedin_url": None,
         "resume": False,
         "service_concept": (
@@ -382,9 +382,9 @@ CANDIDATES = [
     },
     {
         "full_name": "רינת שפירא",
-        "email": "rinat.shapira@gmail.com",
-        "phone": "050-4567890",
-        "linkedin_url": "https://linkedin.com/in/rinat-shapira",
+        "email": "candidate4@example.com",
+        "phone": "0500000104",
+        "linkedin_url": "https://www.linkedin.com/in/example-candidate-4",
         "resume": True,
         "service_concept": (
             "שירות טוב מבוסס על סדר ומעקב. "
@@ -396,9 +396,9 @@ CANDIDATES = [
     },
     {
         "full_name": "שלמה אברהם",
-        "email": "shlomo.avraham@gmail.com",
-        "phone": "055-5678901",
-        "linkedin_url": "https://linkedin.com/in/shlomo-avraham",
+        "email": "candidate5@example.com",
+        "phone": "0500000105",
+        "linkedin_url": "https://www.linkedin.com/in/example-candidate-5",
         "resume": True,
         "service_concept": (
             "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
@@ -410,8 +410,8 @@ CANDIDATES = [
     },
     {
         "full_name": "ליאת אוחנה",
-        "email": "liat.ohana@gmail.com",
-        "phone": "052-6789012",
+        "email": "candidate6@example.com",
+        "phone": "0500000106",
         "linkedin_url": None,
         "resume": False,
         "service_concept": (
@@ -424,9 +424,9 @@ CANDIDATES = [
     },
     {
         "full_name": "עמיר גולן",
-        "email": "amir.golan@gmail.com",
-        "phone": "054-7890123",
-        "linkedin_url": "https://linkedin.com/in/amir-golan",
+        "email": "candidate7@example.com",
+        "phone": "0500000107",
+        "linkedin_url": "https://www.linkedin.com/in/example-candidate-7",
         "resume": True,
         "service_concept": (
             "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
@@ -438,8 +438,8 @@ CANDIDATES = [
     },
     {
         "full_name": "סאמי ג'בארין",
-        "email": "sami.jabarin@gmail.com",
-        "phone": "050-8901234",
+        "email": "candidate8@example.com",
+        "phone": "0500000108",
         "linkedin_url": None,
         "resume": False,
         "service_concept": (

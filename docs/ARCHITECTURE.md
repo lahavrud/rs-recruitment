@@ -546,9 +546,9 @@ ECR rs-recruitment/api      ← Docker image registry
 
 | Resource | Identifier | Purpose |
 |---|---|---|
-| EC2 | `i-07959a0abe714cb59` | App server |
+| EC2 | `<EC2_INSTANCE_ID>` | App server |
 | RDS | `rs-recruitment-prod-db` | PostgreSQL 16, private subnets |
-| S3 | `rs-recruitment-510144817435` | Uploads + deploy artifacts |
+| S3 | `<APP_BUCKET>` | Uploads + deploy artifacts |
 | ECR | `rs-recruitment/api` | Docker images |
 | IAM Role (EC2) | `rs-recruitment-app-role` | SSM, ECR pull, S3, SSM params |
 | IAM Role (CI) | `github-actions-rs-recruitment` | OIDC, ECR push, S3 deploy, SSM send |

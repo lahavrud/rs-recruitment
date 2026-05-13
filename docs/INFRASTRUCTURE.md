@@ -4,7 +4,7 @@ The single source of truth for what's deployed in AWS, how it fits together, and
 
 For higher-level architectural decisions (auth model, framework choices, etc.) see [`ARCHITECTURE.md`](./ARCHITECTURE.md). For operational runbooks see the doc pages listed at the bottom.
 
-**Account:** `510144817435` (`ronny-root`) · **Region:** `us-east-1` · **Created:** 2026-01-14
+**Account:** `<ACCOUNT_ID>` · **Region:** `us-east-1` · **Created:** 2026-01-14
 
 ---
 
@@ -16,8 +16,8 @@ flowchart LR
   CF["Cloudflare<br/>DNS + CDN + DDoS"]
 
   subgraph aws["AWS us-east-1"]
-    subgraph vpc["VPC 10.0.0.0/16 (vpc-00dc609b…)"]
-      subgraph ec2host["EC2 t3.micro<br/>i-07959a0a (rs-server)<br/>EIP 35.169.244.63"]
+    subgraph vpc["VPC 10.0.0.0/16 (<VPC_ID>)"]
+      subgraph ec2host["EC2 t3.micro<br/><EC2_INSTANCE_ID> (rs-server)<br/>EIP <ELASTIC_IP>"]
         nginx["frontend<br/>nginx:alpine<br/>port 443"]
         api["api<br/>FastAPI<br/>port 8000"]
         worker["worker<br/>Arq"]
@@ -26,8 +26,8 @@ flowchart LR
       RDS[("RDS Postgres 16<br/>rs-recruitment-prod-db<br/>db.t3.micro · single-AZ<br/>encrypted · 7d backups")]
     end
 
-    S3A[("S3 bucket<br/>rs-recruitment-510144817435<br/>versioned · SSE-S3<br/>resumes + deploy artifacts")]
-    S3CT[("S3 bucket<br/>rs-recruitment-cloudtrail-510144817435<br/>versioned · SSE-S3 · BPA full")]
+    S3A[("S3 bucket<br/>rs-recruitment-app<br/>versioned · SSE-S3<br/>resumes + deploy artifacts")]
+    S3CT[("S3 bucket<br/>rs-recruitment-cloudtrail<br/>versioned · SSE-S3 · BPA full")]
     ECR1[("ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush")]
     ECR2[("ECR rs-recruitment/frontend<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
@@ -68,19 +68,19 @@ flowchart LR
 
 ### Network notes
 
-- **Single VPC** (`vpc-00dc609b…`); default VPC was deleted 2026-05-09.
+- **Single VPC** (`<VPC_ID>`); default VPC was deleted 2026-05-09.
 - **No NAT Gateway, no ALB, no CloudFront.** EC2 has an Elastic IP and reaches the internet via IGW. TLS terminates at the nginx container on the EC2.
-- **DNS lives at Cloudflare**, not Route 53. The only Route 53 resource is one health check (`2872ed99…`) used by `rs-recruiting-uptime` alarm.
+- **DNS lives at Cloudflare**, not Route 53. The only Route 53 resource is one health check (`<R53_HC_ID>`) used by `rs-recruiting-uptime` alarm.
 - **No ACM cert.** TLS cert + key live in SSM SecureString; materialized to a host bind-mount at deploy time.
 
 ### Security groups
 
 | SG | Purpose | Ingress | Egress |
 |---|---|---|---|
-| `Web-SG` (sg-037088…) | Public-facing on EC2 | `:443` from `0.0.0.0/0`, `:22` from `79.181.143.17/32` | (default all-out) |
-| `App-SG` (sg-0f903a…) | Inter-container on EC2 | `:8000` from Web-SG, `:6379` self-ref | `:443/80` to `0.0.0.0/0`, `:5432` to `0.0.0.0/0`, SMTP `:465/587` |
-| `RDS-SG` (sg-0db63d…) | RDS Postgres | `:5432` from App-SG | (default all-out) |
-| `default` (sg-05565e…) | VPC default — unused | (default self-ref) | (default all-out) |
+| `Web-SG` (`<WEB_SG_ID>`) | Public-facing on EC2 | `:443` from `0.0.0.0/0`, `:22` from `<ADMIN_IP>/32` | (default all-out) |
+| `App-SG` (`<APP_SG_ID>`) | Inter-container on EC2 | `:8000` from Web-SG, `:6379` self-ref | `:443/80` to `0.0.0.0/0`, `:5432` to `0.0.0.0/0`, SMTP `:465/587` |
+| `RDS-SG` (`<RDS_SG_ID>`) | RDS Postgres | `:5432` from App-SG | (default all-out) |
+| `default` (`<DEFAULT_SG_ID>`) | VPC default — unused | (default self-ref) | (default all-out) |
 
 Loose end: App-SG egress on `5432` is `0.0.0.0/0`; could be tightened to `RDS-SG` only. Tracked but not blocking.
 
@@ -117,17 +117,17 @@ flowchart LR
 ### Compute & data
 | Resource | Identifier | Notes |
 |---|---|---|
-| EC2 | `i-07959a0abe714cb59` (t3.micro) | IMDSv2 required, basic monitoring, in `App-SG` + `Web-SG` |
-| EBS root | `vol-08ca6f695eab59efe` (8 GB gp3) | **Unencrypted** (pre-default-encryption); account-default now ON; one-shot re-encryption pending |
-| Elastic IP | `35.169.244.63` (eipassoc-05f40e0d…) | Attached to EC2 |
+| EC2 | `<EC2_INSTANCE_ID>` (t3.micro) | IMDSv2 required, basic monitoring, in `App-SG` + `Web-SG` |
+| EBS root | `<EBS_VOL_ID>` (8 GB gp3) | **Unencrypted** (pre-default-encryption); account-default now ON; one-shot re-encryption pending |
+| Elastic IP | `<ELASTIC_IP>` (`<EIP_ASSOC_ID>`) | Attached to EC2 |
 | RDS | `rs-recruitment-prod-db` (db.t3.micro) | Postgres 16, single-AZ, encrypted, 7d backup retention, deletion protection ON, Performance Insights 7d, postgresql log export to CW |
 | Key pair | `rs-recruitment-key` | EC2 SSH key |
 
 ### Storage
 | Bucket / repo | Purpose | Settings |
 |---|---|---|
-| `rs-recruitment-510144817435` | App data — resumes (`/uploads/`), public assets (`/public/*`), deploy artifacts (`/deploy/${SHA}/`) | Versioning ON, SSE-S3, BPA partial (public path allowed for BIMI logo). **Lifecycle:** `deploy/` current versions expire 30d; noncurrent globally expire 30d; abort incomplete multipart 7d |
-| `rs-recruitment-cloudtrail-510144817435` | CloudTrail logs | Versioning ON, SSE-S3, BPA full block |
+| `<APP_BUCKET>` | App data — resumes (`/uploads/`), public assets (`/public/*`), deploy artifacts (`/deploy/${SHA}/`) | Versioning ON, SSE-S3, BPA partial (public path allowed for BIMI logo). **Lifecycle:** `deploy/` current versions expire 30d; noncurrent globally expire 30d; abort incomplete multipart 7d |
+| `<CLOUDTRAIL_BUCKET>` | CloudTrail logs | Versioning ON, SSE-S3, BPA full block |
 | ECR `rs-recruitment/api` | Backend image | IMMUTABLE, scanOnPush |
 | ECR `rs-recruitment/frontend` | Frontend image (multistage build) | IMMUTABLE, scanOnPush |
 
@@ -166,9 +166,9 @@ Default EBS encryption: ON (account-wide).
 | Alarm `rds-storage-low` | RDS free storage <4GB → ops-alerts |
 | Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
 | Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
-| SNS `ops-alerts` | Email → lahavrud@gmail.com (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
-| CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-510144817435` |
-| GuardDuty detector `32cf04c9…` | ENABLED, 15-minute finding frequency, 30-day free trial active until ~2026-06-08; primary input is CloudTrail (above) |
+| SNS `ops-alerts` | Email → `<OPS_EMAIL>` (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
+| CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-<ACCOUNT_ID>` |
+| GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency, 30-day free trial active until ~2026-06-08; primary input is CloudTrail (above) |
 | EventBridge rule `guardduty-findings` | Pattern: `source=aws.guardduty, detail-type=GuardDuty Finding`. Target: `ops-alerts` SNS with input transformer that flattens raw JSON into a human-readable email (severity, type, title, description, region, resource type) |
 | AWS Budget `monthly-40` | $40/mo cost budget with **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted |
 
@@ -176,7 +176,7 @@ Default EBS encryption: ON (account-wide).
 | Layer | Mechanism | Retention |
 |---|---|---|
 | RDS | Automated daily snapshot | 7 days |
-| EC2 root EBS | DLM policy `policy-0dba39f3…` weekly | Last 4 |
+| EC2 root EBS | DLM policy `<DLM_POLICY_ID>` weekly | Last 4 |
 | S3 (app bucket) | Versioning | All versions kept (no lifecycle yet) |
 | S3 (CloudTrail bucket) | Versioning | All versions kept |
 
@@ -206,7 +206,7 @@ Newest first. Each entry: date, what, why, links. When updating, append; don't r
 **Trigger to revisit Flow Logs:** add a second EC2, NAT gateway, or land an enterprise customer requiring it.
 
 ### 2026-05-09 — CloudTrail in dedicated bucket
-**Decision:** Multi-region trail with log file validation, in a separate `rs-recruitment-cloudtrail-510144817435` bucket (BPA full block, versioning).
+**Decision:** Multi-region trail with log file validation, in a separate dedicated bucket (BPA full block, versioning).
 **Why:** Audit logs deserve a separate access boundary from app data. Dedicated bucket means a misconfigured S3 lifecycle on the app bucket can't expire audit logs.
 
 ### 2026-05-09 — Day 1 + Day 2 hardening
