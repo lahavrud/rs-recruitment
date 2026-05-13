@@ -75,19 +75,19 @@ The task **always emits a datapoint, even when count=0.** That is what makes the
 | Evaluation periods | 1 |
 | Threshold | `Sum < 0` (effectively never breached by data — only by absence) |
 | `treatMissingData` | `breaching` |
-| Alarm + OK actions | `arn:aws:sns:us-east-1:510144817435:ops-alerts` |
+| Alarm + OK actions | `arn:aws:sns:us-east-1:<ACCOUNT_ID>:ops-alerts` |
 
 The alarm fires when **no datapoint arrived in the last 26h**. Since the cron emits one datapoint nightly, missing data means the worker isn't running.
 
 ### Notification channel
 
-SNS topic `ops-alerts`. Subscriptions: `lahavrud@gmail.com` (email).
+SNS topic `ops-alerts`. Subscriptions: `<OPS_EMAIL>` (email).
 
 To add another responder:
 
 ```bash
 aws sns subscribe \
-  --topic-arn arn:aws:sns:us-east-1:510144817435:ops-alerts \
+  --topic-arn arn:aws:sns:us-east-1:<ACCOUNT_ID>:ops-alerts \
   --protocol email \
   --notification-endpoint <new-email>
 ```
