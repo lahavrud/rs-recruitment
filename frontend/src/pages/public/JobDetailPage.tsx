@@ -243,7 +243,7 @@ export default function JobDetailPage() {
         {/* ── Main article ── */}
         <article
           className={[
-            "rounded-xl border bg-card p-5 sm:p-10",
+            "overflow-hidden rounded-xl border bg-card p-5 sm:p-10",
             job.is_featured ? "border-gold/40" : "border-white/8",
           ].join(" ")}
         >
