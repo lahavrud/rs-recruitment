@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -309,6 +310,7 @@ export default function JobBoardPage() {
   const initialSmax = searchParams.get("smax");
 
   const [query, setQuery] = useState(initialQuery);
+  const debouncedQuery = useDebounce(query, 300);
   const [selectedLocations, setSelectedLocations] = useState<string[]>(() =>
     initialLocationCsv ? initialLocationCsv.split(",").filter(Boolean) : [],
   );
@@ -361,7 +363,7 @@ export default function JobBoardPage() {
       if (val) next.set(key, val);
       else next.delete(key);
     };
-    setOrDelete("q", query.trim() || null);
+    setOrDelete("q", debouncedQuery.trim() || null);
     setOrDelete(
       "loc",
       selectedLocations.length > 0 ? selectedLocations.join(",") : null,
@@ -377,10 +379,10 @@ export default function JobBoardPage() {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, selectedLocations, effectiveSalaryRange, isSalaryActive]);
+  }, [debouncedQuery, selectedLocations, effectiveSalaryRange, isSalaryActive]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     return jobs.filter((j) => {
       const requirementsText = j.requirements.map((r) => r.text).join(" ");
       const tagsText = j.tags.join(" ");
@@ -414,10 +416,10 @@ export default function JobBoardPage() {
 
       return matchesQuery && matchesLocation && matchesSalary;
     });
-  }, [jobs, query, selectedLocations, effectiveSalaryRange, isSalaryActive]);
+  }, [jobs, debouncedQuery, selectedLocations, effectiveSalaryRange, isSalaryActive]);
 
   const activeFilterCount =
-    (query.trim() ? 1 : 0) + selectedLocations.length + (isSalaryActive ? 1 : 0);
+    (debouncedQuery.trim() ? 1 : 0) + selectedLocations.length + (isSalaryActive ? 1 : 0);
   const hasActiveFilter = activeFilterCount > 0;
 
   const handleSalaryChange = useCallback((next: [number, number]) => {

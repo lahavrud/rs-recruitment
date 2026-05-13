@@ -40,6 +40,12 @@
     "searchPlaceholder": "חיפוש…",
     "errorEyebrow": "שגיאה",
     "genericError": "אירעה שגיאה. אנא נסו שוב מאוחר יותר.",
+    "errors": {
+      "tooManyRequests": "יותר מדי בקשות. אנא המתינו מעט ונסו שוב.",
+      "forbidden": "אין הרשאה לביצוע פעולה זו.",
+      "notFound": "הפריט המבוקש לא נמצא.",
+      "conflict": "פריט זה כבר קיים."
+    },
     "errorBoundaryTitle": "משהו השתבש",
     "errorBoundaryMessage": "אירעה שגיאה בלתי צפויה. אנא רעננו את הדף.",
     "errorBoundaryReload": "רענן דף",

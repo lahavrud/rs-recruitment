@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import { apiErrorKey } from "@/utils/apiError";
 import {
   approveJob,
   createJob,
@@ -143,6 +145,7 @@ export default function AdminJobsPage() {
   // Status is the only filter that re-fetches server-side (see fetcher above);
   // everything else narrows the in-memory result.
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 200);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
   const [featuredOnly, setFeaturedOnly] = useState(false);
@@ -186,7 +189,7 @@ export default function AdminJobsPage() {
     effectiveSalaryRange[1] !== salaryBounds.max;
 
   const filteredJobs = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     return jobs.filter((j) => {
       if (q) {
         const reqsText = j.requirements.map((r) => r.text).join(" ");
@@ -216,7 +219,7 @@ export default function AdminJobsPage() {
     });
   }, [
     jobs,
-    query,
+    debouncedQuery,
     selectedLocations,
     companyFilter,
     featuredOnly,
@@ -225,7 +228,7 @@ export default function AdminJobsPage() {
   ]);
 
   const activeFilterCount =
-    (query.trim() ? 1 : 0) +
+    (debouncedQuery.trim() ? 1 : 0) +
     selectedLocations.length +
     companyFilter.length +
     (featuredOnly ? 1 : 0) +
@@ -288,7 +291,7 @@ export default function AdminJobsPage() {
       .then((job) => setDetail(job))
       .catch((e) => {
         if (axios.isCancel(e)) return;
-        toast.error(t("common.genericError"));
+        toast.error(t(apiErrorKey(e)));
       });
     return () => ctrl.abort();
   }, [t, toast]);

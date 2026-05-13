@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import { apiErrorKey } from "@/utils/apiError";
 import {
   deleteCandidate,
   fetchResumeBlob,
@@ -33,6 +34,7 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
@@ -113,6 +115,7 @@ export default function AdminCandidatesPage() {
 
   // Client-side filters on the loaded candidate set.
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 200);
   const [filterOpen, setFilterOpen] = useState(false);
   const [jobFilter, setJobFilter] = useState<number[]>([]);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
@@ -179,7 +182,7 @@ export default function AdminCandidatesPage() {
   }, [appCache]);
 
   const filteredCandidates = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     return candidates.filter((c) => {
       if (jobFilter.length > 0) {
         const jobs = candidateAppliedJobs.get(c.id);
@@ -196,7 +199,7 @@ export default function AdminCandidatesPage() {
     });
   }, [
     candidates,
-    query,
+    debouncedQuery,
     jobFilter,
     companyFilter,
     candidateAppliedJobs,
@@ -204,7 +207,7 @@ export default function AdminCandidatesPage() {
   ]);
 
   const activeFilterCount =
-    (query.trim() ? 1 : 0) +
+    (debouncedQuery.trim() ? 1 : 0) +
     jobFilter.length +
     companyFilter.length;
 
@@ -219,7 +222,7 @@ export default function AdminCandidatesPage() {
       .then((c) => setDetail(c))
       .catch((e) => {
         if (axios.isCancel(e)) return;
-        toast.error(t("common.genericError"));
+        toast.error(t(apiErrorKey(e)));
       });
     return () => ctrl.abort();
   }, [t, toast]);
