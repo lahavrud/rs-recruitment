@@ -33,19 +33,36 @@ _LOGO_B64 = _b64.b64encode(
 
 _BASE = """\
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" style="color-scheme:dark light;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="supported-color-schemes" content="dark light">
   <title>{subject}</title>
+  <style>
+    :root {{color-scheme:dark light;}}
+    @media (prefers-color-scheme:dark) {{
+      body,.eo {{background:{void}!important;}}
+      .ec {{background:{card}!important;}}
+      .eh {{background:{well}!important;}}
+    }}
+    [data-ogsc] body,[data-ogsb] body {{background:{void}!important;}}
+    [data-ogsc] .eo,[data-ogsb] .eo {{background:{void}!important;}}
+    [data-ogsc] .ec,[data-ogsb] .ec {{background:{card}!important;}}
+    [data-ogsc] .eh,[data-ogsb] .eh {{background:{well}!important;}}
+  </style>
 </head>
-<body style="margin:0;padding:0;background:{void};
+<body bgcolor="{void}"
+      style="margin:0;padding:0;background:{void};
              font-family:Arial,Helvetica,sans-serif;direction:rtl;">
-  <table width="100%" cellpadding="0" cellspacing="0"
+  <table class="eo" bgcolor="{void}" width="100%"
+         cellpadding="0" cellspacing="0"
          style="background:{void};padding:48px 16px;">
     <tr>
       <td align="center">
-        <table width="520" cellpadding="0" cellspacing="0"
+        <table class="ec" bgcolor="{card}" width="520"
+               cellpadding="0" cellspacing="0"
                style="background:{card};border-radius:4px;
                       border:1px solid {border};
                       max-width:520px;width:100%;
@@ -53,7 +70,7 @@ _BASE = """\
 
           <!-- header band — dir=ltr forces logo to physical left in RTL email -->
           <tr>
-            <td bgcolor="{well}" dir="ltr"
+            <td class="eh" bgcolor="{well}" dir="ltr"
                 style="background:{well};padding:16px 36px;
                        border-bottom:1px solid {border};">
               <table cellpadding="0" cellspacing="0" dir="ltr">
