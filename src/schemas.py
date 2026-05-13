@@ -286,7 +286,7 @@ def _validate_tags(v: list[str]) -> list[str]:
 class JobCreate(BaseModel):
     """Schema for creating a job posting."""
 
-    title: str = Field(..., max_length=200)
+    title: str = Field(..., max_length=100)
     short_description: str = Field(..., min_length=1, max_length=JOB_SHORT_DESC_MAX)
     description: str = Field(..., max_length=5000)
     requirements: list[JobRequirementItem]
@@ -313,7 +313,7 @@ class JobUpdate(BaseModel):
     omitted — only admins toggle that flag (see ``JobAdminUpdate``).
     """
 
-    title: str | None = Field(None, max_length=200)
+    title: str | None = Field(None, max_length=100)
     short_description: str | None = Field(
         None, min_length=1, max_length=JOB_SHORT_DESC_MAX
     )
@@ -371,7 +371,7 @@ class JobAdminCreate(BaseModel):
     """Schema for an admin creating a job posting against a specific company."""
 
     company_id: int
-    title: str = Field(..., max_length=200)
+    title: str = Field(..., max_length=100)
     short_description: str = Field(..., min_length=1, max_length=JOB_SHORT_DESC_MAX)
     description: str = Field(..., max_length=5000)
     requirements: list[JobRequirementItem]

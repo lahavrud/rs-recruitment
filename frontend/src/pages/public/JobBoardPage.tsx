@@ -614,7 +614,7 @@ export default function JobBoardPage() {
                     search: searchParams.toString(),
                   }}
                   className={[
-                    "group relative block rounded-xl border bg-card p-5 transition duration-200 sm:p-6",
+                    "group relative block overflow-hidden rounded-xl border bg-card p-5 transition duration-200 sm:p-6",
                     job.is_featured
                       ? "border-gold/40 hover:border-gold/60 hover:bg-card-raised"
                       : "border-white/8 hover:border-copper/25 hover:bg-card-raised",
