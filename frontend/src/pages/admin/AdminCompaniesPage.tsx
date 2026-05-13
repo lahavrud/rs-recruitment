@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -86,6 +87,7 @@ export default function AdminCompaniesPage() {
     return "active";
   });
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 200);
   const [creating, setCreating] = useState(false);
   const [inviting, setInviting] = useState(() => {
     return new URLSearchParams(window.location.search).get("action") === "invite";
@@ -254,15 +256,15 @@ export default function AdminCompaniesPage() {
 
       {view === "active" && (
         <ActiveTab
-          query={query}
+          query={debouncedQuery}
           externalDetail={externalDetail}
           onExternalDetailClose={() => setExternalDetail(null)}
         />
       )}
-      {view === "pending" && <PendingTab query={query} />}
+      {view === "pending" && <PendingTab query={debouncedQuery} />}
       {view === "invites" && (
         <InvitesTab
-          query={query}
+          query={debouncedQuery}
           externalOpen={inviting}
           onExternalClose={() => setInviting(false)}
         />
@@ -427,7 +429,7 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
                 <MobileEntityCard
                   key={row.company_profile.id}
                   title={
-                    <span className="font-medium text-white/90">
+                    <span className="block truncate font-medium text-white/90">
                       {row.company_profile.name}
                     </span>
                   }
@@ -707,7 +709,7 @@ function PendingTab({ query }: { query: string }) {
               <MobileEntityCard
                 key={row.user.id}
                 title={
-                  <span className="font-medium text-white/90">
+                  <span className="block truncate font-medium text-white/90">
                     {row.company_profile.name}
                   </span>
                 }
@@ -741,10 +743,10 @@ function PendingTab({ query }: { query: string }) {
                 className="flex cursor-pointer flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 transition hover:bg-card-raised sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <span className="font-medium text-white/90">
+                  <span className="block truncate font-medium text-white/90">
                     {row.company_profile.name}
                   </span>
-                  <p className="text-xs text-white/45">{row.user.email}</p>
+                  <p className="truncate text-xs text-white/45">{row.user.email}</p>
                   <p className="mt-1 text-xs text-white/35">
                     {t("admin.companies.contactLabel")}:{" "}
                     {row.company_profile.contact_first_name}{" "}
@@ -981,7 +983,7 @@ function InvitesTab({ query, externalOpen, onExternalClose }: InvitesTabProps) {
               <MobileEntityCard
                 key={invite.id}
                 title={
-                  <span className="font-medium text-white/90">
+                  <span className="block truncate font-medium text-white/90">
                     {invite.email}
                   </span>
                 }
@@ -1468,6 +1470,9 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const isDirty = Object.values(form).some((v) => v != null && v !== "");
 
   useEffect(() => {
     if (!open) return;
@@ -1475,8 +1480,17 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
     setForm({});
     setErrors({});
     setConfirmCreateOpen(false);
+    setConfirmDiscard(false);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open]);
+
+  function requestClose() {
+    if (!saving && isDirty) {
+      setConfirmDiscard(true);
+    } else {
+      onClose();
+    }
+  }
 
   function set<K extends keyof CompanyProfileAdminCreate>(
     key: K,
@@ -1555,14 +1569,14 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
     <>
       <Dialog
         open={open}
-        onOpenChange={(o) => !o && onClose()}
+        onOpenChange={(o) => { if (!o) requestClose(); }}
         title={t("admin.companies.newCompanyModalTitle")}
         description={t("admin.companies.newCompanyModalDescription")}
         size="lg"
         footer={
           <>
             <button
-              onClick={onClose}
+              onClick={requestClose}
               disabled={saving}
               className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
             >
@@ -1602,6 +1616,16 @@ function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
         message={t("admin.companies.createConfirmMessage", { name: form.name })}
         confirmLabel={t("admin.companies.createSubmit")}
         onConfirm={executeSave}
+      />
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={(o) => !o && setConfirmDiscard(false)}
+        title={t("common.discardTitle")}
+        message={t("common.discardMessage")}
+        cancelLabel={t("common.continueEditing")}
+        confirmLabel={t("common.discard")}
+        variant="danger"
+        onConfirm={() => { setConfirmDiscard(false); onClose(); }}
       />
     </>
   );
