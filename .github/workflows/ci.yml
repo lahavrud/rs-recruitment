@@ -474,3 +474,50 @@ jobs:
             --name /rs-recruitment/infra/CURRENT_SHA \
             --value "${{ github.sha }}" \
             --type String --overwrite
+
+      - name: Apply ECR lifecycle policies (keep last 10 images per repo)
+        run: |
+          POLICY='{"rules":[{"rulePriority":1,"description":"Keep last 10 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":10},"action":{"type":"expire"}}]}'
+          for repo in rs-recruitment/api rs-recruitment/frontend; do
+            aws ecr put-lifecycle-policy \
+              --repository-name "$repo" \
+              --lifecycle-policy-text "$POLICY"
+            echo "Applied lifecycle policy to $repo"
+          done
+
+      - name: Prune old S3 deploy artifacts (keep last 10, protect current + prev)
+        run: |
+          set -euo pipefail
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          S3_BUCKET="rs-recruitment-${ACCOUNT_ID}"
+
+          CURRENT_SHA=$(aws ssm get-parameter \
+            --name /rs-recruitment/infra/CURRENT_SHA \
+            --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          PREV_SHA=$(aws ssm get-parameter \
+            --name /rs-recruitment/infra/PREV_SHA \
+            --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+
+          # List all deploy/ prefixes sorted newest-first by LastModified
+          ALL=$(aws s3api list-objects-v2 \
+            --bucket "$S3_BUCKET" \
+            --prefix "deploy/" \
+            --delimiter "/" \
+            --query "sort_by(CommonPrefixes, &Prefix)[] | reverse(@) | [].Prefix" \
+            --output text | tr '\t' '\n' | sed 's|deploy/||;s|/||')
+
+          COUNT=0
+          for SHA in $ALL; do
+            COUNT=$((COUNT + 1))
+            if [[ $COUNT -le 10 ]]; then
+              echo "Keeping deploy/$SHA (rank $COUNT)"
+              continue
+            fi
+            # Never delete the rollback targets regardless of age rank
+            if [[ "$SHA" == "$CURRENT_SHA" || "$SHA" == "$PREV_SHA" ]]; then
+              echo "Keeping deploy/$SHA (protected rollback target)"
+              continue
+            fi
+            echo "Deleting deploy/$SHA (rank $COUNT)"
+            aws s3 rm "s3://${S3_BUCKET}/deploy/${SHA}/" --recursive
+          done
