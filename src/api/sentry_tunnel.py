@@ -18,6 +18,7 @@ import logging
 from urllib.parse import urlparse
 
 import httpx
+import sentry_sdk
 from fastapi import APIRouter, HTTPException, Request, Response, status
 
 from src.core.infrastructure.config import settings
@@ -60,42 +61,50 @@ def _sentry_ingest_url(dsn: str) -> str | None:
 @limiter.limit(_TUNNEL_RATE)
 async def sentry_tunnel(request: Request) -> Response:
     """Relay a Sentry envelope from the browser to Sentry's ingest endpoint."""
-    if not settings.frontend_sentry_dsn:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Sentry tunnel not configured",
-        )
+    # Exclude this entire handler from Sentry — errors here (misconfiguration,
+    # upstream outages) must not create a capture loop.
+    with sentry_sdk.new_scope() as scope:
+        scope.set_tag("sentry_tunnel", True)
+        # Prevent any exception raised in this handler from being reported.
+        scope.add_event_processor(lambda event, hint: None)
 
-    body = await request.body()
-    if not body:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+        if not settings.frontend_sentry_dsn:
+            # Not yet configured — return 404 so callers treat this as
+            # "endpoint unavailable" rather than a server error (5xx would
+            # be captured by Sentry and create a feedback loop).
+            _logger.debug("Sentry tunnel: FRONTEND_SENTRY_DSN not configured")
+            return Response(status_code=status.HTTP_404_NOT_FOUND)
 
-    dsn = _extract_dsn(body)
-    if not dsn or dsn != settings.frontend_sentry_dsn:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid DSN",
-        )
+        body = await request.body()
+        if not body:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
-    ingest_url = _sentry_ingest_url(dsn)
-    if not ingest_url:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Malformed DSN",
-        )
-
-    try:
-        async with httpx.AsyncClient(timeout=_SENTRY_TIMEOUT) as client:
-            resp = await client.post(
-                ingest_url,
-                content=body,
-                headers={"Content-Type": "application/x-sentry-envelope"},
+        dsn = _extract_dsn(body)
+        if not dsn or dsn != settings.frontend_sentry_dsn:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid DSN",
             )
-    except httpx.RequestError as exc:
-        _logger.warning("Sentry tunnel: upstream request failed: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Sentry unreachable",
-        )
 
-    return Response(content=resp.content, status_code=resp.status_code)
+        ingest_url = _sentry_ingest_url(dsn)
+        if not ingest_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Malformed DSN",
+            )
+
+        try:
+            async with httpx.AsyncClient(timeout=_SENTRY_TIMEOUT) as client:
+                resp = await client.post(
+                    ingest_url,
+                    content=body,
+                    headers={"Content-Type": "application/x-sentry-envelope"},
+                )
+        except httpx.RequestError as exc:
+            _logger.warning("Sentry tunnel: upstream request failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Sentry unreachable",
+            )
+
+        return Response(content=resp.content, status_code=resp.status_code)

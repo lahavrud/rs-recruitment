@@ -25,11 +25,15 @@ def _configure_dsn(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_returns_503_when_dsn_not_configured(public_client: AsyncClient):
-    """If the server has no DSN configured, the tunnel is disabled."""
+async def test_returns_404_when_dsn_not_configured(public_client: AsyncClient):
+    """If the server has no DSN configured the tunnel returns 404.
+
+    404 (not 5xx) so the backend Sentry SDK doesn't capture it and create
+    a feedback loop where the tunnel's own failure gets reported to Sentry.
+    """
     # Default settings have empty frontend_sentry_dsn (see config defaults).
     resp = await public_client.post("/api/sentry-tunnel", content=_envelope(VALID_DSN))
-    assert resp.status_code == 503
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
