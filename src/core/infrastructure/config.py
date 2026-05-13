@@ -119,6 +119,10 @@ class Settings(BaseSettings):
 
     # Observability
     sentry_dsn: str = ""  # Empty = Sentry disabled (dev/test)
+    # Frontend Sentry DSN — used by the /api/sentry-tunnel endpoint to validate
+    # that incoming envelopes belong to our project (prevents open-proxy abuse).
+    # Must match the VITE_SENTRY_DSN build arg used for the frontend image.
+    frontend_sentry_dsn: str = ""  # Empty = tunnel rejects all envelopes
 
     # Environment
     environment: Literal["development", "production"] = "development"
