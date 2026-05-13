@@ -59,30 +59,32 @@ async def test_download_resume_success(admin_client: AsyncClient, tmp_path: Path
 
 
 @pytest.mark.asyncio
-async def test_download_resume_s3_redirects(admin_client: AsyncClient):
-    """For S3 storage, returns a redirect to the presigned URL — and the key
-    passed to the storage provider must include the `resumes/` prefix, since
-    that's where files actually live under the bucket."""
+async def test_download_resume_s3_proxies(admin_client: AsyncClient):
+    """For S3 storage, streams the file bytes directly (no redirect).
+
+    The key passed to the storage provider must include the `resumes/` prefix,
+    since that's where files actually live under the bucket.
+    """
     mock_settings = MagicMock()
     mock_settings.storage_provider = "s3"
 
+    fake_pdf = b"%PDF-1.4 fake s3 content"
     received_keys: list[str] = []
 
-    async def fake_get_url(key: str):
+    async def fake_download(key: str) -> bytes:
         received_keys.append(key)
-        return "https://s3.example.com/presigned"
+        return fake_pdf
 
     mock_storage = MagicMock()
-    mock_storage.get_file_url = fake_get_url
+    mock_storage.download_file = fake_download
 
     with (
         patch("src.api.resumes.settings", mock_settings),
         patch("src.api.resumes.get_storage_provider", return_value=mock_storage),
     ):
-        response = await admin_client.get(
-            "/api/resumes/abc123.pdf", follow_redirects=False
-        )
+        response = await admin_client.get("/api/resumes/abc123.pdf")
 
-    assert response.status_code == 302
-    assert response.headers["location"] == "https://s3.example.com/presigned"
+    assert response.status_code == 200
+    assert response.content == fake_pdf
+    assert response.headers["content-type"] == "application/pdf"
     assert received_keys == ["resumes/abc123.pdf"]
