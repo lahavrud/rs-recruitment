@@ -1569,7 +1569,7 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!form.title?.trim()) e.title = t("common.validation.required");
-    else if (form.title.length > 200) e.title = t("common.validation.tooLong", { max: 200 });
+    else if (form.title.length > 100) e.title = t("common.validation.tooLong", { max: 100 });
     if (!form.short_description?.trim()) e.short_description = t("common.validation.required");
     else if (form.short_description.length > JOB_SHORT_DESC_MAX)
       e.short_description = t("common.validation.tooLong", { max: JOB_SHORT_DESC_MAX });
@@ -1897,7 +1897,7 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!form.title?.trim()) e.title = t("common.validation.required");
-    else if (form.title.length > 200) e.title = t("common.validation.tooLong", { max: 200 });
+    else if (form.title.length > 100) e.title = t("common.validation.tooLong", { max: 100 });
     if (!form.short_description?.trim()) e.short_description = t("common.validation.required");
     else if (form.short_description.length > JOB_SHORT_DESC_MAX)
       e.short_description = t("common.validation.tooLong", { max: JOB_SHORT_DESC_MAX });
