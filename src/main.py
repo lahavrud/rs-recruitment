@@ -33,12 +33,20 @@ from src.core.infrastructure.database import init_db
 from src.core.tasks import close_redis_pool
 
 if settings.sentry_dsn:
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.environment,
-        release=os.environ.get("SENTRY_RELEASE"),
-        traces_sample_rate=0.0,
-    )
+    try:
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+            release=os.environ.get("SENTRY_RELEASE"),
+            traces_sample_rate=0.0,
+        )
+    except Exception as _sentry_err:
+        # A misconfigured DSN must never crash the server.
+        import logging as _logging
+
+        _logging.getLogger(__name__).error(
+            "Sentry init failed (check SENTRY_DSN in SSM): %s", _sentry_err
+        )
 
 
 @asynccontextmanager
