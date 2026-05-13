@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
@@ -23,10 +24,10 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2.5 transition hover:opacity-80">
           <Logo size={26} />
           <span className="text-sm font-medium text-white/55">{t("auth.appName")}</span>
-        </div>
+        </Link>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">

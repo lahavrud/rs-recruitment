@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -176,6 +177,7 @@ export default function AdminApplicationsPage() {
 
   // Client-side filters (status + job/candidate are server-side via fetcher).
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 200);
   const [filterOpen, setFilterOpen] = useState(false);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
 
@@ -218,7 +220,7 @@ export default function AdminApplicationsPage() {
   }, []);
 
   const filteredApplications = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     const jobSet = new Set(jobFilter);
     const companySet = new Set(companyFilter);
     return applications.filter((a) => {
@@ -234,10 +236,10 @@ export default function AdminApplicationsPage() {
         a.admin_notes ?? "",
       ].some((s) => s.toLowerCase().includes(q));
     });
-  }, [applications, query, jobFilter, companyFilter]);
+  }, [applications, debouncedQuery, jobFilter, companyFilter]);
 
   const activeFilterCount =
-    (query.trim() ? 1 : 0) +
+    (debouncedQuery.trim() ? 1 : 0) +
     (filter !== ALL_FILTER ? 1 : 0) +
     jobFilter.length +
     (filterCandidateId != null ? 1 : 0) +
