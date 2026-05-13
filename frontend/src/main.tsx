@@ -8,6 +8,9 @@ import "@/index.css";
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
+    // Tunnel envelopes through our own backend so ad-blockers and
+    // restrictive CSPs don't silently drop error reports.
+    tunnel: "/api/sentry-tunnel",
     environment: import.meta.env.MODE,
     release: import.meta.env.VITE_RELEASE,
     tracesSampleRate: 0.0,

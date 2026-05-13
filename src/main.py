@@ -25,6 +25,7 @@ from src.api import (
     password_reset,
     public,
     resumes,
+    sentry_tunnel,
     seo,
 )
 from src.core.infrastructure.config import settings, validate_settings
@@ -93,6 +94,7 @@ app.include_router(public.router)
 app.include_router(candidates.router)
 app.include_router(candidates.jobs_apply_router)
 app.include_router(resumes.router)
+app.include_router(sentry_tunnel.router)
 app.include_router(seo.router)
 
 

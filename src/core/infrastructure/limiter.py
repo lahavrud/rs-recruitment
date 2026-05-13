@@ -16,3 +16,6 @@ def get_limiter() -> Limiter:
         key_func=get_remote_address,
         enabled=enabled,
     )
+
+
+limiter = get_limiter()
