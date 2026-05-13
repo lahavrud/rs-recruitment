@@ -429,7 +429,7 @@ function ActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabPr
                 <MobileEntityCard
                   key={row.company_profile.id}
                   title={
-                    <span className="font-medium text-white/90">
+                    <span className="block truncate font-medium text-white/90">
                       {row.company_profile.name}
                     </span>
                   }
@@ -709,7 +709,7 @@ function PendingTab({ query }: { query: string }) {
               <MobileEntityCard
                 key={row.user.id}
                 title={
-                  <span className="font-medium text-white/90">
+                  <span className="block truncate font-medium text-white/90">
                     {row.company_profile.name}
                   </span>
                 }
@@ -743,10 +743,10 @@ function PendingTab({ query }: { query: string }) {
                 className="flex cursor-pointer flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 transition hover:bg-card-raised sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <span className="font-medium text-white/90">
+                  <span className="block truncate font-medium text-white/90">
                     {row.company_profile.name}
                   </span>
-                  <p className="text-xs text-white/45">{row.user.email}</p>
+                  <p className="truncate text-xs text-white/45">{row.user.email}</p>
                   <p className="mt-1 text-xs text-white/35">
                     {t("admin.companies.contactLabel")}:{" "}
                     {row.company_profile.contact_first_name}{" "}
@@ -983,7 +983,7 @@ function InvitesTab({ query, externalOpen, onExternalClose }: InvitesTabProps) {
               <MobileEntityCard
                 key={invite.id}
                 title={
-                  <span className="font-medium text-white/90">
+                  <span className="block truncate font-medium text-white/90">
                     {invite.email}
                   </span>
                 }
