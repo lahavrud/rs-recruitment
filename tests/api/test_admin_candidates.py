@@ -1,6 +1,7 @@
 """Integration tests for admin candidate management endpoints."""
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -164,6 +165,31 @@ async def test_delete_candidate_succeeds(
 
     follow_up = await admin_client.get(f"/api/admin/candidates/{candidate_profile.id}")
     assert follow_up.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_candidate_removes_resume_from_storage(
+    admin_client: AsyncClient, session: AsyncSession
+):
+    """Deleting a candidate via the API triggers storage cleanup for their resume."""
+    candidate = CandidateProfile(
+        full_name="Resume Owner",
+        email="resowner@test.com",
+        phone="050-1234567",
+        resume_path="resumes/abc-uuid.pdf",
+    )
+    session.add(candidate)
+    await session.commit()
+    await session.refresh(candidate)
+
+    with patch("src.services.candidates_admin.get_storage_provider") as storage_factory:
+        delete_mock = AsyncMock(return_value=True)
+        storage_factory.return_value.delete_file = delete_mock
+
+        response = await admin_client.delete(f"/api/admin/candidates/{candidate.id}")
+
+    assert response.status_code == 204
+    delete_mock.assert_awaited_once_with("resumes/abc-uuid.pdf")
 
 
 @pytest.mark.asyncio

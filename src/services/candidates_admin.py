@@ -119,7 +119,13 @@ async def delete_candidate(
 
     if candidate.resume_path:
         try:
-            await get_storage_provider().delete_file(candidate.resume_path)
+            deleted = await get_storage_provider().delete_file(candidate.resume_path)
+            if not deleted:
+                _logger.warning(
+                    "Storage delete returned False for resume %s — "
+                    "file may remain in bucket; check IAM permissions",
+                    candidate.resume_path,
+                )
         except Exception:
             _logger.exception(
                 "Failed to delete candidate resume file %s", candidate.resume_path
@@ -190,7 +196,13 @@ async def purge_expired_candidates(session: AsyncSession) -> int:
         candidate_id = candidate.id
         if candidate.resume_path:
             try:
-                await storage.delete_file(candidate.resume_path)
+                deleted = await storage.delete_file(candidate.resume_path)
+                if not deleted:
+                    _logger.warning(
+                        "Storage delete returned False for resume %s during purge — "
+                        "file may remain in bucket; check IAM permissions",
+                        candidate.resume_path,
+                    )
             except Exception:
                 _logger.exception(
                     "Failed to delete candidate resume file %s during purge",
