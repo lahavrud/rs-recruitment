@@ -1,10 +1,11 @@
-"""Resume download endpoint — local FileResponse or S3 presigned-URL redirect."""
+"""Resume download endpoint — streams bytes from local storage or S3."""
 
+import mimetypes
 import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, Response
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.dependencies import get_current_admin
@@ -24,8 +25,8 @@ async def download_resume(
 ) -> Response:
     """Download a candidate resume.
 
-    For local storage: streams the file directly.
-    For S3: redirects (302) to a 1-hour presigned URL.
+    Acts as a secure proxy: fetches the file from local storage or S3
+    and streams the raw bytes directly. Avoids cross-origin S3 redirects.
     Requires admin authentication.
     """
     if not _SAFE_KEY.match(file_key):
@@ -62,10 +63,17 @@ async def download_resume(
         return FileResponse(path=file_path, filename=file_key)
 
     try:
-        url = await storage.get_file_url(storage_key)
+        file_bytes = await storage.download_file(storage_key)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="File not found",
         ) from e
-    return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+    content_type, _ = mimetypes.guess_type(file_key)
+    if not content_type:
+        content_type = "application/octet-stream"
+    return Response(
+        content=file_bytes,
+        media_type=content_type,
+        headers={"Content-Disposition": f'inline; filename="{file_key}"'},
+    )

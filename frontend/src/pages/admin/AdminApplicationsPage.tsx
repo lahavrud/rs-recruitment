@@ -67,22 +67,37 @@ function formatDate(iso: string): string {
 // ── Resume link — fetches via axios so the JWT travels with it ──────────────
 
 function ResumeLink({ fileKey, label }: { fileKey: string; label: string }) {
+  const [isLoading, setIsLoading] = useState(false);
   async function open(e: React.MouseEvent) {
     e.stopPropagation();
-    const win = window.open("", "_blank");
-    if (!win) return;
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       const blob = await fetchResumeBlob(fileKey);
       const url = URL.createObjectURL(blob);
-      win.location.href = url;
+      const win = window.open(url, "_blank");
+      if (!win) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileKey;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
       window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    } catch {
-      win.close();
+    } catch (err) {
+      console.error("Failed to fetch resume", err);
+    } finally {
+      setIsLoading(false);
     }
   }
   return (
-    <button onClick={open} className="text-copper hover:text-gold">
-      {label} ↗
+    <button
+      onClick={open}
+      disabled={isLoading}
+      className={`text-copper hover:text-gold transition-opacity ${isLoading ? "opacity-50 cursor-wait" : ""}`}
+    >
+      {isLoading ? "טוען..." : `${label} ↗`}
     </button>
   );
 }
