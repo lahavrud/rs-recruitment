@@ -41,12 +41,6 @@ function clipRise(visible: boolean, delay = "0s"): CSSProperties {
     : { transform: "translateY(105%)" };
 }
 
-/** Image settle: scale 1.04 → 1 with fade — images feel like they land */
-function imgSettle(visible: boolean, delay = "0s"): CSSProperties {
-  return visible
-    ? { animation: `image-reveal 1s cubic-bezier(0.215, 0.61, 0.355, 1) ${delay} both` }
-    : { opacity: 0, transform: "scale(1.04)" };
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -438,34 +432,44 @@ export default function LandingPage() {
       </section>
       </div>
 
-      {/* ── Stats bar — clip reveal, each stat staggered 0.12s ──────────── */}
-      <div className="bg-void py-10">
+      {/* ── Sectors — 3 specializations, clip reveal staggered 0.12s ────── */}
+      <div className="border-y border-white/6 bg-void py-10 sm:py-12">
         <div className="mx-auto max-w-4xl px-6">
+          <div className="overflow-hidden">
+            <p
+              className="mb-6 text-center text-[10px] font-semibold uppercase tracking-widest text-copper/55"
+              style={clipRise(statsVisible, "0s")}
+            >
+              {t("landing.sectors.eyebrow")}
+            </p>
+          </div>
           <div ref={statsRef} className="grid grid-cols-3">
             {(
               [
-                { labelKey: "about.stats.placementsLabel", i: 0 },
-                { labelKey: "about.stats.companiesLabel",  i: 1 },
-                { labelKey: "about.stats.experienceLabel", i: 2 },
+                { titleKey: "landing.sectors.s1Title", subKey: "landing.sectors.s1Sub", i: 0 },
+                { titleKey: "landing.sectors.s2Title", subKey: "landing.sectors.s2Sub", i: 1 },
+                { titleKey: "landing.sectors.s3Title", subKey: "landing.sectors.s3Sub", i: 2 },
               ] as const
-            ).map(({ labelKey, i }) => (
+            ).map(({ titleKey, subKey, i }) => (
               <div
-                key={labelKey}
-                className="border-s border-white/8 px-6 text-center first:border-s-0 first:ps-0 last:pe-0"
+                key={titleKey}
+                className="border-s border-white/8 px-4 text-center first:border-s-0 first:ps-0 last:pe-0 sm:px-6"
               >
-                {/* Number — slides up from clip */}
                 <div className="overflow-hidden">
                   <p
-                    className="text-4xl font-semibold text-white/75 sm:text-5xl"
+                    className="text-sm font-semibold text-white/80 sm:text-base"
                     style={clipRise(statsVisible, `${i * 0.12}s`)}
-                  >—</p>
+                  >
+                    {t(titleKey)}
+                  </p>
                 </div>
-                {/* Label — follows 0.08s after its number */}
                 <div className="overflow-hidden">
                   <p
-                    className="mt-1.5 text-xs text-white/35"
+                    className="mt-1.5 text-[11px] leading-snug text-white/30 sm:text-xs"
                     style={clipRise(statsVisible, `${i * 0.12 + 0.08}s`)}
-                  >{t(labelKey)}</p>
+                  >
+                    {t(subKey)}
+                  </p>
                 </div>
               </div>
             ))}
@@ -508,14 +512,23 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Photo — settles in from slight overscan (image-reveal keyframe) */}
-            <div className="overflow-hidden rounded-xl">
+            {/* Photo — panel-wipe reveal (Allbirds swiper style):
+                a bg-card-raised curtain slides left, uncovering the image. */}
+            <div className="relative overflow-hidden rounded-xl">
               <img
                 src="/landing-about.jpg"
                 alt=""
                 aria-hidden="true"
                 className="aspect-[4/5] w-full object-cover object-center"
-                style={imgSettle(aboutTextVisible, "0.12s")}
+              />
+              {/* Curtain panel: same color as section bg, wipes left on reveal */}
+              <div
+                className="absolute inset-0 bg-card-raised"
+                style={
+                  aboutTextVisible
+                    ? { animation: "panel-wipe 1.1s cubic-bezier(0.76, 0, 0.24, 1) 0.08s both" }
+                    : {}
+                }
               />
             </div>
           </div>
