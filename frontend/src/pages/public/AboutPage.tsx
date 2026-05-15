@@ -67,16 +67,27 @@ function CharRise({
   visible: boolean;
   className?: string;
 }) {
+  const words = text.split(" ");
+  // Pre-compute where each word starts in the overall character sequence
+  const wordOffsets = words.reduce<number[]>((acc, w, i) => {
+    acc.push(i === 0 ? 0 : acc[i - 1] + words[i - 1].length + 1);
+    return acc;
+  }, []);
   return (
     <span className={className}>
-      {text.split("").map((char, i) => (
-        <span key={i} className="inline-block overflow-hidden align-bottom leading-none">
-          <span
-            className="inline-block"
-            style={rise(visible, `${(baseDelay + i * gap).toFixed(3)}s`)}
-          >
-            {char === " " ? " " : char}
-          </span>
+      {words.map((word, wi) => (
+        <span key={wi} className="inline-block whitespace-nowrap">
+          {word.split("").map((char, ci) => (
+            <span key={ci} className="inline-block overflow-hidden align-bottom leading-none">
+              <span
+                className="inline-block"
+                style={rise(visible, `${(baseDelay + (wordOffsets[wi] + ci) * gap).toFixed(3)}s`)}
+              >
+                {char}
+              </span>
+            </span>
+          ))}
+          {wi < words.length - 1 && " "}
         </span>
       ))}
     </span>
@@ -141,7 +152,7 @@ export default function AboutPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "url(/hero-city.jpg)",
+            backgroundImage: "url(/hero-buildings.jpg)",
             backgroundSize: "cover",
             backgroundPosition: "center",
             animation: "focus-in 2s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both",
@@ -175,7 +186,7 @@ export default function AboutPage() {
           </div>
 
           {/* Headline — character-by-character rise */}
-          <h1 className="font-wordmark mt-6 text-[clamp(4.5rem,14vw,9rem)] font-light leading-[0.92] tracking-tight">
+          <h1 className="font-wordmark mt-6 text-[clamp(2.4rem,10vw,9rem)] font-light leading-[0.92] tracking-tight">
             <CharRise
               text={t("about.hero.headlineLine1")}
               baseDelay={0.65}
@@ -407,12 +418,12 @@ export default function AboutPage() {
           style={{
             backgroundImage: "url(/team-meeting.jpg)",
             backgroundSize: "cover",
-            backgroundPosition: "center top",
+            backgroundPosition: "center 30%",
             animation: processVisible ? "focus-in 1.8s cubic-bezier(0.22, 1, 0.36, 1) both" : undefined,
             opacity: processVisible ? undefined : 0,
           }}
         />
-        <div className="absolute inset-0 bg-card/93" />
+        <div className="absolute inset-0 bg-card/82" />
 
         <div className="relative mx-auto max-w-4xl px-6 py-20 sm:py-24">
           <div className="h-px w-8 bg-copper/40" style={ruleDraw(processVisible)} />
