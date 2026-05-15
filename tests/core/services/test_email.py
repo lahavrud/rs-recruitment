@@ -1,6 +1,6 @@
 """Tests for email service."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -28,14 +28,9 @@ class TestSMTPEmailProvider:
         )
 
     @pytest.mark.asyncio
-    @patch("src.core.services.email.smtplib.SMTP")
-    async def test_send_email_success(
-        self, mock_smtp_class, provider: SMTPEmailProvider
-    ):
+    @patch("src.core.services.email.aiosmtplib.send", new_callable=AsyncMock)
+    async def test_send_email_success(self, mock_send, provider: SMTPEmailProvider):
         """Test successful email sending via SMTP."""
-        mock_server = MagicMock()
-        mock_smtp_class.return_value.__enter__.return_value = mock_server
-
         result = await provider.send_email(
             to="recipient@example.com",
             subject="Test Subject",
@@ -43,20 +38,21 @@ class TestSMTPEmailProvider:
         )
 
         assert result is True
-        mock_smtp_class.assert_called_once_with("localhost", 587, timeout=30)
-        mock_server.starttls.assert_called_once()
-        mock_server.login.assert_called_once_with("test@example.com", "password")
-        mock_server.send_message.assert_called_once()
+        mock_send.assert_awaited_once()
+        kwargs = mock_send.await_args.kwargs
+        assert kwargs["hostname"] == "localhost"
+        assert kwargs["port"] == 587
+        assert kwargs["username"] == "test@example.com"
+        assert kwargs["password"] == "password"
+        assert kwargs["start_tls"] is True
+        assert kwargs["timeout"] == 30
 
     @pytest.mark.asyncio
-    @patch("src.core.services.email.smtplib.SMTP")
+    @patch("src.core.services.email.aiosmtplib.send", new_callable=AsyncMock)
     async def test_send_email_multiple_recipients(
-        self, mock_smtp_class, provider: SMTPEmailProvider
+        self, mock_send, provider: SMTPEmailProvider
     ):
         """Test sending email to multiple recipients."""
-        mock_server = MagicMock()
-        mock_smtp_class.return_value.__enter__.return_value = mock_server
-
         result = await provider.send_email(
             to=["recipient1@example.com", "recipient2@example.com"],
             subject="Test Subject",
@@ -64,11 +60,14 @@ class TestSMTPEmailProvider:
         )
 
         assert result is True
-        mock_server.send_message.assert_called_once()
+        mock_send.assert_awaited_once()
+        msg = mock_send.await_args.args[0]
+        assert "recipient1@example.com" in msg["To"]
+        assert "recipient2@example.com" in msg["To"]
 
     @pytest.mark.asyncio
-    @patch("src.core.services.email.smtplib.SMTP")
-    async def test_send_email_without_auth(self, mock_smtp_class):
+    @patch("src.core.services.email.aiosmtplib.send", new_callable=AsyncMock)
+    async def test_send_email_without_auth(self, mock_send):
         """Test sending email without authentication."""
         provider = SMTPEmailProvider(
             smtp_host="localhost",
@@ -77,9 +76,6 @@ class TestSMTPEmailProvider:
             use_tls=True,
         )
 
-        mock_server = MagicMock()
-        mock_smtp_class.return_value.__enter__.return_value = mock_server
-
         result = await provider.send_email(
             to="recipient@example.com",
             subject="Test Subject",
@@ -87,17 +83,15 @@ class TestSMTPEmailProvider:
         )
 
         assert result is True
-        mock_server.login.assert_not_called()
+        kwargs = mock_send.await_args.kwargs
+        assert kwargs["username"] is None
+        assert kwargs["password"] is None
 
     @pytest.mark.asyncio
-    @patch("src.core.services.email.smtplib.SMTP")
-    async def test_send_email_failure(
-        self, mock_smtp_class, provider: SMTPEmailProvider
-    ):
+    @patch("src.core.services.email.aiosmtplib.send", new_callable=AsyncMock)
+    async def test_send_email_failure(self, mock_send, provider: SMTPEmailProvider):
         """Test email sending failure."""
-        mock_server = MagicMock()
-        mock_server.send_message.side_effect = Exception("SMTP error")
-        mock_smtp_class.return_value.__enter__.return_value = mock_server
+        mock_send.side_effect = Exception("SMTP error")
 
         result = await provider.send_email(
             to="recipient@example.com",

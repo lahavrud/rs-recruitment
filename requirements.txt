@@ -42,3 +42,4 @@ arq>=0.25.0
 redis>=5.0.0
 pymupdf>=1.24.0
 sentry-sdk[fastapi]>=2.0.0
+aiosmtplib>=3.0.0

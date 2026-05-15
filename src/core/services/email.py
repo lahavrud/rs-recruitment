@@ -1,8 +1,6 @@
 """Email service abstraction layer for email providers."""
 
-import asyncio
 import logging
-import smtplib
 from abc import ABC, abstractmethod
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -10,6 +8,7 @@ from email.mime.text import MIMEText
 from typing import List, Optional
 
 import aioboto3
+import aiosmtplib
 from botocore.exceptions import ClientError
 
 from src.core.infrastructure.config import settings
@@ -138,30 +137,6 @@ class SMTPEmailProvider(EmailProvider):
         self.from_email = from_email or smtp_user
         self.use_tls = use_tls
 
-    def _send_smtp_email_sync(
-        self,
-        recipients: List[str],
-        sender: str,
-        subject: str,
-        body: str,
-        html_body: Optional[str],
-        attachments: List[Attachment],
-    ) -> bool:
-        try:
-            msg = _build_mime_message(
-                sender, recipients, subject, body, html_body, attachments
-            )
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
-                if self.use_tls:
-                    server.starttls()
-                if self.smtp_user and self.smtp_password:
-                    server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
-            return True
-        except Exception as e:
-            logger.error(f"SMTP error sending email: {e}")
-            return False
-
     async def send_email(
         self,
         to: str | List[str],
@@ -177,17 +152,23 @@ class SMTPEmailProvider(EmailProvider):
         if not sender:
             raise ValueError("No sender email address configured")
 
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None,
-            self._send_smtp_email_sync,
-            recipients,
-            sender,
-            subject,
-            body,
-            html_body,
-            attachments or [],
+        msg = _build_mime_message(
+            sender, recipients, subject, body, html_body, attachments or []
         )
+        try:
+            await aiosmtplib.send(
+                msg,
+                hostname=self.smtp_host,
+                port=self.smtp_port,
+                username=self.smtp_user or None,
+                password=self.smtp_password or None,
+                start_tls=self.use_tls,
+                timeout=30,
+            )
+            return True
+        except Exception as e:
+            logger.error(f"SMTP error sending email: {e}")
+            return False
 
 
 def _build_mime_message(
