@@ -231,7 +231,7 @@ function ShellContent({ children }: Props) {
   }
 
   // Hero pages start their own full-bleed section from y=0 (navbar floats over it)
-  const heroRoutes = new Set(["/", "/about", "/contact"]);
+  const heroRoutes = new Set(["/", "/about", "/contact", "/jobs"]);
   // Single-screen pages: constrain to viewport height so nothing scrolls
   const singleScreenRoutes = new Set(["/contact"]);
 
