@@ -4,6 +4,7 @@ import logging
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.infrastructure.pagination import (
     CursorPage,
@@ -114,7 +115,9 @@ async def reject_company(
         CompanyNotPendingError: If already approved or not a COMPANY user
     """
     result = await session.execute(
-        select(User).where(User.id == company_user_id)  # pyright: ignore[reportArgumentType]
+        select(User)
+        .options(selectinload(User.company_profile))
+        .where(User.id == company_user_id)  # pyright: ignore[reportArgumentType]
     )
     user = result.scalar_one_or_none()
     if not user:
@@ -128,12 +131,7 @@ async def reject_company(
             f"Company user {company_user_id} is already approved (active)"
         )
 
-    result = await session.execute(
-        select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-            CompanyProfile.user_id == company_user_id
-        )
-    )
-    company_profile = result.scalar_one()
+    company_profile = user.company_profile
 
     _rejection_email = user.email
     _company_name_for_email = company_profile.name or ""

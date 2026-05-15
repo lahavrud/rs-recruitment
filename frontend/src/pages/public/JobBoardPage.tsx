@@ -436,6 +436,23 @@ export default function JobBoardPage() {
     setSalaryRange(null);
   }, []);
 
+  const itemListSchema = useMemo(() => {
+    if (loading || jobs.length === 0) return undefined;
+    return {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: t("publicJobs.board.title"),
+      url: `${SITE_URL}/jobs`,
+      numberOfItems: jobs.length,
+      itemListElement: jobs.slice(0, 10).map((job, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: job.title,
+        url: `${SITE_URL}/jobs/${job.id}`,
+      })),
+    };
+  }, [loading, jobs, t]);
+
   if (fetchError) {
     return (
       <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-center text-sm text-danger">
@@ -467,6 +484,7 @@ export default function JobBoardPage() {
         title={t("publicJobs.board.title")}
         description={t("publicJobs.board.subtitle")}
         canonical={`${SITE_URL}/jobs`}
+        structuredData={itemListSchema}
       />
       {/* Header */}
       <div className="mb-6 sm:mb-10">

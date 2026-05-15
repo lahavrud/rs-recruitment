@@ -11,6 +11,7 @@ interface SeoHeadProps {
   ogImage?: string;
   ogType?: "website" | "article";
   structuredData?: object;
+  noIndex?: boolean;
 }
 
 export default function SeoHead({
@@ -20,6 +21,7 @@ export default function SeoHead({
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   structuredData,
+  noIndex = false,
 }: SeoHeadProps) {
   const fullTitle = `${title} — ${SITE_NAME}`;
 
@@ -27,6 +29,7 @@ export default function SeoHead({
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
+      {noIndex && <meta name="robots" content="noindex,nofollow" />}
       {canonical && <link rel="canonical" href={canonical} />}
 
       {/* Open Graph */}

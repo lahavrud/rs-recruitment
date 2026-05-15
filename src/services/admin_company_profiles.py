@@ -9,9 +9,10 @@ approval/rejection lifecycle that's keyed by `User.id` lives in
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.infrastructure.database_helpers import get_by_id_or_raise
-from src.models import CompanyProfile, User
+from src.models import CompanyProfile
 from src.schemas import (
     CompanyProfileAdminCreate,
     CompanyProfileAdminUpdate,
@@ -110,12 +111,14 @@ async def update_company_profile(
     Raises:
         CompanyNotFoundError: If no company profile with that id exists.
     """
-    profile = await get_by_id_or_raise(
-        session,
-        CompanyProfile,
-        profile_id,
-        lambda pk: CompanyNotFoundError(f"Company profile {pk} not found"),
+    result = await session.execute(
+        select(CompanyProfile)
+        .options(selectinload(CompanyProfile.user))
+        .where(CompanyProfile.id == profile_id)  # pyright: ignore[reportArgumentType]
     )
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        raise CompanyNotFoundError(f"Company profile {profile_id} not found")
 
     payload = data.model_dump(exclude_unset=True)
 
@@ -124,10 +127,7 @@ async def update_company_profile(
     # attached profile must also update the user's login email atomically.
     new_email = payload.get("contact_email")
     if new_email is not None and profile.user_id is not None:
-        user_result = await session.execute(
-            select(User).where(User.id == profile.user_id)  # pyright: ignore[reportArgumentType]
-        )
-        user = user_result.scalar_one()
+        user = profile.user
         if user.email != new_email:
             user.email = new_email
             try:
