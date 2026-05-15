@@ -117,7 +117,6 @@ export default function AboutPage() {
   }, []);
 
   const [storyRef, storyVisible] = useReveal(0.15);
-  const [founderRef, founderVisible] = useReveal(0.1);
   const [philosophyRef, philosophyVisible] = useReveal(0.3);
   const [valuesRef, valuesVisible] = useReveal(0.06);
   const [processRef, processVisible] = useReveal(0.1);
@@ -267,56 +266,6 @@ export default function AboutPage() {
             <div className="hidden items-start justify-end pt-2 sm:flex"
               style={{ animation: storyVisible ? "luxury-fade 2.5s ease-out 0.8s both" : undefined, opacity: storyVisible ? undefined : 0 }}>
               <span className="font-wordmark select-none text-[7rem] font-light leading-none text-white/[0.04]">RS</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Founder — panel wipe reveal ───────────────────────────────────── */}
-      <div ref={founderRef} className="bg-card-raised">
-        <div className="mx-auto max-w-4xl px-6 py-24 sm:py-28">
-          <div className="grid items-center gap-10 sm:grid-cols-2 sm:gap-16">
-
-            {/* Photo: panel wipes left, revealing the image */}
-            <div className="relative overflow-hidden rounded-xl shadow-2xl"
-              style={founderVisible ? { animation: "reveal-up 0s linear 0s both" } : { opacity: 1 }}>
-              <img
-                src="/founder.png"
-                alt={t("about.founder.photoAlt")}
-                className="w-full object-cover"
-                style={{ aspectRatio: "4/5", display: "block" }}
-              />
-              {/* Wipe panel — same color as section bg, slides away */}
-              <div
-                className="absolute inset-0 bg-card-raised"
-                style={founderVisible
-                  ? { animation: "panel-wipe 1.1s cubic-bezier(0.76, 0, 0.24, 1) 0.2s both" }
-                  : {}}
-              />
-            </div>
-
-            {/* Text */}
-            <div>
-              <div className="h-px w-8 bg-copper/40" style={ruleDraw(founderVisible, "0.35s")} />
-              <div className="mt-3 overflow-hidden">
-                <p className="text-xs font-semibold uppercase tracking-widest text-copper"
-                  style={rise(founderVisible, "0.45s", "0.6s")}>
-                  {t("about.founder.eyebrow")}
-                </p>
-              </div>
-              <div className="mt-6 overflow-hidden">
-                <p className="text-2xl font-semibold text-white/90 sm:text-3xl"
-                  style={rise(founderVisible, "0.55s")}>
-                  {t("about.founder.name")}
-                </p>
-              </div>
-              <p className="mt-1 text-sm text-copper/70" style={revealUp(founderVisible, "0.7s", "0.6s")}>
-                {t("about.founder.role")}
-              </p>
-              <p className="mt-6 text-base leading-relaxed text-white/50"
-                style={revealUp(founderVisible, "0.85s")}>
-                {t("about.founder.bio")}
-              </p>
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@ import LogoBanner from "@/components/ui/LogoBanner";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
 
-function useReveal(threshold = 0.15) {
+function useReveal(threshold = 0.05) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -16,7 +16,7 @@ function useReveal(threshold = 0.15) {
     if (!el || !("IntersectionObserver" in window)) { setVisible(true); return; }
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold }
+      { threshold, rootMargin: "0px 0px -60px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -24,9 +24,10 @@ function useReveal(threshold = 0.15) {
   return [ref, visible] as const;
 }
 
-function revealUp(visible: boolean, delay = "0s"): CSSProperties {
+// Section-level: whole content block rises as one unit
+function sectionReveal(visible: boolean): CSSProperties {
   return visible
-    ? { animation: `reveal-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) ${delay} both` }
+    ? { animation: "section-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both" }
     : { opacity: 0 };
 }
 
@@ -357,16 +358,12 @@ export default function LandingPage() {
           }}
         />
 
-        <div ref={audienceRef} className="relative z-10 mx-auto max-w-4xl px-6">
+        <div className="relative z-10 mx-auto max-w-4xl px-6">
+          <div ref={audienceRef} style={sectionReveal(audienceVisible)}>
           <div className="grid gap-4 sm:grid-cols-[3fr_2fr] sm:gap-5">
 
-            {/* Primary: job seekers — slides in from reading start (right in RTL) */}
-            <div
-              className="flex flex-col rounded-xl border border-copper/25 bg-card-raised p-6 text-start sm:p-8"
-              style={audienceVisible
-                ? { animation: "reveal-from-right 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both" }
-                : { opacity: 0 }}
-            >
+            {/* Primary: job seekers */}
+            <div className="flex flex-col rounded-xl border border-copper/25 bg-card-raised p-6 text-start sm:p-8">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/70">
                 {t("landing.hero.forSeekers")}
               </p>
@@ -384,13 +381,8 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Secondary: companies — slides in from reading end (left in RTL) */}
-            <div
-              className="flex flex-col rounded-xl border border-white/8 bg-card p-6 text-start"
-              style={audienceVisible
-                ? { animation: "reveal-from-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both" }
-                : { opacity: 0 }}
-            >
+            {/* Secondary: companies */}
+            <div className="flex flex-col rounded-xl border border-white/8 bg-card p-6 text-start">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/60">
                 {t("landing.hero.forCompanies")}
               </p>
@@ -411,19 +403,15 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
+          </div>
         </div>
       </section>
       </div>
 
       {/* ── Stats bar ─────────────────────────────────────────────────── */}
-      <div ref={statsRef} className="border-b border-white/6 bg-void py-10 sm:py-12">
+      <div className="bg-void py-10">
         <div className="mx-auto max-w-4xl px-6">
-          <div
-            className="grid grid-cols-3"
-            style={statsVisible
-              ? { animation: "reveal-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }
-              : { opacity: 0 }}
-          >
+          <div ref={statsRef} className="grid grid-cols-3" style={sectionReveal(statsVisible)}>
             {(
               [
                 "about.stats.placementsLabel",
@@ -444,7 +432,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── About — Western Rise split layout ─────────────────────────── */}
-      <section className="texture-wave bg-card-raised py-14 sm:py-24">
+      <section className="texture-wave bg-card-raised py-20 sm:py-32">
         <div className="mx-auto max-w-4xl px-6">
 
           {/*
@@ -452,11 +440,8 @@ export default function LandingPage() {
             photo on the visual left.
             RTL grid: first DOM child → rightmost visually.
           */}
-          <div
-            ref={aboutTextRef}
-            className="grid items-center gap-10 sm:grid-cols-2 sm:gap-14"
-            style={revealUp(aboutTextVisible)}
-          >
+          <div ref={aboutTextRef} style={sectionReveal(aboutTextVisible)}>
+          <div className="grid items-center gap-10 sm:grid-cols-2 sm:gap-14">
             {/* Text column — first in DOM → visual right in RTL */}
             <div>
               <div className="h-px w-8 bg-copper/40" />
@@ -487,6 +472,8 @@ export default function LandingPage() {
                 className="aspect-[4/5] w-full object-cover object-center"
               />
             </div>
+          </div>
+
           </div>
 
           {/* Feature cards — below the split, full width */}
@@ -531,13 +518,10 @@ export default function LandingPage() {
 
       {/* ── Featured Jobs — infinite free-scroll carousel ─────────────── */}
       {!loading && featuredJobs.length > 0 && (
-        <section className="bg-void py-16 sm:py-24">
-          <div ref={jobsRef} className="mx-auto max-w-4xl px-6">
-            {/* Single block entrance — no per-element stagger */}
-            <div
-              className="flex items-end justify-between"
-              style={revealUp(jobsVisible)}
-            >
+        <section className="bg-void py-20 sm:py-32">
+          <div className="mx-auto max-w-4xl px-6">
+            <div ref={jobsRef} style={sectionReveal(jobsVisible)}>
+            <div className="flex items-end justify-between">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/70">
                   RS Recruiting
@@ -613,20 +597,19 @@ export default function LandingPage() {
                 style={{ width: `${scrollProgress}%` }}
               />
             </div>
+            </div>
           </div>
         </section>
       )}
 
       {/* ── Testimonials ──────────────────────────────────────────────── */}
-      <section className="texture-wave bg-section py-16 sm:py-24">
-        <div ref={contactRef} className="mx-auto max-w-4xl px-6">
-          {/* Section header — single fade, no per-element stagger */}
-          <div style={revealUp(contactVisible)}>
-            <div className="h-px w-8 bg-copper/40" />
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-copper/70">
-              {t("landing.testimonials.eyebrow")}
-            </p>
-          </div>
+      <section className="texture-wave bg-card-raised py-20 sm:py-32">
+        <div className="mx-auto max-w-4xl px-6">
+          <div ref={contactRef} style={sectionReveal(contactVisible)}>
+          <div className="h-px w-8 bg-copper/40" />
+          <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-copper/70">
+            {t("landing.testimonials.eyebrow")}
+          </p>
 
           {/* Cards — each uses a different signature animation (same as About feature cards) */}
           <div className="mt-10 grid gap-5 sm:grid-cols-3">
@@ -681,6 +664,7 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
+          </div>
           </div>
         </div>
       </section>
