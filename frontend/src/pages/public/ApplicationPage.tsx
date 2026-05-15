@@ -53,13 +53,14 @@ interface FieldProps {
   id: string;
   required?: boolean;
   optional?: boolean;
+  className?: string;
   children: ReactNode;
 }
 
-function Field({ label, id, required, optional, children }: FieldProps) {
+function Field({ label, id, required, optional, className, children }: FieldProps) {
   const { t } = useTranslation();
   return (
-    <div data-field={id}>
+    <div data-field={id} className={className}>
       <label
         htmlFor={id}
         className="flex items-center gap-1.5 text-xs text-white/55 sm:text-sm"
@@ -470,6 +471,8 @@ export default function ApplicationPage() {
         : null;
 
   return (
+    /* Full-width bg fills the viewport — form centered inside at max-w-2xl */
+    <div className="min-h-screen bg-page">
     <div className="mx-auto max-w-2xl px-6 pt-24 pb-24">
       {job && (
         <SeoHead
@@ -500,7 +503,7 @@ export default function ApplicationPage() {
       </Link>
 
       {/* Compact job header */}
-      <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-4">
+      <div className="mb-8 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-5 sm:p-6">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
             {t("publicJobs.application.applyFor")}
@@ -589,6 +592,7 @@ export default function ApplicationPage() {
       {privacyOpen && (
         <PrivacyModal onClose={() => setPrivacyOpen(false)} />
       )}
+    </div>
     </div>
   );
 }
@@ -707,7 +711,7 @@ function IdentityStep({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
       <Field
         label={t("publicJobs.application.fullName")}
         id="full_name"
@@ -772,6 +776,7 @@ function IdentityStep({
         label={t("publicJobs.application.linkedin")}
         id="linkedin_url"
         optional
+        className="sm:col-span-2"
       >
         <input
           id="linkedin_url"
@@ -974,8 +979,8 @@ function QuestionsStep({
       },
     ];
   return (
-    <div className="space-y-5">
-      <div className="rounded-lg border border-copper/20 bg-copper/5 p-4">
+    <div className="grid gap-5 sm:grid-cols-2">
+      <div className="rounded-lg border border-copper/20 bg-copper/5 p-4 sm:col-span-2">
         <p className="text-xs leading-relaxed text-white/65">
           {t("publicJobs.application.questionsStepBanner")}
         </p>
@@ -985,8 +990,9 @@ function QuestionsStep({
         const value = form[name] ?? "";
         const count = value.length;
         const over = count > TEXT_FIELD_MAX;
+        const isHalf = name === "personality_strength" || name === "personality_weakness";
         return (
-          <Field key={name} label={label} id={name} optional>
+          <Field key={name} label={label} id={name} optional className={isHalf ? "sm:col-span-1" : "sm:col-span-2"}>
             <textarea
               id={name}
               name={name}
