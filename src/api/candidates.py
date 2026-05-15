@@ -1,9 +1,19 @@
 """Candidate endpoints for public application form."""
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
+from src.core.infrastructure.dependencies import client_ip
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.transactions import transactional
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
@@ -24,9 +34,17 @@ async def _apply_common(
     salary_expectations: str | None,
     personality_weakness: str | None,
     personality_strength: str | None,
+    privacy_accepted: bool,
     resume: UploadFile | None,
+    request: Request,
     session: AsyncSession,
 ) -> CandidateProfileRead:
+    if not privacy_accepted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="privacy_consent_required",
+        )
+
     resume_file: bytes | None = None
     resume_filename: str | None = None
     if resume is not None:
@@ -52,6 +70,8 @@ async def _apply_common(
                 resume_file=resume_file,
                 resume_filename=resume_filename,
                 session=session,
+                consent_ip=client_ip(request),
+                consent_ua=request.headers.get("user-agent"),
             )
         return candidate
     except (JobNotFoundError, ApplicationAlreadyExistsError) as e:
@@ -69,6 +89,7 @@ async def _apply_common(
     status_code=status.HTTP_201_CREATED,
 )
 async def apply_to_job(
+    request: Request,
     job_id: int = Form(...),
     full_name: str = Form(...),
     email: str = Form(...),
@@ -78,6 +99,7 @@ async def apply_to_job(
     salary_expectations: str | None = Form(None),
     personality_weakness: str | None = Form(None),
     personality_strength: str | None = Form(None),
+    privacy_accepted: bool = Form(...),
     resume: UploadFile | None = File(None),
     session: AsyncSession = Depends(get_session),
 ) -> CandidateProfileRead:
@@ -91,7 +113,9 @@ async def apply_to_job(
         salary_expectations=salary_expectations,
         personality_weakness=personality_weakness,
         personality_strength=personality_strength,
+        privacy_accepted=privacy_accepted,
         resume=resume,
+        request=request,
         session=session,
     )
 
@@ -103,6 +127,7 @@ async def apply_to_job(
 )
 async def apply_to_job_by_path(
     job_id: int,
+    request: Request,
     full_name: str = Form(...),
     email: str = Form(...),
     phone: str = Form(...),
@@ -111,6 +136,7 @@ async def apply_to_job_by_path(
     salary_expectations: str | None = Form(None),
     personality_weakness: str | None = Form(None),
     personality_strength: str | None = Form(None),
+    privacy_accepted: bool = Form(...),
     resume: UploadFile | None = File(None),
     session: AsyncSession = Depends(get_session),
 ) -> CandidateProfileRead:
@@ -124,6 +150,8 @@ async def apply_to_job_by_path(
         salary_expectations=salary_expectations,
         personality_weakness=personality_weakness,
         personality_strength=personality_strength,
+        privacy_accepted=privacy_accepted,
         resume=resume,
+        request=request,
         session=session,
     )

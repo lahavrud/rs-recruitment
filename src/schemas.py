@@ -615,6 +615,8 @@ class CandidateProfileRead(BaseModel):
     salary_expectations: str | None
     personality_weakness: str | None
     personality_strength: str | None
+    consent_given_at: datetime | None
+    consent_policy_version: str | None
     created_at: datetime
 
 

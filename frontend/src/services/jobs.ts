@@ -44,6 +44,9 @@ export async function submitApplication(
   if (form.personality_strength)
     data.append("personality_strength", form.personality_strength);
 
+  // Privacy consent — always true at this point (UI blocks submit otherwise)
+  data.append("privacy_accepted", "true");
+
   // Append resume file if provided
   if (resume) {
     data.append("resume", resume, resume.name);
