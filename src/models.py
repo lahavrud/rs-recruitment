@@ -252,10 +252,10 @@ class Job(SQLModel, table=True):
     location: str
     salary_min: int
     salary_max: int
-    status: JobStatus = Field(default=JobStatus.PENDING_APPROVAL)
+    status: JobStatus = Field(default=JobStatus.PENDING_APPROVAL, index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True), nullable=False),
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
     )
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

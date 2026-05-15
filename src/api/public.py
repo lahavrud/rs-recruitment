@@ -1,6 +1,6 @@
 """Public endpoints (no authentication required)."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
@@ -15,11 +15,13 @@ router = APIRouter(prefix="/api/public", tags=["public"])
 
 @router.get("/jobs", response_model=CursorPage[JobPublicRead])
 async def get_public_jobs(
+    response: Response,
     cursor: str | None = None,
     limit: int = DEFAULT_LIMIT,
     session: AsyncSession = Depends(get_session),
 ) -> CursorPage[JobPublicRead]:
     """List published jobs for the public job board, cursor-paginated."""
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     return await list_published_jobs(session, cursor=cursor, limit=limit)
 
 
