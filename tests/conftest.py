@@ -54,7 +54,7 @@ from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth import register_company_user
 
 _EMAIL_TASK_TARGETS = [
-    "src.services.auth.registration.enqueue_email_task",
+    "src.services.auth.enqueue_email_task",
     "src.services.admin_companies.enqueue_email_task",
     "src.services.jobs.enqueue_email_task",
     "src.services.jobs_admin.enqueue_email_task",
@@ -188,13 +188,9 @@ def mock_auth_redis():
     - access token blacklist check (always returns False — no token is revoked)
     """
     with (
-        patch("src.services.auth.sessions._check_lockout", new_callable=AsyncMock),
-        patch(
-            "src.services.auth.sessions._record_failed_attempt", new_callable=AsyncMock
-        ),
-        patch(
-            "src.services.auth.sessions._clear_failed_attempts", new_callable=AsyncMock
-        ),
+        patch("src.services.auth._check_lockout", new_callable=AsyncMock),
+        patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock),
+        patch("src.services.auth._clear_failed_attempts", new_callable=AsyncMock),
         patch(
             "src.core.infrastructure.security.is_access_token_blacklisted",
             new_callable=AsyncMock,
@@ -234,9 +230,7 @@ def mock_storage_provider():
     """Patch storage provider for all tests — prevents real S3/disk uploads."""
     mock = MagicMock()
     mock.upload_file = AsyncMock(return_value="logos/test-logo.png")
-    with patch(
-        "src.services.auth.registration.get_storage_provider", return_value=mock
-    ):
+    with patch("src.services.auth.get_storage_provider", return_value=mock):
         yield mock
 
 

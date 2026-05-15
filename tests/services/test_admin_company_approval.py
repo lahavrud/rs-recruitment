@@ -86,7 +86,7 @@ async def test_approve_company_not_found(session: AsyncSession):
 
 
 @pytest.mark.asyncio
-@patch("src.services.auth.registration.enqueue_email_task")
+@patch("src.services.auth.enqueue_email_task")
 async def test_approve_company_already_approved(mock_email, session: AsyncSession):
     mock_email.return_value = "job-id"
     user = await _register(
