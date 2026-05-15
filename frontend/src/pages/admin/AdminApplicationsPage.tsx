@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteApplication,
@@ -31,6 +31,7 @@ import DropdownMenu, {
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
+import { useAutoOpenFromRouteState } from "@/hooks/useAutoOpenFromRouteState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { selectCls, textareaCls } from "@/styles/forms";
@@ -164,9 +165,6 @@ export default function AdminApplicationsPage() {
     removeItem,
   } = useInfiniteList<ApplicationWithDetails>(fetcher);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const [detail, setDetail] = useState<ApplicationWithDetails | null>(null);
   const [statusModal, setStatusModal] = useState<ApplicationWithDetails | null>(null);
   const [notesModal, setNotesModal] = useState<ApplicationWithDetails | null>(null);
@@ -247,14 +245,7 @@ export default function AdminApplicationsPage() {
 
 
   // Auto-open application passed via navigation state (e.g. from Candidate detail)
-  useEffect(() => {
-    const app = (location.state as { autoOpen?: ApplicationWithDetails } | null)
-      ?.autoOpen;
-    if (!app) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDetail(app);
-    navigate(location.pathname + location.search, { replace: true, state: null });
-  }, [location.state, location.pathname, location.search, navigate]);
+  useAutoOpenFromRouteState<ApplicationWithDetails>("autoOpen", setDetail);
 
   const STATUS_LABELS: Record<string, string> = {
     NEW: t("admin.applications.statusLabels.NEW"),
