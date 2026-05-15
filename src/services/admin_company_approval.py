@@ -13,13 +13,14 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.transactions import defer_after_commit
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
-from src.models import ActivationToken, CompanyProfile, User
+from src.models import ActivationToken, User
 from src.schemas import CompanyProfileRead, UserRead
 from src.services.audit import record_audit_event
 from src.services.contract_pdf import generate_signed_contract
@@ -48,7 +49,9 @@ async def approve_company(
         CompanyNotPendingError: If already approved or not a COMPANY user
     """
     result = await session.execute(
-        select(User).where(User.id == company_user_id)  # pyright: ignore[reportArgumentType]
+        select(User)
+        .options(selectinload(User.company_profile))
+        .where(User.id == company_user_id)  # pyright: ignore[reportArgumentType]
     )
     user = result.scalar_one_or_none()
     if not user:
@@ -61,6 +64,8 @@ async def approve_company(
         raise CompanyNotPendingError(
             f"Company user {company_user_id} is already approved (active)"
         )
+
+    company_profile = user.company_profile
 
     # Revoke any previous (unused, possibly expired) activation token before
     # issuing a new one. This allows re-approval after a token expires or
@@ -75,13 +80,6 @@ async def approve_company(
     if stale is not None:
         await session.delete(stale)
         await session.flush()
-
-    result = await session.execute(
-        select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-            CompanyProfile.user_id == company_user_id
-        )
-    )
-    company_profile = result.scalar_one()
 
     raw_token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(hours=_ACTIVATION_TTL_HOURS)
