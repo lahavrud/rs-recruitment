@@ -156,14 +156,19 @@ async def reset_password(
     Raises:
         InvalidPasswordResetTokenError: token missing, used, or expired.
     """
-    record = await _load_active_reset_token(raw_token, session)
-
-    user_result = await session.execute(
-        select(User).where(User.id == record.user_id)  # pyright: ignore[reportArgumentType]
+    result = await session.execute(
+        select(PasswordResetToken, User)
+        .join(User, User.id == PasswordResetToken.user_id)  # pyright: ignore[reportArgumentType]
+        .where(PasswordResetToken.token_hash == hash_token(raw_token))  # type: ignore[arg-type]
     )
-    user = user_result.scalar_one_or_none()
-    if user is None:
-        raise InvalidPasswordResetTokenError("המשתמש לא נמצא")
+    row = result.one_or_none()
+    if row is None:
+        raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
+    record, user = row
+    if record.used:
+        raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
+    if record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        raise InvalidPasswordResetTokenError("פג תוקף הקישור")
 
     user.hashed_password = get_password_hash(new_password)
     record.used = True
