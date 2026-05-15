@@ -24,11 +24,28 @@ function useReveal(threshold = 0.05) {
   return [ref, visible] as const;
 }
 
-// Section-level: whole content block rises as one unit
-function sectionReveal(visible: boolean): CSSProperties {
+// ── Animation helpers (Allbirds-style, power3.out = cubic-bezier(0.215,0.61,0.355,1)) ──
+
+/** Card / panel rise — lighter than section */
+function cardRise(visible: boolean, delay = "0s"): CSSProperties {
   return visible
-    ? { animation: "section-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both" }
-    : { opacity: 0 };
+    ? { animation: `card-reveal 0.75s cubic-bezier(0.215, 0.61, 0.355, 1) ${delay} both` }
+    : { opacity: 0, transform: "translateY(36px)" };
+}
+
+/** Clip-based text reveal (Allbirds signature). Parent MUST have overflow-hidden.
+ *  Text slides from below the clipping edge — never visible until it arrives.   */
+function clipRise(visible: boolean, delay = "0s"): CSSProperties {
+  return visible
+    ? { animation: `text-clip-rise 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) ${delay} both` }
+    : { transform: "translateY(105%)" };
+}
+
+/** Image settle: scale 1.04 → 1 with fade — images feel like they land */
+function imgSettle(visible: boolean, delay = "0s"): CSSProperties {
+  return visible
+    ? { animation: `image-reveal 1s cubic-bezier(0.215, 0.61, 0.355, 1) ${delay} both` }
+    : { opacity: 0, transform: "scale(1.04)" };
 }
 
 function formatDate(iso: string): string {
@@ -357,17 +374,25 @@ export default function LandingPage() {
         />
 
         <div className="relative z-10 mx-auto max-w-4xl px-6">
-          <div ref={audienceRef} style={sectionReveal(audienceVisible)}>
-          <div className="grid gap-4 sm:grid-cols-[3fr_2fr] sm:gap-5">
+          <div className="grid gap-4 sm:grid-cols-[3fr_2fr] sm:gap-5" ref={audienceRef}>
 
-            {/* Primary: job seekers */}
-            <div className="flex flex-col rounded-xl border border-copper/25 bg-card-raised p-6 text-start sm:p-8">
+            {/* Primary: job seekers — card rises first */}
+            <div
+              className="flex flex-col rounded-xl border border-copper/25 bg-card-raised p-6 text-start sm:p-8"
+              style={cardRise(audienceVisible, "0s")}
+            >
               <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/70">
                 {t("landing.hero.forSeekers")}
               </p>
-              <h2 className="mt-2 text-xl font-semibold leading-tight text-white/95 sm:text-2xl">
-                {t("landing.hero.seekersHeadline")}
-              </h2>
+              {/* Heading clip-reveal inside the already-risen card */}
+              <div className="mt-2 overflow-hidden">
+                <h2
+                  className="text-xl font-semibold leading-tight text-white/95 sm:text-2xl"
+                  style={clipRise(audienceVisible, "0.1s")}
+                >
+                  {t("landing.hero.seekersHeadline")}
+                </h2>
+              </div>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
                 {t("landing.hero.seekersBody")}
               </p>
@@ -379,14 +404,22 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Secondary: companies */}
-            <div className="flex flex-col rounded-xl border border-white/8 bg-card p-6 text-start">
+            {/* Secondary: companies — staggered 0.15s behind */}
+            <div
+              className="flex flex-col rounded-xl border border-white/8 bg-card p-6 text-start"
+              style={cardRise(audienceVisible, "0.15s")}
+            >
               <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/60">
                 {t("landing.hero.forCompanies")}
               </p>
-              <h2 className="mt-2 text-lg font-semibold leading-tight text-white/90">
-                {t("landing.hero.companiesHeadline")}
-              </h2>
+              <div className="mt-2 overflow-hidden">
+                <h2
+                  className="text-lg font-semibold leading-tight text-white/90"
+                  style={clipRise(audienceVisible, "0.25s")}
+                >
+                  {t("landing.hero.companiesHeadline")}
+                </h2>
+              </div>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-white/55">
                 {t("landing.hero.companiesBody")}
               </p>
@@ -401,28 +434,39 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
-          </div>
         </div>
       </section>
       </div>
 
-      {/* ── Stats bar ─────────────────────────────────────────────────── */}
+      {/* ── Stats bar — clip reveal, each stat staggered 0.12s ──────────── */}
       <div className="bg-void py-10">
         <div className="mx-auto max-w-4xl px-6">
-          <div ref={statsRef} className="grid grid-cols-3" style={sectionReveal(statsVisible)}>
+          <div ref={statsRef} className="grid grid-cols-3">
             {(
               [
-                "about.stats.placementsLabel",
-                "about.stats.companiesLabel",
-                "about.stats.experienceLabel",
+                { labelKey: "about.stats.placementsLabel", i: 0 },
+                { labelKey: "about.stats.companiesLabel",  i: 1 },
+                { labelKey: "about.stats.experienceLabel", i: 2 },
               ] as const
-            ).map((labelKey) => (
+            ).map(({ labelKey, i }) => (
               <div
                 key={labelKey}
                 className="border-s border-white/8 px-6 text-center first:border-s-0 first:ps-0 last:pe-0"
               >
-                <p className="text-4xl font-semibold text-white/75 sm:text-5xl">—</p>
-                <p className="mt-1.5 text-xs text-white/35">{t(labelKey)}</p>
+                {/* Number — slides up from clip */}
+                <div className="overflow-hidden">
+                  <p
+                    className="text-4xl font-semibold text-white/75 sm:text-5xl"
+                    style={clipRise(statsVisible, `${i * 0.12}s`)}
+                  >—</p>
+                </div>
+                {/* Label — follows 0.08s after its number */}
+                <div className="overflow-hidden">
+                  <p
+                    className="mt-1.5 text-xs text-white/35"
+                    style={clipRise(statsVisible, `${i * 0.12 + 0.08}s`)}
+                  >{t(labelKey)}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -438,40 +482,42 @@ export default function LandingPage() {
             photo on the visual left.
             RTL grid: first DOM child → rightmost visually.
           */}
-          <div ref={aboutTextRef} style={sectionReveal(aboutTextVisible)}>
-          <div className="grid items-center gap-10 sm:grid-cols-2 sm:gap-14">
-            {/* Text column — first in DOM → visual right in RTL */}
+          <div ref={aboutTextRef} className="grid items-center gap-10 sm:grid-cols-2 sm:gap-14">
+            {/* Text column — clip-rise on headline, card-rise on body */}
             <div>
-              <div className="h-px w-8 bg-copper/40" />
-              <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-copper">
-                {t("landing.about.eyebrow")}
-              </p>
-              <h2 className="mt-5 text-xl font-semibold leading-snug text-white/90 sm:text-2xl">
-                {t("landing.about.headline")}
-              </h2>
-              <p className="mt-5 text-base leading-relaxed text-white/60">
+              <div className="h-px w-8 bg-copper/40" style={aboutTextVisible ? { animation: "line-expand-h 0.6s cubic-bezier(0.215,0.61,0.355,1) both", transformOrigin: "right" } : { transform: "scaleX(0)" }} />
+              <div className="overflow-hidden">
+                <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-copper" style={clipRise(aboutTextVisible, "0.05s")}>
+                  {t("landing.about.eyebrow")}
+                </p>
+              </div>
+              <div className="mt-5 overflow-hidden">
+                <h2 className="text-xl font-semibold leading-snug text-white/90 sm:text-2xl" style={clipRise(aboutTextVisible, "0.15s")}>
+                  {t("landing.about.headline")}
+                </h2>
+              </div>
+              <p className="mt-5 text-base leading-relaxed text-white/60" style={cardRise(aboutTextVisible, "0.28s")}>
                 <span className="font-wordmark text-3xl font-light tracking-widest text-gold/60 sm:text-4xl">RS Recruiting</span>{" "}
                 {t("landing.about.body")}
               </p>
-              <p className="mt-4 text-sm leading-relaxed text-white/50">
+              <p className="mt-4 text-sm leading-relaxed text-white/50" style={cardRise(aboutTextVisible, "0.38s")}>
                 {t("landing.about.body2")}
               </p>
-              <p className="mt-8 text-xs tracking-widest text-white/25 uppercase">
+              <p className="mt-8 text-xs uppercase tracking-widest text-white/25" style={cardRise(aboutTextVisible, "0.48s")}>
                 {t("landing.about.pillars")}
               </p>
             </div>
 
-            {/* Photo column — second in DOM → visual left in RTL */}
+            {/* Photo — settles in from slight overscan (image-reveal keyframe) */}
             <div className="overflow-hidden rounded-xl">
               <img
                 src="/landing-about.jpg"
                 alt=""
                 aria-hidden="true"
                 className="aspect-[4/5] w-full object-cover object-center"
+                style={imgSettle(aboutTextVisible, "0.12s")}
               />
             </div>
-          </div>
-
           </div>
 
           {/* Feature cards — below the split, full width */}
@@ -518,19 +564,25 @@ export default function LandingPage() {
       {!loading && featuredJobs.length > 0 && (
         <section className="bg-void py-20 sm:py-32">
           <div className="mx-auto max-w-4xl px-6">
-            <div ref={jobsRef} style={sectionReveal(jobsVisible)}>
+            <div ref={jobsRef}>
+            {/* Heading — clip-rise; link card-rises alongside */}
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/70">
-                  RS Recruiting
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white/92 sm:text-3xl">
-                  {t("landing.featuredJobs.title")}
-                </h2>
+                <div className="overflow-hidden">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/70" style={clipRise(jobsVisible, "0s")}>
+                    RS Recruiting
+                  </p>
+                </div>
+                <div className="mt-2 overflow-hidden">
+                  <h2 className="text-2xl font-semibold text-white/92 sm:text-3xl" style={clipRise(jobsVisible, "0.1s")}>
+                    {t("landing.featuredJobs.title")}
+                  </h2>
+                </div>
               </div>
               <Link
                 to="/jobs"
                 className="mb-1 shrink-0 text-sm text-copper/70 transition hover:text-copper"
+                style={cardRise(jobsVisible, "0.15s")}
               >
                 {t("landing.featuredJobs.viewAll")} ←
               </Link>
@@ -545,6 +597,7 @@ export default function LandingPage() {
               ref={scrollRef}
               dir="ltr"
               className="scrollbar-none mt-8 flex gap-4 overflow-x-scroll pb-2"
+              style={cardRise(jobsVisible, "0.22s")}
               style={{
                 WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
               }}

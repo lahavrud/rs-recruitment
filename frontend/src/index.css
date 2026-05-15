@@ -266,9 +266,23 @@ html {
   to   { transform: scaleX(1); }
 }
 
-/* Section-level entrance — content rises with a slight scale settle (Allbirds style) */
+/* Section-level entrance — content rises with scale settle (Allbirds style)
+   Uses power3.out equivalent: cubic-bezier(0.215, 0.61, 0.355, 1)            */
 @keyframes section-rise {
   from { opacity: 0; transform: translateY(56px) scale(0.98); }
-  60%  { opacity: 1; }
+  55%  { opacity: 1; }
   to   { opacity: 1; transform: none; }
+}
+
+/* Card-level reveal — UI cards, lighter than section-rise                     */
+@keyframes card-reveal {
+  from { opacity: 0; transform: translateY(36px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Clip-based text reveal (Allbirds signature) — requires overflow:hidden parent.
+   Text slides UP from below the clipping boundary, never visible beforehand.  */
+@keyframes text-clip-rise {
+  from { transform: translateY(105%); }
+  to   { transform: none; }
 }
