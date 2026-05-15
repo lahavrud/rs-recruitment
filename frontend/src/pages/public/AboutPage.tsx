@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
-import { PublicHeader } from "@/components/layout/AppShell";
+import { PublicHeader, PublicFooter } from "@/components/layout/AppShell";
 
 /* ── Intersection-observer reveal hook ───────────────────────────────────── */
 function useReveal(threshold = 0.12) {
@@ -512,6 +512,8 @@ export default function AboutPage() {
           </Link>
         </div>
       </div>
+
+      <PublicFooter />
     </div>
   );
 }
