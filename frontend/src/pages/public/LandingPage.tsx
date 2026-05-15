@@ -20,6 +20,24 @@ function formatDate(iso: string): string {
 const SEARCH_TAGS = ["תפקיד", "מיקום"] as const;
 const LONG_PRESS_MS = 140;
 
+const ORGANIZATION_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "RS Recruiting",
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.svg`,
+  description: "משרד גיוס והשמה בוטיקי המתמחה בגיוס לתפקידי ניהול ותפעול מבנים ונכסים בישראל",
+  areaServed: "IL",
+  knowsAbout: ["ניהול מבנים", "תפעול מבנים", "ניהול נכסים", "גיוס עובדים", "השמה"],
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "support@rs-recruiting.com",
+    contactType: "כוח אדם וגיוס",
+    areaServed: "IL",
+    availableLanguage: "Hebrew",
+  },
+};
+
 export default function LandingPage() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -219,6 +237,7 @@ export default function LandingPage() {
         title={t("landing.seo.title")}
         description={t("landing.seo.description")}
         canonical={SITE_URL}
+        structuredData={ORGANIZATION_SCHEMA}
       />
 
       {/* ── Hero + audience panels share one image so they fade into each
@@ -270,6 +289,7 @@ export default function LandingPage() {
         {/* Centered content */}
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
           <LogoBanner />
+          <h1 className="sr-only">{t("landing.seo.h1")}</h1>
 
           <div
             className="mx-auto mt-7 h-px w-32 sm:mt-8 sm:w-48"
@@ -388,9 +408,9 @@ export default function LandingPage() {
                 {t("landing.about.eyebrow")}
               </p>
               <div className="mt-3 h-px w-8 bg-copper/40" />
-              <p className="mt-5 text-xl font-semibold leading-snug text-white/90 sm:text-2xl">
+              <h2 className="mt-5 text-xl font-semibold leading-snug text-white/90 sm:text-2xl">
                 {t("landing.about.headline")}
-              </p>
+              </h2>
             </div>
             <div className="flex flex-col justify-center sm:col-span-3">
               <p className="text-base leading-relaxed text-white/60">
