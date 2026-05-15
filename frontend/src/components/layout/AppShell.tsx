@@ -38,15 +38,24 @@ export function PublicFooter() {
 }
 
 /* ── Public header ───────────────────────────────────────────────────────── */
-export function PublicHeader() {
+export function PublicHeader({ transparent = false }: { transparent?: boolean }) {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+  // When transparent=true, track scroll to solidify the bar
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
+
+  useEffect(() => {
+    if (!transparent) return;
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [transparent]);
 
   const links = [
     { to: "/jobs",    label: t("nav.jobs") },
@@ -54,52 +63,65 @@ export function PublicHeader() {
     { to: "/contact", label: t("nav.contact") },
   ];
 
+  // Glass style (landing page at top): white-tinted frosted glass
+  // Solid style (all other pages, or after scrolling): dark void bar
+  const solid = !transparent || scrolled;
+
   return (
     <>
-      {/* ── Floating pill bar — fixed, sits over page content ─────────── */}
-      <header className="fixed inset-x-0 top-3 z-40 px-4">
-        <div className="mx-auto max-w-4xl rounded-xl border border-white/[0.07] bg-void/88 px-5 py-3 backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 shrink-0">
-              <Logo size={26} />
-              <span className="font-wordmark text-[15px] font-light tracking-widest text-gold/55 transition hover:text-gold/80">
-                RS Recruiting
-              </span>
-            </Link>
+      {/* ── Navbar — full-width, fixed to top ─────────────────────────── */}
+      <header
+        className="fixed inset-x-0 top-0 z-40 transition-all duration-300"
+        style={{
+          background: solid
+            ? "color-mix(in srgb, var(--color-void) 95%, transparent)"
+            : "rgba(255,255,255,0.06)",
+          backdropFilter: "blur(12px)",
+          borderBottom: solid
+            ? "1px solid rgba(255,255,255,0.06)"
+            : "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+            <Logo size={26} />
+            <span className="font-wordmark text-[15px] tracking-widest text-gold/60 transition hover:text-gold/90">
+              RS Recruiting
+            </span>
+          </Link>
 
-            {/* Desktop links */}
-            <nav className="hidden items-center gap-6 sm:flex">
-              {links.map((l) => (
-                <Link key={l.to} to={l.to}
-                  className="text-sm text-white/40 transition hover:text-white/75">
-                  {l.label}
-                </Link>
-              ))}
-              {isAuthenticated ? (
-                <Link to="/dashboard"
-                  className="rounded-sm border border-white/18 px-4 py-1.5 text-sm text-white/55 transition hover:border-copper/50 hover:text-white/90">
-                  {t("nav.dashboard")}
-                </Link>
-              ) : (
-                <Link to="/login"
-                  className="rounded-sm border border-copper/35 bg-copper/8 px-4 py-1.5 text-sm text-copper/80 transition hover:border-copper/60 hover:bg-copper/15 hover:text-copper">
-                  {t("auth.login.submitText")}
-                </Link>
-              )}
-            </nav>
+          {/* Desktop links */}
+          <nav className="hidden items-center gap-6 sm:flex">
+            {links.map((l) => (
+              <Link key={l.to} to={l.to}
+                className="text-sm text-white/45 transition hover:text-white/80">
+                {l.label}
+              </Link>
+            ))}
+            {isAuthenticated ? (
+              <Link to="/dashboard"
+                className="rounded-sm border border-white/18 px-4 py-1.5 text-sm text-white/60 transition hover:border-white/35 hover:text-white/90">
+                {t("nav.dashboard")}
+              </Link>
+            ) : (
+              <Link to="/login"
+                className="rounded-sm border border-copper/40 px-4 py-1.5 text-sm text-copper/80 transition hover:border-copper/70 hover:text-copper">
+                {t("auth.login.submitText")}
+              </Link>
+            )}
+          </nav>
 
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setOpen(true)}
-              aria-label={t("nav.menu")}
-              className="flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
-            >
-              <span className="block h-px w-5 rounded-full bg-white/55" />
-              <span className="block h-px w-5 rounded-full bg-white/55" />
-              <span className="block h-px w-3.5 self-end rounded-full bg-white/55" />
-            </button>
-          </div>
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setOpen(true)}
+            aria-label={t("nav.menu")}
+            className="flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
+          >
+            <span className="block h-px w-5 rounded-full bg-white/55" />
+            <span className="block h-px w-5 rounded-full bg-white/55" />
+            <span className="block h-px w-3.5 self-end rounded-full bg-white/55" />
+          </button>
         </div>
       </header>
 

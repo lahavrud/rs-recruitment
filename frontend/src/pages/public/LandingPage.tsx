@@ -233,7 +233,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-page">
-      <PublicHeader />
+      <PublicHeader transparent />
       <SeoHead
         title={t("landing.seo.title")}
         description={t("landing.seo.description")}
