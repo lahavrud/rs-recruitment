@@ -475,13 +475,16 @@ export default function ApplicationPage() {
     <div className="flex min-h-screen flex-col bg-page">
     <div className="flex-1 overflow-auto">
     <div className="mx-auto max-w-2xl px-6 pt-24 pb-8">
-      {job && (
-        <SeoHead
-          title={`${t("publicJobs.application.applyFor")} ${job.title}`}
-          description={`${t("publicJobs.application.applyFor")} ${job.title} ב-RS Recruiting.`}
-          canonical={`${SITE_URL}/jobs/${jobId}/apply`}
-        />
-      )}
+      <SeoHead
+        title={
+          job
+            ? `${t("publicJobs.application.applyFor")} ${job.title}`
+            : t("publicJobs.application.applyFor")
+        }
+        description={`${t("publicJobs.application.applyFor")}${job ? ` ${job.title}` : ""} ב-RS Recruiting.`}
+        canonical={`${SITE_URL}/jobs/${jobId}/apply`}
+        noIndex
+      />
 
       <Link
         to={`/jobs/${jobId}`}
