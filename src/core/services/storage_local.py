@@ -20,25 +20,23 @@ class LocalStorageProvider(StorageProvider):
             (self.storage_path / subdir).mkdir(exist_ok=True)
 
     def _safe_path(self, file_identifier: str) -> Path:
-        """Resolve and validate that the path stays inside storage_path."""
-        if (
-            "../" in file_identifier
-            or "..\\" in file_identifier
-            or file_identifier.startswith("/")
-            or file_identifier.startswith("\\")
-            or file_identifier.startswith("..")
-            or "/.." in file_identifier
-            or "\\.." in file_identifier
-        ):
+        """Resolve and validate that the path stays strictly inside storage_path.
+
+        Uses a single resolved-path containment check rather than fragile
+        string matching — handles `../`, absolute paths, and symlinks uniformly.
+        Raises ValueError for any identifier that resolves to storage_path itself
+        (e.g. `subdir/..`) since callers expect a file, not the root directory.
+        """
+        resolved = (self.storage_path / file_identifier).resolve()
+        try:
+            rel = resolved.relative_to(self.storage_path)
+        except ValueError:
             raise ValueError(
                 f"Path traversal detected in identifier: {file_identifier!r}"
             )
-        resolved = (self.storage_path / file_identifier).resolve()
-        try:
-            resolved.relative_to(self.storage_path)
-        except ValueError:
+        if not rel.parts:
             raise ValueError(
-                f"Identifier {file_identifier!r} resolves outside storage directory"
+                f"Path traversal detected in identifier: {file_identifier!r}"
             )
         return resolved
 
