@@ -77,7 +77,11 @@ docker compose -f "${COMPOSE_FILE}" pull
 # Migrations must be backward-compatible (add-only) — rollback below restarts
 # the previous image against the already-advanced schema.
 echo "==> Running database migrations (one-shot, against new image)"
-docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api uv run alembic upgrade head
+# Invoke alembic directly from the project venv (on PATH via ENV PATH=
+# /app/.venv/bin:... in the Dockerfile). `uv run` would otherwise try to
+# initialize its cache at $HOME/.cache/uv = /app/.cache/uv as appuser,
+# which fails because /app is root-owned.
+docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api alembic upgrade head
 # Sentinel line for post-mortems: if this prints but the deploy then fails,
 # the schema is ahead of CURRENT_SHA's code. Rollback works (migrations are
 # add-only / backward-compat), but operators should know it happened.
