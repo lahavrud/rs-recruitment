@@ -76,6 +76,17 @@ docker compose -f "${COMPOSE_FILE}" pull
 # from SSM at startup. `--rm` discards the one-shot container after success.
 # Migrations must be backward-compatible (add-only) — rollback below restarts
 # the previous image against the already-advanced schema.
+echo "==> Validating migration chain (must be exactly one head)"
+HEAD_COUNT=$(docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api \
+  alembic heads 2>&1 | grep -c "(head)" || true)
+if [ "${HEAD_COUNT}" -ne 1 ]; then
+  echo "ERROR: alembic reports ${HEAD_COUNT} head(s) — expected exactly 1."
+  echo "       Fix the migration chain before deploying."
+  docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api alembic heads
+  exit 1
+fi
+echo "==> Migration chain OK (1 head)"
+
 echo "==> Running database migrations (one-shot, against new image)"
 # Invoke alembic directly from the project venv (on PATH via ENV PATH=
 # /app/.venv/bin:... in the Dockerfile). `uv run` would otherwise try to
