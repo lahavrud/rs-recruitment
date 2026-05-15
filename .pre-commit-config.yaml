@@ -1,8 +1,8 @@
 # Pre-commit hooks configuration
-# Install: pip install pre-commit
-# Setup: pre-commit install
-# Update hooks: pre-commit autoupdate
-# Run manually: pre-commit run --all-files
+# Install: uv sync (pre-commit is in the [dev] dependency group)
+# Setup: uv run pre-commit install
+# Update hooks: uv run pre-commit autoupdate
+# Run manually: uv run pre-commit run --all-files
 
 repos:
   # General file checks (fast, should run first)

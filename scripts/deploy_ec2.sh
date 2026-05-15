@@ -1,13 +1,22 @@
 #!/bin/bash
-# EC2 deploy script — pulls SHA-pinned images, starts services, runs migrations.
+# EC2 deploy script — pulls SHA-pinned images, runs migrations, starts services.
 #
-# Two SHA-tagged ECR images (api + frontend) carry all code and configs.
-# This script materializes TLS from SSM (certs are not baked into images) and
-# fetches the SHA-pinned compose file from s3://.../deploy/${IMAGE_TAG}/.
+# This script is the single owner of /rs-recruitment/infra/CURRENT_SHA and
+# /rs-recruitment/infra/PREV_SHA. CI never writes those parameters; it only
+# uploads artifacts and triggers this script via SSM Run-Command. The EC2
+# instance profile already has full SSM RW on /rs-recruitment/*, so all
+# state mutation happens here with the same identity that runs the deploy.
+#
+# State model:
+#   OLD_CURRENT = whatever was deployed before this run (read at top)
+#   On health-pass:  PREV_SHA <- OLD_CURRENT;  CURRENT_SHA <- IMAGE_TAG
+#   On health-fail:  redeploy OLD_CURRENT in place; SSM params untouched
+#                    (CURRENT_SHA still points to OLD_CURRENT, which is now
+#                    actually running again).
 #
 # Resolution order for IMAGE_TAG:
 #   1. $IMAGE_TAG already exported (CI / rollback path)
-#   2. SSM /rs-recruitment/infra/CURRENT_SHA (manual rerun, picks up last good)
+#   2. SSM /rs-recruitment/infra/CURRENT_SHA (manual rerun picks up last good)
 # If neither is available the script aborts.
 set -euo pipefail
 
@@ -18,11 +27,16 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 export ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 S3_BUCKET="rs-recruitment-${ACCOUNT_ID}"
 
+# Capture the SHA that is running RIGHT NOW (before any pull/migrate happens).
+# This becomes the rollback target on health-fail and the new PREV_SHA on
+# health-pass. Empty on the very first deploy of a fresh instance.
+OLD_CURRENT=$(aws ssm get-parameter \
+  --name /rs-recruitment/infra/CURRENT_SHA \
+  --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+
 if [[ -z "${IMAGE_TAG:-}" ]]; then
-  echo "==> IMAGE_TAG not set; reading from SSM CURRENT_SHA"
-  IMAGE_TAG=$(aws ssm get-parameter \
-    --name /rs-recruitment/infra/CURRENT_SHA \
-    --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+  echo "==> IMAGE_TAG not set; falling back to CURRENT_SHA"
+  IMAGE_TAG="${OLD_CURRENT}"
 fi
 if [[ -z "${IMAGE_TAG}" ]]; then
   echo "ERROR: IMAGE_TAG is empty and CURRENT_SHA is unset. Cannot deploy."
@@ -33,6 +47,7 @@ export IMAGE_TAG
 echo "==> ECR registry: ${ECR_REGISTRY}"
 echo "==> S3 bucket:    ${S3_BUCKET}"
 echo "==> IMAGE_TAG:    ${IMAGE_TAG}"
+echo "==> OLD_CURRENT:  ${OLD_CURRENT:-<none>}"
 
 echo "==> Logging in to ECR"
 aws ecr get-login-password --region "${REGION}" \
@@ -40,8 +55,8 @@ aws ecr get-login-password --region "${REGION}" \
 
 echo "==> Fetching SHA-pinned compose file"
 mkdir -p "${APP_DIR}/frontend/tls"
-aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/docker-compose.deploy.yml" \
-  "${APP_DIR}/docker-compose.deploy.yml"
+COMPOSE_FILE="${APP_DIR}/docker-compose.deploy.yml"
+aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
 
 echo "==> Materializing TLS cert from SSM"
 aws ssm get-parameter --name /rs-recruitment/infra/TLS_CERT --with-decryption \
@@ -52,21 +67,35 @@ chmod 600 "${APP_DIR}/frontend/tls/key.pem"
 chmod 644 "${APP_DIR}/frontend/tls/cert.pem"
 
 echo "==> Pulling Docker images"
-docker compose -f "${APP_DIR}/docker-compose.deploy.yml" pull
+docker compose -f "${COMPOSE_FILE}" pull
+
+# Run migrations BEFORE the new api container takes traffic.
+# Previously this ran as `exec` AFTER `up -d`, meaning the new code briefly
+# served requests against the old schema. `--no-deps` keeps redis out of the
+# migration boot path; alembic only needs DATABASE_URL, which the app loads
+# from SSM at startup. `--rm` discards the one-shot container after success.
+# Migrations must be backward-compatible (add-only) — rollback below restarts
+# the previous image against the already-advanced schema.
+echo "==> Running database migrations (one-shot, against new image)"
+# Invoke alembic directly from the project venv (on PATH via ENV PATH=
+# /app/.venv/bin:... in the Dockerfile). `uv run` would otherwise try to
+# initialize its cache at $HOME/.cache/uv = /app/.cache/uv as appuser,
+# which fails because /app is root-owned.
+docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api alembic upgrade head
+# Sentinel line for post-mortems: if this prints but the deploy then fails,
+# the schema is ahead of CURRENT_SHA's code. Rollback works (migrations are
+# add-only / backward-compat), but operators should know it happened.
+echo "==> MIGRATIONS_APPLIED schema is now at head for IMAGE_TAG=${IMAGE_TAG}"
 
 echo "==> Starting services"
 # --remove-orphans cleans up containers from the previous compose generation
 # (e.g., the legacy 'nginx' service replaced by 'frontend').
-docker compose -f "${APP_DIR}/docker-compose.deploy.yml" up -d --remove-orphans
+docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
 
 echo "==> Restarting frontend (refreshes upstream API IP)"
-docker compose -f "${APP_DIR}/docker-compose.deploy.yml" restart frontend
-
-echo "==> Running database migrations"
-docker compose -f "${APP_DIR}/docker-compose.deploy.yml" exec -T api uv run alembic upgrade head
+docker compose -f "${COMPOSE_FILE}" restart frontend
 
 echo "==> Waiting for api container to become healthy (90s)"
-COMPOSE_FILE="${APP_DIR}/docker-compose.deploy.yml"
 deadline=$(( $(date +%s) + 90 ))
 healthy=false
 while [[ $(date +%s) -lt $deadline ]]; do
@@ -82,29 +111,38 @@ while [[ $(date +%s) -lt $deadline ]]; do
 done
 
 if ! $healthy; then
-  echo "==> Health check FAILED — rolling back to previous SHA"
-  PREV_SHA=$(aws ssm get-parameter \
-    --name /rs-recruitment/infra/PREV_SHA \
-    --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-  if [[ -z "${PREV_SHA}" ]]; then
-    echo "ERROR: No PREV_SHA in SSM — cannot roll back automatically"
+  echo "==> Health check FAILED — rolling back to ${OLD_CURRENT:-<none>}"
+  if [[ -z "${OLD_CURRENT}" ]]; then
+    echo "ERROR: No OLD_CURRENT (first-ever deploy?) — cannot roll back"
     exit 1
   fi
-  echo "==> Fetching previous compose (${PREV_SHA})"
-  aws s3 cp "s3://${S3_BUCKET}/deploy/${PREV_SHA}/docker-compose.deploy.yml" \
-    "${COMPOSE_FILE}"
+  echo "==> Fetching previous compose (${OLD_CURRENT})"
+  aws s3 cp "s3://${S3_BUCKET}/deploy/${OLD_CURRENT}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
   echo "==> Restarting with previous images"
-  IMAGE_TAG="${PREV_SHA}" docker compose -f "${COMPOSE_FILE}" pull
-  IMAGE_TAG="${PREV_SHA}" docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
-  IMAGE_TAG="${PREV_SHA}" docker compose -f "${COMPOSE_FILE}" restart frontend
-  echo "==> Restoring CURRENT_SHA to ${PREV_SHA}"
-  aws ssm put-parameter \
-    --name /rs-recruitment/infra/CURRENT_SHA \
-    --value "${PREV_SHA}" \
-    --type String --overwrite
-  echo "==> Rolled back to ${PREV_SHA} — deploy failed"
+  IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" pull
+  IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
+  IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" restart frontend
+  # CURRENT_SHA is already OLD_CURRENT — no SSM write needed. PREV_SHA is left
+  # alone too (it still points at the last known good SHA, not this failed one).
+  echo "==> Rolled back to ${OLD_CURRENT} — deploy failed"
   exit 1
 fi
+
+# Health passed — commit the new SHA to SSM. Only update PREV_SHA when we
+# actually changed CURRENT, so a re-run of the same SHA doesn't clobber the
+# real rollback target.
+if [[ -n "${OLD_CURRENT}" && "${OLD_CURRENT}" != "${IMAGE_TAG}" ]]; then
+  echo "==> Updating PREV_SHA -> ${OLD_CURRENT}"
+  aws ssm put-parameter \
+    --name /rs-recruitment/infra/PREV_SHA \
+    --value "${OLD_CURRENT}" \
+    --type String --overwrite >/dev/null
+fi
+echo "==> Updating CURRENT_SHA -> ${IMAGE_TAG}"
+aws ssm put-parameter \
+  --name /rs-recruitment/infra/CURRENT_SHA \
+  --value "${IMAGE_TAG}" \
+  --type String --overwrite >/dev/null
 
 # Reclaim disk by keeping only the N most recent SHA-tagged images per
 # repo (newest first). Without this, every deploy leaves ~200-500 MB per
