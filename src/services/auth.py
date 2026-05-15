@@ -17,6 +17,10 @@ from src.core.infrastructure.security import (
     verify_password,
 )
 from src.core.infrastructure.transactions import defer_after_commit
+from src.core.legal import (
+    CURRENT_PRIVACY_POLICY_VERSION,
+    CURRENT_TERMS_OF_SERVICE_VERSION,
+)
 from src.core.services.file_validation import validate_image_magic_bytes
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
@@ -24,6 +28,7 @@ from src.enums import InviteTokenStatus, UserRole
 from src.models import ActivationToken, CompanyProfile, InviteToken, RefreshToken, User
 from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompanyRead
 from src.services.admin_companies import get_all_admin_emails
+from src.services.audit import record_audit_event
 from src.services.exceptions import (
     AccountLockedError,
     EmailAlreadyExistsError,
@@ -161,6 +166,9 @@ async def register_company_user(
     logo_content_type: str | None = None,
     agreement_signature: str = "",
     privacy_accepted: bool = False,
+    terms_accepted: bool = False,
+    acceptance_ip: str | None = None,
+    acceptance_user_agent: str | None = None,
 ) -> UserWithCompanyRead:
     """Register a new company user with associated company profile."""
     if logo_content_type and logo_content_type not in _ALLOWED_LOGO_TYPES:
@@ -216,9 +224,46 @@ async def register_company_user(
         agreement_signature_url=sig_identifier,
         agreement_signed_at=now,
         privacy_accepted_at=now if privacy_accepted else None,
+        privacy_policy_version=(
+            CURRENT_PRIVACY_POLICY_VERSION if privacy_accepted else None
+        ),
+        terms_accepted_at=now if terms_accepted else None,
+        terms_version=(CURRENT_TERMS_OF_SERVICE_VERSION if terms_accepted else None),
+        acceptance_ip=acceptance_ip,
+        acceptance_user_agent=acceptance_user_agent,
     )
     session.add(new_company_profile)
     await session.flush()
+
+    if privacy_accepted:
+        await record_audit_event(
+            session,
+            actor_user_id=new_user.id,
+            action="company.privacy_accept",
+            target_type="CompanyProfile",
+            target_id=new_company_profile.id,  # type: ignore[arg-type]
+            detail=f"policy_version={CURRENT_PRIVACY_POLICY_VERSION}",
+            ip_address=acceptance_ip,
+        )
+    if terms_accepted:
+        await record_audit_event(
+            session,
+            actor_user_id=new_user.id,
+            action="company.terms_accept",
+            target_type="CompanyProfile",
+            target_id=new_company_profile.id,  # type: ignore[arg-type]
+            detail=f"terms_version={CURRENT_TERMS_OF_SERVICE_VERSION}",
+            ip_address=acceptance_ip,
+        )
+    await record_audit_event(
+        session,
+        actor_user_id=new_user.id,
+        action="company.contract_sign",
+        target_type="CompanyProfile",
+        target_id=new_company_profile.id,  # type: ignore[arg-type]
+        detail=f"signature_url={sig_identifier}",
+        ip_address=acceptance_ip,
+    )
 
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:
