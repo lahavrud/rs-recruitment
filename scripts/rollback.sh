@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Roll prod back (or forward) to a previously-deployed git SHA.
 #
-# Pre-flight: confirms the per-SHA artifacts and ECR images exist.
-# Action:     puts CURRENT_SHA in SSM, then sends an SSM Run-Command
-#             to the prod EC2 instance to re-run deploy_ec2.sh with that SHA.
+# Pre-flight: confirms the per-SHA artifacts and ECR images still exist.
+# Action:     sends an SSM Run-Command to the prod EC2 instance to re-run
+#             deploy_ec2.sh with IMAGE_TAG=<sha>. The deploy script itself
+#             updates CURRENT_SHA/PREV_SHA in SSM on health-pass.
 #
 # Usage: scripts/rollback.sh <git-sha>
 set -euo pipefail
@@ -13,7 +14,6 @@ REGION="us-east-1"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 S3_BUCKET="rs-recruitment-${ACCOUNT_ID}"
-ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
 echo "==> Verifying per-SHA artifacts in S3"
 aws s3 ls "s3://${S3_BUCKET}/deploy/${SHA}/deploy_ec2.sh" >/dev/null
@@ -33,10 +33,6 @@ if [[ -z "${EC2_ID}" || "${EC2_ID}" == "None" ]]; then
   echo "ERROR: no running EC2 instance tagged Env=prod"
   exit 1
 fi
-
-echo "==> Updating SSM CURRENT_SHA -> ${SHA}"
-aws ssm put-parameter --name /rs-recruitment/infra/CURRENT_SHA \
-  --value "${SHA}" --type String --overwrite >/dev/null
 
 echo "==> Sending deploy command to ${EC2_ID}"
 DEPLOY_CMD="aws s3 cp s3://${S3_BUCKET}/deploy/${SHA}/deploy_ec2.sh /tmp/deploy_${SHA}.sh && IMAGE_TAG=${SHA} bash /tmp/deploy_${SHA}.sh"

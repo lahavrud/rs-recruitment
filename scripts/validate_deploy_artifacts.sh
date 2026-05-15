@@ -54,8 +54,15 @@ check "resolves IMAGE_TAG (env or SSM CURRENT_SHA)" \
   grep_q 'CURRENT_SHA' "${DEPLOY_SH}"
 check "fetches per-SHA compose from S3" \
   grep_q '/deploy/${IMAGE_TAG}/docker-compose.deploy.yml' "${DEPLOY_SH}"
-check "reads PREV_SHA for automatic rollback" \
-  grep_q 'PREV_SHA' "${DEPLOY_SH}"
+check "captures OLD_CURRENT for automatic rollback" \
+  grep_q 'OLD_CURRENT' "${DEPLOY_SH}"
+check "runs migrations BEFORE up -d (one-shot run --rm)" \
+  grep_q 'run --rm --no-deps' "${DEPLOY_SH}"
+# Anchor on `put-parameter` to catch refactors that delete the write but
+# leave a read (`get-parameter ... CURRENT_SHA` at the top of the script).
+put_writes() { grep -A3 'aws ssm put-parameter' "${DEPLOY_SH}" | grep -q -- "$1"; }
+check "writes CURRENT_SHA on health-pass" put_writes '/rs-recruitment/infra/CURRENT_SHA'
+check "writes PREV_SHA on health-pass"    put_writes '/rs-recruitment/infra/PREV_SHA'
 check "polls Docker health status before declaring deploy complete" \
   grep_q 'Health.Status' "${DEPLOY_SH}"
 
