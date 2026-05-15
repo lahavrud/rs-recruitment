@@ -4,11 +4,15 @@ WORKDIR /app
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy requirements first for better layer caching
-COPY requirements.txt .
+# Copy lockfile + manifest first for layer caching
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies using uv (much faster than pip)
-RUN uv pip install --system --no-cache -r requirements.txt
+# Install runtime deps only (no dev/test) into project venv from the lock
+RUN uv sync --frozen --no-dev --no-cache
+
+# Make the venv the default Python for subsequent RUN/CMD
+ENV PATH="/app/.venv/bin:$PATH"
+ENV VIRTUAL_ENV="/app/.venv"
 
 # Install gosu for switching to non-root user in entrypoint
 RUN apt-get update && \

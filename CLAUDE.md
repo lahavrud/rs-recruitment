@@ -224,15 +224,27 @@ Prefer `selectinload` at the call site over `lazy="selectin"` on the model unles
 
 ## Running Locally
 
+Dependencies are managed with **uv**. `pyproject.toml` declares direct deps, `uv.lock` pins the full resolved graph (commit both). Sync your venv with `uv sync` (adds default `dev` group) or `uv sync --frozen --group test` to match CI exactly. There is no `requirements.txt`.
+
 ```bash
 # Backend
-uvicorn src.main:app --reload
+uv sync                          # one-time / after pulling
+uv run uvicorn src.main:app --reload
 
 # Frontend
 cd frontend && npm run dev
 ```
 
 The frontend proxies `/api/*` to `http://localhost:8000` (configured in `vite.config.ts`).
+
+### Managing Python deps
+
+- **Add a runtime dep**: `uv add <package>` (writes to `[project].dependencies`)
+- **Add a test/dev dep**: `uv add --group test <package>` or `--group dev`
+- **Upgrade**: `uv lock --upgrade-package <name>` then commit `uv.lock`
+- **Refresh everything**: `uv lock --upgrade` (deliberate, separate PR)
+
+CI uses `uv sync --frozen --group test`. The Dockerfile uses `uv sync --frozen --no-dev`. `--frozen` fails loudly if the lock is stale — always commit `uv.lock` after touching `pyproject.toml`.
 
 ---
 
