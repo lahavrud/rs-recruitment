@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
+import FadeInImage from "@/components/ui/FadeInImage";
 import { getArticle } from "@/content/articles";
 import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
@@ -157,14 +158,16 @@ export default function ArticlePage() {
       />
 
       {/* Banner — full-bleed hero image with copper-tinted gradient overlay
-          for legibility. Falls through gracefully if no image is set. */}
+          for legibility. Fades in once loaded so slow networks don't flash
+          a broken-image placeholder. Falls through gracefully if no image. */}
       {article.image && (
-        <div className="relative -mt-16 h-[280px] overflow-hidden sm:h-[360px]">
-          <img
+        <div className="relative -mt-16 h-[280px] overflow-hidden bg-void sm:h-[360px]">
+          <FadeInImage
             src={article.image}
             alt={article.imageAlt || article.title}
             className="absolute inset-0 h-full w-full object-cover"
             loading="eager"
+            fadeMs={700}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-void/40 via-page/55 to-page" />
         </div>

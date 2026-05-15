@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
+import FadeInImage from "@/components/ui/FadeInImage";
 import { articles } from "@/content/articles";
 
 const PAGE_TITLE = "מאמרים ומדריכים — ניהול ותפעול מבנים ונכסים";
@@ -70,12 +71,13 @@ export default function ArticlesIndexPage() {
                 className="block overflow-hidden rounded-xl border border-white/8 bg-card transition hover:border-copper/40 hover:bg-card-raised sm:flex"
               >
                 {a.image && (
-                  <div className="relative h-44 shrink-0 overflow-hidden sm:h-auto sm:w-56">
-                    <img
+                  <div className="relative h-44 shrink-0 overflow-hidden bg-void sm:h-auto sm:w-56">
+                    <FadeInImage
                       src={a.image}
                       alt={a.imageAlt || a.title}
                       className="h-full w-full object-cover"
                       loading="lazy"
+                      fadeMs={500}
                     />
                     <div className="absolute inset-0 bg-gradient-to-l from-card/30 to-transparent sm:bg-gradient-to-r" />
                   </div>
