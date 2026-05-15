@@ -293,6 +293,16 @@ class CandidateProfile(SQLModel, table=True):
     personality_weakness: str | None = Field(default=None, sa_column=Column(Text))
     personality_strength: str | None = Field(default=None, sa_column=Column(Text))
 
+    # Privacy consent — captured at application time
+    consent_given_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    consent_policy_version: str | None = Field(default=None, max_length=20)
+    consent_ip: str | None = Field(default=None, max_length=45)
+    consent_user_agent: str | None = Field(
+        default=None, sa_column=Column(Text, nullable=True)
+    )
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),

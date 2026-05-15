@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import and_, select
 
 from src.enums import ApplicationStatus
-from src.models import Application, CandidateProfile, Job
+from src.models import Application, AuditLog, CandidateProfile, Job
 from tests.conftest import TestSessionLocal
 
 
@@ -29,6 +29,7 @@ async def test_apply_endpoint_success(
         "linkedin_url": "https://linkedin.com/in/johndoe",
         "service_concept": "I want to work on exciting projects",
         "salary_expectations": "100k-120k",
+        "privacy_accepted": "true",
     }
 
     response = await public_client.post("/api/candidates/apply", data=form_data)
@@ -40,7 +41,7 @@ async def test_apply_endpoint_success(
     assert data["phone"] == "050-123-4567"
     assert data["id"] is not None
 
-    # Verify candidate was created in database
+    # Verify candidate was created in database with consent
     async with TestSessionLocal() as session:
         result = await session.execute(
             select(CandidateProfile).where(
@@ -50,6 +51,8 @@ async def test_apply_endpoint_success(
         candidate = result.scalar_one_or_none()
         assert candidate is not None
         assert candidate.full_name == "John Doe"
+        assert candidate.consent_given_at is not None
+        assert candidate.consent_policy_version == "1.1"
 
         # Verify Application was created
         result = await session.execute(
@@ -87,6 +90,7 @@ async def test_apply_endpoint_with_resume(
         "full_name": "Jane Doe",
         "email": "jane@example.com",
         "phone": "050-987-6543",
+        "privacy_accepted": "true",
     }
 
     files = {"resume": ("resume.pdf", b"%PDF-1.4\x00" * 5, "application/pdf")}
@@ -145,6 +149,7 @@ async def test_apply_endpoint_invalid_file_type(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0001",
+        "privacy_accepted": "true",
     }
 
     files = {
@@ -178,6 +183,7 @@ async def test_apply_endpoint_file_size_limit(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0002",
+        "privacy_accepted": "true",
     }
 
     # Create file larger than 10MB
@@ -209,6 +215,7 @@ async def test_apply_endpoint_creates_application(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0003",
+        "privacy_accepted": "true",
     }
 
     response = await public_client.post("/api/candidates/apply", data=form_data)
@@ -246,6 +253,7 @@ async def test_apply_endpoint_job_not_found(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0004",
+        "privacy_accepted": "true",
     }
 
     response = await public_client.post("/api/candidates/apply", data=form_data)
@@ -269,6 +277,7 @@ async def test_apply_endpoint_public_access(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0005",
+        "privacy_accepted": "true",
     }
 
     # Should work without authentication
@@ -328,6 +337,7 @@ async def test_apply_endpoint_reuses_existing_profile(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0006",
+        "privacy_accepted": "true",
     }
     response1 = await public_client.post("/api/candidates/apply", data=form_data1)
     assert response1.status_code == 201
@@ -340,6 +350,7 @@ async def test_apply_endpoint_reuses_existing_profile(
         "full_name": "John Smith",  # Different name
         "email": "john@example.com",  # Same email
         "phone": "050-000-0006",
+        "privacy_accepted": "true",
     }
     response2 = await public_client.post("/api/candidates/apply", data=form_data2)
     assert response2.status_code == 201  # Should succeed, not error
@@ -366,6 +377,7 @@ async def test_apply_endpoint_duplicate_application_conflict(
         "full_name": "John Doe",
         "email": "john@example.com",
         "phone": "050-000-0007",
+        "privacy_accepted": "true",
     }
     response1 = await public_client.post("/api/candidates/apply", data=form_data)
     assert response1.status_code == 201
@@ -376,3 +388,156 @@ async def test_apply_endpoint_duplicate_application_conflict(
     # Verify: HTTP 409 Conflict
     assert response2.status_code == 409
     assert "Application already exists" in response2.json()["detail"]
+
+
+@pytest.mark.asyncio
+@patch("src.services.applications.enqueue_email_task")
+async def test_apply_endpoint_requires_privacy_consent(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+):
+    """Test that submitting without privacy consent returns HTTP 400."""
+    mock_enqueue_email.return_value = "test-job-id"
+
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "John Doe",
+        "email": "john@example.com",
+        "phone": "050-000-0008",
+        "privacy_accepted": "false",
+    }
+
+    response = await public_client.post("/api/candidates/apply", data=form_data)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "privacy_consent_required"
+
+
+@pytest.mark.asyncio
+@patch("src.services.applications.enqueue_email_task")
+async def test_apply_endpoint_writes_consent_audit_event(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+):
+    """Test that a candidate.consent audit event is recorded on application."""
+    mock_enqueue_email.return_value = "test-job-id"
+
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "Audit Candidate",
+        "email": "audit@example.com",
+        "phone": "050-000-0009",
+        "privacy_accepted": "true",
+    }
+
+    response = await public_client.post("/api/candidates/apply", data=form_data)
+    assert response.status_code == 201
+    candidate_id = response.json()["id"]
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(AuditLog).where(
+                AuditLog.action == "candidate.consent",  # pyright: ignore[reportArgumentType]
+                AuditLog.target_type == "CandidateProfile",  # pyright: ignore[reportArgumentType]
+                AuditLog.target_id == candidate_id,  # pyright: ignore[reportArgumentType]
+            )
+        )
+        event = result.scalar_one_or_none()
+        assert event is not None
+        assert event.detail == "policy_version=1.1"
+        assert event.actor_user_id is None
+
+
+@pytest.mark.asyncio
+@patch("src.services.applications.enqueue_email_task")
+async def test_apply_endpoint_updates_consent_on_reapplication(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+):
+    """Test that consent fields are refreshed when an existing candidate re-applies."""
+    mock_enqueue_email.return_value = "test-job-id"
+
+    from src.models import CompanyProfile
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(CompanyProfile).where(
+                CompanyProfile.id == published_job.company_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        company = result.scalar_one()
+        from src.models import Job as JobModel
+
+        job2 = JobModel(
+            company_id=company.id,  # type: ignore[arg-type]
+            title="Second Position",
+            short_description="Short blurb for reapplication test.",
+            description="Second job for consent reapplication test.",
+            requirements=[
+                {"text": "req 1"},
+                {"text": "req 2"},
+                {"text": "req 3"},
+            ],
+            location="Tel Aviv, Israel",
+            salary_min=15000,
+            salary_max=25000,
+        )
+        session.add(job2)
+        await session.commit()
+        await session.refresh(job2)
+        job2_id = job2.id
+
+    form_data1 = {
+        "job_id": published_job.id,
+        "full_name": "Repeat Candidate",
+        "email": "repeat@example.com",
+        "phone": "050-000-0010",
+        "privacy_accepted": "true",
+    }
+    resp1 = await public_client.post("/api/candidates/apply", data=form_data1)
+    assert resp1.status_code == 201
+    candidate_id = resp1.json()["id"]
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(CandidateProfile).where(
+                CandidateProfile.id == candidate_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        after_first = result.scalar_one()
+        first_consent_at = after_first.consent_given_at
+
+    form_data2 = {
+        "job_id": job2_id,
+        "full_name": "Repeat Candidate",
+        "email": "repeat@example.com",
+        "phone": "050-000-0010",
+        "privacy_accepted": "true",
+    }
+    resp2 = await public_client.post("/api/candidates/apply", data=form_data2)
+    assert resp2.status_code == 201
+
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(CandidateProfile).where(
+                CandidateProfile.id == candidate_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        after_second = result.scalar_one()
+        assert after_second.consent_given_at is not None
+        assert after_second.consent_policy_version == "1.1"
+        # Consent timestamp must be refreshed (>= first)
+        assert after_second.consent_given_at >= first_consent_at  # type: ignore[operator]
+
+        # Two audit events — one per application
+        audit_result = await session.execute(
+            select(AuditLog).where(
+                AuditLog.action == "candidate.consent",  # pyright: ignore[reportArgumentType]
+                AuditLog.target_id == candidate_id,  # pyright: ignore[reportArgumentType]
+            )
+        )
+        events = audit_result.scalars().all()
+        assert len(events) == 2

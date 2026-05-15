@@ -35,34 +35,12 @@ async def test_sitemap_xml_empty(public_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_sitemap_xml_includes_published_jobs(
     public_client: AsyncClient,
-    admin_client: AsyncClient,
+    published_job: Job,
 ):
     """sitemap.xml lists URLs for published jobs."""
-    # Create and publish a job via admin
-    create_resp = await admin_client.post(
-        "/api/admin/jobs",
-        json={
-            "company_id": 1,
-            "title": "Sitemap Test Job",
-            "short_description": "Sitemap fixture job for SEO test.",
-            "description": "desc",
-            "requirements": [
-                {"text": "req 1"},
-                {"text": "req 2"},
-                {"text": "req 3"},
-            ],
-            "tags": [],
-            "location": "תל אביב",
-            "status": "PUBLISHED",
-        },
-    )
-    if create_resp.status_code != 201:
-        pytest.skip("No active company available for job creation")
-
-    job_id = create_resp.json()["id"]
     response = await public_client.get("/sitemap.xml")
     assert response.status_code == 200
-    assert f"/jobs/{job_id}" in response.text
+    assert f"/jobs/{published_job.id}" in response.text
 
 
 @pytest.mark.asyncio

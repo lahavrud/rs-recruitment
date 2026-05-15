@@ -6,6 +6,8 @@ storage upload, upsert, and email side effects — lives in a focused
 module.
 """
 
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,12 +20,16 @@ from src.enums import ApplicationStatus
 from src.models import Application, CandidateProfile, CompanyProfile, Job
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.admin_companies import get_all_admin_emails
+from src.services.audit import record_audit_event
 from src.services.candidates import find_candidate_by_email, update_candidate_profile
 from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
 from src.templates.email import (
     build_application_received_html,
     build_new_application_admin_html,
 )
+
+# Must match the version string in he.json::auth.register.agreementTextPrivacy
+_PRIVACY_POLICY_VERSION = "1.1"
 
 _ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx"}
 _MAX_RESUME_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -66,12 +72,15 @@ async def _upsert_candidate_and_application(
     candidate_data: CandidateProfileCreate,
     job_id: int,
     resume_path: str | None,
+    consent_ip: str | None,
+    consent_ua: str | None,
 ) -> CandidateProfile:
     """Find-or-create the candidate profile and create the application row.
 
     Raises ApplicationAlreadyExistsError if the candidate already applied.
     Returns the CandidateProfile (not yet committed).
     """
+    now = datetime.now(timezone.utc)
     existing = await find_candidate_by_email(
         email=candidate_data.email, session=session
     )
@@ -83,6 +92,10 @@ async def _upsert_candidate_and_application(
             resume_path=resume_path,
             session=session,
         )
+        candidate.consent_given_at = now
+        candidate.consent_policy_version = _PRIVACY_POLICY_VERSION
+        candidate.consent_ip = consent_ip
+        candidate.consent_user_agent = consent_ua
         await session.flush()
 
         dup = await session.execute(
@@ -107,6 +120,10 @@ async def _upsert_candidate_and_application(
             salary_expectations=candidate_data.salary_expectations,
             personality_weakness=candidate_data.personality_weakness,
             personality_strength=candidate_data.personality_strength,
+            consent_given_at=now,
+            consent_policy_version=_PRIVACY_POLICY_VERSION,
+            consent_ip=consent_ip,
+            consent_user_agent=consent_ua,
         )
         session.add(candidate)
         await session.flush()
@@ -179,6 +196,8 @@ async def create_candidate_profile(
     resume_file: bytes | None = None,
     resume_filename: str | None = None,
     session: AsyncSession | None = None,
+    consent_ip: str | None = None,
+    consent_ua: str | None = None,
 ) -> CandidateProfileRead:
     """Create a candidate profile and application for a job.
 
@@ -215,10 +234,20 @@ async def create_candidate_profile(
             raise ValueError(f"Failed to upload resume file: {e}") from e
 
     candidate = await _upsert_candidate_and_application(
-        session, candidate_data, job_id, resume_path
+        session, candidate_data, job_id, resume_path, consent_ip, consent_ua
     )
     await session.flush()
     await session.refresh(candidate)
+
+    await record_audit_event(
+        session,
+        actor_user_id=None,
+        action="candidate.consent",
+        target_type="CandidateProfile",
+        target_id=candidate.id,  # type: ignore[arg-type]
+        detail=f"policy_version={_PRIVACY_POLICY_VERSION}",
+        ip_address=consent_ip,
+    )
 
     _candidate_snapshot = candidate
     _job_snapshot = job
