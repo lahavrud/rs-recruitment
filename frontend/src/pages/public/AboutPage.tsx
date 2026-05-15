@@ -189,7 +189,7 @@ export default function AboutPage() {
           </div>
 
           {/* Headline — character-by-character rise */}
-          <h1 className="font-wordmark mt-6 text-[clamp(3.5rem,12vw,9rem)] font-light leading-[0.92] tracking-tight">
+          <h1 className="mt-6 text-[clamp(3.5rem,12vw,9rem)] font-light leading-[0.92] tracking-tight">
             <CharRise
               text={t("about.hero.headlineLine1")}
               baseDelay={0.65}
@@ -321,7 +321,7 @@ export default function AboutPage() {
       {/* ── Philosophy — word-by-word text-rise ──────────────────────────── */}
       <div ref={philosophyRef} className="texture-wave bg-void px-6 py-28 sm:py-44">
         <div className="mx-auto max-w-2xl text-center">
-          <blockquote className="font-wordmark text-[clamp(1.6rem,4vw,2.6rem)] font-light leading-relaxed text-white/70">
+          <blockquote className="text-[clamp(1.6rem,4vw,2.6rem)] font-light leading-relaxed text-white/70">
             {quoteWords.map((word, i) => (
               <span key={i} className="inline-block overflow-hidden align-bottom">
                 <span
@@ -501,7 +501,7 @@ export default function AboutPage() {
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <div className="texture-wave bg-void px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="font-wordmark text-[clamp(1.4rem,3.5vw,2.2rem)] font-light text-white/45">
+          <p className="text-[clamp(1.4rem,3.5vw,2.2rem)] font-light text-white/45">
             {t("about.hero.subtitle")}
           </p>
           <Link

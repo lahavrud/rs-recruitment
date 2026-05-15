@@ -62,7 +62,7 @@ export default function ContactPage() {
           {/* Headline */}
           <div className="mt-8 overflow-hidden">
             <h1
-              className="font-wordmark text-[clamp(2.8rem,8vw,5.5rem)] font-light leading-tight text-white/88"
+              className="text-[clamp(2.8rem,8vw,5.5rem)] font-light leading-tight text-white/88"
               style={rise("0.55s", "0.9s")}
             >
               {t("contact.headline")}
