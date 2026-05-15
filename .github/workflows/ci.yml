@@ -392,6 +392,7 @@ jobs:
           build-args: |
             VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
             VITE_RELEASE=${{ github.sha }}
+            VITE_GTM_ID=GTM-PRRX7D6L
           secrets: | # pragma: allowlist secret
             sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           cache-from: type=gha,scope=frontend
