@@ -198,6 +198,17 @@ The frontend handles `429` explicitly with Hebrew messages. The raw slowapi deta
 ### Logo loading
 `Logo.tsx` renders `opacity-0` until the SVG `onLoad` fires, then fades to `opacity-1` (0.25s ease). This prevents the flash of broken-image placeholder on first load.
 
+### Eager loading (avoiding N+1)
+When a service flow accesses related rows (e.g. `Job.company.user`), load them in the original SELECT with `selectinload` at the call site:
+
+```python
+select(Job)
+    .options(selectinload(Job.company).selectinload(CompanyProfile.user))
+    .where(Job.id == job_id)
+```
+
+Prefer `selectinload` at the call site over `lazy="selectin"` on the model unless the relationship is *always* needed wherever the parent is loaded — relationship-level eager loading pollutes list endpoints and other paths that don't need the child rows. For ad-hoc one-shot joins where no SQLModel relationship exists (e.g. `ActivationToken` → `User`), a plain `.join(User, User.id == ActivationToken.company_user_id)` returning a tuple is fine.
+
 ---
 
 ## Adding a New Page
