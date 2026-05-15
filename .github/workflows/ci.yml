@@ -58,7 +58,7 @@ jobs:
           if match '^\.github/workflows/'; then
             backend=true; frontend=true; deploy=true; docker=true
           fi
-          if match '^(src/|tests/|scripts/.*\.py|requirements\.txt|pyproject\.toml|uv\.lock)'; then
+          if match '^(src/|tests/|scripts/.*\.py|pyproject\.toml|uv\.lock)'; then
             backend=true
           fi
           if match '^frontend/'; then
@@ -67,7 +67,7 @@ jobs:
           if match '^(Dockerfile|frontend/Dockerfile|docker-compose.*\.yml|scripts/deploy_ec2\.sh|scripts/validate_deploy_artifacts\.sh)'; then
             deploy=true
           fi
-          if match '^(Dockerfile|frontend/Dockerfile|requirements\.txt|pyproject\.toml|frontend/package(-lock)?\.json|docker-compose.*\.yml|scripts/deploy_ec2\.sh|src/main\.py)'; then
+          if match '^(Dockerfile|frontend/Dockerfile|pyproject\.toml|uv\.lock|frontend/package(-lock)?\.json|docker-compose.*\.yml|scripts/deploy_ec2\.sh|src/main\.py)'; then
             docker=true
             # docker-build smoke-tests the backend image, so guard it with
             # the same checks the image depends on.
@@ -108,12 +108,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
 
       - name: Install dependencies
-        run: uv pip install --system -r requirements.txt
+        run: uv sync --frozen --group dev
 
       - name: Ruff lint
         run: uv run ruff check .
@@ -122,19 +122,19 @@ jobs:
         run: uv run ruff format --check .
 
       - name: validate_imports
-        run: python scripts/validate_imports.py
+        run: uv run python scripts/validate_imports.py
 
       - name: check_file_sizes
-        run: python scripts/check_file_sizes.py
+        run: uv run python scripts/check_file_sizes.py
 
       - name: validate_type_hints
-        run: python scripts/validate_type_hints.py
+        run: uv run python scripts/validate_type_hints.py
 
       - name: validate_blocking_io
-        run: python scripts/validate_blocking_io.py
+        run: uv run python scripts/validate_blocking_io.py
 
       - name: validate_test_files
-        run: python scripts/validate_test_files.py
+        run: uv run python scripts/validate_test_files.py
 
   test:
     needs: detect-changes
@@ -182,7 +182,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
 
@@ -195,7 +195,7 @@ jobs:
             ${{ runner.os }}-pytest-
 
       - name: Install dependencies
-        run: uv pip install --system -r requirements.txt
+        run: uv sync --frozen --group test
 
       - name: Run Tests
         # -n auto: pytest-xdist creates one worker per CPU. tests/conftest.py
