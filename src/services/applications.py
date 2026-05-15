@@ -8,6 +8,7 @@ module.
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.transactions import defer_after_commit
@@ -15,7 +16,7 @@ from src.core.services.file_validation import validate_document_magic_bytes
 from src.core.services.storage import StorageProvider, get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import ApplicationStatus
-from src.models import Application, CandidateProfile, CompanyProfile, Job
+from src.models import Application, CandidateProfile, Job
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.admin_companies import get_all_admin_emails
 from src.services.candidates import find_candidate_by_email, update_candidate_profile
@@ -191,19 +192,13 @@ async def create_candidate_profile(
         raise ValueError("Database session is required")
 
     job_row = await session.execute(
-        select(Job).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+        select(Job).options(selectinload(Job.company)).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
     )
     job = job_row.scalar_one_or_none()
     if not job:
         raise JobNotFoundError(f"Job with ID {job_id} not found")
 
-    company_row = await session.execute(
-        select(CompanyProfile).where(  # pyright: ignore[reportArgumentType]
-            CompanyProfile.id == job.company_id
-        )
-    )
-    company = company_row.scalar_one_or_none()
-    company_name = company.name if company else "Unknown Company"
+    company_name = job.company.name if job.company else "Unknown Company"
 
     resume_path: str | None = None
     if resume_file is not None and resume_filename is not None:
