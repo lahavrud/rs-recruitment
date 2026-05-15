@@ -30,10 +30,10 @@ export default function ContactPage() {
         canonical={`${SITE_URL}/contact`}
       />
 
-      <div className="bg-void">
+      <div className="flex flex-1 flex-col bg-void">
 
-      {/* ── Single hero section ───────────────────────────────────────────── */}
-      <section className="texture-wave relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-32 text-center">
+      {/* ── Single hero section — fills remaining viewport height ────────── */}
+      <section className="texture-wave relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 text-center">
         {/* Copper radial glow */}
         <div
           aria-hidden

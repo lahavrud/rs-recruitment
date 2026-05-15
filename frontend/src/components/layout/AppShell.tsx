@@ -232,15 +232,18 @@ function ShellContent({ children }: Props) {
 
   // Hero pages start their own full-bleed section from y=0 (navbar floats over it)
   const heroRoutes = new Set(["/", "/about", "/contact"]);
+  // Pages where footer should be suppressed (single-screen layouts)
+  const noFooterRoutes = new Set(["/contact"]);
 
   // All public pages: single shell — header and footer owned here (DRY)
   return (
     <div className="flex min-h-screen flex-col bg-void">
       <PublicHeader transparent={heroRoutes.has(pathname)} />
-      <main key={pathname} className="page-enter flex-1">
+      {/* flex flex-col so children can use flex-1 to fill remaining height */}
+      <main key={pathname} className="page-enter flex flex-1 flex-col">
         {children}
       </main>
-      <PublicFooter />
+      {!noFooterRoutes.has(pathname) && <PublicFooter />}
     </div>
   );
 }
