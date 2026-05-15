@@ -62,7 +62,7 @@ function Field({ label, id, required, optional, children }: FieldProps) {
     <div data-field={id}>
       <label
         htmlFor={id}
-        className="flex items-center gap-1.5 text-xs text-white/55"
+        className="flex items-center gap-1.5 text-xs text-white/55 sm:text-sm"
       >
         <span>{label}</span>
         {required && <span className="text-copper/80">*</span>}
@@ -1189,7 +1189,7 @@ function StepNav({
             key="step-final-submit"
             type="submit"
             disabled={submitting || !privacyAccepted}
-            className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50 sm:px-8 sm:py-3 sm:text-base"
           >
             {submitting
               ? t("publicJobs.application.submittingText")
@@ -1206,7 +1206,7 @@ function StepNav({
               e.stopPropagation();
               onNext();
             }}
-            className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold"
+            className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold sm:px-8 sm:py-3 sm:text-base"
           >
             {t("publicJobs.application.steps.continue")}
           </button>
