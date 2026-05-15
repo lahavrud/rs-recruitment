@@ -443,16 +443,22 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── About ─────────────────────────────────────────────────────── */}
-      <section className="texture-wave bg-card-raised py-14 sm:py-28">
+      {/* ── About — Western Rise split layout ─────────────────────────── */}
+      <section className="texture-wave bg-card-raised py-14 sm:py-24">
         <div className="mx-auto max-w-4xl px-6">
-          {/* About text — single block entrance, no per-element stagger */}
+
+          {/*
+            Split layout: text on the visual right (reading start in RTL),
+            photo on the visual left.
+            RTL grid: first DOM child → rightmost visually.
+          */}
           <div
             ref={aboutTextRef}
-            className="grid gap-10 sm:grid-cols-5 sm:gap-20"
+            className="grid items-center gap-10 sm:grid-cols-2 sm:gap-14"
             style={revealUp(aboutTextVisible)}
           >
-            <div className="sm:col-span-2">
+            {/* Text column — first in DOM → visual right in RTL */}
+            <div>
               <div className="h-px w-8 bg-copper/40" />
               <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-copper">
                 {t("landing.about.eyebrow")}
@@ -460,34 +466,33 @@ export default function LandingPage() {
               <h2 className="mt-5 text-xl font-semibold leading-snug text-white/90 sm:text-2xl">
                 {t("landing.about.headline")}
               </h2>
-            </div>
-            <div className="flex flex-col justify-center sm:col-span-3">
-              <p className="text-base leading-relaxed text-white/60">
-                <span className="font-wordmark text-4xl font-light tracking-widest text-gold/60 sm:text-5xl">RS Recruiting</span>{" "}
+              <p className="mt-5 text-base leading-relaxed text-white/60">
+                <span className="font-wordmark text-3xl font-light tracking-widest text-gold/60 sm:text-4xl">RS Recruiting</span>{" "}
                 {t("landing.about.body")}
               </p>
-              <p className="mt-4 text-base leading-relaxed text-white/60">
+              <p className="mt-4 text-sm leading-relaxed text-white/50">
                 {t("landing.about.body2")}
               </p>
-              <p className="mt-8 text-sm tracking-wide text-white/30">
+              <p className="mt-8 text-xs tracking-widest text-white/25 uppercase">
                 {t("landing.about.pillars")}
               </p>
             </div>
+
+            {/* Photo column — second in DOM → visual left in RTL */}
+            <div className="overflow-hidden rounded-xl">
+              <img
+                src="/landing-about.jpg"
+                alt=""
+                aria-hidden="true"
+                className="aspect-[4/5] w-full object-cover object-center"
+              />
+            </div>
           </div>
 
-          {/* Photo component — conference room with city view, between text and cards */}
-          <div className="mt-12 overflow-hidden rounded-xl sm:mt-16">
-            <img
-              src="/office-meeting.jpg"
-              alt=""
-              aria-hidden="true"
-              className="h-52 w-full object-cover object-center sm:h-72"
-            />
-          </div>
-
+          {/* Feature cards — below the split, full width */}
           <div
             ref={cardsRef}
-            className="mt-8 -mx-6 flex gap-4 overflow-x-auto px-6 pb-4 sm:mx-0 sm:mt-10 sm:grid sm:grid-cols-3 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0"
+            className="mt-12 -mx-6 flex gap-4 overflow-x-auto px-6 pb-4 sm:mx-0 sm:mt-16 sm:grid sm:grid-cols-3 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0"
           >
             {(
               [
