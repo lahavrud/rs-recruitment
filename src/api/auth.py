@@ -40,8 +40,8 @@ from src.services.auth import (
     logout_user,
     mark_invite_used,
     refresh_user_tokens,
-    register_company_user,
 )
+from src.services.auth_register import register_company_user
 from src.services.exceptions import (
     AccountLockedError,
     EmailAlreadyExistsError,
