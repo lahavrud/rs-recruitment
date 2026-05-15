@@ -29,6 +29,14 @@ def defer_after_commit(fn: Callable[[], Awaitable[None]]) -> None:
 async def transactional(session: AsyncSession) -> AsyncGenerator[None, None]:
     """Commit on success; rollback and re-raise on any exception.
 
+    Isolation level: PostgreSQL default READ COMMITTED.  This is sufficient
+    for the current write patterns (single-row approvals, status updates) where
+    each row is owned by one writer at a time.  If a future flow needs
+    SERIALIZABLE (e.g. check-then-act on aggregate counts), add an opt-in
+    ``isolation`` arg here and set it via
+    ``await session.execute(text("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"))``
+    before the first DML statement.
+
     Side effects (emails, file uploads) registered via defer_after_commit()
     are run after the commit succeeds and are silently dropped on rollback.
 

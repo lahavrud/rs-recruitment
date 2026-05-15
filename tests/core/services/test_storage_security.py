@@ -36,10 +36,7 @@ class TestLocalStorageProviderSecurity:
 
     @pytest.mark.asyncio
     async def test_path_traversal_encoded(self, provider: LocalStorageProvider):
-        """Test that encoded path traversal sequences are prevented."""
-        # Test with URL-encoded sequences (decoded: ../../../etc/passwd)
-        # The validation checks for ".." in the identifier, so encoded won't match
-        # But we should still validate the resolved path
+        """Test that URL-decoded traversal sequences are prevented."""
         import urllib.parse
 
         decoded = urllib.parse.unquote("%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd")
@@ -117,7 +114,6 @@ class TestLocalStorageProviderSecurity:
     @pytest.mark.asyncio
     async def test_path_traversal_still_blocked(self, provider: LocalStorageProvider):
         """Test that actual path traversal is still blocked."""
-        # These should still be blocked (actual path traversal)
         with pytest.raises(ValueError, match="Path traversal"):
             await provider.get_file_url("../etc/passwd")
 
@@ -127,37 +123,21 @@ class TestLocalStorageProviderSecurity:
         with pytest.raises(ValueError, match="Path traversal"):
             await provider.delete_file("../etc/passwd")
 
-        # Starting with ".." should be blocked
-        # (prevents confusion with parent directory)
-        with pytest.raises(ValueError, match="Path traversal"):
-            await provider.get_file_url("..file.txt")
-
-        # Path traversal in middle should be blocked
-        with pytest.raises(ValueError, match="Path traversal"):
-            await provider.get_file_url("some/path/../etc/passwd")
-
     @pytest.mark.asyncio
     async def test_path_traversal_ending_with_dotdot(
         self, provider: LocalStorageProvider
     ):
-        """Test paths ending in '/..' or '\\..' are blocked (reported vulnerability)."""
-        # Paths ending in "/.." should be blocked (resolves to directory, not file)
+        """A single '/..' resolves to storage_path root and is blocked.
+
+        `subdir/..` resolves to storage_path itself — rel.parts is empty,
+        so _safe_path raises before any filesystem call.  Deeper paths like
+        `some/subdir/..` resolve to a subdirectory inside storage (not root)
+        so they are not caught here; they fall through to the is_dir / not-found
+        checks in the callers.
+        """
         with pytest.raises(ValueError, match="Path traversal"):
             await provider.get_file_url("subdir/..")
 
-        # Windows-style path traversal ending
-        with pytest.raises(ValueError, match="Path traversal"):
-            await provider.get_file_url("subdir\\..")
-
-        # Path traversal ending in middle of path
-        with pytest.raises(ValueError, match="Path traversal"):
-            await provider.get_file_url("some/subdir/..")
-
-        # Multiple levels ending in traversal
-        with pytest.raises(ValueError, match="Path traversal"):
-            await provider.get_file_url("level1/level2/..")
-
-        # Test delete_file also blocks these
         with pytest.raises(ValueError, match="Path traversal"):
             await provider.delete_file("subdir/..")
 
@@ -194,17 +174,23 @@ class TestLocalStorageProviderSecurity:
     async def test_directory_path_blocked_in_get_file_url(
         self, provider: LocalStorageProvider
     ):
-        """Test that get_file_url correctly identifies and blocks directory paths."""
-        # Create a subdirectory in storage
+        """Test that get_file_url blocks directory paths."""
         subdir = provider.storage_path / "subdir"
         subdir.mkdir(exist_ok=True)
 
-        # Even if a path resolves to a directory (not a file), it should be blocked
-        # This tests the is_dir() check in get_file_url
-        # Note: The path traversal check should catch "subdir/.." before we get here
-        # But we also test that directories are not treated as files
+        # "subdir/.." resolves to storage_path itself — caught by the
+        # not-rel.parts check in _safe_path before reaching is_dir().
         with pytest.raises(ValueError, match="Path traversal"):
             await provider.get_file_url("subdir/..")
+
+    @pytest.mark.asyncio
+    async def test_absolute_path_blocked(self, provider: LocalStorageProvider):
+        """Absolute paths must be blocked — Path('/etc/passwd') escapes storage."""
+        with pytest.raises(ValueError, match="Path traversal"):
+            await provider.get_file_url("/etc/passwd")
+
+        with pytest.raises(ValueError, match="Path traversal"):
+            await provider.delete_file("/etc/passwd")
 
     @pytest.mark.asyncio
     async def test_symlink_to_outside_storage_is_rejected(
@@ -212,15 +198,13 @@ class TestLocalStorageProviderSecurity:
     ):
         """A symlink inside storage_path pointing OUTSIDE must be rejected.
 
-        Existing tests cover the upfront string-match guard (`..`, leading `/`)
-        but never reach the `resolved.relative_to(self.storage_path)` check.
-        A symlink slips past the string guard, so this check is the only thing
-        protecting against an attacker who can plant a link in the storage dir.
+        The resolve() + relative_to() check catches symlinks that escape the
+        storage root without any string-level pre-filtering.
 
         Note: the symlink target must live OUTSIDE provider.storage_path.
         Using the provider fixture's own tmp_path here would make the
-        target a sibling inside storage_path, and the .resolve()
-        relative_to check would (correctly) succeed.
+        target a sibling inside storage_path, and the relative_to check
+        would (correctly) succeed.
         """
         with tempfile.TemporaryDirectory() as outside_root:
             outside_target = Path(outside_root) / "secret_target"
@@ -229,8 +213,8 @@ class TestLocalStorageProviderSecurity:
             link = provider.storage_path / "innocent_name"
             link.symlink_to(outside_target)
 
-            with pytest.raises(ValueError, match="resolves outside storage directory"):
+            with pytest.raises(ValueError, match="Path traversal"):
                 await provider.get_file_url("innocent_name")
 
-            with pytest.raises(ValueError, match="resolves outside storage directory"):
+            with pytest.raises(ValueError, match="Path traversal"):
                 await provider.delete_file("innocent_name")

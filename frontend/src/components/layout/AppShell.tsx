@@ -74,6 +74,8 @@ function ShellContent({ children }: Props) {
         <Header onMenuToggle={() => setSidebarOpen((o) => !o)} />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          {/* key={pathname} unmounts/remounts on every navigation to trigger the
+              page-enter animation. Routes must not rely on cross-page state. */}
           <main
             key={pathname}
             className="page-enter flex-1 overflow-y-auto bg-page p-4 sm:p-6"
@@ -88,6 +90,7 @@ function ShellContent({ children }: Props) {
   return (
     <div className="min-h-screen bg-page">
       <PublicHeader />
+      {/* key={pathname}: same as authenticated shell above — triggers page-enter animation on navigation */}
       <main key={pathname} className="page-enter mx-auto max-w-4xl px-6 py-10 sm:py-14">
         {children}
       </main>
