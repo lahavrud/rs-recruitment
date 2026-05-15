@@ -666,10 +666,10 @@
         "searchPlaceholder": "חיפוש לפי אימייל…"
       },
       "inviteStatusLabels": {
-        "pending": "ממתין",
-        "used": "נוצל",
-        "expired": "פג תוקף",
-        "revoked": "בוטל"
+        "PENDING": "ממתין",
+        "USED": "נוצל",
+        "EXPIRED": "פג תוקף",
+        "REVOKED": "בוטל"
       },
       "newCompany": "חברה חדשה",
       "newCompanyModalTitle": "יצירת חברה חדשה",
