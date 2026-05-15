@@ -69,14 +69,18 @@ function CharRise({
 }) {
   const words = text.split(" ");
   // Pre-compute where each word starts in the overall character sequence
-  const wordOffsets = words.reduce<number[]>((acc, w, i) => {
+  const wordOffsets = words.reduce<number[]>((acc, _w, i) => {
     acc.push(i === 0 ? 0 : acc[i - 1] + words[i - 1].length + 1);
     return acc;
   }, []);
   return (
     <span className={className}>
       {words.map((word, wi) => (
-        <span key={wi} className="inline-block whitespace-nowrap">
+        <span
+          key={wi}
+          className="inline-block whitespace-nowrap"
+          style={wi > 0 ? { marginInlineStart: "0.28em" } : undefined}
+        >
           {word.split("").map((char, ci) => (
             <span key={ci} className="inline-block overflow-hidden align-bottom leading-none">
               <span
@@ -87,7 +91,6 @@ function CharRise({
               </span>
             </span>
           ))}
-          {wi < words.length - 1 && " "}
         </span>
       ))}
     </span>
