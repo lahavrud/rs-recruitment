@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
-import Logo from "@/components/ui/Logo";
 import LogoBanner from "@/components/ui/LogoBanner";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
+import { PublicHeader, PublicFooter } from "@/components/layout/AppShell";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -40,7 +40,7 @@ const ORGANIZATION_SCHEMA = {
 
 export default function LandingPage() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  useAuth(); // keeps auth context initialised for child components
   const navigate = useNavigate();
 
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
@@ -232,7 +232,8 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-page">
+    <div className="flex min-h-screen flex-col bg-page">
+      <PublicHeader />
       <SeoHead
         title={t("landing.seo.title")}
         description={t("landing.seo.description")}
@@ -258,33 +259,6 @@ export default function LandingPage() {
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="texture-wave relative flex min-h-screen flex-col">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void/80 via-page/60 to-void/55" />
-
-        {/* Nav */}
-        <div className="relative z-10 mx-auto w-full max-w-4xl px-6 py-5">
-          <div className="flex items-center justify-between">
-            <Logo />
-            <div className="flex items-center gap-5">
-              <Link to="/jobs" className="text-sm text-white/40 transition hover:text-white/70">
-                {t("landing.footer.jobs")}
-              </Link>
-              {isAuthenticated ? (
-                <Link
-                  to="/dashboard"
-                  className="rounded-sm border border-white/20 px-4 py-1.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
-                >
-                  {t("nav.dashboard")}
-                </Link>
-              ) : (
-                <Link
-                  to="/login"
-                  className="rounded-sm border border-white/20 px-4 py-1.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
-                >
-                  {t("landing.hero.login")}
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Centered content */}
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
@@ -560,32 +534,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/10 bg-page py-8">
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-            <Logo size={26} />
-            <nav className="flex items-center gap-5 text-sm text-white/35">
-              <Link to="/jobs" className="transition hover:text-white/70">
-                {t("landing.footer.jobs")}
-              </Link>
-              <Link to="/about" className="transition hover:text-white/70">
-                {t("landing.footer.about")}
-              </Link>
-              <Link to="/contact" className="transition hover:text-white/70">
-                {t("landing.footer.contact")}
-              </Link>
-              <Link to="/login" className="transition hover:text-white/70">
-                {t("landing.footer.login")}
-              </Link>
-            </nav>
-            <p className="text-xs text-white/25">
-              &copy; {new Date().getFullYear()} <span className="text-copper">RS Recruiting</span>.{" "}
-              {t("landing.footer.copyright")}
-            </p>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

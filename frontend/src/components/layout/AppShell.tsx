@@ -1,4 +1,5 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,7 +42,6 @@ export function PublicHeader() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -56,120 +56,121 @@ export function PublicHeader() {
 
   return (
     <>
-      {/* ── Sticky bar ────────────────────────────────────────────────── */}
-      <header
-        className="sticky top-0 z-40 border-b border-white/6 bg-void/90 backdrop-blur-md"
-      >
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3.5">
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <Logo size={26} />
-            <span className="font-wordmark text-base font-light tracking-widest text-gold/55 transition hover:text-gold/80">
-              RS Recruiting
-            </span>
-          </Link>
+      {/* ── Floating pill bar — fixed, sits over page content ─────────── */}
+      <header className="fixed inset-x-0 top-3 z-40 px-4">
+        <div className="mx-auto max-w-4xl rounded-xl border border-white/[0.07] bg-void/88 px-5 py-3 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 shrink-0">
+              <Logo size={26} />
+              <span className="font-wordmark text-[15px] font-light tracking-widest text-gold/55 transition hover:text-gold/80">
+                RS Recruiting
+              </span>
+            </Link>
 
-          {/* Desktop links */}
-          <nav className="hidden items-center gap-6 sm:flex">
+            {/* Desktop links */}
+            <nav className="hidden items-center gap-6 sm:flex">
+              {links.map((l) => (
+                <Link key={l.to} to={l.to}
+                  className="text-sm text-white/40 transition hover:text-white/75">
+                  {l.label}
+                </Link>
+              ))}
+              {isAuthenticated ? (
+                <Link to="/dashboard"
+                  className="rounded-sm border border-white/18 px-4 py-1.5 text-sm text-white/55 transition hover:border-copper/50 hover:text-white/90">
+                  {t("nav.dashboard")}
+                </Link>
+              ) : (
+                <Link to="/login"
+                  className="rounded-sm border border-copper/35 bg-copper/8 px-4 py-1.5 text-sm text-copper/80 transition hover:border-copper/60 hover:bg-copper/15 hover:text-copper">
+                  {t("auth.login.submitText")}
+                </Link>
+              )}
+            </nav>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setOpen(true)}
+              aria-label={t("nav.menu")}
+              className="flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
+            >
+              <span className="block h-px w-5 rounded-full bg-white/55" />
+              <span className="block h-px w-5 rounded-full bg-white/55" />
+              <span className="block h-px w-3.5 self-end rounded-full bg-white/55" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Mobile overlay — portal to document.body so it's never clipped ── */}
+      {createPortal(
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-void"
+          style={{
+            opacity: open ? 1 : 0,
+            pointerEvents: open ? "auto" : "none",
+            visibility: open ? "visible" : "hidden",
+            transition: "opacity 0.25s ease",
+          }}
+        >
+          {/* Top bar */}
+          <div className="flex items-center justify-between border-b border-white/8 px-5 py-3.5">
+            <Link to="/" onClick={() => setOpen(false)} className="flex items-center gap-2.5">
+              <Logo size={26} />
+              <span className="font-wordmark text-[15px] font-light tracking-widest text-gold/55">
+                RS Recruiting
+              </span>
+            </Link>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label={t("common.close")}
+              className="flex size-9 items-center justify-center text-white/35 transition hover:text-white/70"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth={1.5} className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Links */}
+          <nav className="flex flex-1 flex-col justify-center px-7">
             {links.map((l) => (
-              <Link key={l.to} to={l.to}
-                className="text-sm text-white/40 transition hover:text-white/75">
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={() => setOpen(false)}
+                className="group flex items-center justify-between border-b border-white/8 py-6 text-2xl font-light text-white/60 transition-colors hover:text-white"
+              >
                 {l.label}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth={1.5}
+                  className="size-4 text-copper/35 transition-transform duration-200 group-hover:-translate-x-1">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
               </Link>
             ))}
+
             {isAuthenticated ? (
-              <Link to="/dashboard"
-                className="rounded-sm border border-white/18 px-4 py-1.5 text-sm text-white/55 transition hover:border-copper/50 hover:text-white/90">
+              <Link to="/dashboard" onClick={() => setOpen(false)}
+                className="mt-8 self-start rounded-sm border border-copper/40 px-6 py-2.5 text-sm text-copper transition hover:bg-copper/10">
                 {t("nav.dashboard")}
               </Link>
             ) : (
-              <Link to="/login"
-                className="rounded-sm bg-copper/10 border border-copper/30 px-4 py-1.5 text-sm text-copper/80 transition hover:bg-copper/20 hover:border-copper/60 hover:text-copper">
+              <Link to="/login" onClick={() => setOpen(false)}
+                className="mt-8 self-start rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold">
                 {t("auth.login.submitText")}
               </Link>
             )}
           </nav>
 
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setOpen(true)}
-            aria-label={t("nav.menu")}
-            className="flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
-          >
-            <span className="block h-px w-5 rounded-full bg-white/55 transition-all" />
-            <span className="block h-px w-5 rounded-full bg-white/55 transition-all" />
-            <span className="block h-px w-3.5 rounded-full bg-white/55 self-end transition-all" />
-          </button>
-        </div>
-      </header>
-
-      {/* ── Mobile overlay ────────────────────────────────────────────── */}
-      {/* Rendered regardless of breakpoint so React state persists; visibility
-          is controlled by opacity + pointer-events, not display. */}
-      <div
-        ref={overlayRef}
-        className="fixed inset-0 z-50 flex flex-col bg-void"
-        style={{
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 0.25s ease",
-          visibility: open ? "visible" : "hidden",
-        }}
-      >
-        {/* Top bar */}
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-3.5">
-          <Link to="/" onClick={() => setOpen(false)} className="flex items-center gap-2.5">
-            <Logo size={26} />
-            <span className="font-wordmark text-base font-light tracking-widest text-gold/55">
-              RS Recruiting
-            </span>
-          </Link>
-          <button
-            onClick={() => setOpen(false)}
-            aria-label={t("common.close")}
-            className="flex size-9 items-center justify-center text-white/35 transition hover:text-white/70"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth={1.5} className="size-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Nav links */}
-        <nav className="flex flex-1 flex-col justify-center px-8">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              onClick={() => setOpen(false)}
-              className="group flex items-center justify-between border-b border-white/8 py-6 text-2xl font-light text-white/60 transition-colors duration-200 hover:text-white"
-            >
-              {l.label}
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth={1.5}
-                className="size-5 text-copper/40 transition-transform duration-200 group-hover:-translate-x-1">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            </Link>
-          ))}
-
-          {isAuthenticated ? (
-            <Link to="/dashboard" onClick={() => setOpen(false)}
-              className="mt-8 self-start rounded-sm border border-copper/40 px-6 py-2.5 text-sm text-copper transition hover:bg-copper/10">
-              {t("nav.dashboard")}
-            </Link>
-          ) : (
-            <Link to="/login" onClick={() => setOpen(false)}
-              className="mt-8 self-start rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold">
-              {t("auth.login.submitText")}
-            </Link>
-          )}
-        </nav>
-
-        <p className="px-8 py-6 text-xs text-white/18">
-          &copy; {new Date().getFullYear()} RS Recruiting
-        </p>
-      </div>
+          <p className="px-7 py-6 text-xs text-white/18">
+            &copy; {new Date().getFullYear()} RS Recruiting
+          </p>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
@@ -208,10 +209,11 @@ function ShellContent({ children }: Props) {
     );
   }
 
+  /* Public pages (contact, jobs, etc.) — flex column so footer sticks to bottom */
   return (
-    <div className="min-h-screen bg-page">
+    <div className="flex min-h-screen flex-col bg-page">
       <PublicHeader />
-      <main key={pathname} className="page-enter mx-auto max-w-4xl px-6 py-10 sm:py-14">
+      <main key={pathname} className="page-enter mx-auto w-full max-w-4xl flex-1 px-6 pt-24 pb-14 sm:pb-20">
         {children}
       </main>
       <PublicFooter />

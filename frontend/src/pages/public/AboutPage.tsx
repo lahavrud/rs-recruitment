@@ -126,7 +126,7 @@ export default function AboutPage() {
   const quoteWords = t("about.philosophy.quote").split(" ");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-void page-enter">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-void page-enter">
       {/* Reading progress bar */}
       <div
         className="fixed start-0 top-0 z-50 h-px bg-copper/70 transition-none"
