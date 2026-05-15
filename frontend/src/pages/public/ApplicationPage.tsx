@@ -471,9 +471,10 @@ export default function ApplicationPage() {
         : null;
 
   return (
-    /* Full-width bg fills the viewport — form centered inside at max-w-2xl */
-    <div className="min-h-screen bg-page">
-    <div className="mx-auto max-w-2xl px-6 pt-24 pb-24">
+    /* full-width bg; StepNav siblings here are sticky-until-parent-ends */
+    <div className="flex min-h-screen flex-col bg-page">
+    <div className="flex-1 overflow-auto">
+    <div className="mx-auto max-w-2xl px-6 pt-24 pb-8">
       {job && (
         <SeoHead
           title={`${t("publicJobs.application.applyFor")} ${job.title}`}
@@ -530,9 +531,7 @@ export default function ApplicationPage() {
             </p>
           )}
         </div>
-        <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-medium text-success">
-          {t("publicJobs.board.open")}
-        </span>
+
       </div>
 
       <Stepper step={step} maxStep={maxStep} onJump={jumpTo} />
@@ -579,13 +578,6 @@ export default function ApplicationPage() {
           )}
         </div>
 
-        <StepNav
-          step={step}
-          submitting={submitting}
-          privacyAccepted={privacyAccepted}
-          onBack={handleBack}
-          onNext={handleNext}
-        />
       </form>
 
 
@@ -593,6 +585,18 @@ export default function ApplicationPage() {
         <PrivacyModal onClose={() => setPrivacyOpen(false)} />
       )}
     </div>
+    </div>
+
+    {/* StepNav — sticky bottom-0 INSIDE bg-page div, so it naturally stops
+        at the footer (sticky can't extend past its parent's bounds).
+        Full-width because it's inside the full-width bg-page wrapper.      */}
+    <StepNav
+      step={step}
+      submitting={submitting}
+      privacyAccepted={privacyAccepted}
+      onBack={handleBack}
+      onNext={handleNext}
+    />
     </div>
   );
 }
@@ -1121,9 +1125,11 @@ function StepNav({
 }) {
   const { t } = useTranslation();
   const isFinal = step === TOTAL_STEPS;
+  // Sticky bottom-0 — works as sibling of content inside min-h-screen flex-col.
+  // Naturally stops before the footer (sticky can't extend past its parent).
   return (
-    <div className="sticky bottom-0 -mx-4 mt-4 border-t border-white/8 bg-page/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-page/80 sm:-mx-6 sm:px-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="sticky bottom-0 z-40 border-t border-white/8 bg-page/96 px-6 py-3 backdrop-blur-md">
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}

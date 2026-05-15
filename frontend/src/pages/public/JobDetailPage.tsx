@@ -271,9 +271,7 @@ export default function JobDetailPage() {
                 {job.location}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-              {t("publicJobs.detail.open")}
-            </span>
+
           </div>
           {job.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">
