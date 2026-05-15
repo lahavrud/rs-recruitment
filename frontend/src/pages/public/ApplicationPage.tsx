@@ -470,7 +470,7 @@ export default function ApplicationPage() {
         : null;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 pt-24 pb-10">
+    <div className="mx-auto max-w-2xl px-6 pt-24 pb-24">
       {job && (
         <SeoHead
           title={`${t("publicJobs.application.applyFor")} ${job.title}`}
@@ -499,13 +499,8 @@ export default function ApplicationPage() {
         {t("publicJobs.application.backToJob")}
       </Link>
 
-      {/* Two-column layout on desktop: form left, job card sidebar right */}
-      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-12 lg:items-start">
-      {/* ── Main column ── */}
-      <div className="min-w-0">
-
-      {/* Compact job header — mobile only */}
-      <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-4 lg:hidden">
+      {/* Compact job header */}
+      <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-4">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
             {t("publicJobs.application.applyFor")}
@@ -590,53 +585,6 @@ export default function ApplicationPage() {
         />
       </form>
 
-      </div>{/* end main column */}
-
-      {/* ── Sidebar — desktop only, sticky ── */}
-      {job && (
-        <aside className="hidden lg:block lg:sticky lg:top-28 lg:self-start">
-          <div className="rounded-xl border border-white/8 bg-card p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-              {t("publicJobs.application.applyFor")}
-            </p>
-            <h2 className="mt-2 text-xl font-semibold leading-snug text-white/90">
-              {job.title}
-            </h2>
-            {job.location && (
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-white/45">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-3.5 shrink-0" aria-hidden="true">
-                  <path fillRule="evenodd" d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
-                </svg>
-                {job.location}
-              </p>
-            )}
-            {(job.salary_min || job.salary_max) && (
-              <p className="mt-1 text-sm text-white/40">
-                {job.salary_min && job.salary_max
-                  ? `${job.salary_min.toLocaleString("he-IL")}–${job.salary_max.toLocaleString("he-IL")} ₪`
-                  : job.salary_min
-                  ? `מ-${job.salary_min.toLocaleString("he-IL")} ₪`
-                  : `עד ${job.salary_max?.toLocaleString("he-IL")} ₪`}
-              </p>
-            )}
-            {job.tags && job.tags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {job.tags.slice(0, 4).map(tag => (
-                  <span key={tag} className="rounded-full border border-copper/25 bg-copper/10 px-2 py-0.5 text-[11px] font-medium text-copper/80">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="mt-5 border-t border-white/8 pt-4">
-              <Link to={`/jobs/${job.id}`} className="text-xs text-white/35 transition hover:text-copper">
-                {t("publicJobs.application.backToJob")} ←
-              </Link>
-            </div>
-          </div>
-        </aside>
-      )}
-      </div>{/* end grid */}
 
       {privacyOpen && (
         <PrivacyModal onClose={() => setPrivacyOpen(false)} />
