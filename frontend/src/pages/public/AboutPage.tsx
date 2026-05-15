@@ -126,8 +126,12 @@ export default function AboutPage() {
   const quoteWords = t("about.philosophy.quote").split(" ");
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden bg-void page-enter">
-      {/* Reading progress bar */}
+    <>
+      {/* Fixed elements live OUTSIDE the page-enter div so they are never
+          inside an ancestor with transform applied (page-in animation uses
+          translateY which would create a containing block, trapping fixed
+          descendants and making position:fixed relative to the div instead
+          of the viewport). */}
       <div
         className="fixed start-0 top-0 z-50 h-px bg-copper/70 transition-none"
         style={{ width: `${progress}%` }}
@@ -148,6 +152,8 @@ export default function AboutPage() {
       />
 
       <PublicHeader transparent />
+
+      <div className="flex min-h-screen flex-col overflow-x-hidden bg-void page-enter">
 
       {/* ── Hero — full-bleed, background image ──────────────────────────── */}
       <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-6 py-24 text-center">
@@ -515,5 +521,6 @@ export default function AboutPage() {
 
       <PublicFooter />
     </div>
+    </>
   );
 }

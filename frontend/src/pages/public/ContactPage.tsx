@@ -24,7 +24,7 @@ export default function ContactPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-screen flex-col bg-void page-enter">
+    <>
       <SeoHead
         title={t("contact.seo.title")}
         description={t("contact.seo.description")}
@@ -32,6 +32,8 @@ export default function ContactPage() {
       />
 
       <PublicHeader transparent />
+
+      <div className="flex min-h-screen flex-col bg-void page-enter">
 
       {/* ── Single hero section ───────────────────────────────────────────── */}
       <section className="texture-wave relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-32 text-center">
@@ -101,5 +103,6 @@ export default function ContactPage() {
 
       <PublicFooter />
     </div>
+    </>
   );
 }
