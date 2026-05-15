@@ -34,7 +34,7 @@ class ApplicationStatus(str, Enum):
 class InviteTokenStatus(str, Enum):
     """Invite token lifecycle status."""
 
-    PENDING = "pending"
-    USED = "used"
-    EXPIRED = "expired"
-    REVOKED = "revoked"
+    PENDING = "PENDING"
+    USED = "USED"
+    EXPIRED = "EXPIRED"
+    REVOKED = "REVOKED"

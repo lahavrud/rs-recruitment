@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from src.core.infrastructure.database_helpers import get_by_id_or_raise
 from src.core.infrastructure.pagination import (
     CursorPage,
     apply_cursor,
@@ -14,10 +14,27 @@ from src.core.infrastructure.pagination import (
 )
 from src.core.tasks import enqueue_email_task
 from src.enums import JobStatus
-from src.models import CompanyProfile, Job, User
+from src.models import CompanyProfile, Job
 from src.schemas import JobRead
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
 from src.templates.email import build_job_contact_html
+
+
+async def _load_job_with_company_and_user(session: AsyncSession, job_id: int) -> Job:
+    """Fetch a Job with its CompanyProfile + owning User eager-loaded.
+
+    Single round-trip via two `selectinload` follow-ups instead of three
+    sequential SELECTs in the approve/reject/contact flows.
+    """
+    result = await session.execute(
+        select(Job)
+        .options(selectinload(Job.company).selectinload(CompanyProfile.user))
+        .where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+    )
+    job = result.scalar_one_or_none()
+    if job is None:
+        raise JobNotFoundError(f"Job with ID {job_id} not found")
+    return job
 
 
 async def list_pending_jobs(
@@ -60,9 +77,7 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
         JobNotFoundError: If job not found
         JobNotPendingError: If job is not pending approval
     """
-    job = await get_by_id_or_raise(
-        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
-    )
+    job = await _load_job_with_company_and_user(session, job_id)
 
     # Validate it's pending
     if job.status != JobStatus.PENDING_APPROVAL:
@@ -79,16 +94,9 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
     # Admin-created (orphan) profiles have no inbox to deliver to, so we
     # skip the send — the contact_email captured on the profile is for
     # reference only until a user is attached.
-    result = await session.execute(
-        select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
-    )
-    company = result.scalar_one()
-    if company.user_id is None:
+    if job.company.user is None:
         return JobRead.model_validate(job)
-    result = await session.execute(
-        select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = result.scalar_one()
+    user = job.company.user
 
     await enqueue_email_task(
         to=user.email,
@@ -119,9 +127,7 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
         JobNotFoundError: If job not found
         JobNotPendingError: If job is not pending approval
     """
-    job = await get_by_id_or_raise(
-        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
-    )
+    job = await _load_job_with_company_and_user(session, job_id)
 
     # Validate it's pending
     if job.status != JobStatus.PENDING_APPROVAL:
@@ -130,10 +136,6 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
         )
 
     # See approve_job — skip the email send when there's no attached user.
-    result = await session.execute(
-        select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
-    )
-    company = result.scalar_one()
     job_title = job.title
     job_location = job.location
 
@@ -141,12 +143,9 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
     job.updated_at = datetime.now(timezone.utc)
     await session.flush()
 
-    if company.user_id is None:
+    if job.company.user is None:
         return
-    result = await session.execute(
-        select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = result.scalar_one()
+    user = job.company.user
 
     await enqueue_email_task(
         to=user.email,
@@ -176,20 +175,11 @@ async def contact_job(job_id: int, admin_note: str, session: AsyncSession) -> No
     Raises:
         JobNotFoundError: If job not found
     """
-    job = await get_by_id_or_raise(
-        session, Job, job_id, lambda pk: JobNotFoundError(f"Job with ID {pk} not found")
-    )
+    job = await _load_job_with_company_and_user(session, job_id)
 
-    result = await session.execute(
-        select(CompanyProfile).where(CompanyProfile.id == job.company_id)  # pyright: ignore[reportArgumentType]
-    )
-    company = result.scalar_one()
-    if company.user_id is None:
+    if job.company.user is None:
         return
-    result = await session.execute(
-        select(User).where(User.id == company.user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = result.scalar_one()
+    user = job.company.user
 
     plain = (
         f"פנייה ממנהל המערכת בנוגע למשרת '{job.title}'.\n\n"
@@ -202,7 +192,7 @@ async def contact_job(job_id: int, admin_note: str, session: AsyncSession) -> No
         body=plain,
         html_body=build_job_contact_html(
             job_title=job.title,
-            company_name=company.name,
+            company_name=job.company.name,
             admin_note=admin_note,
         ),
     )

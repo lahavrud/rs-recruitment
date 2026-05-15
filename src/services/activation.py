@@ -22,23 +22,19 @@ async def activate_company(token: str, session: AsyncSession) -> User:
     """
     now = datetime.now(timezone.utc)
     result = await session.execute(
-        select(ActivationToken).where(
-            ActivationToken.token == token  # type: ignore[arg-type]
-        )
+        select(ActivationToken, User)
+        .join(User, User.id == ActivationToken.company_user_id)  # pyright: ignore[reportArgumentType]
+        .where(ActivationToken.token == token)  # type: ignore[arg-type]
     )
-    activation = result.scalar_one_or_none()
+    row = result.one_or_none()
 
-    if activation is None or activation.used:
+    if row is None:
+        raise InvalidActivationTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
+    activation, user = row
+    if activation.used:
         raise InvalidActivationTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
     if activation.expires_at.replace(tzinfo=timezone.utc) < now:
         raise InvalidActivationTokenError("פג תוקף הקישור")
-
-    user_result = await session.execute(
-        select(User).where(User.id == activation.company_user_id)  # pyright: ignore[reportArgumentType]
-    )
-    user = user_result.scalar_one_or_none()
-    if user is None:
-        raise InvalidActivationTokenError("המשתמש לא נמצא")
 
     user.is_active = True
     activation.used = True

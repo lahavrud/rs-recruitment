@@ -315,10 +315,10 @@ export interface HealthResponse {
 // --- Invite Tokens ---
 
 export const InviteTokenStatus = {
-  PENDING: "pending",
-  USED: "used",
-  EXPIRED: "expired",
-  REVOKED: "revoked",
+  PENDING: "PENDING",
+  USED: "USED",
+  EXPIRED: "EXPIRED",
+  REVOKED: "REVOKED",
 } as const;
 export type InviteTokenStatus =
   (typeof InviteTokenStatus)[keyof typeof InviteTokenStatus];
