@@ -21,7 +21,7 @@ async def test_get_pending_companies_empty(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.auth.enqueue_email_task")
+@patch("src.services.auth.registration.enqueue_email_task")
 async def test_get_pending_companies(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):

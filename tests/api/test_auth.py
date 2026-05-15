@@ -485,7 +485,9 @@ async def test_account_lockout_after_failed_attempts(client: AsyncClient):
         if attempt_count > 5:
             raise AccountLockedError(minutes_remaining=15)
 
-    with patch("src.services.auth._check_lockout", side_effect=fake_check_lockout):
+    with patch(
+        "src.services.auth.sessions._check_lockout", side_effect=fake_check_lockout
+    ):
         for _ in range(5):
             await client.post(
                 "/auth/login",
