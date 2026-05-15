@@ -19,6 +19,13 @@ class SsmSettingsSource(PydanticBaseSettingsSource):
     Fetches all parameters under the given path prefix at construction time.
     Parameter names are lowercased and matched to Settings field names.
     Used in production so secrets are never written to disk.
+
+    Naming convention: SSM parameter names are UPPERCASE (e.g.
+    `/rs-recruitment/prod/DATABASE_URL`); they map to snake_case Settings
+    fields by lowercasing here. The lowercasing is a case-insensitive
+    matching layer — *not* a license to store SSM names in mixed case.
+    Keep new SSM params UPPERCASE so the AWS console listing stays
+    operator-friendly.
     """
 
     def __init__(self, settings_cls: type, path_prefix: str) -> None:

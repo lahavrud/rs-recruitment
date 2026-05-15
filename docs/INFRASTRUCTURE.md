@@ -147,7 +147,7 @@ Default EBS encryption: ON (account-wide).
 ### Configuration
 | Resource | Notes |
 |---|---|
-| SSM `/rs-recruitment/prod/*` | App secrets (DATABASE_URL, JWT_SECRET_KEY, SMTP_*, STORAGE_PROVIDER, etc.) — SecureString where appropriate |
+| SSM `/rs-recruitment/prod/*` | App secrets (DATABASE_URL, JWT_SECRET_KEY, SMTP_*, STORAGE_PROVIDER, etc.) — SecureString where appropriate. **Naming convention: parameter names are UPPERCASE**; the app loader lowercases them to match snake_case Pydantic field names. Keep new params UPPERCASE for operator clarity. |
 | SSM `/rs-recruitment/infra/CURRENT_SHA` | String — current deployed SHA (deploy version pointer) |
 | SSM `/rs-recruitment/infra/TLS_CERT`, `TLS_KEY` | SecureString — TLS cert/key for the frontend nginx |
 | KMS | 2 customer-managed keys (default RDS + SSM) |
