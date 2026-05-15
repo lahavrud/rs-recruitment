@@ -266,6 +266,13 @@ html {
   to   { transform: scaleX(1); }
 }
 
+/* Image wipe via clip-path — no overlay needed, no corner bleed.
+   Reveals right-to-left (start side in RTL = natural reading direction). */
+@keyframes clip-wipe-reveal {
+  from { clip-path: inset(0 0 0 100% round 0.75rem); }
+  to   { clip-path: inset(0 0 0 0% round 0.75rem); }
+}
+
 /* Manifesto ellipse burst — starts as a solid dot, expands outward.
    Inner text counter-fades in only after the ellipse has expanded.            */
 @keyframes ellipse-burst {
