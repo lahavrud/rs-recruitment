@@ -67,7 +67,11 @@
         background: #0D0B09;
       }
       .rs-splash span {
-        font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+        /* Matches `.font-wordmark` in index.css. Playfair Display is loaded
+           async via <link> above; until it arrives the splash renders in
+           Georgia — visually close enough that the React-rendered wordmark
+           doesn't look like a shift when fonts swap in. */
+        font-family: 'Playfair Display', Georgia, serif;
         font-weight: 300;
         font-size: clamp(3.5rem, 12vw, 5.5rem);
         letter-spacing: 0.1em;
