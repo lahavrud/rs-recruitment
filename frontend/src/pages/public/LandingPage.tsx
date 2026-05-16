@@ -108,7 +108,6 @@ export default function LandingPage() {
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [heroLoaded, setHeroLoaded] = useState(false);
   const [aboutImgLoaded, setAboutImgLoaded] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [cardsVisible, setCardsVisible] = useState<boolean>(
@@ -316,16 +315,14 @@ export default function LandingPage() {
             src="/hero-city.jpg"
             alt=""
             aria-hidden="true"
-            // LCP image — preloaded in index.html with matching srcset.
-            // fetchpriority hints the browser to fetch it before non-critical assets.
+            // LCP image — preloaded in index.html with matching srcset. With
+            // preload + fetchpriority the image is in cache by the time React
+            // renders this element, so no fade-in is needed and the prior
+            // 900 ms opacity transition would have capped the LCP score.
             fetchPriority="high"
             decoding="async"
-            onLoad={() => setHeroLoaded(true)}
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
-            style={{
-              objectPosition: "center 60%",
-              opacity: heroLoaded ? 1 : 0,
-            }}
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: "center 60%" }}
           />
         </picture>
 
@@ -690,11 +687,16 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Progress bar */}
+            {/* Progress bar — animates transform (composited) instead of width
+                so Lighthouse stops flagging non-composited animation. RTL page,
+                so the bar grows from the inline-start side (the right). */}
             <div className="mt-5 h-px overflow-hidden rounded-full bg-white/8">
               <div
-                className="h-full rounded-full bg-copper/50 transition-all duration-100"
-                style={{ width: `${scrollProgress}%` }}
+                className="h-full w-full rounded-full bg-copper/50 transition-transform duration-100"
+                style={{
+                  transform: `scaleX(${scrollProgress / 100})`,
+                  transformOrigin: "right",
+                }}
               />
             </div>
             </div>

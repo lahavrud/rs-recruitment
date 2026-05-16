@@ -12,7 +12,19 @@
          then fetch the font CSS. As a <link> they're requested in parallel. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" />
+    <!-- Async font load: media="print" makes the stylesheet non-render-blocking,
+         onload swaps it back to media="all" once it's parsed. With display=swap
+         the page renders with fallback fonts first, then re-renders when web
+         fonts arrive. Saves ~700–900 ms on Slow 4G. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" />
+    </noscript>
 
     <!-- LCP preload: the landing-page hero image is the mobile LCP element.
          Preloading the responsive srcset cuts ~1s off LCP. Keep this in sync
@@ -37,9 +49,38 @@
     <meta property="og:image" content="/hero-city.jpg" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="he_IL" />
+
+    <!-- LCP splash: rendered before the JS bundle parses so the largest
+         contentful paint happens immediately on HTML parse instead of waiting
+         for React hydration (was 2.56 s element render delay on mobile).
+         createRoot.render() wipes the splash when React mounts. Self-contained
+         inline styles avoid waiting on the Tailwind CSS bundle. Sized to match
+         the LogoBanner wordmark so the SPA's first render doesn't look like a
+         shift. -->
+    <style>
+      .rs-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0D0B09;
+      }
+      .rs-splash span {
+        font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+        font-weight: 300;
+        font-size: clamp(3.5rem, 12vw, 5.5rem);
+        letter-spacing: 0.1em;
+        color: rgba(201, 168, 76, 0.6);
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="rs-splash" aria-hidden="true">
+        <span>RS Recruiting</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
