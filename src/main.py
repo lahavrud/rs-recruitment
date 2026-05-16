@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 
 from src.api import (
     activation,
@@ -74,6 +76,12 @@ logging.getLogger("uvicorn.access").addFilter(_HealthCheckLogFilter())
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
 
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request, exc) -> JSONResponse:  # type: ignore[type-arg]
+    return JSONResponse(status_code=429, content={"detail": "errors.tooManyAttempts"})
+
+
 # Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -123,10 +131,3 @@ async def health_check() -> dict[str, str]:
         "environment": settings.environment,
         "redis": redis_status,
     }
-
-
-@app.get("/api/debug/sentry-test")
-async def sentry_test() -> None:
-    # Intentionally raises to verify Sentry capture end-to-end (release
-    # tagging, source maps, alerting). Safe to remove once validated.
-    raise RuntimeError("Sentry test exception — safe to ignore")
