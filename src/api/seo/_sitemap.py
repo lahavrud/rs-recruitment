@@ -53,6 +53,8 @@ async def sitemap_xml(session: AsyncSession = Depends(get_session)) -> str:
 
     entries = _url_entry(f"{base}/", changefreq="monthly")
     entries += _url_entry(f"{base}/jobs", lastmod=today, changefreq="daily")
+    entries += _url_entry(f"{base}/about", changefreq="monthly")
+    entries += _url_entry(f"{base}/contact", changefreq="yearly")
     entries += _url_entry(f"{base}/articles", changefreq="weekly")
     for slug, lastmod in _ARTICLES:
         entries += _url_entry(

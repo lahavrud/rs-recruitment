@@ -40,6 +40,8 @@ async def test_sitemap_xml_empty(public_client: AsyncClient):
     assert "<urlset" in body
     # Static pages always present
     assert "/jobs" in body
+    assert "/about</loc>" in body
+    assert "/contact</loc>" in body
     # Articles index + at least one article URL.
     assert "/articles" in body
     assert "/articles/mah-ze-nihul-mabnim" in body
