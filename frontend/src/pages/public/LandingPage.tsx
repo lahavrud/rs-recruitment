@@ -306,17 +306,28 @@ export default function LandingPage() {
       {/* ── Hero + audience panels share one image so they fade into each
             other without a visible seam where the sections meet. ─────────── */}
       <div className="relative overflow-hidden bg-void">
-        <img
-          src="/hero-city.jpg"
-          alt=""
-          aria-hidden="true"
-          onLoad={() => setHeroLoaded(true)}
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
-          style={{
-            objectPosition: "center 60%",
-            opacity: heroLoaded ? 1 : 0,
-          }}
-        />
+        <picture>
+          <source
+            type="image/webp"
+            srcSet="/hero-city-768.webp 768w, /hero-city.webp 1920w"
+            sizes="100vw"
+          />
+          <img
+            src="/hero-city.jpg"
+            alt=""
+            aria-hidden="true"
+            // LCP image — preloaded in index.html with matching srcset.
+            // fetchpriority hints the browser to fetch it before non-critical assets.
+            fetchPriority="high"
+            decoding="async"
+            onLoad={() => setHeroLoaded(true)}
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
+            style={{
+              objectPosition: "center 60%",
+              opacity: heroLoaded ? 1 : 0,
+            }}
+          />
+        </picture>
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="texture-wave relative flex min-h-screen flex-col">

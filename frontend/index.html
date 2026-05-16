@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+
+    <!-- Fonts: preconnect lets the TLS handshake start in parallel with the HTML
+         parse so the @font-face fetch doesn't wait for the stylesheet. Moving
+         the stylesheet out of `@import` in index.css unblocks render — when
+         it's inside CSS the browser must download our CSS *first*, parse it,
+         then fetch the font CSS. As a <link> they're requested in parallel. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" />
+
+    <!-- LCP preload: the landing-page hero image is the mobile LCP element.
+         Preloading the responsive srcset cuts ~1s off LCP. Keep this in sync
+         with the <picture> in LandingPage.tsx. -->
+    <link
+      rel="preload"
+      as="image"
+      type="image/webp"
+      imagesrcset="/hero-city-768.webp 768w, /hero-city.webp 1920w"
+      imagesizes="100vw"
+      fetchpriority="high"
+    />
     <!-- Static fallback meta — must match what SeoHead renders for `/` so
          Google sees consistent content whether or not it executes JS.
          Brand goes at the end (single occurrence) to avoid Google's title
