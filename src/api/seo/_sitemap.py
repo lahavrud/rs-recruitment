@@ -29,9 +29,12 @@ def _url_entry(loc: str, lastmod: str | None = None, changefreq: str = "weekly")
 
 @router.get("/robots.txt", response_class=PlainTextResponse, include_in_schema=False)
 async def robots_txt() -> str:
+    # `Sitemap:` is a top-level directive that applies to the whole file, not
+    # to any one user-agent group. Lighthouse's robots.txt validator flags it
+    # as invalid when it appears inside a group without a blank-line separator.
     sitemap_url = f"{settings.frontend_base_url}/sitemap.xml"
     disallow = "\n".join(f"Disallow: {p}" for p in DISALLOWED_PATHS)
-    return f"User-agent: *\nAllow: /\n{disallow}\nSitemap: {sitemap_url}\n"
+    return f"User-agent: *\nAllow: /\n{disallow}\n\nSitemap: {sitemap_url}\n"
 
 
 @router.get("/sitemap.xml", response_class=PlainTextResponse, include_in_schema=False)
