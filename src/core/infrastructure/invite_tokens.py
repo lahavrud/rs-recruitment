@@ -76,4 +76,9 @@ async def revoke_invite_token(token: str) -> None:
         redis = await get_redis_pool()
         await redis.delete(_key(token))
     except Exception:
-        pass
+        _logger.warning(
+            "invite_token_revoke_failed: token could not be deleted from Redis; "
+            "it will expire via TTL in %d seconds. token_prefix=%s",
+            TOKEN_TTL_SECONDS,
+            token[:8],
+        )

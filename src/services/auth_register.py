@@ -182,38 +182,52 @@ async def register_company_user(
         acceptance_ip=acceptance_ip,
         acceptance_user_agent=acceptance_user_agent,
     )
-    session.add(new_company_profile)
-    await session.flush()
 
-    if privacy_accepted:
+    # Wrap remaining DB work so any unexpected flush/audit failure triggers
+    # cleanup of both S3 files before propagating.
+    try:
+        session.add(new_company_profile)
+        await session.flush()
+
+        if privacy_accepted:
+            await record_audit_event(
+                session,
+                actor_user_id=new_user.id,
+                action="company.privacy_accept",
+                target_type="CompanyProfile",
+                target_id=new_company_profile.id,  # type: ignore[arg-type]
+                detail=f"policy_version={CURRENT_PRIVACY_POLICY_VERSION}",
+                ip_address=acceptance_ip,
+            )
+        if terms_accepted:
+            await record_audit_event(
+                session,
+                actor_user_id=new_user.id,
+                action="company.terms_accept",
+                target_type="CompanyProfile",
+                target_id=new_company_profile.id,  # type: ignore[arg-type]
+                detail=f"terms_version={CURRENT_TERMS_OF_SERVICE_VERSION}",
+                ip_address=acceptance_ip,
+            )
         await record_audit_event(
             session,
             actor_user_id=new_user.id,
-            action="company.privacy_accept",
+            action="company.contract_sign",
             target_type="CompanyProfile",
             target_id=new_company_profile.id,  # type: ignore[arg-type]
-            detail=f"policy_version={CURRENT_PRIVACY_POLICY_VERSION}",
+            detail=f"signature_url={sig_identifier}",
             ip_address=acceptance_ip,
         )
-    if terms_accepted:
-        await record_audit_event(
-            session,
-            actor_user_id=new_user.id,
-            action="company.terms_accept",
-            target_type="CompanyProfile",
-            target_id=new_company_profile.id,  # type: ignore[arg-type]
-            detail=f"terms_version={CURRENT_TERMS_OF_SERVICE_VERSION}",
-            ip_address=acceptance_ip,
-        )
-    await record_audit_event(
-        session,
-        actor_user_id=new_user.id,
-        action="company.contract_sign",
-        target_type="CompanyProfile",
-        target_id=new_company_profile.id,  # type: ignore[arg-type]
-        detail=f"signature_url={sig_identifier}",
-        ip_address=acceptance_ip,
-    )
+    except Exception:
+        for key in [logo_identifier, sig_identifier]:
+            if key:
+                try:
+                    await storage.delete_file(key)
+                except Exception:
+                    logger.exception(
+                        "Failed to clean up S3 file %s after DB error", key
+                    )
+        raise
 
     admin_emails = await get_all_admin_emails(session)
     if admin_emails:

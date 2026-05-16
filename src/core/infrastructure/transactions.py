@@ -10,11 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 _logger = logging.getLogger(__name__)
 
 _post_commit_hooks: contextvars.ContextVar[
-    list[Callable[[], Awaitable[None]]] | None
+    list[Callable[[], Awaitable[object]]] | None
 ] = contextvars.ContextVar("_post_commit_hooks", default=None)
 
 
-def defer_after_commit(fn: Callable[[], Awaitable[None]]) -> None:
+def defer_after_commit(fn: Callable[[], Awaitable[object]]) -> None:
     """Register an async callable to run after the current transaction commits.
 
     Must be called from within a `transactional()` block.  If the transaction
@@ -55,7 +55,7 @@ async def transactional(session: AsyncSession) -> AsyncGenerator[None, None]:
     The context manager owns the commit/rollback; the endpoint's except
     block only needs to handle HTTP mapping of domain exceptions.
     """
-    hooks: list[Callable[[], Awaitable[None]]] = []
+    hooks: list[Callable[[], Awaitable[object]]] = []
     token = _post_commit_hooks.set(hooks)
     committed = False
     try:

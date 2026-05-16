@@ -187,23 +187,19 @@ async def contact_job(job_id: int, admin_note: str, session: AsyncSession) -> No
 
     if job.company.user is None:
         return
-    _email = job.company.user.email
-    _title = job.title
-    _company_name = job.company.name
-    _plain = (
-        f"פנייה ממנהל המערכת בנוגע למשרת '{_title}'.\n\n"
-        f"{admin_note}\n\n"
-        "לשאלות ופניות נוספות, אנא צרו קשר עם צוות RS Recruiting."
-    )
-    defer_after_commit(
-        lambda: enqueue_email_task(
-            to=_email,
-            subject="פנייה בנוגע למשרה — RS Recruiting",
-            body=_plain,
-            html_body=build_job_contact_html(
-                job_title=_title,
-                company_name=_company_name,
-                admin_note=admin_note,
-            ),
-        )
+    # contact_job has no DB writes so there is no transactional() context;
+    # call enqueue directly and let failures propagate to the caller.
+    await enqueue_email_task(
+        to=job.company.user.email,
+        subject="פנייה בנוגע למשרה — RS Recruiting",
+        body=(
+            f"פנייה ממנהל המערכת בנוגע למשרת '{job.title}'.\n\n"
+            f"{admin_note}\n\n"
+            "לשאלות ופניות נוספות, אנא צרו קשר עם צוות RS Recruiting."
+        ),
+        html_body=build_job_contact_html(
+            job_title=job.title,
+            company_name=job.company.name,
+            admin_note=admin_note,
+        ),
     )
