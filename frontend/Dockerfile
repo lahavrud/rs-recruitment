@@ -17,7 +17,7 @@ RUN --mount=type=secret,id=sentry_auth_token \
     SENTRY_AUTH_TOKEN=$(cat /run/secrets/sentry_auth_token 2>/dev/null || true) \
     npm run build
 
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx_security_headers.conf /etc/nginx/security_headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html

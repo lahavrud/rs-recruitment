@@ -58,6 +58,12 @@ mkdir -p "${APP_DIR}/frontend/tls"
 COMPOSE_FILE="${APP_DIR}/docker-compose.deploy.yml"
 aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
 
+echo "==> Fetching Redis password from SSM"
+export REDIS_PASSWORD
+REDIS_PASSWORD=$(aws ssm get-parameter \
+  --name /rs-recruitment/prod/REDIS_PASSWORD --with-decryption \
+  --query 'Parameter.Value' --output text)
+
 echo "==> Materializing TLS cert from SSM"
 aws ssm get-parameter --name /rs-recruitment/infra/TLS_CERT --with-decryption \
   --query 'Parameter.Value' --output text > "${APP_DIR}/frontend/tls/cert.pem"
