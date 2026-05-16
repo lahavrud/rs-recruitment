@@ -18,11 +18,13 @@ Real browsers still fall through to the SPA.
 
 from fastapi import APIRouter
 
+from ._pages import router as _pages_router
 from ._routes import router as _og_router
 from ._sitemap import router as _sitemap_router
 
 router = APIRouter()
 router.include_router(_sitemap_router)
 router.include_router(_og_router)
+router.include_router(_pages_router)
 
 __all__ = ["router"]

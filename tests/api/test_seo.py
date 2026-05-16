@@ -152,6 +152,36 @@ async def test_og_job_unpublished_is_404(
 
 
 @pytest.mark.asyncio
+async def test_og_about_returns_static_html(public_client: AsyncClient):
+    """/api/og/about returns the about-page prerender with H1 + breadcrumb."""
+    response = await public_client.get("/api/og/about")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    body = response.text
+    # Headline copy mirrors he.json `about.hero.*`.
+    assert "<h1>גיוס שמרגיש אחרת</h1>" in body
+    assert 'property="og:type" content="website"' in body
+    # Brand graph + BreadcrumbList for the entity.
+    assert "EmploymentAgency" in body
+    assert '"@type": "BreadcrumbList"' in body
+    # Body content surfaces so Bingbot indexes real text, not just <head>.
+    assert "מומחיות ענפית" in body  # value title
+    assert "ליווי עד לגיוס" in body  # process step
+
+
+@pytest.mark.asyncio
+async def test_og_contact_returns_static_html(public_client: AsyncClient):
+    """/api/og/contact returns the contact-page prerender with email link."""
+    response = await public_client.get("/api/og/contact")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    body = response.text
+    assert "<h1>נשמח לשמוע מכם</h1>" in body
+    assert 'href="mailto:support@rs-recruiting.com"' in body
+    assert '"@type": "BreadcrumbList"' in body
+
+
+@pytest.mark.asyncio
 async def test_og_job_escapes_html_in_title(
     public_client: AsyncClient,
     company_profile,
