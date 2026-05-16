@@ -11,6 +11,7 @@ from datetime import timedelta
 
 from src.models import Job
 
+from ._articles import Article
 from ._content import (
     JOB_POSTING_VALID_DAYS,
     JOBS_HEADLINE,
@@ -136,6 +137,31 @@ def breadcrumb(items: Sequence[tuple[str, str]]) -> dict:
             for i, (name, url) in enumerate(items)
         ],
     }
+
+
+def article(item: Article, site_url: str) -> dict:
+    """Article schema — matches ArticlePage.tsx so SPA + prerender agree."""
+    canonical = f"{site_url}/articles/{item.slug}"
+    payload: dict = {
+        "@type": "Article",
+        "headline": item.title,
+        "description": item.description,
+        "datePublished": item.date,
+        "dateModified": item.date,
+        "inLanguage": "he-IL",
+        "mainEntityOfPage": canonical,
+        "author": {"@type": "Organization", "name": SITE_NAME, "url": site_url},
+        "publisher": {
+            "@type": "Organization",
+            "name": SITE_NAME,
+            "logo": {"@type": "ImageObject", "url": f"{site_url}/logo.svg"},
+        },
+    }
+    if item.image:
+        payload["image"] = f"{site_url}{item.image}"
+    if item.keywords:
+        payload["keywords"] = item.keywords
+    return payload
 
 
 def item_list(jobs: list[Job], site_url: str) -> dict:
