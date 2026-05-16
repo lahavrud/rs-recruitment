@@ -34,7 +34,7 @@ async def _send_invite_email(email: str, registration_url: str) -> None:
     plain = (
         f"הוזמנת להירשם לפלטפורמת RS Recruiting.\n\n"
         f"לחצו על הקישור הבא להשלמת תהליך ההרשמה:\n{registration_url}\n\n"
-        "שימו לב: הקישור תקף ל-2 שעות בלבד.\n\nבברכה,\nצוות RS Recruiting"
+        "שימו לב: הקישור תקף לשעתיים בלבד.\n\nבברכה,\nצוות RS Recruiting"
     )
     html = build_invite_html(registration_url)
     await enqueue_email_task(
