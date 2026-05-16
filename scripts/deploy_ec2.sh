@@ -61,7 +61,7 @@ aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/docker-compose.deploy.yml" "${C
 echo "==> Fetching Redis password from SSM"
 export REDIS_PASSWORD
 REDIS_PASSWORD=$(aws ssm get-parameter \
-  --name /rs-recruitment/prod/REDIS_PASSWORD --with-decryption \
+  --name /rs-recruitment/infra/REDIS_PASSWORD --with-decryption \
   --query 'Parameter.Value' --output text)
 
 echo "==> Materializing TLS cert from SSM"
