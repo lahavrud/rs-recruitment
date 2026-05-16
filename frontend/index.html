@@ -75,9 +75,20 @@
         z-index: -1;
         pointer-events: none;
         opacity: 0;
-        transition: opacity 500ms ease-out;
       }
-      .page-hero-bg.is-loaded { opacity: 1; }
+      /* CSS animation (not transition) because `decoding="sync"` holds the
+         element's first paint until decode is done — by then `load` has
+         already fired and the class is added, so a transition from 0→1
+         never runs (no property *change* observed). An animation forces
+         the `from` state at start regardless of when it begins, so the
+         fade reliably plays once the element starts painting. */
+      .page-hero-bg.is-loaded {
+        animation: page-hero-reveal 600ms ease-out forwards;
+      }
+      @keyframes page-hero-reveal {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
 
       .initial-banner {
         position: fixed;
