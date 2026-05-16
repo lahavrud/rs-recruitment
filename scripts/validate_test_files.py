@@ -29,6 +29,7 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     # only to satisfy the 200-line file cap, not for test isolation.
     "src/api/seo/_content.py",
     "src/api/seo/_jsonld.py",
+    "src/api/seo/_pages.py",
     "src/api/seo/_render.py",
     "src/api/seo/_routes.py",
     "src/api/seo/_sitemap.py",
