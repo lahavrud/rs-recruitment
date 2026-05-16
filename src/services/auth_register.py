@@ -127,15 +127,6 @@ async def register_company_user(
     if existing_user:
         raise EmailAlreadyExistsError(user_data.email)
 
-    storage = get_storage_provider()
-    logo_identifier = await storage.upload_file(
-        logo_content, f"logos/{logo_filename}", logo_content_type
-    )
-    sig_filename = f"{user_data.company_profile.company_id}_agreement.png"
-    sig_identifier = await storage.upload_file(
-        sig_bytes, f"signatures/{sig_filename}", "image/png"
-    )
-
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
@@ -144,7 +135,28 @@ async def register_company_user(
         is_active=False,
     )
     session.add(new_user)
+    # Flush User first so any constraint violation (e.g. duplicate email race)
+    # raises before any S3 bytes are written — no orphan risk on that path.
     await session.flush()
+
+    storage = get_storage_provider()
+    logo_identifier = await storage.upload_file(
+        logo_content, f"logos/{logo_filename}", logo_content_type
+    )
+    sig_filename = f"{user_data.company_profile.company_id}_agreement.png"
+    sig_identifier: str | None = None
+    try:
+        sig_identifier = await storage.upload_file(
+            sig_bytes, f"signatures/{sig_filename}", "image/png"
+        )
+    except Exception:
+        # Clean up the already-uploaded logo before re-raising so the
+        # transaction rollback leaves no orphaned S3 objects.
+        try:
+            await storage.delete_file(logo_identifier)
+        except Exception:
+            logger.exception("Failed to clean up logo after signature upload error")
+        raise
 
     profile = user_data.company_profile
     now = datetime.now(timezone.utc)
