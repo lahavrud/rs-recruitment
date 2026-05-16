@@ -58,6 +58,13 @@ mkdir -p "${APP_DIR}/frontend/tls"
 COMPOSE_FILE="${APP_DIR}/docker-compose.deploy.yml"
 aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
 
+# Fetch the Redis password from SSM (/infra/ prefix — not read by SsmSettingsSource,
+# which only loads /rs-recruitment/prod/* into Settings).
+export REDIS_PASSWORD
+REDIS_PASSWORD=$(aws ssm get-parameter \
+  --name /rs-recruitment/infra/REDIS_PASSWORD --with-decryption \
+  --query 'Parameter.Value' --output text)
+
 echo "==> Materializing TLS cert from SSM"
 aws ssm get-parameter --name /rs-recruitment/infra/TLS_CERT --with-decryption \
   --query 'Parameter.Value' --output text > "${APP_DIR}/frontend/tls/cert.pem"
@@ -98,6 +105,16 @@ docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api alembic upgrade he
 # add-only / backward-compat), but operators should know it happened.
 echo "==> MIGRATIONS_APPLIED schema is now at head for IMAGE_TAG=${IMAGE_TAG}"
 
+echo "==> Enabling Redis auth in REDIS_URL (atomic with compose up)"
+# Update REDIS_URL in SSM to include the password so the new api container
+# reads it correctly on startup. The currently-running app is unaffected —
+# Settings reads SSM once at startup and never re-reads it.
+REDIS_URL_AUTHED="redis://:${REDIS_PASSWORD}@redis:6379/0"
+aws ssm put-parameter \
+  --name /rs-recruitment/prod/REDIS_URL \
+  --value "${REDIS_URL_AUTHED}" \
+  --type SecureString --overwrite >/dev/null
+
 echo "==> Starting services"
 # --remove-orphans cleans up containers from the previous compose generation
 # (e.g., the legacy 'nginx' service replaced by 'frontend').
@@ -129,6 +146,11 @@ if ! $healthy; then
   fi
   echo "==> Fetching previous compose (${OLD_CURRENT})"
   aws s3 cp "s3://${S3_BUCKET}/deploy/${OLD_CURRENT}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
+  echo "==> Reverting REDIS_URL to unauthenticated (matches previous compose)"
+  aws ssm put-parameter \
+    --name /rs-recruitment/prod/REDIS_URL \
+    --value "redis://redis:6379/0" \
+    --type String --overwrite >/dev/null
   echo "==> Restarting with previous images"
   IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" pull
   IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
