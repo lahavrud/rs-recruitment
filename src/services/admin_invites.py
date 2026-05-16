@@ -16,6 +16,7 @@ from src.core.infrastructure.pagination import (
     build_cursor_page,
     clamp_limit,
 )
+from src.core.infrastructure.transactions import defer_after_commit
 from src.core.tasks import enqueue_email_task
 from src.enums import InviteTokenStatus
 from src.models import InviteToken, User
@@ -75,8 +76,9 @@ async def create_invite(
     session.add(record)
     await session.flush()
 
+    _email = data.email
     registration_url = f"{settings.frontend_base_url}/register?token={token}"
-    await _send_invite_email(data.email, registration_url)
+    defer_after_commit(lambda: _send_invite_email(_email, registration_url))
 
     return InviteTokenRead.model_validate(record)
 
