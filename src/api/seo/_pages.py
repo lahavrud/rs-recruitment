@@ -7,12 +7,13 @@ src/api/ 200-line cap (see scripts/check_file_sizes.py).
 
 import html
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
 from src.core.infrastructure.config import settings
 
 from . import _jsonld as jsonld
+from ._articles import get_article
 from ._content import (
     ABOUT_DESCRIPTION,
     ABOUT_HEADLINE,
@@ -107,6 +108,61 @@ async def og_contact() -> HTMLResponse:
         description=CONTACT_DESCRIPTION,
         canonical=f"{site_url}/contact",
         og_type="website",
+        body_html=body_html,
+        graph=graph,
+    )
+
+
+@router.get(
+    "/api/og/articles/{slug}",
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
+async def og_article(slug: str) -> HTMLResponse:
+    """Server-rendered article for crawlers.
+
+    Article markdown lives in frontend/src/content/articles/ and is copied
+    into the backend image at build time (Dockerfile). Loaded once at
+    import; see _articles.py.
+    """
+    item = get_article(slug)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    site_url = settings.frontend_base_url
+    canonical = f"{site_url}/articles/{item.slug}"
+    title = f"{item.title} — {SITE_NAME}"
+    e = html.escape
+
+    body_html = (
+        "<header>\n"
+        f'  <p><time datetime="{e(item.date)}">{e(item.date)}</time></p>\n'
+        f"  <h1>{e(item.title)}</h1>\n"
+        f"  <p>{e(item.description)}</p>\n"
+        "</header>\n"
+        f"{site_nav_html(site_url)}"
+        # body_html is rendered from in-repo markdown (not user input), so
+        # injecting it verbatim is safe — same trust boundary as ArticlePage.tsx.
+        f"<article>\n{item.body_html}\n</article>\n"
+        f'<p><a href="{e(site_url)}/articles">← כל המאמרים</a></p>\n'
+    )
+
+    graph: list[dict] = [
+        jsonld.article(item, site_url),
+        jsonld.breadcrumb(
+            [
+                (SITE_NAME, site_url),
+                ("מאמרים", f"{site_url}/articles"),
+                (item.title, canonical),
+            ]
+        ),
+    ]
+
+    return render_page(
+        title=title,
+        description=item.description,
+        canonical=canonical,
+        og_type="article",
         body_html=body_html,
         graph=graph,
     )

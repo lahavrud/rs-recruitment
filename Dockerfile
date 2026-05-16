@@ -25,6 +25,11 @@ COPY alembic/ alembic/
 COPY alembic.ini .
 COPY scripts/ scripts/
 
+# Article markdown is the canonical SEO content source for both the SPA
+# (Vite reads it at build time) and the backend prerender. Copy it in so
+# /api/og/articles/{slug} can render the same content server-side.
+COPY frontend/src/content/articles/ /app/articles/
+
 # Copy entrypoint script and make it executable and secure
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \

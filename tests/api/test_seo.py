@@ -182,6 +182,31 @@ async def test_og_contact_returns_static_html(public_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_og_article_returns_rendered_markdown(public_client: AsyncClient):
+    """/api/og/articles/<slug> returns the article prerender with H1 + body."""
+    response = await public_client.get("/api/og/articles/mah-ze-nihul-mabnim")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    body = response.text
+    # Title from frontmatter as H1, og:type=article, full Article schema.
+    assert "<h1>מה זה ניהול מבנים?" in body
+    assert 'property="og:type" content="article"' in body
+    assert '"@type": "Article"' in body
+    assert '"datePublished": "2026-05-15"' in body
+    assert '"@type": "BreadcrumbList"' in body
+    # Markdown body renders into real HTML — at least one <h2> and bullets.
+    assert "<h2>" in body
+    assert "<ul>" in body or "<ol>" in body
+
+
+@pytest.mark.asyncio
+async def test_og_article_not_found(public_client: AsyncClient):
+    """Unknown slug returns 404 instead of an empty shell."""
+    response = await public_client.get("/api/og/articles/no-such-slug")
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_og_job_escapes_html_in_title(
     public_client: AsyncClient,
     company_profile,
