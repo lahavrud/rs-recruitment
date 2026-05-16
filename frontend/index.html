@@ -51,14 +51,15 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="he_IL" />
 
-    <!-- Static hero image: the hero is the mobile LCP element. Rendering its
-         <picture> outside #root lets the browser paint it at HTML-parse time
-         instead of waiting for React to render LandingPage's <picture> after
-         hydration (was the LCP floor — see #489, #497, #500). position:fixed
-         + z-index:-1 keeps it as a permanent page background that React
-         never touches; routes with opaque bg-page/bg-void cover it on
-         subpages where the city image isn't relevant. The previous "RS
-         Recruiting" splash is gone — the image *is* the LCP now. -->
+    <!-- Static hero image: paints at HTML-parse time so the hero is the
+         LCP element instead of waiting for React hydration (see #489-#519).
+         No aria-hidden — Chrome's LCP heuristic was excluding the element
+         from LCP candidates with aria-hidden set, falling back to a small
+         React-rendered SVG logo and reverting the mobile LCP to ~6 s.
+         alt="" still keeps it out of assistive-tech reading order.
+         decoding="sync" + preload + fetchpriority="high" tells the browser
+         to fetch the bytes early and paint the image atomically (no
+         progressive scans visible). -->
     <style>
       html { background: #0D0B09; }
       body { background: transparent; margin: 0; }
@@ -75,7 +76,7 @@
     </style>
   </head>
   <body>
-    <picture aria-hidden="true">
+    <picture>
       <source
         type="image/webp"
         srcset="/hero-city-768.webp 768w, /hero-city.webp 1920w"
