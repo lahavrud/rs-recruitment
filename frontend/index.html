@@ -75,20 +75,9 @@
         z-index: -1;
         pointer-events: none;
         opacity: 0;
+        transition: opacity 600ms ease-out;
       }
-      /* CSS animation (not transition) because `decoding="sync"` holds the
-         element's first paint until decode is done — by then `load` has
-         already fired and the class is added, so a transition from 0→1
-         never runs (no property *change* observed). An animation forces
-         the `from` state at start regardless of when it begins, so the
-         fade reliably plays once the element starts painting. */
-      .page-hero-bg.is-loaded {
-        animation: page-hero-reveal 600ms ease-out forwards;
-      }
-      @keyframes page-hero-reveal {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
+      .page-hero-bg.is-loaded { opacity: 1; }
 
       .initial-banner {
         position: fixed;
@@ -127,13 +116,23 @@
         srcset="/hero-city-768.webp 768w, /hero-city.webp 1920w"
         sizes="100vw"
       />
+      <!-- decoding="async" (default) lets the browser paint the element at
+           opacity:0 *before* the image is decoded — that initial frame is
+           what the transition needs to start from. With decoding="sync"
+           the first paint waited for decode, by which time onload had
+           already added .is-loaded → no transition. Double rAF in onload
+           also ensures the browser commits a frame at opacity:0 before
+           we flip to opacity:1, so the transition reliably plays even
+           when the image is cached and `load` fires synchronously.
+           Partial WebP decode is invisible anyway since the element
+           starts at opacity:0. -->
       <img
         class="page-hero-bg"
         src="/hero-city.jpg"
         alt=""
         fetchpriority="high"
-        decoding="sync"
-        onload="this.classList.add('is-loaded')"
+        decoding="async"
+        onload="requestAnimationFrame(() => requestAnimationFrame(() => this.classList.add('is-loaded')))"
       />
     </picture>
     <div id="root">
