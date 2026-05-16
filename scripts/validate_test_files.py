@@ -27,6 +27,7 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     # cover every path through the package via real HTTP responses. Per-module
     # unit tests would duplicate the integration coverage; the package was split
     # only to satisfy the 200-line file cap, not for test isolation.
+    "src/api/seo/_articles.py",
     "src/api/seo/_content.py",
     "src/api/seo/_jsonld.py",
     "src/api/seo/_pages.py",

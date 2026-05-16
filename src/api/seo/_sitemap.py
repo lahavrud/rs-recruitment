@@ -12,20 +12,13 @@ from src.core.infrastructure.database import get_session
 from src.enums import JobStatus
 from src.models import Job
 
+from ._articles import list_articles
 from ._content import DISALLOWED_PATHS
 
 router = APIRouter()
 
 _SITEMAP_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
 _SITEMAP_FOOTER = "</urlset>"
-
-# slug + lastmod for /articles sitemap entries. Sync when adding an article
-# (bodies live in frontend/src/content/articles/*.md).
-_ARTICLES = (
-    ("mah-ze-nihul-mabnim", "2026-05-15"),
-    ("madrich-raayon-nihul-nechasim", "2026-05-10"),
-    ("sachar-nihul-nechasim-2026", "2026-05-05"),
-)
 
 
 def _url_entry(loc: str, lastmod: str | None = None, changefreq: str = "weekly") -> str:
@@ -56,9 +49,11 @@ async def sitemap_xml(session: AsyncSession = Depends(get_session)) -> str:
     entries += _url_entry(f"{base}/about", changefreq="monthly")
     entries += _url_entry(f"{base}/contact", changefreq="yearly")
     entries += _url_entry(f"{base}/articles", changefreq="weekly")
-    for slug, lastmod in _ARTICLES:
+    for item in list_articles():
         entries += _url_entry(
-            f"{base}/articles/{slug}", lastmod=lastmod, changefreq="monthly"
+            f"{base}/articles/{item.slug}",
+            lastmod=item.date,
+            changefreq="monthly",
         )
     for job_id, updated_at in jobs:
         lastmod = updated_at.date().isoformat() if updated_at else today
