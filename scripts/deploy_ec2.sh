@@ -65,6 +65,16 @@ REDIS_PASSWORD=$(aws ssm get-parameter \
   --name /rs-recruitment/infra/REDIS_PASSWORD --with-decryption \
   --query 'Parameter.Value' --output text)
 
+# Write password to a secrets file mounted by docker-compose as a Docker secret
+# (tmpfs at /run/secrets/redis_password inside the container). This keeps the
+# value out of `docker inspect` environment. REDIS_PASSWORD stays exported for
+# rollback compatibility — old SHA-pinned compose files use the env var directly.
+SECRETS_DIR="${APP_DIR}/secrets"
+mkdir -p "${SECRETS_DIR}"
+chmod 700 "${SECRETS_DIR}"
+printf '%s' "${REDIS_PASSWORD}" > "${SECRETS_DIR}/redis_password"
+chmod 600 "${SECRETS_DIR}/redis_password"
+
 echo "==> Materializing TLS cert from SSM"
 aws ssm get-parameter --name /rs-recruitment/infra/TLS_CERT --with-decryption \
   --query 'Parameter.Value' --output text > "${APP_DIR}/frontend/tls/cert.pem"
