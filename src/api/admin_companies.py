@@ -19,14 +19,14 @@ from src.schemas import (
     CompanyProfileRead,
     PendingCompanyRead,
 )
-from src.services.admin_companies import (
+from src.services.admin.companies import (
     approve_company,
     delete_active_company,
     list_active_companies,
     list_pending_companies,
     reject_company,
 )
-from src.services.admin_company_profiles import (
+from src.services.admin.company_profiles import (
     admin_create_company,
     delete_orphan_company_profile,
     get_company_profile,

@@ -12,7 +12,7 @@ from tests.conftest import TestSessionLocal
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_success(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -76,8 +76,8 @@ async def test_apply_endpoint_success(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-@patch("src.services.applications.get_storage_provider")
+@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public.applications.get_storage_provider")
 async def test_apply_endpoint_with_resume(
     mock_storage_provider,
     mock_enqueue_email,
@@ -120,7 +120,7 @@ async def test_apply_endpoint_with_resume(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_validation_error(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -141,8 +141,8 @@ async def test_apply_endpoint_validation_error(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-@patch("src.services.applications.get_storage_provider")
+@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public.applications.get_storage_provider")
 async def test_apply_endpoint_invalid_file_type(
     mock_storage_provider,
     mock_enqueue_email,
@@ -176,8 +176,8 @@ async def test_apply_endpoint_invalid_file_type(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
-@patch("src.services.applications.get_storage_provider")
+@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public.applications.get_storage_provider")
 async def test_apply_endpoint_file_size_limit(
     mock_storage_provider,
     mock_enqueue_email,
@@ -211,7 +211,7 @@ async def test_apply_endpoint_file_size_limit(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_creates_application(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -251,7 +251,7 @@ async def test_apply_endpoint_creates_application(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_job_not_found(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -275,7 +275,7 @@ async def test_apply_endpoint_job_not_found(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_public_access(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -303,7 +303,7 @@ async def test_apply_endpoint_public_access(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_reuses_existing_profile(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -377,7 +377,7 @@ async def test_apply_endpoint_reuses_existing_profile(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_duplicate_application_conflict(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -407,7 +407,7 @@ async def test_apply_endpoint_duplicate_application_conflict(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_requires_privacy_consent(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -432,7 +432,7 @@ async def test_apply_endpoint_requires_privacy_consent(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_writes_consent_audit_event(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -469,7 +469,7 @@ async def test_apply_endpoint_writes_consent_audit_event(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_updates_consent_on_reapplication(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -564,7 +564,7 @@ async def test_apply_endpoint_updates_consent_on_reapplication(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_requires_terms_consent(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -589,7 +589,7 @@ async def test_apply_endpoint_requires_terms_consent(
 
 
 @pytest.mark.asyncio
-@patch("src.services.applications.enqueue_email_task")
+@patch("src.services.public.applications.enqueue_email_task")
 async def test_apply_endpoint_persists_tos_acceptance(
     mock_enqueue_email,
     public_client: AsyncClient,

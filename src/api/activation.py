@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.transactions import transactional
-from src.services.activation import activate_company
+from src.services.auth.activation import activate_company
 from src.services.exceptions import InvalidActivationTokenError
 
 router = APIRouter(prefix="/auth", tags=["auth"])

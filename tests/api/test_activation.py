@@ -65,7 +65,7 @@ async def test_activate_valid_token(test_db):
     async with TestSessionLocal() as session:
         user, token = await _make_pending_company(session)
 
-    with patch("src.services.admin_companies.enqueue_email_task"):
+    with patch("src.services.admin.companies.enqueue_email_task"):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:

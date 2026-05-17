@@ -8,12 +8,12 @@ from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.transactions import transactional
 from src.schemas import ForgotPasswordRequest, ResetPasswordRequest
-from src.services.exceptions import InvalidPasswordResetTokenError
-from src.services.password_reset import (
+from src.services.auth.password_reset import (
     request_password_reset,
     reset_password,
     validate_password_reset_token,
 )
+from src.services.exceptions import InvalidPasswordResetTokenError
 
 limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])

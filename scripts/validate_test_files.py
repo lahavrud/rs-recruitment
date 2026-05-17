@@ -35,7 +35,7 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     "src/api/seo/_routes.py",
     "src/api/seo/_sitemap.py",
     # Two version-string constants (no logic to test).
-    "src/services/legal.py",
+    "src/services/utils/legal.py",
 }
 
 # Test files allowed to exist without a matching source file.
@@ -76,7 +76,7 @@ def get_expected_source_file(test_file: Path) -> Path | None:
             if not relative_path.name.startswith("test_"):
                 return None
             source_file_name = relative_path.name[len("test_") :]
-            return Path(source_dir) / source_file_name
+            return Path(source_dir) / relative_path.parent / source_file_name
 
     return None
 

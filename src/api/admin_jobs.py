@@ -10,13 +10,13 @@ from src.core.infrastructure.pagination import DEFAULT_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
 from src.models import User
 from src.schemas import JobContactEmailRequest, JobRead
-from src.services.exceptions import JobNotFoundError, JobNotPendingError
-from src.services.jobs_admin import (
+from src.services.admin.jobs_workflow import (
     approve_job,
     contact_job,
     list_pending_jobs,
     reject_job,
 )
+from src.services.exceptions import JobNotFoundError, JobNotPendingError
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 

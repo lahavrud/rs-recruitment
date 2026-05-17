@@ -8,7 +8,7 @@ from src.core.infrastructure.security import (
     blacklist_access_token,
     is_access_token_blacklisted,
 )
-from src.services.auth import _check_lockout, _record_failed_attempt
+from src.services.auth.session import _check_lockout, _record_failed_attempt
 from src.services.exceptions import RedisUnavailableError
 
 # ---------------------------------------------------------------------------

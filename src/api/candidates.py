@@ -17,8 +17,8 @@ from src.core.infrastructure.dependencies import client_ip
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.transactions import transactional
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
-from src.services.applications import create_candidate_profile
 from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
+from src.services.public.applications import create_candidate_profile
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 jobs_apply_router = APIRouter(prefix="/api/jobs", tags=["jobs"])

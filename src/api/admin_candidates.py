@@ -10,7 +10,7 @@ from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorP
 from src.core.infrastructure.transactions import transactional
 from src.models import User
 from src.schemas import CandidateProfileRead, CandidateProfileUpdate
-from src.services.candidates_admin import (
+from src.services.admin.candidates import (
     delete_candidate,
     get_candidate,
     list_candidates,

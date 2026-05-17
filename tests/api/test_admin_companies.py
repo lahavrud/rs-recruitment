@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from src.models import CompanyProfile, User
 from src.schemas import CompanyProfileCreate, UserCreate
-from src.services.auth_register import register_company_user
+from src.services.auth.registration import register_company_user
 from tests.conftest import FAKE_LOGO, FAKE_SIG_B64, TestSessionLocal
 
 
@@ -21,7 +21,7 @@ async def test_get_pending_companies_empty(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.auth_register.enqueue_email_task")
+@patch("src.services.auth.registration.enqueue_email_task")
 async def test_get_pending_companies(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
@@ -93,7 +93,7 @@ async def test_active_companies_empty_envelope(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_company_approval.enqueue_email_task")
+@patch("src.services.admin.company_approval.enqueue_email_task")
 async def test_approve_company_success(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
@@ -128,7 +128,7 @@ async def test_approve_company_not_found(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_company_approval.enqueue_email_task")
+@patch("src.services.admin.company_approval.enqueue_email_task")
 async def test_approve_company_already_approved(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
@@ -147,7 +147,7 @@ async def test_approve_company_already_approved(
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_companies.enqueue_email_task")
+@patch("src.services.admin.companies.enqueue_email_task")
 async def test_reject_company_success(
     mock_enqueue_email, admin_client: AsyncClient, company_user
 ):
@@ -176,8 +176,8 @@ async def test_reject_company_not_found(admin_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin_company_approval.enqueue_email_task")
-@patch("src.services.admin_companies.enqueue_email_task")
+@patch("src.services.admin.company_approval.enqueue_email_task")
+@patch("src.services.admin.companies.enqueue_email_task")
 async def test_reject_company_already_approved(
     mock_enqueue_email, mock_approval_email, admin_client: AsyncClient, company_user
 ):

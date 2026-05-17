@@ -1,0 +1,155 @@
+"""Unit tests for public job board service functions."""
+
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.enums import JobStatus
+from src.models import CompanyProfile, Job
+from src.schemas import JobPublicRead  # Use the new restricted schema
+from src.services.exceptions import JobNotFoundError
+from src.services.public.jobs import get_published_job, list_published_jobs
+
+
+@pytest.mark.asyncio
+async def test_list_published_jobs_empty(session: AsyncSession):
+    """Test listing published jobs when none exist."""
+    page = await list_published_jobs(session)
+    assert page.items == []
+
+
+@pytest.mark.asyncio
+async def test_list_published_jobs(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Test listing published jobs returns only PUBLISHED jobs as JobPublicRead,
+    ordered newest-first, and excludes internal fields."""
+    now = datetime.now(timezone.utc)
+
+    # Create two published jobs with explicit timestamps for ordering verification
+    job1 = Job(
+        company_id=company_with_user.id,
+        title="Older Job",
+        short_description="Short blurb for testing.",
+        description="Description 1",
+        requirements=[{"text": "Requirements 1"}, {"text": "Req 2"}, {"text": "Req 3"}],
+        location="Location 1",
+        status=JobStatus.PUBLISHED,
+        created_at=now - timedelta(hours=1),
+        salary_min=15000,
+        salary_max=25000,
+    )
+    job2 = Job(
+        company_id=company_with_user.id,
+        title="Newer Job",
+        short_description="Short blurb for testing.",
+        description="Description 2",
+        requirements=[{"text": "Requirements 2"}, {"text": "Req 2"}, {"text": "Req 3"}],
+        location="Location 2",
+        status=JobStatus.PUBLISHED,
+        created_at=now,
+        salary_min=15000,
+        salary_max=25000,
+    )
+    # Non-published job — must be excluded by the gatekeeper
+    job3 = Job(
+        company_id=company_with_user.id,
+        title="Pending Job",
+        short_description="Short blurb for testing.",
+        description="Description 3",
+        requirements=[{"text": "Requirements 3"}, {"text": "Req 2"}, {"text": "Req 3"}],
+        location="Location 3",
+        status=JobStatus.PENDING_APPROVAL,
+        created_at=now + timedelta(hours=1),
+        salary_min=15000,
+        salary_max=25000,
+    )
+    session.add_all([job1, job2, job3])
+    await session.commit()
+
+    page = await list_published_jobs(session)
+
+    # Gatekeeper: only published jobs are returned
+    assert len(page.items) == 2
+
+    # Correct schema type
+    assert all(isinstance(j, JobPublicRead) for j in page.items)
+
+    # Ordering: newest first (job2 before job1)
+    assert page.items[0].title == "Newer Job"
+    assert page.items[1].title == "Older Job"
+
+    # Internal fields are not present in the exported data
+    job_dict = page.items[0].model_dump()
+    assert "company_id" not in job_dict
+    assert "updated_at" not in job_dict
+    assert "status" not in job_dict
+
+
+@pytest.mark.asyncio
+async def test_get_published_job_success(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Test getting a published job returns restricted fields."""
+    job = Job(
+        company_id=company_with_user.id,
+        title="Senior Python Developer",
+        short_description="Short blurb for testing.",
+        description="We are looking for a developer...",
+        requirements=[
+            {"text": "Python experience"},
+            {"text": "Req 2"},
+            {"text": "Req 3"},
+        ],
+        location="Tel Aviv",
+        status=JobStatus.PUBLISHED,
+        salary_min=15000,
+        salary_max=25000,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+
+    result = await get_published_job(job.id, session)
+
+    # Verify return type and field exclusion
+    assert isinstance(result, JobPublicRead)
+
+    result_data = result.model_dump()
+    assert "company_id" not in result_data
+    assert "updated_at" not in result_data
+    assert "status" not in result_data
+    assert result.id == job.id
+    assert result.title == "Senior Python Developer"
+
+
+@pytest.mark.asyncio
+async def test_get_published_job_not_found(session: AsyncSession):
+    """Test getting a non-existent job."""
+    with pytest.raises(JobNotFoundError, match="not found"):
+        await get_published_job(99999, session)
+
+
+@pytest.mark.asyncio
+async def test_get_published_job_not_published(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Test getting a job that is not published."""
+    job = Job(
+        company_id=company_with_user.id,
+        title="Pending Job",
+        short_description="Short blurb for testing.",
+        description="Description",
+        requirements=[{"text": "Requirements"}, {"text": "Req 2"}, {"text": "Req 3"}],
+        location="Location",
+        status=JobStatus.PENDING_APPROVAL,
+        salary_min=15000,
+        salary_max=25000,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+
+    with pytest.raises(JobNotFoundError, match="not published"):
+        await get_published_job(job.id, session)

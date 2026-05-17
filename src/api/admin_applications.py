@@ -17,7 +17,7 @@ from src.schemas import (
     ApplicationStatusUpdate,
     ApplicationWithDetails,
 )
-from src.services.applications_admin import (
+from src.services.admin.applications import (
     delete_application,
     get_application,
     list_applications,
