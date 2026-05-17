@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
-import pytest
 
 from src.core.infrastructure.config import get_jwt_secret_key, settings
 from src.core.infrastructure.security import (
