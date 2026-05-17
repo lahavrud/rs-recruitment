@@ -116,7 +116,7 @@ _BASE = """\
 
 def _logo_img_tag() -> str:
     if _settings.logo_public_url:
-        src = _settings.logo_public_url
+        src = _e(str(_settings.logo_public_url))
     else:
         src = f"data:image/svg+xml;base64,{_LOGO_B64}"
     return (
