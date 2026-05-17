@@ -11,7 +11,7 @@ from src.core.infrastructure.transactions import transactional
 from src.enums import InviteTokenStatus
 from src.models import User
 from src.schemas import InviteTokenCreate, InviteTokenRead
-from src.services.admin_invites import (
+from src.services.admin.invites import (
     create_invite,
     delete_invite,
     list_invites,

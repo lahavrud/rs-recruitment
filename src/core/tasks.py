@@ -12,7 +12,7 @@ from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import async_session
 from src.core.infrastructure.transactions import transactional
 from src.core.services.email import get_email_provider
-from src.services.candidates_admin import purge_expired_candidates
+from src.services.admin.candidates import purge_expired_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ async def purge_expired_candidate_data_task(ctx: dict) -> int:
     """Periodic task: purge candidates past the 12-month retention window.
 
     Runs nightly via Arq cron. The heavy lifting lives in
-    ``src.services.candidates_admin.purge_expired_candidates``; this
+    ``src.services.admin.candidates.purge_expired_candidates``; this
     wrapper just opens a session, delegates, and emits the count metric.
     """
     async with async_session() as session:

@@ -8,7 +8,7 @@ from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, CursorPage
 from src.schemas import JobPublicRead
 from src.services.exceptions import JobNotFoundError
-from src.services.jobs_public import get_published_job, list_published_jobs
+from src.services.public.jobs import get_published_job, list_published_jobs
 
 router = APIRouter(prefix="/api/public", tags=["public"])
 

@@ -16,17 +16,17 @@ from src.core.infrastructure.transactions import transactional
 from src.enums import JobStatus
 from src.models import User
 from src.schemas import JobAdminCreate, JobAdminUpdate, JobRead
-from src.services.exceptions import (
-    CompanyNotFoundError,
-    InvalidCursorError,
-    JobNotFoundError,
-)
-from src.services.jobs import get_job
-from src.services.jobs_admin_crud import (
+from src.services.admin.jobs import (
     admin_create_job,
     delete_job,
     list_jobs,
     update_job,
+)
+from src.services.company.jobs import get_job
+from src.services.exceptions import (
+    CompanyNotFoundError,
+    InvalidCursorError,
+    JobNotFoundError,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])

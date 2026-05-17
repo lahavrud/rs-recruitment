@@ -9,6 +9,7 @@ from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.transactions import transactional
 from src.models import CompanyProfile, User
 from src.schemas import JobCreate, JobRead, JobUpdate
+from src.services.company.jobs import create_job, delete_job, update_job
 from src.services.exceptions import (
     CompanyNotFoundError,
     JobCannotBeDeletedError,
@@ -16,7 +17,6 @@ from src.services.exceptions import (
     JobNotFoundError,
     JobNotOwnedByCompanyError,
 )
-from src.services.jobs import create_job, delete_job, update_job
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 

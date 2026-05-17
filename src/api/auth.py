@@ -10,7 +10,7 @@ from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.transactions import transactional
 from src.schemas import AccessTokenResponse, LoginRequest
-from src.services.auth import (
+from src.services.auth.session import (
     authenticate_user,
     create_user_tokens,
     logout_user,

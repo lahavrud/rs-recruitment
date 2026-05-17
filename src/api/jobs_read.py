@@ -9,8 +9,8 @@ from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, CursorPage
 from src.models import CompanyProfile, User
 from src.schemas import JobRead
+from src.services.company.jobs import get_job, list_company_jobs
 from src.services.exceptions import JobNotFoundError
-from src.services.jobs import get_job, list_company_jobs
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 

@@ -182,7 +182,7 @@ async def test_delete_candidate_removes_resume_from_storage(
     await session.commit()
     await session.refresh(candidate)
 
-    with patch("src.services.candidates_admin.get_storage_provider") as storage_factory:
+    with patch("src.services.admin.candidates.get_storage_provider") as storage_factory:
         delete_mock = AsyncMock(return_value=True)
         storage_factory.return_value.delete_file = delete_mock
 

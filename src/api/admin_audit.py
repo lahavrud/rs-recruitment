@@ -11,8 +11,8 @@ from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.models import User
 from src.schemas import AuditLogRead
-from src.services.audit import list_audit_events
 from src.services.exceptions import InvalidCursorError
+from src.services.utils.audit import list_audit_events
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 

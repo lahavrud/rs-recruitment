@@ -8,7 +8,7 @@ from src.core.infrastructure.dependencies import get_current_company
 from src.core.services.storage import get_storage_provider
 from src.models import CompanyProfile, User
 from src.schemas import CompanyDataExport
-from src.services.companies import export_company_data
+from src.services.company.profile import export_company_data
 
 router = APIRouter(prefix="/api/companies", tags=["companies"])
 

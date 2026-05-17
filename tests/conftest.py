@@ -51,15 +51,15 @@ from src.models import (
     User,
 )
 from src.schemas import CompanyProfileCreate, UserCreate
-from src.services.auth_register import register_company_user
+from src.services.auth.registration import register_company_user
 
 _EMAIL_TASK_TARGETS = [
-    "src.services.auth_register.enqueue_email_task",
-    "src.services.admin_companies.enqueue_email_task",
-    "src.services.jobs.enqueue_email_task",
-    "src.services.jobs_admin.enqueue_email_task",
-    "src.services.applications.enqueue_email_task",
-    "src.services.password_reset.enqueue_email_task",
+    "src.services.auth.registration.enqueue_email_task",
+    "src.services.admin.companies.enqueue_email_task",
+    "src.services.company.jobs.enqueue_email_task",
+    "src.services.admin.jobs_workflow.enqueue_email_task",
+    "src.services.public.applications.enqueue_email_task",
+    "src.services.auth.password_reset.enqueue_email_task",
     # applications_admin no longer imports enqueue_email_task directly;
     # the router enqueues after commit — patch at the router level instead.
     "src.api.admin_applications.enqueue_email_task",
@@ -172,7 +172,7 @@ def mock_password_reset_rate_limit():
     tests/services/test_password_reset.py).
     """
     with patch(
-        "src.services.password_reset._per_email_rate_limit_ok",
+        "src.services.auth.password_reset._per_email_rate_limit_ok",
         new_callable=AsyncMock,
         return_value=True,
     ):
@@ -188,9 +188,15 @@ def mock_auth_redis():
     - access token blacklist check (always returns False — no token is revoked)
     """
     with (
-        patch("src.services.auth._check_lockout", new_callable=AsyncMock),
-        patch("src.services.auth._record_failed_attempt", new_callable=AsyncMock),
-        patch("src.services.auth._clear_failed_attempts", new_callable=AsyncMock),
+        patch("src.services.auth.session._check_lockout", new_callable=AsyncMock),
+        patch(
+            "src.services.auth.session._record_failed_attempt",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "src.services.auth.session._clear_failed_attempts",
+            new_callable=AsyncMock,
+        ),
         patch(
             "src.core.infrastructure.security.is_access_token_blacklisted",
             new_callable=AsyncMock,
@@ -214,7 +220,7 @@ def mock_invite_tokens():
         patch("src.api.registration.consume_invite_token", new_callable=AsyncMock),
         patch("src.api.invites.validate_invite_token", new_callable=AsyncMock),
         patch(
-            "src.services.admin_invites.generate_invite_token",
+            "src.services.admin.invites.generate_invite_token",
             new_callable=AsyncMock,
             return_value=(
                 "test-invite-token-raw",
@@ -231,7 +237,9 @@ def mock_storage_provider():
     """Patch storage provider for all tests — prevents real S3/disk uploads."""
     mock = MagicMock()
     mock.upload_file = AsyncMock(return_value="logos/test-logo.png")
-    with patch("src.services.auth_register.get_storage_provider", return_value=mock):
+    with patch(
+        "src.services.auth.registration.get_storage_provider", return_value=mock
+    ):
         yield mock
 
 

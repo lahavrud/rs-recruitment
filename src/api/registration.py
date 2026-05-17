@@ -27,8 +27,8 @@ from src.core.infrastructure.invite_tokens import (
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.transactions import transactional
 from src.schemas import CompanyProfileCreate, UserCreate, UserWithCompanyRead
-from src.services.auth import mark_invite_used
-from src.services.auth_register import register_company_user
+from src.services.auth.registration import register_company_user
+from src.services.auth.session import mark_invite_used
 from src.services.exceptions import EmailAlreadyExistsError, InvalidInviteTokenError
 
 limiter = get_limiter()
