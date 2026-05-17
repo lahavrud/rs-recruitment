@@ -127,6 +127,7 @@ async def update_company_profile(
     # attached profile must also update the user's login email atomically.
     new_email = payload.get("contact_email")
     if new_email is not None and profile.user_id is not None:
+        new_email = new_email.lower().strip()
         user = profile.user
         if user.email != new_email:
             user.email = new_email

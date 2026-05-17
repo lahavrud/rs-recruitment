@@ -51,9 +51,12 @@ async def create_invite(
     session: AsyncSession,
 ) -> InviteTokenRead:
     """Generate a token, store metadata in DB, send invite email."""
-    existing_user = await session.execute(select(User).where(User.email == data.email))
+    normalized_email = data.email.lower().strip()
+    existing_user = await session.execute(
+        select(User).where(User.email == normalized_email)  # type: ignore[arg-type]
+    )
     if existing_user.scalar_one_or_none() is not None:
-        raise EmailAlreadyExistsError(data.email)
+        raise EmailAlreadyExistsError(normalized_email)
 
     pending_invite = await session.execute(
         select(InviteToken).where(

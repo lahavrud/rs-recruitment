@@ -71,9 +71,8 @@ async def request_password_reset(email: str, session: AsyncSession) -> None:
     """Issue a reset token + send email when the address belongs to a user.
 
     Silent on unknown emails. The caller always observes the same outcome.
-    Matches the existing case-sensitive lookup used by `authenticate_user`.
     """
-    cleaned = email.strip()
+    cleaned = email.lower().strip()
     if not cleaned:
         return
 
