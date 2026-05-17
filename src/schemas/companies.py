@@ -9,7 +9,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from src.schemas.auth import UserRead
+from src.schemas.auth import UserRead, _validate_password_complexity
 from src.schemas.jobs import JobRead
 
 
@@ -39,23 +39,6 @@ class CompanyProfileCreate(BaseModel):
                 "Mobile phone must be a valid Israeli mobile number (05X-XXXXXXX)"
             )
         return v
-
-
-def _validate_password_complexity(v: str) -> str:
-    """Enforce password complexity: min 8 chars, upper, lower, digit, special."""
-    import re as _re
-
-    if len(v) < 8:
-        raise ValueError("Password must be at least 8 characters long")
-    if not _re.search(r"[A-Z]", v):
-        raise ValueError("Password must contain at least one uppercase letter")
-    if not _re.search(r"[a-z]", v):
-        raise ValueError("Password must contain at least one lowercase letter")
-    if not _re.search(r"\d", v):
-        raise ValueError("Password must contain at least one digit")
-    if not _re.search(r"[^A-Za-z0-9]", v):
-        raise ValueError("Password must contain at least one special character")
-    return v
 
 
 class UserCreate(BaseModel):
