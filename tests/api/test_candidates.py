@@ -171,8 +171,8 @@ async def test_apply_endpoint_invalid_file_type(
         files=files,
     )
 
-    assert response.status_code == 400
-    assert "Invalid file type" in response.json()["detail"]
+    assert response.status_code == 422
+    assert response.json()["detail"] == "invalid_application"
 
 
 @pytest.mark.asyncio
@@ -206,8 +206,8 @@ async def test_apply_endpoint_file_size_limit(
         files=files,
     )
 
-    assert response.status_code == 400
-    assert "File size exceeds maximum" in response.json()["detail"]
+    assert response.status_code == 422
+    assert response.json()["detail"] == "invalid_application"
 
 
 @pytest.mark.asyncio

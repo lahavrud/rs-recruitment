@@ -84,8 +84,8 @@ async def _apply_common(
         raise service_exception_to_http(e) from e
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="invalid_application",
         ) from e
 
 

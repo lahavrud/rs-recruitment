@@ -135,7 +135,7 @@ async def test_login_inactive_user(client: AsyncClient):
         "/auth/login",
         json={"email": "inactive@example.com", "password": _STRONG_PASSWORD},
     )
-    assert response.status_code == 403
+    assert response.status_code == 401
     assert "pending" in response.json()["detail"].lower()
 
 

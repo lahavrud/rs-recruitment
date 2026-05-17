@@ -42,14 +42,15 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
     # Forbidden errors (403)
     JobNotOwnedByCompanyError: status.HTTP_403_FORBIDDEN,
-    InactiveUserError: status.HTTP_403_FORBIDDEN,
-    PendingApprovalError: status.HTTP_403_FORBIDDEN,
-    PendingActivationError: status.HTTP_403_FORBIDDEN,
     # Bad request — invalid activation token
     InvalidActivationTokenError: status.HTTP_400_BAD_REQUEST,
     InvalidPasswordResetTokenError: status.HTTP_400_BAD_REQUEST,
-    # Unauthorized errors (401)
+    # Unauthorized errors (401) — all login failures return 401 regardless of
+    # account state, so HTTP status code alone cannot confirm registration.
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
+    InactiveUserError: status.HTTP_401_UNAUTHORIZED,
+    PendingApprovalError: status.HTTP_401_UNAUTHORIZED,
+    PendingActivationError: status.HTTP_401_UNAUTHORIZED,
     # Too many requests (429)
     AccountLockedError: status.HTTP_429_TOO_MANY_REQUESTS,
     # Bad request errors (400)
