@@ -3,16 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { apiErrorKey } from "@/utils/apiError";
+import { getActiveCompanies } from "@/services/adminCompanies";
+import { getJobs } from "@/services/adminJobs";
+import { getApplications } from "@/services/adminApplications";
 import {
   deleteCandidate,
   fetchResumeBlob,
-  getActiveCompanies,
-  getApplications,
   getCandidate,
   getCandidates,
-  getJobs,
   updateCandidate,
-} from "@/services/admin";
+} from "@/services/adminCandidates";
 import type {
   ApplicationWithDetails,
   CandidateProfileRead,
