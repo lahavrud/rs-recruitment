@@ -2,9 +2,9 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Suspense, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import AdminRoute from "@/components/AdminRoute";
-import CompanyRoute from "@/components/CompanyRoute";
+import ProtectedRoute from "@/components/guards/ProtectedRoute";
+import AdminRoute from "@/components/guards/AdminRoute";
+import CompanyRoute from "@/components/guards/CompanyRoute";
 import AppShell from "@/components/layout/AppShell";
 import { lazyWithRetry } from "@/utils/lazyWithRetry";
 

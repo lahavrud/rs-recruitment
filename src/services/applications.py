@@ -14,10 +14,6 @@ from sqlalchemy.orm import selectinload
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.transactions import defer_after_commit
-from src.core.legal import (
-    CURRENT_PRIVACY_POLICY_VERSION,
-    CURRENT_TERMS_OF_SERVICE_VERSION,
-)
 from src.core.services.file_validation import validate_document_magic_bytes
 from src.core.services.storage import StorageProvider, get_storage_provider
 from src.core.tasks import enqueue_email_task
@@ -28,6 +24,10 @@ from src.services.admin_companies import get_all_admin_emails
 from src.services.audit import record_audit_event
 from src.services.candidates import find_candidate_by_email, update_candidate_profile
 from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
+from src.services.legal import (
+    CURRENT_PRIVACY_POLICY_VERSION,
+    CURRENT_TERMS_OF_SERVICE_VERSION,
+)
 from src.templates.email import (
     build_application_received_html,
     build_new_application_admin_html,

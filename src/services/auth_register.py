@@ -16,10 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import get_password_hash
 from src.core.infrastructure.transactions import defer_after_commit
-from src.core.legal import (
-    CURRENT_PRIVACY_POLICY_VERSION,
-    CURRENT_TERMS_OF_SERVICE_VERSION,
-)
 from src.core.services.file_validation import validate_image_magic_bytes
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
@@ -29,6 +25,10 @@ from src.schemas import CompanyProfileRead, UserCreate, UserRead, UserWithCompan
 from src.services.admin_companies import get_all_admin_emails
 from src.services.audit import record_audit_event
 from src.services.exceptions import EmailAlreadyExistsError
+from src.services.legal import (
+    CURRENT_PRIVACY_POLICY_VERSION,
+    CURRENT_TERMS_OF_SERVICE_VERSION,
+)
 from src.templates.email import build_new_registration_html
 
 logger = logging.getLogger(__name__)
