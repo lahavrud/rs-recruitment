@@ -70,14 +70,16 @@ export default function LoginPage() {
         const status = err.response?.status;
         if (status === 429) {
           setError(t("auth.login.errors.tooManyAttempts"));
-        } else if (status === 403) {
+        } else if (status === 401) {
           const detail = (err.response?.data?.detail ?? "") as string;
           if (detail === "account_pending_activation") {
             setError(t("auth.login.errors.pendingActivation"));
           } else if (detail === "account_pending_approval") {
             setError(t("auth.login.errors.pendingApproval"));
-          } else {
+          } else if (detail === "account_inactive") {
             setError(t("auth.login.errors.accountInactive"));
+          } else {
+            setError(t("auth.login.errors.loginFailed"));
           }
         } else {
           setError(t("auth.login.errors.loginFailed"));

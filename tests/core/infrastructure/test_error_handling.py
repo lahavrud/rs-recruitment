@@ -47,13 +47,13 @@ class TestServiceExceptionToHttp:
         assert http_exception.status_code == status.HTTP_403_FORBIDDEN
         assert http_exception.detail == "Job not owned by company"
 
-    def test_inactive_user_error_maps_to_403(self):
-        """Test that InactiveUserError maps to 403."""
+    def test_inactive_user_error_maps_to_401(self):
+        """Test that InactiveUserError maps to 401."""
         exception = InactiveUserError("User is inactive")
         http_exception = service_exception_to_http(exception)
 
         assert isinstance(http_exception, HTTPException)
-        assert http_exception.status_code == status.HTTP_403_FORBIDDEN
+        assert http_exception.status_code == status.HTTP_401_UNAUTHORIZED
         assert http_exception.detail == "User is inactive"
 
     def test_invalid_credentials_error_maps_to_401(self):
