@@ -20,6 +20,9 @@ on:
       - ".github/ISSUE_TEMPLATE/**"
       - "LICENSE"
 
+permissions:
+  contents: read
+
 jobs:
   # Compute which areas of the repo changed in this PR so downstream jobs
   # can skip when irrelevant. GitHub Actions bills per-job rounded up to
