@@ -87,17 +87,17 @@ services:
 
   redis:
     image: redis:7-alpine
-    # Password is derived from REDIS_URL (fetched from SSM by the deploy script)
-    # so no separate secret parameter is needed.
-    command: redis-server --requirepass "${REDIS_PASSWORD}"
-    environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+    # Password is mounted via Docker secrets (tmpfs at /run/secrets/redis_password)
+    # so it never appears in `docker inspect` environment.
+    # deploy_ec2.sh writes the SSM-fetched value to ./secrets/redis_password before
+    # `docker compose up`, so the file always exists when the container starts.
+    command: ["sh", "-c", "exec redis-server --requirepass \"$(cat /run/secrets/redis_password)\""]
+    secrets:
+      - redis_password
     volumes:
       - redis-data:/data
     healthcheck:
-      # $$REDIS_PASSWORD: double-$ escapes compose interpolation; the single $
-      # is resolved inside the container where the env var is set.
-      test: ["CMD", "sh", "-c", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping"]
+      test: ["CMD", "sh", "-c", "redis-cli -a \"$(cat /run/secrets/redis_password)\" --no-auth-warning ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -113,3 +113,7 @@ services:
 volumes:
   app-data:   # persistent storage for local file uploads (/app/data)
   redis-data: # persistent redis data for Arq job queue
+
+secrets:
+  redis_password:
+    file: ./secrets/redis_password  # written by deploy_ec2.sh before compose up

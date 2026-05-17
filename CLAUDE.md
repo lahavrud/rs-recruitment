@@ -17,9 +17,10 @@
 ```
 frontend/src/
 ├── components/
-│   ├── AdminRoute.tsx        # Route guard: requires role=ADMIN
-│   ├── CompanyRoute.tsx      # Route guard: requires role=COMPANY
-│   ├── ProtectedRoute.tsx    # Route guard: requires authenticated user
+│   ├── guards/
+│   │   ├── AdminRoute.tsx    # Route guard: requires role=ADMIN
+│   │   ├── CompanyRoute.tsx  # Route guard: requires role=COMPANY
+│   │   └── ProtectedRoute.tsx # Route guard: requires authenticated user
 │   ├── layout/
 │   │   ├── AppShell.tsx      # Root layout switcher (auth / public / bare)
 │   │   ├── Header.tsx        # Authenticated top bar

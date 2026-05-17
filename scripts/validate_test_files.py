@@ -34,6 +34,8 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     "src/api/seo/_render.py",
     "src/api/seo/_routes.py",
     "src/api/seo/_sitemap.py",
+    # Two version-string constants (no logic to test).
+    "src/services/legal.py",
 }
 
 # Test files allowed to exist without a matching source file.
