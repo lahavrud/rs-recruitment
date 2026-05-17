@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  getActiveCompanies,
-  getApplications,
-  getCandidates,
-  getJobs,
-} from "@/services/admin";
+import { getActiveCompanies } from "@/services/adminCompanies";
+import { getJobs } from "@/services/adminJobs";
+import { getApplications } from "@/services/adminApplications";
+import { getCandidates } from "@/services/adminCandidates";
 import {
   ApplicationStatus,
   JobStatus,

@@ -4,17 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { apiErrorKey } from "@/utils/apiError";
+import { getActiveCompanies } from "@/services/adminCompanies";
 import {
   approveJob,
   createJob,
   deleteJob,
-  getActiveCompanies,
-  getApplications,
   getJob,
   getJobs,
   rejectJob,
   updateJob,
-} from "@/services/admin";
+} from "@/services/adminJobs";
+import { getApplications } from "@/services/adminApplications";
 import type {
   ActiveCompanyRead,
   JobAdminCreate,

@@ -4,22 +4,24 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
+  createInvite,
+  deleteInvite,
+  getInvites,
+  resendInvite,
+  revokeInvite,
+} from "@/services/adminInvites";
+import {
   adminCreateCompany,
   approveCompany,
-  createInvite,
   deleteCompany,
-  deleteInvite,
   deleteOrphanCompany,
   getActiveCompanies,
   getCompanyProfile,
-  getInvites,
-  getJobs,
   getPendingCompanies,
   rejectCompany,
-  resendInvite,
-  revokeInvite,
   updateCompanyProfile,
-} from "@/services/admin";
+} from "@/services/adminCompanies";
+import { getJobs } from "@/services/adminJobs";
 import type {
   ActiveCompanyRead,
   CompanyProfileAdminCreate,

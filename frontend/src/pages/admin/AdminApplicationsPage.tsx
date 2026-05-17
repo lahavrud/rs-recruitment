@@ -2,16 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { getActiveCompanies } from "@/services/adminCompanies";
+import { getJobs } from "@/services/adminJobs";
 import {
   deleteApplication,
-  fetchResumeBlob,
-  getActiveCompanies,
   getApplications,
-  getJobs,
   updateApplicationNotes,
   updateApplicationStatus,
-} from "@/services/admin";
-import type { ApplicationListParams } from "@/services/admin";
+} from "@/services/adminApplications";
+import type { ApplicationListParams } from "@/services/adminApplications";
+import { fetchResumeBlob } from "@/services/adminCandidates";
 import { ApplicationStatus } from "@/types/api";
 import type { ApplicationStatusUpdate, ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
