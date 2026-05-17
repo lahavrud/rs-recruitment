@@ -108,7 +108,7 @@ async def test_list_invites_empty(session: AsyncSession):
 async def test_list_invites_returns_all(session: AsyncSession):
     admin_id = await _make_admin(session)
     _exp = datetime(2099, 1, 1, tzinfo=timezone.utc)
-    tokens = [("token-aaa", _exp), ("token-bbb", _exp)]
+    tokens = [("raw-aaa", "hash-aaa", _exp), ("raw-bbb", "hash-bbb", _exp)]
     with patch(
         "src.services.admin_invites.generate_invite_token",
         new_callable=AsyncMock,
@@ -181,7 +181,10 @@ async def test_resend_invite_success(session: AsyncSession):
     with patch(
         "src.services.admin_invites.generate_invite_token",
         new_callable=AsyncMock,
-        side_effect=[("original-token", _exp), ("new-token", _exp)],
+        side_effect=[
+            ("original-raw", "original-hash", _exp),
+            ("new-raw", "new-hash", _exp),
+        ],
     ):
         created = await create_invite(
             admin_user_id=admin_id,
@@ -199,7 +202,7 @@ async def test_resend_invite_success(session: AsyncSession):
         )
     ).scalar_one()
     assert db.status == InviteTokenStatus.PENDING
-    assert db.token == "new-token"
+    assert db.token_hash == "new-hash"
 
 
 @pytest.mark.asyncio

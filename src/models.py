@@ -25,7 +25,7 @@ class InviteToken(SQLModel, table=True):
     """
 
     id: int | None = Field(default=None, primary_key=True)
-    token: str = Field(unique=True, index=True)
+    token_hash: str = Field(unique=True, index=True)
     email: str
     company_name: str | None = None
     contact_first_name: str | None = None
@@ -55,7 +55,7 @@ class ActivationToken(SQLModel, table=True):
     """
 
     id: int | None = Field(default=None, primary_key=True)
-    token: str = Field(unique=True, index=True)
+    token_hash: str = Field(unique=True, index=True)
     company_user_id: int = Field(
         sa_column=Column(
             Integer,

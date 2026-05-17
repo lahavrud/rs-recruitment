@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.infrastructure.config import settings
+from src.core.infrastructure.security import hash_token
 from src.core.infrastructure.transactions import defer_after_commit
 from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
@@ -84,7 +85,7 @@ async def approve_company(
     raw_token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(hours=_ACTIVATION_TTL_HOURS)
     activation = ActivationToken(
-        token=raw_token,
+        token_hash=hash_token(raw_token),
         company_user_id=company_user_id,
         expires_at=expires_at,
     )

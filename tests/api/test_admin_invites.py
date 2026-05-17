@@ -13,9 +13,9 @@ async def test_generate_invite_token_returns_token(admin_client: AsyncClient):
     )
     assert response.status_code == 201
     data = response.json()
-    assert "token" in data
+    assert "token_hash" in data
     # Value is set by the global mock_invite_tokens fixture in conftest.py.
-    assert data["token"] == "test-invite-token-abc123"
+    assert data["token_hash"] == "test-invite-token-abc123"
 
 
 @pytest.mark.asyncio

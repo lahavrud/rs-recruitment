@@ -64,10 +64,10 @@ async def create_invite(
     if pending_invite.scalar_one_or_none() is not None:
         raise InvitePendingForEmailError(data.email)
 
-    token, expires_at = await generate_invite_token()
+    raw_token, token_hash, expires_at = await generate_invite_token()
 
     record = InviteToken(
-        token=token,
+        token_hash=token_hash,
         email=data.email,
         status=InviteTokenStatus.PENDING,
         created_by_admin_id=admin_user_id,
@@ -77,7 +77,7 @@ async def create_invite(
     await session.flush()
 
     _email = data.email
-    registration_url = f"{settings.frontend_base_url}/register?token={token}"
+    registration_url = f"{settings.frontend_base_url}/register?token={raw_token}"
     defer_after_commit(lambda: _send_invite_email(_email, registration_url))
 
     return InviteTokenRead.model_validate(record)
@@ -139,7 +139,7 @@ async def revoke_invite(token_id: int, session: AsyncSession) -> None:
             f"Invite {token_id} cannot be revoked (status: {record.status})"
         )
 
-    await revoke_invite_token(record.token)
+    await revoke_invite_token(record.token_hash)
     record.status = InviteTokenStatus.REVOKED
     await session.flush()
 
@@ -156,7 +156,7 @@ async def delete_invite(token_id: int, session: AsyncSession) -> None:
     record = result.scalar_one_or_none()
     if record is None:
         raise InviteNotFoundError(f"Invite token with ID {token_id} not found")
-    await revoke_invite_token(record.token)
+    await revoke_invite_token(record.token_hash)
     await session.delete(record)
     await session.flush()
 
@@ -174,12 +174,12 @@ async def resend_invite(token_id: int, session: AsyncSession) -> None:
             f"Invite {token_id} has already been used and cannot be resent"
         )
 
-    await revoke_invite_token(record.token)
-    new_token, new_expires_at = await generate_invite_token()
-    record.token = new_token
+    await revoke_invite_token(record.token_hash)
+    new_raw, new_hash, new_expires_at = await generate_invite_token()
+    record.token_hash = new_hash
     record.expires_at = new_expires_at
     record.status = InviteTokenStatus.PENDING
     await session.flush()
 
-    registration_url = f"{settings.frontend_base_url}/register?token={new_token}"
+    registration_url = f"{settings.frontend_base_url}/register?token={new_raw}"
     await _send_invite_email(record.email, registration_url)

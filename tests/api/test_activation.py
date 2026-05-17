@@ -9,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
-from src.core.infrastructure.security import get_password_hash
+from src.core.infrastructure.security import get_password_hash, hash_token
 from src.enums import UserRole
 from src.main import app
 from src.models import ActivationToken, CompanyProfile, User
@@ -50,7 +50,7 @@ async def _make_pending_company(session: AsyncSession) -> tuple[User, str]:
 
     raw_token = secrets.token_urlsafe(32)
     activation = ActivationToken(
-        token=raw_token,
+        token_hash=hash_token(raw_token),
         company_user_id=user.id,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
         used=False,
@@ -100,7 +100,9 @@ async def test_activate_used_token_returns_400(test_db):
         from sqlalchemy import select
 
         result = await session.execute(
-            select(ActivationToken).where(ActivationToken.token == token)
+            select(ActivationToken).where(
+                ActivationToken.token_hash == hash_token(token)  # type: ignore[arg-type]
+            )
         )
         act = result.scalar_one()
         act.used = True
