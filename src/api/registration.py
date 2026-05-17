@@ -81,7 +81,7 @@ async def register(
             contact_landline_phone=contact_landline_phone,
         )
         user_create = UserCreate(
-            email=email, password=password, company_profile=profile_data
+            email=email.lower().strip(), password=password, company_profile=profile_data
         )
     except PydanticValidationError as exc:
         raise HTTPException(

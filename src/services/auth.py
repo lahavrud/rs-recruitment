@@ -89,6 +89,7 @@ async def authenticate_user(email: str, password: str, session: AsyncSession) ->
     Checks for account lockout before attempting credential validation.
     Tracks failed attempts and locks the account after too many failures.
     """
+    email = email.lower().strip()
     result = await session.execute(
         select(User).where(User.email == email)  # pyright: ignore[reportArgumentType]
     )

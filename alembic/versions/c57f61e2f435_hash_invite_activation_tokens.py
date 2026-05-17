@@ -75,7 +75,7 @@ def upgrade() -> None:
     )
     op.drop_column("invitetoken", "token")
 
-    # ── job indexes (idempotent — already exist on some environments) ──────────
+    # ── job indexes (idempotent — may already exist on some environments) ──────
     conn.execute(
         sa.text("CREATE INDEX IF NOT EXISTS ix_job_created_at ON job (created_at)")
     )

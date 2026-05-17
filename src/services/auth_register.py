@@ -120,16 +120,17 @@ async def register_company_user(
 
     sig_bytes = _decode_signature(agreement_signature)
 
+    normalized_email = user_data.email.lower().strip()
     result = await session.execute(
-        select(User).where(User.email == user_data.email)  # pyright: ignore[reportArgumentType]
+        select(User).where(User.email == normalized_email)  # pyright: ignore[reportArgumentType]
     )
     existing_user = result.scalar_one_or_none()
     if existing_user:
-        raise EmailAlreadyExistsError(user_data.email)
+        raise EmailAlreadyExistsError(normalized_email)
 
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
-        email=user_data.email,
+        email=normalized_email,
         hashed_password=hashed_password,
         role=UserRole.COMPANY,
         is_active=False,
