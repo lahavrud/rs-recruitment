@@ -64,7 +64,7 @@ class InviteTokenRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    token: str
+    token_hash: str
     email: str
     company_name: str | None
     contact_first_name: str | None

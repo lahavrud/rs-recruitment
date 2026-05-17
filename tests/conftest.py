@@ -217,6 +217,7 @@ def mock_invite_tokens():
             "src.services.admin_invites.generate_invite_token",
             new_callable=AsyncMock,
             return_value=(
+                "test-invite-token-raw",
                 "test-invite-token-abc123",
                 datetime(2099, 1, 1, tzinfo=timezone.utc),
             ),

@@ -328,7 +328,7 @@ export interface InviteTokenCreate {
 
 export interface InviteTokenRead {
   id: number;
-  token: string;
+  token_hash: string;
   email: string;
   company_name: string | null;
   contact_first_name: string | null;

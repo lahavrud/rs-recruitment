@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.security import hash_token
 from src.models import ActivationToken, User
 from src.services.exceptions import InvalidActivationTokenError
 
@@ -24,7 +25,7 @@ async def activate_company(token: str, session: AsyncSession) -> User:
     result = await session.execute(
         select(ActivationToken, User)
         .join(User, User.id == ActivationToken.company_user_id)  # pyright: ignore[reportArgumentType]
-        .where(ActivationToken.token == token)  # type: ignore[arg-type]
+        .where(ActivationToken.token_hash == hash_token(token))  # type: ignore[arg-type]
     )
     row = result.one_or_none()
 

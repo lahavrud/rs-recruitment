@@ -338,7 +338,7 @@ async def test_delete_active_company_with_activation_and_refresh_tokens(
 
     # Simulate an activation token (as created by the approval flow).
     act_token = ActivationToken(
-        token="fake-act-token",
+        token_hash="fake-act-token-hash",
         company_user_id=user_id,
         expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
         used=True,

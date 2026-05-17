@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
+from src.core.infrastructure.security import hash_token
 from src.enums import InviteTokenStatus
 from src.models import InviteToken, User
 from src.services.exceptions import InvalidInviteTokenError
@@ -24,7 +25,7 @@ async def _create_invite_record(
 ) -> InviteToken:
     async with TestSessionLocal() as session:
         record = InviteToken(
-            token=token,
+            token_hash=hash_token(token),
             email=email,
             company_name=company_name,
             contact_first_name=contact_first_name,

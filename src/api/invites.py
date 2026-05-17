@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.invite_tokens import validate_invite_token
+from src.core.infrastructure.security import hash_token
 from src.models import InviteToken
 from src.schemas import InviteMetadataPublic
 from src.services.exceptions import InvalidInviteTokenError
@@ -25,7 +26,7 @@ async def get_invite_metadata(
     except InvalidInviteTokenError as e:
         raise service_exception_to_http(e) from e
     result = await session.execute(
-        select(InviteToken).where(InviteToken.token == token)  # type: ignore[arg-type]
+        select(InviteToken).where(InviteToken.token_hash == hash_token(token))  # type: ignore[arg-type]
     )
     record = result.scalar_one_or_none()
     if record is None:
