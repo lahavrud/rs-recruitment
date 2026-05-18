@@ -26,7 +26,12 @@ from ._render import format_salary, render_page, site_nav_html
 router = APIRouter()
 
 
-@router.get("/api/og/home", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route(
+    "/api/og/home",
+    methods=["GET", "HEAD"],
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
 async def og_home(
     session: AsyncSession = Depends(get_session),
 ) -> HTMLResponse:
@@ -69,7 +74,12 @@ async def og_home(
     )
 
 
-@router.get("/api/og/jobs", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route(
+    "/api/og/jobs",
+    methods=["GET", "HEAD"],
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
 async def og_jobs_index(
     session: AsyncSession = Depends(get_session),
 ) -> HTMLResponse:
@@ -124,8 +134,9 @@ async def og_jobs_index(
     )
 
 
-@router.get(
+@router.api_route(
     "/api/og/jobs/{job_id}",
+    methods=["GET", "HEAD"],
     response_class=HTMLResponse,
     include_in_schema=False,
 )
