@@ -27,7 +27,12 @@ def _url_entry(loc: str, lastmod: str | None = None, changefreq: str = "weekly")
     return f"  <url>\n  <loc>{loc}</loc>\n{mod}{freq}  </url>\n"
 
 
-@router.get("/robots.txt", response_class=PlainTextResponse, include_in_schema=False)
+@router.api_route(
+    "/robots.txt",
+    methods=["GET", "HEAD"],
+    response_class=PlainTextResponse,
+    include_in_schema=False,
+)
 async def robots_txt() -> str:
     # `Sitemap:` is a top-level directive that applies to the whole file, not
     # to any one user-agent group. Lighthouse's robots.txt validator flags it
@@ -37,7 +42,12 @@ async def robots_txt() -> str:
     return f"User-agent: *\nAllow: /\n{disallow}\n\nSitemap: {sitemap_url}\n"
 
 
-@router.get("/sitemap.xml", response_class=PlainTextResponse, include_in_schema=False)
+@router.api_route(
+    "/sitemap.xml",
+    methods=["GET", "HEAD"],
+    response_class=PlainTextResponse,
+    include_in_schema=False,
+)
 async def sitemap_xml(session: AsyncSession = Depends(get_session)) -> str:
     base = settings.frontend_base_url
     today = datetime.now(UTC).date().isoformat()

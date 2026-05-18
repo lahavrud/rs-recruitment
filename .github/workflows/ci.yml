@@ -84,64 +84,14 @@ jobs:
             echo "docker=$docker"
           } >> "$GITHUB_OUTPUT"
 
-  # Combined ruff + structural validation. Previously split as `lint` plus a
-  # 5-way `validate` matrix — the matrix paid a 1-minute billing floor per
-  # shard for ~8 seconds of real work each. CVE auditing moved to the
-  # weekly security-audit workflow.
+  # Combined lint + tests + deploy-artifact validation. Merging three previously
+  # separate jobs (backend-checks, test, validate-deploy-artifacts) avoids paying
+  # the 1-minute billing floor three times. Backend steps are skipped on
+  # deploy-only changes; deploy validation is skipped on backend-only changes.
+  # CVE auditing lives in the weekly security-audit workflow.
   backend-checks:
     needs: detect-changes
-    if: needs.detect-changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 1
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          version: "latest"
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Cache uv dependencies
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
-
-      - name: Install dependencies
-        run: uv sync --frozen --group dev
-
-      - name: Ruff lint
-        run: uv run ruff check .
-
-      - name: Ruff format check
-        run: uv run ruff format --check .
-
-      - name: validate_imports
-        run: uv run python scripts/validate_imports.py
-
-      - name: check_file_sizes
-        run: uv run python scripts/check_file_sizes.py
-
-      - name: validate_type_hints
-        run: uv run python scripts/validate_type_hints.py
-
-      - name: validate_blocking_io
-        run: uv run python scripts/validate_blocking_io.py
-
-      - name: validate_test_files
-        run: uv run python scripts/validate_test_files.py
-
-  test:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.backend == 'true'
+    if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
 
     services:
@@ -172,16 +122,19 @@ jobs:
           fetch-depth: 1
 
       - name: Install uv
+        if: needs.detect-changes.outputs.backend == 'true'
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           version: "latest"
 
       - name: Set up Python
+        if: needs.detect-changes.outputs.backend == 'true'
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
 
       - name: Cache uv dependencies
+        if: needs.detect-changes.outputs.backend == 'true'
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.cache/uv
@@ -190,6 +143,7 @@ jobs:
             ${{ runner.os }}-uv-
 
       - name: Cache pytest cache
+        if: needs.detect-changes.outputs.backend == 'true'
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: .pytest_cache
@@ -198,21 +152,55 @@ jobs:
             ${{ runner.os }}-pytest-
 
       - name: Install dependencies
-        run: uv sync --frozen --group test
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv sync --frozen --group dev --group test
+
+      - name: Ruff lint
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run ruff format --check .
+
+      - name: validate_imports
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run python scripts/validate_imports.py
+
+      - name: check_file_sizes
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run python scripts/check_file_sizes.py
+
+      - name: validate_type_hints
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run python scripts/validate_type_hints.py
+
+      - name: validate_blocking_io
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run python scripts/validate_blocking_io.py
+
+      - name: validate_test_files
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: uv run python scripts/validate_test_files.py
 
       - name: Run Tests
+        if: needs.detect-changes.outputs.backend == 'true'
         # -n auto: pytest-xdist creates one worker per CPU. tests/conftest.py
         # provisions a per-worker DB so the autouse table.delete() cleanup
         # does not race across workers.
         run: uv run pytest -n auto --cov=src --cov-report=xml --cov-report=term
 
       - name: Upload coverage report
-        if: always()
+        if: always() && needs.detect-changes.outputs.backend == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-xml
           path: coverage.xml
           if-no-files-found: warn
+
+      - name: Validate deploy artifacts (HTTPS contract)
+        if: needs.detect-changes.outputs.deploy == 'true'
+        run: bash scripts/validate_deploy_artifacts.sh
 
   frontend-checks:
     needs: detect-changes
@@ -246,22 +234,11 @@ jobs:
         working-directory: frontend
         run: npm test
 
-  validate-deploy-artifacts:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.deploy == 'true'
-    name: Validate deploy artifacts (HTTPS contract)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 1
-      - run: bash scripts/validate_deploy_artifacts.sh
-
   docker-build:
     runs-on: ubuntu-latest
     # Skip on push to main (deploy.yml builds and pushes images), on draft
     # PRs, and when no Docker-relevant files changed (see detect-changes).
-    needs: [detect-changes, backend-checks, test]
+    needs: [detect-changes, backend-checks]
     if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.docker == 'true'
     env:
       JWT_SECRET_KEY: "test_secret_key_for_ci_only_min_32_chars_long" # pragma: allowlist secret
@@ -362,7 +339,7 @@ jobs:
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [backend-checks, test, frontend-checks, validate-deploy-artifacts, docker-build]
+    needs: [backend-checks, frontend-checks, docker-build]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed or were skipped

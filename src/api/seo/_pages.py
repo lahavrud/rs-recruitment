@@ -33,7 +33,12 @@ from ._render import render_page, site_nav_html
 router = APIRouter()
 
 
-@router.get("/api/og/about", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route(
+    "/api/og/about",
+    methods=["GET", "HEAD"],
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
 async def og_about() -> HTMLResponse:
     """Server-rendered /about for crawlers.
 
@@ -82,7 +87,12 @@ async def og_about() -> HTMLResponse:
     )
 
 
-@router.get("/api/og/contact", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route(
+    "/api/og/contact",
+    methods=["GET", "HEAD"],
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
 async def og_contact() -> HTMLResponse:
     """Server-rendered /contact for crawlers."""
     site_url = settings.frontend_base_url
@@ -113,8 +123,9 @@ async def og_contact() -> HTMLResponse:
     )
 
 
-@router.get(
+@router.api_route(
     "/api/og/articles/{slug}",
+    methods=["GET", "HEAD"],
     response_class=HTMLResponse,
     include_in_schema=False,
 )
