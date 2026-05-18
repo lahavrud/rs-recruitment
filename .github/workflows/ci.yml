@@ -1,19 +1,16 @@
 name: CI Pipeline
 
-# Cancel in-flight runs only for PRs — saves Actions minutes on rapid push
-# cycles (typo fixes, force-pushes). For pushes to main, we never cancel:
-# GitHub-side cancellation does NOT stop an in-flight SSM Run-Command on
-# the prod EC2, so cancelling a deploy in CI would just race a second SSM
-# command against the first on the same instance.
+# Cancel in-flight runs on rapid PR push cycles (typo fixes, force-pushes).
+# merge_group runs are never cancelled — each represents a unique queue slot
+# and GitHub discards stale slots on its side when a PR is updated.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
+  merge_group:
 
 permissions:
   contents: read
