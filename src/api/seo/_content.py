@@ -41,6 +41,13 @@ JOBS_DESCRIPTION = (
     "תפקידי ניהול, תפעול, אחזקה, בנייה, נדל״ן ועוד."
 )
 
+# /articles — mirrors ArticlesIndexPage.tsx PAGE_TITLE / PAGE_DESCRIPTION.
+ARTICLES_TITLE = "מאמרים ומדריכים — ניהול ותפעול מבנים ונכסים"
+ARTICLES_HEADLINE = "מאמרים ומדריכים"
+ARTICLES_DESCRIPTION = (
+    "מדריכים, ניתוחי שוק וטיפים לתפקידים בתחום ניהול ותפעול מבנים ונכסים בישראל."
+)
+
 # /about — mirrors frontend/src/locales/he.json `about.*`.
 ABOUT_TITLE = "אודות RS Recruiting — משרד גיוס והשמה בוטיקי"
 ABOUT_DESCRIPTION = (
