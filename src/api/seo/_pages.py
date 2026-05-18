@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse
 from src.core.infrastructure.config import settings
 
 from . import _jsonld as jsonld
-from ._articles import get_article
+from ._articles import get_article, list_articles
 from ._content import (
     ABOUT_DESCRIPTION,
     ABOUT_HEADLINE,
@@ -21,6 +21,9 @@ from ._content import (
     ABOUT_STORY_PARAGRAPHS,
     ABOUT_TITLE,
     ABOUT_VALUES,
+    ARTICLES_DESCRIPTION,
+    ARTICLES_HEADLINE,
+    ARTICLES_TITLE,
     CONTACT_DESCRIPTION,
     CONTACT_EMAIL,
     CONTACT_HEADLINE,
@@ -120,6 +123,47 @@ async def og_contact() -> HTMLResponse:
         og_type="website",
         body_html=body_html,
         graph=graph,
+    )
+
+
+@router.api_route(
+    "/api/og/articles",
+    methods=["GET", "HEAD"],
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
+async def og_articles_index() -> HTMLResponse:
+    """Server-rendered /articles index for crawlers."""
+    site_url = settings.frontend_base_url
+    e = html.escape
+    items_html = "".join(
+        f'  <li><a href="{e(site_url)}/articles/{e(a.slug)}">'
+        f"<strong>{e(a.title)}</strong><br>{e(a.description)}</a></li>\n"
+        for a in list_articles()
+    )
+    body_html = (
+        f"<header>\n  <h1>{e(ARTICLES_HEADLINE)}</h1>\n"
+        f"  <p>{e(ARTICLES_DESCRIPTION)}</p>\n</header>\n"
+        f"{site_nav_html(site_url)}"
+        '<section aria-label="רשימת מאמרים">\n  <ul>\n'
+        f"{items_html}"
+        "  </ul>\n</section>\n"
+    )
+    articles_url = f"{site_url}/articles"
+    return render_page(
+        title=f"{ARTICLES_TITLE} — {SITE_NAME}",
+        description=ARTICLES_DESCRIPTION,
+        canonical=articles_url,
+        og_type="website",
+        body_html=body_html,
+        graph=[
+            jsonld.breadcrumb(
+                [
+                    (SITE_NAME, site_url),
+                    (ARTICLES_HEADLINE, articles_url),
+                ]
+            )
+        ],
     )
 
 
