@@ -2,9 +2,8 @@
 
 import re
 from pathlib import Path
-from urllib.parse import quote as _pct_encode
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse, Response
 
 from src.core.infrastructure.config import settings
@@ -31,33 +30,17 @@ def _content_type(file_key: str) -> str:
     return _MIME_BY_EXT.get(ext, "application/octet-stream")
 
 
-def _disposition_header(content_type: str, filename: str) -> str:
-    """Build a Content-Disposition header that handles non-ASCII filenames.
-
-    Uses RFC 6266 / 5987 filename* encoding so Hebrew (and any Unicode)
-    characters survive the HTTP header intact on all browsers including iOS.
-    """
-    disposition = "inline" if content_type == "application/pdf" else "attachment"
-    encoded = _pct_encode(filename, encoding="utf-8", safe="-._~")
-    return f"{disposition}; filename*=UTF-8''{encoded}"
-
-
 @router.get("/{file_key}")
 async def download_resume(
     file_key: str,
-    download_name: str | None = Query(default=None),
     _: User = Depends(get_current_admin),
 ) -> Response:
     """Download a candidate resume.
 
-    Acts as a secure proxy: fetches the file from local storage or S3
-    and streams the raw bytes directly. Avoids cross-origin S3 redirects.
+    Acts as a secure proxy: fetches bytes from local storage or S3 and
+    streams them to the client. The caller is responsible for naming the
+    file — on mobile the Web Share API handles it; on desktop link.download.
     Requires admin authentication.
-
-    `download_name` — optional display filename from the frontend (e.g.
-    "יוחנן-כהן-resume.docx"). Embedded in Content-Disposition so iOS Safari,
-    which ignores the HTML download attribute on blob URLs, still saves the
-    file with the correct name.
     """
     if not _SAFE_KEY.match(file_key):
         raise HTTPException(
@@ -68,7 +51,7 @@ async def download_resume(
     storage = get_storage_provider()
     storage_key = f"resumes/{file_key}"
     content_type = _content_type(file_key)
-    filename = download_name or file_key
+    disposition = "inline" if content_type == "application/pdf" else "attachment"
 
     if settings.storage_provider == "local":
         storage_root = Path(settings.local_storage_path).resolve()
@@ -87,10 +70,8 @@ async def download_resume(
             )
         return FileResponse(
             path=file_path,
-            filename=filename,
-            headers={
-                "Content-Disposition": _disposition_header(content_type, filename)
-            },
+            filename=file_key,
+            headers={"Content-Disposition": f'{disposition}; filename="{file_key}"'},
         )
 
     try:
@@ -103,5 +84,5 @@ async def download_resume(
     return Response(
         content=file_bytes,
         media_type=content_type,
-        headers={"Content-Disposition": _disposition_header(content_type, filename)},
+        headers={"Content-Disposition": f'{disposition}; filename="{file_key}"'},
     )

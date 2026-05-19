@@ -87,8 +87,8 @@ function ResumeLink({
     setIsLoading(true);
     try {
       const blob = await fetchResumeBlob(fileKey);
-      const filename = buildDownloadName(candidateName, fileKey, blob.type);
       const mimeType = blob.type || "application/octet-stream";
+      const filename = buildDownloadName(candidateName, fileKey, mimeType);
       const isPdf = mimeType === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
 
       // Web Share API: the only reliable way to name a file on iOS.
