@@ -1,6 +1,5 @@
 """Resume download endpoint — streams bytes from local storage or S3."""
 
-import mimetypes
 import re
 from pathlib import Path
 
@@ -16,6 +15,19 @@ router = APIRouter(prefix="/api/resumes", tags=["resumes"])
 
 # UUID key + extension — no slashes allowed, only safe filename characters
 _SAFE_KEY = re.compile(r"^[\w.\-]+$")
+
+# Hardcoded map — don't rely on the system MIME database, which varies across
+# Linux distros and may not include modern Office formats (e.g. Amazon Linux).
+_MIME_BY_EXT: dict[str, str] = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "doc": "application/msword",
+}
+
+
+def _content_type(file_key: str) -> str:
+    ext = file_key.rsplit(".", 1)[-1].lower() if "." in file_key else ""
+    return _MIME_BY_EXT.get(ext, "application/octet-stream")
 
 
 @router.get("/{file_key}")
@@ -60,7 +72,7 @@ async def download_resume(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="File not found",
             )
-        media_type, _ = mimetypes.guess_type(file_key)
+        media_type = _content_type(file_key)
         disposition = "inline" if media_type == "application/pdf" else "attachment"
         return FileResponse(
             path=file_path,
@@ -75,9 +87,7 @@ async def download_resume(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="File not found",
         ) from e
-    content_type, _ = mimetypes.guess_type(file_key)
-    if not content_type:
-        content_type = "application/octet-stream"
+    content_type = _content_type(file_key)
     disposition = "inline" if content_type == "application/pdf" else "attachment"
     return Response(
         content=file_bytes,

@@ -56,7 +56,9 @@ const MIME_TO_EXT: Record<string, string> = {
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
   const slug = candidateName.trim().replace(/\s+/g, "-");
-  const ext = MIME_TO_EXT[mimeType] ?? fileKey.split(".").pop() ?? "bin";
+  const keyExt = fileKey.includes(".") ? fileKey.split(".").pop() : undefined;
+  const safeKeyExt = keyExt && /^[a-zA-Z0-9]{1,5}$/.test(keyExt) ? keyExt.toLowerCase() : undefined;
+  const ext = MIME_TO_EXT[mimeType] ?? safeKeyExt ?? "bin";
   return `${slug}-resume.${ext}`;
 }
 
