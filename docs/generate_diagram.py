@@ -1,13 +1,13 @@
-from diagrams import Diagram, Cluster, Edge
-from diagrams.aws.compute import EC2, ECR
+from diagrams import Cluster, Diagram, Edge
+from diagrams.aws.compute import ECR
 from diagrams.aws.database import RDS
-from diagrams.aws.storage import S3
 from diagrams.aws.management import SSM
-from diagrams.onprem.network import Nginx
-from diagrams.onprem.inmemory import Redis
+from diagrams.aws.storage import S3
+from diagrams.generic.network import Firewall
 from diagrams.onprem.ci import GithubActions
 from diagrams.onprem.client import Users
-from diagrams.generic.network import Firewall
+from diagrams.onprem.inmemory import Redis
+from diagrams.onprem.network import Nginx
 
 graph_attr = {
     "fontsize": "14",
