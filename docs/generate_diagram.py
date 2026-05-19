@@ -1,15 +1,15 @@
 from diagrams import Cluster, Diagram, Edge
-from diagrams.aws.compute import ECR, EC2
+from diagrams.aws.compute import ECR
 from diagrams.aws.database import RDS
 from diagrams.aws.integration import SNS
-from diagrams.aws.management import Cloudwatch, SSM
+from diagrams.aws.management import SSM, Cloudwatch
 from diagrams.aws.security import Inspector
 from diagrams.aws.storage import S3
+from diagrams.generic.network import Firewall
 from diagrams.onprem.ci import GithubActions
 from diagrams.onprem.client import Users
 from diagrams.onprem.inmemory import Redis
 from diagrams.onprem.network import Nginx
-from diagrams.generic.network import Firewall
 
 graph_attr = {
     "fontsize": "13",
@@ -33,7 +33,6 @@ with Diagram(
     github = GithubActions("GitHub Actions")
 
     with Cluster("AWS — us-east-1"):
-
         with Cluster("ECR"):
             ecr_api = ECR("rs-recruitment/api")
             ecr_fe = ECR("rs-recruitment/frontend")
@@ -42,7 +41,6 @@ with Diagram(
         ssm_run = SSM("SSM Run Command\n(deploy trigger)")
 
         with Cluster("VPC  10.0.0.0/16"):
-
             with Cluster("Public Subnets  (1a + 1b)"):
                 nginx = Nginx("nginx\n(SPA + /api proxy)")
                 redis = Redis("Redis\n(task queue)")
