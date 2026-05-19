@@ -4,6 +4,10 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 
 **Live:** [rs-recruiting.com](https://rs-recruiting.com)
 
+![Apply flow](docs/screenshots/apply-flow.gif)
+
+![Admin dashboard](docs/screenshots/admin-dashboard.png)
+
 ---
 
 ## Features
