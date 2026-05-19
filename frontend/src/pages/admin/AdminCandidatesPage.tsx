@@ -57,8 +57,21 @@ function ResumeLink({ fileKey, label }: { fileKey: string; label: string }) {
     try {
       const blob = await fetchResumeBlob(fileKey);
       const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank");
-      if (!win) {
+      const isPdf = blob.type === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
+      if (isPdf) {
+        // PDFs: try to open inline; fall back to download if popup is blocked
+        const win = window.open(url, "_blank");
+        if (!win) {
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileKey;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else {
+        // Non-PDF (DOCX, etc.): always download — window.open on a blob URL is
+        // blocked by mobile browsers after an async call, but link.download is not.
         const link = document.createElement("a");
         link.href = url;
         link.download = fileKey;
