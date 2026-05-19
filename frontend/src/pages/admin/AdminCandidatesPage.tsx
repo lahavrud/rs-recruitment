@@ -86,23 +86,32 @@ function ResumeLink({
     if (isLoading) return;
     setIsLoading(true);
     try {
-      // Build the filename before fetching so we can pass it to the backend.
-      // iOS Safari ignores <a download> on blob URLs and uses Content-Disposition
-      // instead — sending the name as a query param fixes it server-side.
-      const earlyExt = fileKey.includes(".") ? fileKey.split(".").pop() : "bin";
-      const earlyName = buildDownloadName(candidateName, fileKey, `x/${earlyExt}`);
-      const blob = await fetchResumeBlob(fileKey, earlyName);
-      const url = URL.createObjectURL(blob);
-      // Refine with the confirmed MIME type from the response.
+      const blob = await fetchResumeBlob(fileKey);
       const filename = buildDownloadName(candidateName, fileKey, blob.type);
-      const isPdf = blob.type === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
+      const mimeType = blob.type || "application/octet-stream";
+      const isPdf = mimeType === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
+
+      // Web Share API: the only reliable way to name a file on iOS.
+      // iOS ignores the HTML `download` attribute on blob URLs entirely —
+      // blob: URLs carry no HTTP headers, so Content-Disposition is also useless.
+      // Web Share hands a named File object directly to the OS share sheet.
+      const file = new File([blob], filename, { type: mimeType });
+      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return;
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") return;
+          // Share failed — fall through to blob URL approach
+        }
+      }
+
+      // Desktop fallback (Chrome, Firefox, Safari desktop)
+      const url = URL.createObjectURL(blob);
       if (isPdf) {
-        // PDFs: try to open inline; fall back to download if popup is blocked
         const win = window.open(url, "_blank");
         if (!win) triggerDownload(url, filename);
       } else {
-        // Non-PDF (DOCX, etc.): always download — window.open on a blob URL is
-        // blocked by mobile browsers after an async call, but link.download is not.
         triggerDownload(url, filename);
       }
       window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
