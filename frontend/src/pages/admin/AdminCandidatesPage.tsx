@@ -48,7 +48,40 @@ function formatDate(iso: string): string {
   });
 }
 
-function ResumeLink({ fileKey, label }: { fileKey: string; label: string }) {
+const MIME_TO_EXT: Record<string, string> = {
+  "application/pdf": "pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/msword": "doc",
+};
+
+function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
+  const slug = candidateName
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+  const hash = fileKey.replace(/\.[^.]+$/, "").slice(-8);
+  const ext = MIME_TO_EXT[mimeType] ?? fileKey.split(".").pop() ?? "bin";
+  return `${slug}-resume-${hash}.${ext}`;
+}
+
+function triggerDownload(url: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function ResumeLink({
+  fileKey,
+  label,
+  candidateName,
+}: {
+  fileKey: string;
+  label: string;
+  candidateName: string;
+}) {
   const [isLoading, setIsLoading] = useState(false);
   async function open(e: React.MouseEvent) {
     e.stopPropagation();
@@ -57,27 +90,16 @@ function ResumeLink({ fileKey, label }: { fileKey: string; label: string }) {
     try {
       const blob = await fetchResumeBlob(fileKey);
       const url = URL.createObjectURL(blob);
+      const filename = buildDownloadName(candidateName, fileKey, blob.type);
       const isPdf = blob.type === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
       if (isPdf) {
         // PDFs: try to open inline; fall back to download if popup is blocked
         const win = window.open(url, "_blank");
-        if (!win) {
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = fileKey;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
+        if (!win) triggerDownload(url, filename);
       } else {
         // Non-PDF (DOCX, etc.): always download — window.open on a blob URL is
         // blocked by mobile browsers after an async call, but link.download is not.
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileKey;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        triggerDownload(url, filename);
       }
       window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
     } catch (err) {
@@ -502,6 +524,7 @@ export default function AdminCandidatesPage() {
                         <ResumeLink
                           fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
                           label={t("admin.candidates.table.resume")}
+                          candidateName={c.full_name}
                         />
                       ) : (
                         <span className="text-white/20">
@@ -747,6 +770,7 @@ function CandidateDetailBody({
           <ResumeLink
             fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
             label={t("admin.candidates.table.resume")}
+            candidateName={c.full_name}
           />
         ) : (
           <span className="text-white/40">
