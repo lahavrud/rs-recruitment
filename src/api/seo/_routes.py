@@ -16,9 +16,11 @@ from . import _jsonld as jsonld
 from ._content import (
     HOME_DESCRIPTION,
     HOME_HEADLINE,
+    HOME_TITLE,
     JOBS_DESCRIPTION,
     JOBS_HEADLINE,
     JOBS_INDEX_LIMIT,
+    JOBS_TITLE,
     SITE_NAME,
 )
 from ._render import format_salary, render_page, site_nav_html
@@ -37,7 +39,7 @@ async def og_home(
 ) -> HTMLResponse:
     """Server-rendered landing page for crawlers."""
     site_url = settings.frontend_base_url
-    title = f"{HOME_HEADLINE} — {SITE_NAME}"
+    title = HOME_TITLE
 
     result = await session.execute(
         select(Job)
@@ -85,7 +87,7 @@ async def og_jobs_index(
 ) -> HTMLResponse:
     """Server-rendered job board for crawlers."""
     site_url = settings.frontend_base_url
-    title = f"{JOBS_HEADLINE} — {SITE_NAME}"
+    title = JOBS_TITLE
 
     result = await session.execute(
         select(Job)

@@ -30,11 +30,13 @@ DISALLOWED_PATHS = (
 # `publicJobs.board.*` i18n keys — duplicated here because the prerender
 # endpoints run server-side without access to the frontend's locale bundle.
 # Keep in sync with frontend/src/locales/he.json when wording changes.
+HOME_TITLE = "RS Recruiting — גיוס ניהול ותפעול נכסים"
 HOME_HEADLINE = "גיוס לתפקידי ניהול ותפעול מבנים ונכסים"
 HOME_DESCRIPTION = (
     "משרד גיוס והשמה בוטיקי המתמחה בגיוס לתפקידי ניהול ותפעול מבנים ונכסים. "
     "חיפוש עבודה עם ליווי אישי ושיבוץ מדויק."
 )
+JOBS_TITLE = "RS Recruiting — משרות פתוחות"
 JOBS_HEADLINE = "משרות בתחום ניהול ותפעול מבנים"
 JOBS_DESCRIPTION = (
     "כל המשרות הפתוחות בתחום ניהול ותפעול נכסים ומבנים — "
@@ -42,14 +44,14 @@ JOBS_DESCRIPTION = (
 )
 
 # /articles — mirrors ArticlesIndexPage.tsx PAGE_TITLE / PAGE_DESCRIPTION.
-ARTICLES_TITLE = "מאמרים ומדריכים — ניהול ותפעול מבנים ונכסים"
+ARTICLES_TITLE = "RS Recruiting — מאמרים ומדריכים"
 ARTICLES_HEADLINE = "מאמרים ומדריכים"
 ARTICLES_DESCRIPTION = (
     "מדריכים, ניתוחי שוק וטיפים לתפקידים בתחום ניהול ותפעול מבנים ונכסים בישראל."
 )
 
 # /about — mirrors frontend/src/locales/he.json `about.*`.
-ABOUT_TITLE = "אודות RS Recruiting — משרד גיוס והשמה בוטיקי"
+ABOUT_TITLE = "RS Recruiting — אודות"
 ABOUT_DESCRIPTION = (
     "הכירו את RS Recruiting — משרד גיוס והשמה בוטיקי המתמחה בניהול ותפעול נכסים ומבנים."
 )

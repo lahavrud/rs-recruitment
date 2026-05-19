@@ -151,7 +151,7 @@ async def og_articles_index() -> HTMLResponse:
     )
     articles_url = f"{site_url}/articles"
     return render_page(
-        title=f"{ARTICLES_TITLE} — {SITE_NAME}",
+        title=ARTICLES_TITLE,
         description=ARTICLES_DESCRIPTION,
         canonical=articles_url,
         og_type="website",

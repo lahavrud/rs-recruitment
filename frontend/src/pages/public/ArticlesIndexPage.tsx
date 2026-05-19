@@ -3,7 +3,7 @@ import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import FadeInImage from "@/components/ui/FadeInImage";
 import { articles } from "@/content/articles";
 
-const PAGE_TITLE = "מאמרים ומדריכים — ניהול ותפעול מבנים ונכסים";
+const PAGE_TITLE = "RS Recruiting — מאמרים ומדריכים";
 const PAGE_DESCRIPTION =
   "מדריכים, ניתוחי שוק וטיפים לתפקידים בתחום ניהול ותפעול מבנים ונכסים בישראל.";
 
