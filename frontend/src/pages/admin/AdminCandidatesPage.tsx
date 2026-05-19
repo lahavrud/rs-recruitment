@@ -92,11 +92,18 @@ function ResumeLink({
       const isPdf = mimeType === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
 
       // Web Share API: the only reliable way to name a file on iOS.
-      // iOS ignores the HTML `download` attribute on blob URLs entirely —
-      // blob: URLs carry no HTTP headers, so Content-Disposition is also useless.
-      // Web Share hands a named File object directly to the OS share sheet.
+      // iOS ignores <a download> on blob URLs — it's an OS-level restriction
+      // that applies to every browser (Safari, Chrome, Firefox) on iOS.
+      // We only use this on touch devices — desktop Chrome also supports
+      // navigator.canShare but its share dialog doesn't offer a download target,
+      // so we'd hit `return` and the file would never download.
+      const isTouchDevice = navigator.maxTouchPoints > 0;
       const file = new File([blob], filename, { type: mimeType });
-      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+      if (
+        isTouchDevice &&
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
         try {
           await navigator.share({ files: [file] });
           return;
