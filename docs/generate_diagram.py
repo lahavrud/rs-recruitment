@@ -2,7 +2,7 @@ from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import ECR
 from diagrams.aws.database import RDS
 from diagrams.aws.integration import SNS
-from diagrams.aws.management import Cloudwatch, SSM
+from diagrams.aws.management import SSM, Cloudwatch
 from diagrams.aws.security import Inspector
 from diagrams.aws.storage import S3
 from diagrams.generic.network import Firewall
