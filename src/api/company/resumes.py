@@ -60,7 +60,13 @@ async def download_resume(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="File not found",
             )
-        return FileResponse(path=file_path, filename=file_key)
+        media_type, _ = mimetypes.guess_type(file_key)
+        disposition = "inline" if media_type == "application/pdf" else "attachment"
+        return FileResponse(
+            path=file_path,
+            filename=file_key,
+            headers={"Content-Disposition": f'{disposition}; filename="{file_key}"'},
+        )
 
     try:
         file_bytes = await storage.download_file(storage_key)
@@ -72,8 +78,9 @@ async def download_resume(
     content_type, _ = mimetypes.guess_type(file_key)
     if not content_type:
         content_type = "application/octet-stream"
+    disposition = "inline" if content_type == "application/pdf" else "attachment"
     return Response(
         content=file_bytes,
         media_type=content_type,
-        headers={"Content-Disposition": f'inline; filename="{file_key}"'},
+        headers={"Content-Disposition": f'{disposition}; filename="{file_key}"'},
     )
