@@ -35,23 +35,15 @@ async def download_resume(
     file_key: str,
     _: User = Depends(get_current_admin),
 ) -> Response:
-    """Download a candidate resume.
-
-    Acts as a secure proxy: fetches bytes from local storage or S3 and
-    streams them to the client. The caller is responsible for naming the
-    file — on mobile the Web Share API handles it; on desktop link.download.
-    Requires admin authentication.
-    """
+    """Secure proxy: streams resume bytes from local storage or S3."""
     if not _SAFE_KEY.match(file_key):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file key",
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file key"
         )
 
-    storage = get_storage_provider()
-    storage_key = f"resumes/{file_key}"
     content_type = _content_type(file_key)
     disposition = "inline" if content_type == "application/pdf" else "attachment"
+    storage_key = f"resumes/{file_key}"
 
     if settings.storage_provider == "local":
         storage_root = Path(settings.local_storage_path).resolve()
@@ -60,26 +52,25 @@ async def download_resume(
             file_path.relative_to(storage_root)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid file key",
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file key"
             )
         if not file_path.is_file():
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found",
+                status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
             )
         return FileResponse(
             path=file_path,
+            media_type=content_type,
+            content_disposition_type=disposition,
             filename=file_key,
-            headers={"Content-Disposition": f'{disposition}; filename="{file_key}"'},
         )
 
+    storage = get_storage_provider()
     try:
         file_bytes = await storage.download_file(storage_key)
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found",
+            status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
         ) from e
     return Response(
         content=file_bytes,
