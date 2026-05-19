@@ -1,124 +1,198 @@
 # RS Recruitment
 
-**Vision:** A specialized CRM for a boutique recruitment agency.
+A full-stack recruitment CRM built for a boutique agency. Manages the full pipeline from company onboarding and job posting through candidate applications to admin-gated match decisions — with a dark luxury React frontend served over a production AWS stack.
 
-**Core Value:** Streamlining the flow from "Lead" (Job/Candidate) to "Match", with the Admin as the central gatekeeper.
+**Live:** [rs-recruiting.com](https://rs-recruiting.com)
 
----
+![Apply flow](docs/screenshots/apply-flow.gif)
 
-## 🧭 Principles
-
-* **Vertical Slices:** Features are developed end-to-end (DB → Business Logic → API → Tests).
-* **Admin as Gatekeeper:** All public data (Companies, Jobs, Matches) require Admin approval.
-* **Hybrid Auth:** Admins & Companies are authenticated Users; Candidates are unauthenticated leads.
-* **Trunk-Based Development:** Docs/Chores → direct Main; Features → short-lived branches merged quickly.
-* **DevOps / Agile Deploy:**
-  - CI/CD ensures every push is tested and containerized.
-  - Dev Environment deploy after first working slice.
-  - Staging deploy after multiple slices for integration validation.
-  - Production deploy after full MVP.
-* **Low Friction MVP:** Minimal auth surface, minimal public access, focus on working vertical slices.
+![Admin dashboard](docs/screenshots/admin-dashboard.png)
 
 ---
 
-## 🛠 Tech Stack
+## Features
 
-* **Python 3.12**: Core programming language.
-* **FastAPI**: Modern, high-performance web framework.
-* **SQLModel**: Database ORM (SQLAlchemy + Pydantic).
-* **PostgreSQL & asyncpg**: Production-ready relational database with asynchronous drivers.
-* **Alembic**: Database migration management.
-* **Redis & Arq**: In-memory broker and async task queue for reliable background processing (e.g., emails).
-* **AWS (S3 & SES)**: Cloud infrastructure for secure file storage and transactional email delivery.
-* **uv**: Fast Python package installer and resolver used for dependency management and CI speed.
-* **Ruff**: Ultra-fast Python linter and code formatter.
-* **Docker & Docker Compose**: Containerization for consistent development and deployment.
-* **Pytest & HTTPX**: Comprehensive unit and integration testing.
-* **JWT (python-jose)**: Secure, stateless authentication and authorization.
+**Public**
+- Job board with per-job detail pages
+- Candidate application form with resume upload (PDF/DOCX → S3)
+- SEO-optimized pages with Open Graph meta and structured data
 
----
+**Admin**
+- Company approval queue (invite-based onboarding)
+- Job approval queue (review, approve, or reject postings)
+- Application management with status tracking (New → Approved → Hired/Rejected)
+- Candidate directory with profile and resume access
 
-## 🏗 Architecture
+**Company**
+- Job posting and management dashboard
+- View applications per job
 
-This project follows a **Modular Monolith** architecture with a **Vertical Slices** approach.
-
-* **Service Layer Pattern**: Business logic is decoupled from API routers into dedicated services (e.g., `src/services/auth.py`) to improve testability and maintainability.
-* **Storage Abstraction**: A provider-based system supporting Local, S3, and MinIO storage without code changes.
-* **Async Task Queue**: Long-running operations like email notifications are offloaded to background workers using Arq and Redis.
+**Auth**
+- JWT access token + HttpOnly refresh cookie
+- Role-based route guards (ADMIN / COMPANY / public)
+- Invite-only company registration with token activation
 
 ---
 
-## 📂 Documentation
+## Tech Stack
 
-* **[ARCHITECTURE.md](docs/ARCHITECTURE.md)**: System design, authentication models, and ERDs.
-* **[CONTEXT.md](docs/CONTEXT.md)**: Coding standards, domain models, and SOC enforcement rules.
-* **[ROADMAP.md](docs/ROADMAP.md)**: Development phases and feature timeline.
+| Layer | Technologies |
+|---|---|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7 |
+| Backend | FastAPI, SQLModel (SQLAlchemy + Pydantic), Alembic, Python 3.12 |
+| Database | PostgreSQL 16, asyncpg |
+| Background Jobs | Arq + Redis (async task queue) |
+| File Storage | AWS S3 (production), local filesystem (dev) — provider abstraction |
+| Email | AWS SES / SMTP — same abstraction pattern as storage |
+| Auth | JWT (python-jose), HttpOnly refresh cookie |
+| Infrastructure | EC2 + RDS + S3 + ECR, Cloudflare (TLS + CDN) |
+| CI/CD | GitHub Actions — OIDC auth, Pytest against PostgreSQL, SSM deploy |
+| Code Quality | Ruff, ESLint, TypeScript strict, 5 custom validation scripts |
 
 ---
 
-## 🚀 Local Development
+## Architecture
 
-### Prerequisites
+```
+Browser
+  │
+Cloudflare (TLS, CDN)
+  │
+EC2 — nginx
+  ├── React SPA (static, S3-built)
+  └── /api → FastAPI
+            ├── PostgreSQL (RDS, private subnet)
+            ├── Redis → Arq worker (background emails)
+            └── S3 (resume uploads)
+```
 
-* **Python 3.12+**
-* **uv** (Recommended)
-* **Docker & Docker Compose**
+### Data model
 
-### Quick Start
+```mermaid
+erDiagram
+    User ||--o| CompanyProfile : owns
+    CompanyProfile ||--o{ Job : posts
+    Job ||--o{ Application : receives
+    CandidateProfile ||--o{ Application : submits
 
-1. **Clone and Install**:
+    User {
+        int id
+        string email
+        string hashed_password
+        enum role "ADMIN, COMPANY"
+        bool is_active
+    }
+    CompanyProfile {
+        int id
+        int user_id
+        string name
+        string logo_url
+    }
+    Job {
+        int id
+        int company_id
+        string title
+        enum status "PENDING_APPROVAL, PUBLISHED, CLOSED"
+    }
+    CandidateProfile {
+        int id
+        string full_name
+        string email
+        string resume_path
+    }
+    Application {
+        int id
+        int job_id
+        int candidate_id
+        enum status "NEW, APPROVED_BY_ADMIN, REJECTED, HIRED"
+        text admin_notes
+    }
+```
+
+---
+
+## Design Decisions
+
+**Hybrid authentication** — Admins and companies are authenticated users; candidates are anonymous leads. This reduces auth surface area and keeps the apply flow frictionless. The schema leaves `user_id` nullable on `CandidateProfile` so a future "claim your application" flow is non-breaking.
+
+**Storage and email abstraction** — Both file storage and email are behind provider interfaces. A single env var switches between local/S3 and SMTP/SES with no code changes. This made local development cheap and production deployment straightforward.
+
+**Async task queue for email** — Sending email from inside a request handler risks timeouts and drops on provider throttling. All outbound email is pushed to an Arq/Redis queue and processed by a separate worker container with retry logic.
+
+**OIDC-based CI/CD** — GitHub Actions authenticates to AWS via OIDC (no stored credentials). The deploy script derives the ECR registry and S3 bucket from the EC2 IAM role at runtime — nothing is hardcoded. A failed deploy is detectable via SSM run command polling.
+
+**Custom CI validation scripts** — Beyond Ruff and TypeScript, five custom scripts run in CI: SOC import enforcement, blocking I/O detection in async functions, type hint coverage on public functions, test file existence checks, and file size limits. Catches architecture drift that linters miss.
+
+**Hebrew-only RTL UI** — The entire frontend is in Hebrew with `<html dir="rtl">` forced globally. All UI strings live in a single `he.json` locale file; raw backend error strings are never surfaced to the user.
+
+---
+
+## Local Development
+
+**Prerequisites:** Python 3.12+, [uv](https://github.com/astral-sh/uv), Docker + Docker Compose, Node 18+
+
 ```bash
+# 1. Clone and install
 git clone https://github.com/lahavrud/rs-recruitment.git
 cd rs-recruitment
-uv sync  # Automatically creates venv and installs dependencies
+uv sync
 
-```
-
-
-2. **Environment Setup**:
-```bash
-# Mandatory for security validation
-export JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-
-```
-
-
-3. **Launch Services**:
-```bash
+# 2. Start services (PostgreSQL + Redis)
 docker-compose up -d
 
-```
-
-
-4. **Initialize Database**:
-```bash
+# 3. Run migrations
 uv run alembic upgrade head
 
+# 4. Start backend
+uv run uvicorn src.main:app --reload
+
+# 5. Start frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
+The frontend proxies `/api/*` to `http://localhost:8000`.
 
+### Environment
 
-### Running Services Manually
+```bash
+# Minimum required
+export JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+```
 
-If you prefer running the API locally for hot-reloading:
+See `.env.example` for the full list of optional variables (email provider, S3 config, etc.).
 
-* **API**: `uv run uvicorn src.main:app --reload`
-* **Worker**: `uv run arq src.core.tasks.WorkerSettings`
+### Running tests
+
+```bash
+uv run pytest -n auto
+```
+
+### Linting
+
+```bash
+uv run ruff check . && uv run ruff format --check .
+cd frontend && npx tsc --noEmit && npm run lint
+```
 
 ---
 
-## 🧪 Testing & Quality
+## Project Structure
 
-### Automated Validations
-
-The CI pipeline and pre-commit hooks enforce strict quality standards:
-
-* **SOC Enforcement**: Prevents invalid import patterns across layers.
-* **Async Safety**: Detects blocking I/O calls inside `async` functions.
-* **Type Safety**: Enforces type hints on public functions.
-* **Test Coverage**: Validates that test files exist for all source components.
-
-### Running Tests
-
-```bash
-uv run pytest -n auto  # Parallel execution
+```
+rs-recruitment/
+├── backend/src/
+│   ├── api/          # Thin FastAPI routers (auth, admin, company, public, seo)
+│   ├── services/     # Business logic, decoupled from routers
+│   ├── models.py     # SQLModel ORM models
+│   └── main.py       # App factory, middleware, router registration
+├── frontend/src/
+│   ├── pages/        # public/, admin/, company/ + auth pages
+│   ├── components/   # layout/, guards/, ui/
+│   ├── contexts/     # AuthContext
+│   └── locales/      # he.json (all UI strings)
+├── scripts/          # CI validation scripts
+├── docs/             # Architecture decisions, infrastructure, roadmap
+└── .github/workflows/
+```
