@@ -55,18 +55,9 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 
 ## Architecture
 
-```
-Browser
-  │
-Cloudflare (TLS, CDN)
-  │
-EC2 — nginx
-  ├── React SPA (static, S3-built)
-  └── /api → FastAPI
-            ├── PostgreSQL (RDS, private subnet)
-            ├── Redis → Arq worker (background emails)
-            └── S3 (resume uploads)
-```
+<img src="docs/screenshots/aws-architecture.png" width="750" alt="AWS architecture diagram" />
+
+<p><em>Request path: Users → Cloudflare (TLS/CDN) → EC2/nginx. CI/CD path: GitHub Actions → ECR (Docker images) → SSM deploy command → EC2.</em></p>
 
 ### Data model
 
