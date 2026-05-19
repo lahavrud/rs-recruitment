@@ -61,7 +61,7 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 
 <img src="docs/screenshots/aws-architecture.png" width="750" alt="AWS architecture diagram" />
 
-<p><em>Request path: Users → Cloudflare (TLS/CDN) → EC2/nginx. CI/CD path: GitHub Actions → ECR (Docker images) → SSM deploy command → EC2.</em></p>
+<p><em>Request path: Users → Cloudflare → nginx → RDS / Redis / S3. CI/CD path: GitHub Actions → ECR (Docker images) + SSM Run Command → EC2. Observability: CloudWatch alarms → SNS ops-alerts; Inspector2 scanning ECR images. All secrets live in SSM Parameter Store as SecureStrings.</em></p>
 
 ### Data model
 
