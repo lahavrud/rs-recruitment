@@ -94,16 +94,14 @@ function ResumeLink({
       // Web Share API: the only reliable way to name a file on iOS.
       // iOS ignores <a download> on blob URLs — it's an OS-level restriction
       // that applies to every browser (Safari, Chrome, Firefox) on iOS.
-      // We only use this on touch devices — desktop Chrome also supports
-      // navigator.canShare but its share dialog doesn't offer a download target,
-      // so we'd hit `return` and the file would never download.
-      const isTouchDevice = navigator.maxTouchPoints > 0;
+      // We scope this strictly to iOS: Chrome on Linux/macOS/Windows also supports
+      // navigator.share with files, but it downloads with the blob UUID as filename
+      // instead of the File object name, so we must avoid it on non-iOS platforms.
+      const isIOS =
+        /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const file = new File([blob], filename, { type: mimeType });
-      if (
-        isTouchDevice &&
-        typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] })
-      ) {
+      if (isIOS && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file] });
           return;
