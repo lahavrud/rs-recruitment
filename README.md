@@ -4,9 +4,11 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 
 **Live:** [rs-recruiting.com](https://rs-recruiting.com)
 
-![Apply flow](docs/screenshots/apply-flow.gif)
+<img src="docs/screenshots/apply-flow.gif" width="700" alt="Landing page and public job board" />
+<p><em>Public-facing site — landing page, job board, and candidate application flow</em></p>
 
-![Admin dashboard](docs/screenshots/admin-dashboard.png)
+<img src="docs/screenshots/admin-dashboard.png" width="650" alt="Admin dashboard" />
+<p><em>Admin dashboard — live stats across companies, jobs, applications, and candidates with quick-action shortcuts</em></p>
 
 ---
 
