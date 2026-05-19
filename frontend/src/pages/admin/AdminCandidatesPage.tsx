@@ -55,13 +55,9 @@ const MIME_TO_EXT: Record<string, string> = {
 };
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
-  const slug = candidateName
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
-  const hash = fileKey.replace(/\.[^.]+$/, "").slice(-8);
+  const slug = candidateName.trim().replace(/\s+/g, "-");
   const ext = MIME_TO_EXT[mimeType] ?? fileKey.split(".").pop() ?? "bin";
-  return `${slug}-resume-${hash}.${ext}`;
+  return `${slug}-resume.${ext}`;
 }
 
 function triggerDownload(url: string, filename: string) {
