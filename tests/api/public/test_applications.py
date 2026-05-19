@@ -464,7 +464,7 @@ async def test_apply_endpoint_writes_consent_audit_event(
         )
         event = result.scalar_one_or_none()
         assert event is not None
-        assert event.detail == "policy_version=1.1"
+        assert event.detail == "policy_version=1.2"
         assert event.actor_user_id is None
 
 
