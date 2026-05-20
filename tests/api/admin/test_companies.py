@@ -124,7 +124,7 @@ async def test_approve_company_not_found(admin_client: AsyncClient):
     """Test approving a non-existent company returns 404."""
     response = await admin_client.post("/api/admin/companies/99999/approve")
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio
@@ -172,7 +172,7 @@ async def test_reject_company_not_found(admin_client: AsyncClient):
     """Test rejecting a non-existent company returns 404."""
     response = await admin_client.post("/api/admin/companies/99999/reject")
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio

@@ -174,7 +174,7 @@ async def test_get_application_not_found(admin_client: AsyncClient):
     """Returns 404 for a non-existent application."""
     response = await admin_client.get("/api/admin/applications/99999")
     assert response.status_code == 404
-    assert "99999" in response.json()["detail"]
+    assert response.json()["detail"] == "application_not_found"
 
 
 @pytest.mark.asyncio

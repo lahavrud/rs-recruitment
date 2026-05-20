@@ -96,7 +96,7 @@ async def test_login_invalid_email(client: AsyncClient):
         "/auth/login", json={"email": "nonexistent@example.com", "password": "pass"}
     )
     assert response.status_code == 401
-    assert "incorrect email or password" in response.json()["detail"].lower()
+    assert response.json()["detail"] == "invalid_credentials"
 
 
 @pytest.mark.asyncio

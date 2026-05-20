@@ -131,8 +131,8 @@ async def test_change_password_rejects_weak_new_with_422(test_db):
 
 @pytest.mark.asyncio
 async def test_change_password_revokes_other_sessions(test_db):
-    """Sending the current session's refresh cookie keeps that session,
-    revokes the rest."""
+    """Sending the current session's refresh cookie keeps that row;
+    all other refresh-token rows are deleted (#641)."""
     async with TestSessionLocal() as session:
         user = await _make_user(session, "rotate@test.com")
         raw_keep = "refresh-keep-this-one"
@@ -178,9 +178,9 @@ async def test_change_password_revokes_other_sessions(test_db):
             .scalars()
             .all()
         )
-        by_hash = {t.token_hash: t for t in tokens}
-        assert by_hash[hash_token(raw_keep)].is_revoked is False
-        assert by_hash[hash_token(raw_revoke)].is_revoked is True
+        # Only the current session's row must survive; the other is deleted.
+        assert len(tokens) == 1
+        assert tokens[0].token_hash == hash_token(raw_keep)
 
 
 @pytest.mark.asyncio

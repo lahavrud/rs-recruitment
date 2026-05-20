@@ -1,4 +1,13 @@
-"""Error handling utilities for converting service exceptions to HTTP exceptions."""
+"""Error handling utilities for converting service exceptions to HTTP exceptions.
+
+The HTTP ``detail`` field is an *opaque error code* (e.g. ``"job_not_found"``),
+not the exception's stringified message. ``str(exception)`` historically
+embedded user-supplied data — for example ``EmailAlreadyExistsError`` rendered
+as ``"Email user@example.com is already registered"`` — which leaked PII and
+internal identifiers back to anonymous callers. The codes are stable, short,
+snake_case strings that the frontend maps to localised UI text via
+``i18n.t()``.
+"""
 
 from fastapi import HTTPException, status
 
@@ -70,19 +79,62 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     InvalidCursorError: status.HTTP_400_BAD_REQUEST,
 }
 
+# Stable, opaque error codes returned in the HTTP ``detail`` field. The
+# frontend maps these to localised user-facing strings; backends never
+# emit ``str(exception)`` here because exception messages contain
+# user-supplied data (emails, internal IDs) that leak via the HTTP
+# response (issue #648).
+EXCEPTION_CODE_MAP: dict[type[Exception], str] = {
+    # Not found
+    JobNotFoundError: "job_not_found",
+    CompanyNotFoundError: "company_not_found",
+    ApplicationNotFoundError: "application_not_found",
+    CandidateNotFoundError: "candidate_not_found",
+    InviteNotFoundError: "invite_not_found",
+    # Conflict
+    ApplicationAlreadyExistsError: "already_applied",
+    ApplicationAlreadyEditableError: "already_applied_editable",
+    ApplicationAlreadyLockedError: "already_applied_locked",
+    InvitePendingForEmailError: "invite_pending",
+    EmailAlreadyExistsError: "email_already_exists",
+    # Forbidden
+    JobNotOwnedByCompanyError: "job_not_owned",
+    # Token / credential issues
+    InvalidActivationTokenError: "invalid_activation_token",
+    InvalidPasswordResetTokenError: "invalid_password_reset_token",
+    InvalidCredentialsError: "invalid_credentials",
+    InactiveUserError: "inactive_user",
+    PendingApprovalError: "pending_approval",
+    PendingActivationError: "account_pending_activation",
+    # Lockout
+    AccountLockedError: "account_locked",
+    # Invite lifecycle
+    InvalidInviteTokenError: "invalid_invite_token",
+    InviteAlreadyRevokedError: "invite_revoked",
+    # State machine
+    JobCannotBeUpdatedError: "job_cannot_be_updated",
+    JobCannotBeDeletedError: "job_cannot_be_deleted",
+    CompanyNotPendingError: "company_not_pending",
+    JobNotPendingError: "job_not_pending",
+    InvalidApplicationStatusTransitionError: "invalid_status_transition",
+    # Pagination
+    InvalidCursorError: "invalid_cursor",
+}
+
 
 def service_exception_to_http(
     exception: Exception,
     default_status: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
 ) -> HTTPException:
-    """Convert service exception to HTTPException.
+    """Convert a service exception to an ``HTTPException`` with an opaque code.
 
-    Args:
-        exception: The service exception to convert
-        default_status: HTTP status code to use if exception type is not mapped
-
-    Returns:
-        HTTPException with appropriate status code and detail message
+    The returned ``detail`` is the mapped error code (e.g. ``"job_not_found"``)
+    — never ``str(exception)`` — so user-supplied data the service layer
+    interpolates into exception messages doesn't end up in the HTTP body.
+    Falls back to ``"internal_error"`` for unmapped types so the response
+    still carries a useful machine-readable handle.
     """
-    status_code = EXCEPTION_STATUS_MAP.get(type(exception), default_status)
-    return HTTPException(status_code=status_code, detail=str(exception))
+    exc_type = type(exception)
+    status_code = EXCEPTION_STATUS_MAP.get(exc_type, default_status)
+    code = EXCEPTION_CODE_MAP.get(exc_type, "internal_error")
+    return HTTPException(status_code=status_code, detail=code)
