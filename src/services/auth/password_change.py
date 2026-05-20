@@ -10,7 +10,7 @@ Role-agnostic. Distinct from the forgot-password flow:
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import (
@@ -62,15 +62,19 @@ async def change_user_password(
 
     persisted.hashed_password = get_password_hash(new_password)
 
-    query = update(RefreshToken).where(
+    # Drop every refresh token for this user except the one carrying the
+    # current session's cookie — the user stays logged in here, every
+    # other parallel session is forcibly signed out. Delete-on-rotate is
+    # the project-wide refresh-token cleanup policy (issue #641); rows
+    # no longer linger with ``is_revoked = True``.
+    query = delete(RefreshToken).where(
         RefreshToken.user_id == persisted.id,  # pyright: ignore[reportArgumentType]
-        RefreshToken.is_revoked == False,  # noqa: E712
     )
     if current_refresh_token:
         query = query.where(
             RefreshToken.token_hash != hash_token(current_refresh_token)
         )
-    await session.execute(query.values(is_revoked=True))
+    await session.execute(query)
 
     await record_audit_event(
         session,

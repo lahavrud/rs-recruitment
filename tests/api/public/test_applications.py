@@ -305,7 +305,7 @@ async def test_apply_endpoint_job_not_found(
     )
 
     assert response.status_code == 404
-    assert "Job with ID 999 not found" in response.json()["detail"]
+    assert response.json()["detail"] == "job_not_found"
 
 
 @pytest.mark.asyncio

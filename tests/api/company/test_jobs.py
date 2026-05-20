@@ -84,7 +84,7 @@ async def test_get_job_not_found(company_client: AsyncClient):
     """Test getting a non-existent job."""
     response = await company_client.get("/api/jobs/999")
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio
@@ -178,7 +178,7 @@ async def test_update_job_not_found(company_client: AsyncClient):
 
     response = await company_client.put("/api/jobs/999", json=update_data)
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio
@@ -190,7 +190,10 @@ async def test_update_job_cannot_change_status(
 
     response = await company_client.put(f"/api/jobs/{pending_job.id}", json=update_data)
     assert response.status_code == 400
-    assert "cannot change job status" in response.json()["detail"].lower()
+    # Specific opaque code — JobCannotBeUpdatedError now maps via the
+    # EXCEPTION_CODE_MAP (#648). The original "companies cannot change
+    # job status" message lives in the exception args for logs only.
+    assert response.json()["detail"] == "job_cannot_be_updated"
 
 
 @pytest.mark.asyncio
@@ -208,7 +211,7 @@ async def test_update_job_closed_status(company_client: AsyncClient, pending_job
 
     response = await company_client.put(f"/api/jobs/{pending_job.id}", json=update_data)
     assert response.status_code == 400
-    assert "cannot be updated" in response.json()["detail"].lower()
+    assert response.json()["detail"] == "job_cannot_be_updated"
 
 
 @pytest.mark.asyncio
@@ -229,7 +232,7 @@ async def test_delete_job_not_found(company_client: AsyncClient):
     """Test deleting a non-existent job."""
     response = await company_client.delete("/api/jobs/999")
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio
@@ -247,8 +250,9 @@ async def test_delete_job_published_status(
 
     response = await company_client.delete(f"/api/jobs/{pending_job.id}")
     assert response.status_code == 400
-    assert "cannot be deleted" in response.json()["detail"].lower()
-    assert "PENDING_APPROVAL" in response.json()["detail"]
+    assert response.json()["detail"] == "job_cannot_be_deleted"
+    # The "only PENDING_APPROVAL jobs are deletable" rationale used to
+    # leak via the detail string; it now lives only in server logs.
 
 
 @pytest.mark.asyncio

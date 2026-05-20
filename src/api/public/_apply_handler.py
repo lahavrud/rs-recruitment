@@ -47,9 +47,11 @@ def validate_optional_password(
     try:
         _validate_password_complexity(password)
     except ValueError as e:
+        # Opaque code instead of str(e) — the validator message included
+        # specifics about which rule failed (issue #648).
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
+            detail="password_complexity_failed",
         ) from e
 
 

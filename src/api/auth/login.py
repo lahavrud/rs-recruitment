@@ -44,12 +44,26 @@ _REFRESH_COOKIE = "refresh_token"
 _REFRESH_MAX_AGE = 7 * 24 * 60 * 60  # 7 days, matches RefreshToken lifetime in config
 
 
+def _refresh_cookie_secure() -> bool:
+    """Default the refresh cookie's ``Secure`` flag to True everywhere
+    except the test suite (issue #650).
+
+    Was ``environment == "production"`` — which left development and any
+    future staging environment shipping the cookie over plain HTTP.
+    httpx in our tests hits the API at ``http://test/``, which isn't
+    localhost from the cookie-store's perspective, so secure cookies are
+    silently dropped — ``settings.testing`` is the documented opt-out
+    for that one consumer.
+    """
+    return not settings.testing
+
+
 def _set_refresh_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=_REFRESH_COOKIE,
         value=token,
         httponly=True,
-        secure=settings.environment == "production",
+        secure=_refresh_cookie_secure(),
         samesite="strict",
         max_age=_REFRESH_MAX_AGE,
         path="/auth",
@@ -61,7 +75,7 @@ def _clear_refresh_cookie(response: Response) -> None:
         key=_REFRESH_COOKIE,
         path="/auth",
         httponly=True,
-        secure=settings.environment == "production",
+        secure=_refresh_cookie_secure(),
         samesite="strict",
     )
 
@@ -110,12 +124,19 @@ async def login(
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
+@limiter.limit("30/minute")
 async def refresh(
     request: Request,
     response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> AccessTokenResponse:
-    """Exchange the refresh-token cookie for a new access token + rotated cookie."""
+    """Exchange the refresh-token cookie for a new access token + rotated cookie.
+
+    Rate-limited (30/minute per IP) — normal browser sessions only need a
+    handful of refreshes per minute even with parallel tabs, but a stolen
+    refresh token replayed in a loop was previously unthrottled
+    (issue #643).
+    """
     raw_refresh = request.cookies.get(_REFRESH_COOKIE)
     if not raw_refresh:
         raise HTTPException(
