@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import FadeInImage from "@/components/ui/FadeInImage";
 import { getArticle } from "@/content/articles";
@@ -25,6 +26,7 @@ function formatSalary(min: number | null, max: number | null): string | null {
 }
 
 function RelatedJobs() {
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,7 +86,7 @@ function RelatedJobs() {
         to="/jobs"
         className="mt-6 inline-block text-sm text-copper hover:text-gold"
       >
-        לכל המשרות ←
+        {t("articles.relatedJobsCta")} ←
       </Link>
     </section>
   );
