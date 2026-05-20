@@ -126,6 +126,10 @@ async def register_company_user(
     )
     existing_user = result.scalar_one_or_none()
     if existing_user:
+        logger.warning(
+            "registration_email_exists",
+            extra={"email_prefix": normalized_email[:2] + "***"},
+        )
         raise EmailAlreadyExistsError(normalized_email)
 
     hashed_password = get_password_hash(user_data.password)

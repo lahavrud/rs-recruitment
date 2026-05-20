@@ -4,9 +4,11 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pythonjsonlogger import json as jsonlogger
+from slowapi.errors import RateLimitExceeded
 
 from src.api import sentry_tunnel, seo
 from src.api.admin import (
@@ -87,7 +89,7 @@ def _configure_logging() -> None:
     """
     handler = logging.StreamHandler()
     formatter = jsonlogger.JsonFormatter(
-        fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+        fmt="%(asctime)s %(levelname)s %(name)s %(request_id)s %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
     handler.setFormatter(formatter)
@@ -97,6 +99,8 @@ def _configure_logging() -> None:
 
 
 _configure_logging()
+
+logger = logging.getLogger(__name__)
 
 
 class _HealthCheckLogFilter(logging.Filter):
@@ -113,6 +117,16 @@ logging.getLogger().addFilter(RequestIdFilter())
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
 app.add_middleware(RequestMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    ip = request.headers.get("x-real-ip") or (
+        request.client.host if request.client else None
+    )
+    logger.warning("rate_limit_hit", extra={"path": request.url.path, "ip": ip})
+    return JSONResponse(status_code=429, content={"detail": "Too many requests"})
+
 
 # Configure CORS middleware
 app.add_middleware(

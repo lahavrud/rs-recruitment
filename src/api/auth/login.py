@@ -1,5 +1,7 @@
 """Authentication endpoints — login, refresh, logout."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,8 +29,16 @@ from src.services.exceptions import (
 )
 from src.services.utils.audit import record_audit_event
 
+logger = logging.getLogger(__name__)
 limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _client_ip(request: Request) -> str | None:
+    return request.headers.get("x-real-ip") or (
+        request.client.host if request.client else None
+    )
+
 
 _REFRESH_COOKIE = "refresh_token"
 _REFRESH_MAX_AGE = 7 * 24 * 60 * 60  # 7 days, matches RefreshToken lifetime in config
@@ -65,8 +75,11 @@ async def login(
     session: AsyncSession = Depends(get_session),
 ) -> AccessTokenResponse:
     """Login — access token in body, refresh token in HttpOnly cookie."""
+    ip = _client_ip(request)
     try:
-        user = await authenticate_user(login_data.email, login_data.password, session)
+        user = await authenticate_user(
+            login_data.email, login_data.password, session, client_ip=ip
+        )
     except (
         InvalidCredentialsError,
         InactiveUserError,
@@ -75,6 +88,11 @@ async def login(
         AccountLockedError,
     ) as e:
         raise service_exception_to_http(e) from e
+
+    logger.info(
+        "login_success",
+        extra={"user_id": str(user.id), "role": user.role.value, "ip": ip},
+    )
 
     async with transactional(session):
         access_token, refresh_token = await create_user_tokens(user, session)
