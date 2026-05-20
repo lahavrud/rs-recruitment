@@ -93,6 +93,9 @@ def _configure_logging() -> None:
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
     handler.setFormatter(formatter)
+    # Filter on the handler (not the logger) so it runs for propagated messages
+    # from child loggers — logger-level filters are skipped during propagation.
+    handler.addFilter(RequestIdFilter())
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(settings.log_level.upper())
