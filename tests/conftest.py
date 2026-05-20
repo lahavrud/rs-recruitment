@@ -44,6 +44,7 @@ from src.models import (
     AuditLog,  # noqa: F401
     CandidateProfile,
     CompanyProfile,
+    DataExportRequest,  # noqa: F401 -- Sprint 11 / #608
     InviteToken,  # noqa: F401
     Job,
     PasswordResetToken,  # noqa: F401

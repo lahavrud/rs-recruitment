@@ -190,6 +190,63 @@ class CandidateProfileRead(BaseModel):
     created_at: datetime
 
 
+class CandidateMeRead(BaseModel):
+    """Self-service candidate profile read (Sprint 11 / #608).
+
+    Returned by ``GET /api/candidate/me``. Pulls ``email`` from the linked
+    ``User`` (since the auth identity is the source of truth) and exposes
+    the editable identity fields + the consent record. Excludes admin-only
+    fields like ``deleted_at`` and per-application ``resume_path`` snapshots
+    (those live on ``Application``).
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    full_name: str
+    phone: str
+    linkedin_url: str | None
+    resume_path: str | None
+    consent_given_at: datetime | None
+    consent_policy_version: str | None
+    created_at: datetime
+
+
+class CandidateMeUpdate(BaseModel):
+    """Self-service candidate profile update (Sprint 11 / #608).
+
+    Editable fields only: ``full_name``, ``phone``, ``linkedin_url``.
+
+    ``email`` is intentionally absent — auth identity is set at registration
+    and a candidate-side email change requires re-verification, which is
+    out of scope for MVP. The router rejects requests that include ``email``
+    in the body (rather than silently dropping it).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    full_name: str | None = Field(None, min_length=2, max_length=100)
+    phone: str | None = Field(None, max_length=30)
+    linkedin_url: str | None = Field(None, max_length=500)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        """Phone is NOT NULL on the model; reject explicit-null on PATCH."""
+        if v is None:
+            raise ValueError("Phone cannot be set to null on update")
+        result = _validate_phone_value(v)
+        if result is None:
+            raise ValueError("Phone number is required")
+        return result
+
+    @field_validator("linkedin_url")
+    @classmethod
+    def validate_linkedin_url(cls, v: str | None) -> str | None:
+        return _validate_linkedin_url_value(v)
+
+
 class ApplicationCreate(BaseModel):
     """Schema for creating an application (match)."""
 

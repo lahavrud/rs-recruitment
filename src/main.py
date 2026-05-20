@@ -33,12 +33,15 @@ from src.api.auth import (
     activation,
     candidate_registration,
     invites,
+    password_change,
     password_reset,
     registration,
 )
 from src.api.auth import (
     login as auth,
 )
+from src.api.candidate import data_export as candidate_data_export
+from src.api.candidate import profile as candidate_profile
 from src.api.company import jobs as company_jobs
 from src.api.company import profile as companies
 from src.api.company import resumes
@@ -146,6 +149,7 @@ app.include_router(registration.router)
 app.include_router(candidate_registration.router)
 app.include_router(activation.router)
 app.include_router(password_reset.router)
+app.include_router(password_change.router)
 app.include_router(invites.router)
 app.include_router(admin_companies.router)
 app.include_router(admin_invites.router)
@@ -155,6 +159,8 @@ app.include_router(admin_audit.router)
 app.include_router(admin_candidates.router)
 app.include_router(companies.router)
 app.include_router(company_jobs.router)
+app.include_router(candidate_profile.router)
+app.include_router(candidate_data_export.router)
 app.include_router(public.router)
 app.include_router(candidates.router)
 app.include_router(candidates.jobs_apply_router)

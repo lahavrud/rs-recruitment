@@ -4,6 +4,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/guards/ProtectedRoute";
 import AdminRoute from "@/components/guards/AdminRoute";
+import CandidateRoute from "@/components/guards/CandidateRoute";
 import CompanyRoute from "@/components/guards/CompanyRoute";
 import AppShell from "@/components/layout/AppShell";
 import CookieConsent from "@/components/ui/CookieConsent";
@@ -41,6 +42,9 @@ const AdminJobsPage = lazyWithRetry(() => import("@/pages/admin/AdminJobsPage"))
 const AdminApplicationsPage = lazyWithRetry(() => import("@/pages/admin/AdminApplicationsPage"));
 const AdminCandidatesPage = lazyWithRetry(() => import("@/pages/admin/AdminCandidatesPage"));
 const CompanyJobsPage = lazyWithRetry(() => import("@/pages/company/CompanyJobsPage"));
+const CandidateProfilePage = lazyWithRetry(
+  () => import("@/pages/candidate/CandidateProfilePage"),
+);
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -166,6 +170,16 @@ export default function App() {
                   <CompanyRoute>
                     <CompanyJobsPage />
                   </CompanyRoute>
+                }
+              />
+
+              {/* Candidate-only routes (Sprint 11 / #608) */}
+              <Route
+                path="/candidate/profile"
+                element={
+                  <CandidateRoute>
+                    <CandidateProfilePage />
+                  </CandidateRoute>
                 }
               />
 

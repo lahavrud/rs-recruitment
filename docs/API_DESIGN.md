@@ -296,6 +296,65 @@ Get a specific published job posting.
 
 ---
 
+## Candidate Self-Service Endpoints (Sprint 11 / #608)
+Authenticated candidate-only. Profile management, in-session password
+change, and GDPR data export.
+
+### `GET /api/candidate/me`
+Return the authenticated candidate's profile + linked User email.
+* **Auth Required:** Candidate session.
+* **Response:** `200 OK` (`CandidateMeRead`).
+
+### `PATCH /api/candidate/me`
+Update editable identity fields (`full_name`, `phone`, `linkedin_url`).
+* **Auth Required:** Candidate session.
+* **Request Body:** `CandidateMeUpdate` — partial. `email` in body → 400.
+* **Response:** `200 OK` (`CandidateMeRead`) | `400 email_not_editable` | `422` validation.
+
+### `POST /api/candidate/me/resume`
+Replace (or upload first) the candidate's profile-level resume. The
+previous file is deleted from storage best-effort after the upload
+succeeds.
+* **Auth Required:** Candidate session.
+* **Content-Type:** `multipart/form-data` — field name `resume`.
+* **Allowed:** PDF, DOC, DOCX. Max 10MB. Magic-byte verified.
+* **Response:** `200 OK` (`CandidateMeRead`) | `422 invalid_resume`.
+
+### `DELETE /api/candidate/me/resume`
+Idempotent removal of the profile-level resume.
+* **Auth Required:** Candidate session.
+* **Response:** `200 OK` (`CandidateMeRead`).
+
+### `POST /auth/me/password`
+In-session password change (role-agnostic). Distinct from forgot-password
+(which is anonymous + email-token driven).
+* **Auth Required:** Any role.
+* **Request Body:** `{ "current_password": "...", "new_password": "..." }`.
+* **Rate Limit:** 5/hour per IP.
+* **Response:** `204` | `401 current_password_incorrect` | `422` | `429`.
+* **Side effect:** every refresh token for this user is revoked EXCEPT
+  the one carrying the current request's session cookie.
+
+### `POST /api/candidate/me/export`
+Request the GDPR data export. Enqueues an Arq background task that
+assembles a ZIP (profile JSON + per-application resume snapshots),
+uploads it to storage, mints a 24h signed download token, and emails
+the candidate a single-use link.
+* **Auth Required:** Candidate session.
+* **Rate Limit:** Per-user — at most one unused-and-unexpired export
+  (enforced via DB row count, no Redis).
+* **Response:** `202 Accepted` | `429 export_already_pending`.
+
+### `GET /api/candidate/me/export/{token}`
+Stream the prepared ZIP. The token is single-use proof of identity — no
+session required.
+* **Auth Required:** No (token IS auth).
+* **Response:** `200 application/zip` + `Content-Disposition: attachment`
+  | `404 export_not_found` | `410 export_already_used` |
+  `410 export_expired`.
+
+---
+
 ## Candidate Endpoints
 Unauthenticated leads submitting data to the system.
 

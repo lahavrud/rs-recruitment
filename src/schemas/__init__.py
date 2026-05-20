@@ -13,6 +13,7 @@ from src.schemas.audit import AuditLogRead
 from src.schemas.auth import (
     AccessTokenResponse,
     CandidateRegisterRequest,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshRequest,
@@ -29,6 +30,8 @@ from src.schemas.candidates import (
     ApplicationStatusUpdate,
     ApplicationUpdate,
     ApplicationWithDetails,
+    CandidateMeRead,
+    CandidateMeUpdate,
     CandidateProfileCreate,
     CandidateProfileRead,
     CandidateProfileUpdate,
@@ -71,6 +74,7 @@ __all__ = [
     # auth
     "AccessTokenResponse",
     "CandidateRegisterRequest",
+    "ChangePasswordRequest",
     "ForgotPasswordRequest",
     "LoginRequest",
     "RefreshRequest",
@@ -112,6 +116,8 @@ __all__ = [
     "ApplicationStatusUpdate",
     "ApplicationUpdate",
     "ApplicationWithDetails",
+    "CandidateMeRead",
+    "CandidateMeUpdate",
     "CandidateProfileCreate",
     "CandidateProfileRead",
     "CandidateProfileUpdate",
