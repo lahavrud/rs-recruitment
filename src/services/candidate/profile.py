@@ -26,6 +26,10 @@ _MIME_BY_EXT = {
     "doc": "application/msword",
 }
 _SAFE_FILENAME = re.compile(r"^[\w.\-]+$")
+# Display-label cap. Must match ``CandidateMeUpdate.resume_filename``'s
+# Pydantic max_length so an upload-captured name is never rejected by a
+# subsequent PATCH that just submits the same value back.
+_MAX_DISPLAY_FILENAME_LEN = 100
 
 
 def apply_identity_patch(profile: CandidateProfile, patch: CandidateMeUpdate) -> None:
@@ -34,6 +38,11 @@ def apply_identity_patch(profile: CandidateProfile, patch: CandidateMeUpdate) ->
     Partial-update semantics: omitted keys leave the existing value alone.
     Email is NOT in the schema (#608 / Sprint 11 MVP) — the router rejects
     requests that try to include it.
+
+    ``resume_filename`` is special: the candidate can rename the label
+    but cannot change the file's extension (it must keep matching the
+    bytes on disk under ``resume_path``). The extension is locked to
+    the stored file's; raises ValueError on mismatch.
     """
     data = patch.model_dump(exclude_unset=True)
     if "full_name" in data and data["full_name"] is not None:
@@ -44,6 +53,61 @@ def apply_identity_patch(profile: CandidateProfile, patch: CandidateMeUpdate) ->
         profile.phone = data["phone"]
     if "linkedin_url" in data:
         profile.linkedin_url = data["linkedin_url"]
+    if "resume_filename" in data:
+        profile.resume_filename = _resolve_renamed_filename(
+            profile=profile, requested=data["resume_filename"]
+        )
+
+
+def _resolve_renamed_filename(
+    *, profile: CandidateProfile, requested: str | None
+) -> str | None:
+    """Validate a resume-filename rename request.
+
+    * Explicit null → clears the label (the file is still on disk).
+    * No stored resume → reject; nothing to label.
+    * Extension mismatch → reject; the bytes on disk have a fixed
+      content type so the label's extension must match.
+    """
+    if requested is None:
+        return None
+    if not profile.resume_path:
+        # Defensive: the UI shouldn't expose rename when there's no
+        # resume, but reject loudly if it tries anyway.
+        raise ValueError("Cannot set resume_filename without a stored resume")
+    locked_ext = _extension_of(profile.resume_filename or profile.resume_path)
+    new_ext = _extension_of(requested)
+    if locked_ext.lower() != new_ext.lower():
+        raise ValueError(
+            "Resume filename extension is locked to the stored file"
+            f" (expected .{locked_ext}, got .{new_ext})"
+        )
+    return requested
+
+
+def _extension_of(name: str) -> str:
+    """Bare extension (no dot) — empty string when none."""
+    if "." not in name:
+        return ""
+    return name.rsplit(".", 1)[-1]
+
+
+def _truncate_display_filename(name: str) -> str:
+    """Cap the display label at ``_MAX_DISPLAY_FILENAME_LEN`` chars while
+    preserving the file extension. Long uploads still succeed; the
+    label just gets the basename trimmed.
+
+    ``Milano-...-Dark-Blue.docx`` (53 chars) is left alone, but a
+    220-char filename would collapse to a 100-char display label that
+    still ends with the real extension.
+    """
+    if len(name) <= _MAX_DISPLAY_FILENAME_LEN:
+        return name
+    if "." not in name:
+        return name[:_MAX_DISPLAY_FILENAME_LEN]
+    base, ext = name.rsplit(".", 1)
+    suffix = "." + ext
+    return base[: _MAX_DISPLAY_FILENAME_LEN - len(suffix)] + suffix
 
 
 async def replace_resume(
@@ -83,6 +147,11 @@ async def replace_resume(
 
     old_key = profile.resume_path
     profile.resume_path = new_key
+    # Stash the candidate's original filename as the display label,
+    # truncated to the policy cap so a 250-char filename can still
+    # upload but the displayed label stays sane. They can rename it
+    # later via PATCH (basename only — extension is locked).
+    profile.resume_filename = _truncate_display_filename(filename)
 
     if old_key and old_key != new_key:
         try:
@@ -99,9 +168,11 @@ async def remove_resume(profile: CandidateProfile, storage: StorageProvider) -> 
     """Idempotent resume removal: delete the file (best-effort) + null the path.
 
     No-op when there is no resume on file. Application snapshots are untouched.
+    Also clears the display label so a fresh upload starts clean.
     """
     old_key = profile.resume_path
     profile.resume_path = None
+    profile.resume_filename = None
     if old_key:
         try:
             await storage.delete_file(old_key)

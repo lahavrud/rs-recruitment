@@ -28,6 +28,7 @@ def _to_me_read(user: User, profile: CandidateProfile) -> CandidateMeRead:
         phone=profile.phone,
         linkedin_url=profile.linkedin_url,
         resume_path=profile.resume_path,
+        resume_filename=profile.resume_filename,
         consent_given_at=profile.consent_given_at,
         consent_policy_version=profile.consent_policy_version,
         created_at=profile.created_at,
@@ -72,10 +73,18 @@ async def patch_me(
         ) from exc
 
     user, profile = current
-    async with transactional(session):
-        apply_identity_patch(profile, patch)
-        await session.flush()
-        await session.refresh(profile)
+    try:
+        async with transactional(session):
+            apply_identity_patch(profile, patch)
+            await session.flush()
+            await session.refresh(profile)
+    except ValueError as e:
+        # Extension-lock on resume_filename rename + the "rename without
+        # a stored resume" guard both raise here.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        ) from e
     return _to_me_read(user, profile)
 
 

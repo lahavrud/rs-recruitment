@@ -381,6 +381,13 @@ class CandidateProfile(SQLModel, table=True):
     # for a returning candidate, not as identity gates (Sprint 11 follow-up).
     phone: str | None = Field(default=None)
     resume_path: str | None = None
+    # Display label for ``resume_path`` — set on upload from the user's
+    # original ``UploadFile.filename`` and editable via PATCH (basename
+    # only; the extension is locked to the stored file's). Nullable so
+    # legacy rows (and PII-scrubbed deleted profiles) keep working with
+    # the basename-of-storage-key UI fallback. Per-Application snapshots
+    # of the filename are tracked separately in issue #666.
+    resume_filename: str | None = Field(default=None, max_length=255)
     linkedin_url: str | None = None
 
     # Privacy consent — captured at application time

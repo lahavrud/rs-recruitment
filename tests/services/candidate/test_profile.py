@@ -70,6 +70,37 @@ def test_apply_identity_patch_clears_phone_on_explicit_null():
     assert profile.phone is None
 
 
+def test_apply_identity_patch_renames_resume_filename_with_same_extension():
+    """Candidates can edit the display label, keeping the locked extension."""
+    profile = _make_profile(
+        resume_path="resumes/abc.pdf", resume_filename="Resume_v1.pdf"
+    )
+    apply_identity_patch(profile, CandidateMeUpdate(resume_filename="Lahav_Resume.pdf"))
+    assert profile.resume_filename == "Lahav_Resume.pdf"
+
+
+def test_apply_identity_patch_rejects_resume_filename_extension_change():
+    """The extension is locked to the bytes on disk — can't be renamed."""
+    profile = _make_profile(resume_path="resumes/abc.pdf", resume_filename="Resume.pdf")
+    with pytest.raises(ValueError, match="extension is locked"):
+        apply_identity_patch(profile, CandidateMeUpdate(resume_filename="Resume.docx"))
+
+
+def test_apply_identity_patch_rejects_resume_filename_without_stored_resume():
+    """Can't label a resume that doesn't exist."""
+    profile = _make_profile(resume_path=None, resume_filename=None)
+    with pytest.raises(ValueError, match="without a stored resume"):
+        apply_identity_patch(profile, CandidateMeUpdate(resume_filename="hello.pdf"))
+
+
+def test_apply_identity_patch_clears_resume_filename_on_explicit_null():
+    """Explicit-null clears the label — file on disk is unaffected."""
+    profile = _make_profile(resume_path="resumes/abc.pdf", resume_filename="Resume.pdf")
+    apply_identity_patch(profile, CandidateMeUpdate(resume_filename=None))
+    assert profile.resume_filename is None
+    assert profile.resume_path == "resumes/abc.pdf"
+
+
 @pytest.mark.asyncio
 async def test_replace_resume_uploads_and_deletes_old_file():
     profile = _make_profile(resume_path="resumes/old.pdf")
@@ -83,6 +114,8 @@ async def test_replace_resume_uploads_and_deletes_old_file():
 
     assert new_key == "resumes/new.pdf"
     assert profile.resume_path == "resumes/new.pdf"
+    # The user's original filename is captured as the display label.
+    assert profile.resume_filename == "new.pdf"
     storage.upload_file.assert_awaited_once()
     storage.delete_file.assert_awaited_once_with("resumes/old.pdf")
 

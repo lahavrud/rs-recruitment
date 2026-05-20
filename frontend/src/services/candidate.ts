@@ -22,6 +22,10 @@ export interface CandidateMeRead {
   phone: string | null;
   linkedin_url: string | null;
   resume_path: string | null;
+  // Display label for resume_path — set on upload from the user's
+  // original filename, editable later via PATCH (basename only;
+  // extension is locked to the stored file's).
+  resume_filename: string | null;
   consent_given_at: string | null;
   consent_policy_version: string | null;
   created_at: string;
@@ -32,6 +36,7 @@ export interface CandidateMeUpdate {
   // Explicit null clears the column (the backend validator accepts it).
   phone?: string | null;
   linkedin_url?: string | null;
+  resume_filename?: string | null;
 }
 
 export async function getMe(): Promise<CandidateMeRead> {
