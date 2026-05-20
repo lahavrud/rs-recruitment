@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pythonjsonlogger import json as jsonlogger
 
 from src.api import sentry_tunnel, seo
 from src.api.admin import (
@@ -42,6 +43,7 @@ from src.api.public import applications as candidates
 from src.api.public import jobs as public
 from src.core.infrastructure.config import settings, validate_settings
 from src.core.infrastructure.database import init_db
+from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddleware
 from src.core.tasks import close_redis_pool
 
 if settings.sentry_dsn:
@@ -74,6 +76,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await close_redis_pool()
 
 
+def _configure_logging() -> None:
+    """Set up JSON structured logging on the root logger.
+
+    In production, every log line is a JSON object so CloudWatch Logs Insights
+    can parse fields natively (filter level="ERROR", stats by endpoint, etc.).
+    In development the same JSON format is used for consistency; pipe through
+    `jq` locally if you prefer pretty output.
+    """
+    handler = logging.StreamHandler()
+    formatter = jsonlogger.JsonFormatter(
+        fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.handlers = [handler]
+    root.setLevel(settings.log_level.upper())
+
+
+_configure_logging()
+
+
 class _HealthCheckLogFilter(logging.Filter):
     # Route 53 polls /health every 30s, which would otherwise add ~2.8k
     # GET /health 200 lines/day to CloudWatch — pure noise that crowds out
@@ -83,9 +107,11 @@ class _HealthCheckLogFilter(logging.Filter):
 
 
 logging.getLogger("uvicorn.access").addFilter(_HealthCheckLogFilter())
+logging.getLogger().addFilter(RequestIdFilter())
 
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
+app.add_middleware(RequestMiddleware)
 
 # Configure CORS middleware
 app.add_middleware(
@@ -135,10 +161,3 @@ async def health_check() -> dict[str, str]:
         "environment": settings.environment,
         "redis": redis_status,
     }
-
-
-@app.get("/api/debug/sentry-test")
-async def sentry_test() -> None:
-    # Intentionally raises to verify Sentry capture end-to-end (release
-    # tagging, source maps, alerting). Safe to remove once validated.
-    raise RuntimeError("Sentry test exception — safe to ignore")

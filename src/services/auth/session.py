@@ -26,6 +26,7 @@ from src.services.exceptions import (
     PendingActivationError,
     PendingApprovalError,
 )
+from src.services.utils.audit import record_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,12 @@ def _lockout_key(email: str) -> str:
     return f"{_LOCKOUT_PREFIX}{email}"
 
 
+def _email_prefix(email: str) -> str:
+    """First two chars of the local part — loggable without storing PII."""
+    local = email.split("@")[0]
+    return f"{local[:2]}***"
+
+
 async def _check_lockout(email: str) -> None:
     from src.core.tasks import get_redis_pool
 
@@ -50,6 +57,10 @@ async def _check_lockout(email: str) -> None:
         redis = await get_redis_pool()
         ttl = await redis.ttl(_lockout_key(email))
         if ttl > 0:
+            logger.warning(
+                "login_lockout_hit",
+                extra={"email_prefix": _email_prefix(email), "ttl_s": ttl},
+            )
             raise AccountLockedError(minutes_remaining=math.ceil(ttl / 60))
     except AccountLockedError:
         raise
@@ -68,6 +79,15 @@ async def _record_failed_attempt(email: str) -> None:
         if count >= _MAX_FAILED_ATTEMPTS:
             await redis.set(_lockout_key(email), "1", ex=_LOCKOUT_SECONDS)
             await redis.delete(key)
+            logger.warning(
+                "login_account_locked",
+                extra={"email_prefix": _email_prefix(email)},
+            )
+        else:
+            logger.warning(
+                "login_failed",
+                extra={"email_prefix": _email_prefix(email), "attempt": count},
+            )
     except Exception:
         logger.error("redis_unavailable", extra={"surface": "record_failed_attempt"})
 
@@ -208,3 +228,11 @@ async def mark_invite_used(token: str, session: AsyncSession) -> None:
         record.status = InviteTokenStatus.USED
         record.used_at = datetime.now(timezone.utc)
         session.add(record)
+        await record_audit_event(
+            session,
+            actor_user_id=None,
+            action="invite_used",
+            target_type="invite",
+            target_id=record.id,
+            detail=record.email,
+        )

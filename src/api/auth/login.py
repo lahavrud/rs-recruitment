@@ -9,6 +9,7 @@ from src.core.infrastructure.dependencies import get_token_payload
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.transactions import transactional
+from src.enums import UserRole
 from src.schemas import AccessTokenResponse, LoginRequest
 from src.services.auth.session import (
     authenticate_user,
@@ -24,6 +25,7 @@ from src.services.exceptions import (
     PendingApprovalError,
     RedisUnavailableError,
 )
+from src.services.utils.audit import record_audit_event
 
 limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -76,6 +78,14 @@ async def login(
 
     async with transactional(session):
         access_token, refresh_token = await create_user_tokens(user, session)
+        if user.role == UserRole.ADMIN:
+            await record_audit_event(
+                session,
+                actor_user_id=user.id,
+                action="admin_login",
+                target_type="user",
+                target_id=user.id,
+            )
 
     _set_refresh_cookie(response, refresh_token)
     return AccessTokenResponse(access_token=access_token)
