@@ -42,6 +42,11 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     # tests/api/public/test_applications.py respectively.
     "src/services/public/_application_helpers.py",
     "src/api/public/_apply_handler.py",
+    # Sprint 11 / #609 — shared resume-streaming helper imported by both
+    # the admin (src/api/company/resumes.py) and candidate-facing
+    # (src/api/candidate/applications.py) resume endpoints. Exercised
+    # end-to-end via the consumer endpoints' tests.
+    "src/api/_resume_streaming.py",
 }
 
 # Test files allowed to exist without a matching source file.

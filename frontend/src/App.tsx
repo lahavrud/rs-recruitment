@@ -45,6 +45,12 @@ const CompanyJobsPage = lazyWithRetry(() => import("@/pages/company/CompanyJobsP
 const CandidateProfilePage = lazyWithRetry(
   () => import("@/pages/candidate/CandidateProfilePage"),
 );
+const CandidateApplicationsPage = lazyWithRetry(
+  () => import("@/pages/candidate/CandidateApplicationsPage"),
+);
+const CandidateApplicationDetailPage = lazyWithRetry(
+  () => import("@/pages/candidate/CandidateApplicationDetailPage"),
+);
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -173,12 +179,28 @@ export default function App() {
                 }
               />
 
-              {/* Candidate-only routes (Sprint 11 / #608) */}
+              {/* Candidate-only routes (Sprint 11 / #608, #609) */}
               <Route
                 path="/candidate/profile"
                 element={
                   <CandidateRoute>
                     <CandidateProfilePage />
+                  </CandidateRoute>
+                }
+              />
+              <Route
+                path="/candidate/applications"
+                element={
+                  <CandidateRoute>
+                    <CandidateApplicationsPage />
+                  </CandidateRoute>
+                }
+              />
+              <Route
+                path="/candidate/applications/:id"
+                element={
+                  <CandidateRoute>
+                    <CandidateApplicationDetailPage />
                   </CandidateRoute>
                 }
               />

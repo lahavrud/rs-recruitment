@@ -2,7 +2,7 @@
 
 import secrets
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -12,7 +12,7 @@ from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import get_password_hash, hash_token
 from src.enums import UserRole
 from src.main import app
-from src.models import ActivationToken, CompanyProfile, User
+from src.models import ActivationToken, CandidateProfile, CompanyProfile, User
 from tests.conftest import TestSessionLocal
 
 
@@ -130,3 +130,109 @@ async def test_activate_used_token_returns_400(test_db):
     app.dependency_overrides[get_session] = _override_session
 
     assert resp.status_code == 400
+
+
+async def _make_pending_candidate(session: AsyncSession) -> tuple[User, str]:
+    """Inactive candidate user + unused activation token, session-flushed only."""
+    email = f"candidate-act-{secrets.token_hex(6)}@test.com"
+    user = User(
+        email=email,
+        hashed_password=get_password_hash("Password1!"),  # pragma: allowlist secret
+        role=UserRole.CANDIDATE,
+        is_active=False,
+    )
+    session.add(user)
+    await session.flush()
+
+    raw_token = secrets.token_urlsafe(32)
+    activation = ActivationToken(
+        token_hash=hash_token(raw_token),
+        user_id=user.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+        used=False,
+    )
+    session.add(activation)
+    await session.flush()
+    return user, raw_token
+
+
+@pytest.mark.asyncio
+async def test_activate_candidate_returns_200_and_enqueues_welcome(test_db):
+    """Regression for the activation 500 (candidate cohort).
+
+    Bug: the welcome-email ``defer_after_commit`` call lived *after* the
+    ``async with transactional(session)`` block exited, so the contextvar
+    had already been reset to its sentinel and the call raised
+    ``RuntimeError``. The transaction had already committed by then —
+    the token was marked used and ``is_active`` flipped to True — but the
+    HTTP response came back 500. The frontend interpreted that as
+    "token invalid" and the user retried registration, which then 409'd
+    because the user was actually active.
+
+    Assert both observable outcomes:
+      * the route returns 200 (no RuntimeError leaked)
+      * the welcome email enqueue actually ran (proves the hook fired
+        inside transactional()'s post-commit pass, not into a phantom
+        contextvar list that never gets executed).
+    """
+    async with TestSessionLocal() as session:
+        user, token = await _make_pending_candidate(session)
+
+        async def _use_this_session() -> AsyncSession:
+            yield session
+
+        app.dependency_overrides[get_session] = _use_this_session
+
+        with patch(
+            "src.api.auth.activation.enqueue_email_task",
+            new_callable=AsyncMock,
+        ) as mock_enqueue:
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                resp = await client.post(f"/auth/activate?token={token}")
+
+    app.dependency_overrides[get_session] = _override_session
+
+    assert resp.status_code == 200
+    mock_enqueue.assert_awaited_once()
+    enqueue_kwargs = mock_enqueue.await_args.kwargs
+    assert enqueue_kwargs["to"] == user.email
+    assert "ברוכים" in enqueue_kwargs["subject"]
+
+
+@pytest.mark.asyncio
+async def test_activate_candidate_links_existing_profile_and_writes_consent(test_db):
+    """An anonymous-lead CandidateProfile (no user_id) gets linked at activation."""
+    async with TestSessionLocal() as session:
+        user, token = await _make_pending_candidate(session)
+        # Pre-existing anonymous lead: same email, no user_id yet.
+        lead = CandidateProfile(
+            user_id=None,
+            full_name="Existing Lead",
+            email=user.email,
+            phone="050-000-0000",
+        )
+        session.add(lead)
+        await session.flush()
+
+        async def _use_this_session() -> AsyncSession:
+            yield session
+
+        app.dependency_overrides[get_session] = _use_this_session
+
+        with patch(
+            "src.api.auth.activation.enqueue_email_task",
+            new_callable=AsyncMock,
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                resp = await client.post(f"/auth/activate?token={token}")
+
+        await session.refresh(lead)
+        assert resp.status_code == 200
+        assert lead.user_id == user.id
+        assert lead.consent_given_at is not None
+
+    app.dependency_overrides[get_session] = _override_session

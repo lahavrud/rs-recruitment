@@ -314,3 +314,74 @@ class ApplicationWithDetails(BaseModel):
     updated_at: datetime
     job: JobRead
     candidate: CandidateProfileRead
+
+
+# --------------------------------------------------------------------------
+# Candidate-facing application views (Sprint 11 / #609)
+#
+# Deliberately omit raw ``status`` and ``admin_notes`` — the candidate sees
+# only the derived ``editable`` boolean. WITHDRAWN rows are filtered upstream
+# in the service layer, so the field doesn't need to appear here either.
+# --------------------------------------------------------------------------
+
+
+class CandidateApplicationJobSummary(BaseModel):
+    """Minimal job snapshot embedded in the candidate's application list rows."""
+
+    id: int
+    title: str
+    closed: bool
+
+
+class CandidateApplicationJobDetail(BaseModel):
+    """Job snapshot embedded in the application detail view — adds description."""
+
+    id: int
+    title: str
+    description: str
+    closed: bool
+
+
+class CandidateApplicationCompany(BaseModel):
+    """Company snapshot embedded in candidate-facing application responses."""
+
+    id: int
+    name: str
+
+
+class CandidateApplicationListItem(BaseModel):
+    """Row shape for ``GET /api/candidate/me/applications``."""
+
+    id: int
+    submitted_at: datetime
+    editable: bool
+    job: CandidateApplicationJobSummary
+    company: CandidateApplicationCompany
+
+
+class CandidateApplicationMyAnswers(BaseModel):
+    """The candidate's own answers — what they submitted, not what admin saw."""
+
+    service_concept: str | None
+    salary_expectations: str | None
+    strength: str | None
+    growth_area: str | None
+
+
+class CandidateApplicationResumeMeta(BaseModel):
+    """Resume snapshot metadata — only filename + a present/absent flag."""
+
+    filename: str
+    snapshot_present: bool
+
+
+class CandidateApplicationDetail(BaseModel):
+    """Response for ``GET /api/candidate/me/applications/:id``."""
+
+    id: int
+    submitted_at: datetime
+    editable: bool
+    job: CandidateApplicationJobDetail
+    company: CandidateApplicationCompany
+    my_answers: CandidateApplicationMyAnswers
+    resume: CandidateApplicationResumeMeta | None
