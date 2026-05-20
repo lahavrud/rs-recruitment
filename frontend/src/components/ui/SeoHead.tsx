@@ -10,7 +10,8 @@ interface SeoHeadProps {
   canonical?: string;
   ogImage?: string;
   ogType?: "website" | "article";
-  structuredData?: object;
+  /** Pass a single object or an array to emit multiple JSON-LD blocks. */
+  structuredData?: object | object[];
   noIndex?: boolean;
 }
 
@@ -49,12 +50,18 @@ export default function SeoHead({
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
 
-      {/* JSON-LD structured data */}
-      {structuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-      )}
+      {/* JSON-LD structured data — single object or array of schemas */}
+      {Array.isArray(structuredData)
+        ? structuredData.map((schema, i) => (
+            <script key={i} type="application/ld+json">
+              {JSON.stringify(schema)}
+            </script>
+          ))
+        : structuredData && (
+            <script type="application/ld+json">
+              {JSON.stringify(structuredData)}
+            </script>
+          )}
     </Helmet>
   );
 }

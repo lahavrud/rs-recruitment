@@ -122,6 +122,8 @@ export default function AboutPage() {
   const [valuesRef, valuesVisible] = useReveal(0.06);
   const [processRef, processVisible] = useReveal(0.1);
   const [statsRef, statsVisible] = useReveal(0.2);
+  const [faqRef, faqVisible] = useReveal(0.08);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Hero / story / process backgrounds are CSS `background-image: url(...)`
   // which has no native load event — preload them so the `focus-in` animation
@@ -149,14 +151,28 @@ export default function AboutPage() {
         description={t("about.seo.description")}
         canonical={`${SITE_URL}/about`}
         ogImage={`${SITE_URL}/og/about.svg`}
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "RS Recruiting",
-          url: SITE_URL,
-          description: t("about.seo.description"),
-          email: "support@rs-recruiting.com",
-        }}
+        structuredData={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "RS Recruiting",
+            url: SITE_URL,
+            description: t("about.seo.description"),
+            email: "support@rs-recruiting.com",
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: Array.from({ length: 10 }, (_, i) => ({
+              "@type": "Question",
+              name: t(`about.faq.q${i + 1}`),
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: t(`about.faq.a${i + 1}`),
+              },
+            })),
+          },
+        ]}
       />
 
       <div className="overflow-x-hidden bg-void">
@@ -464,6 +480,71 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <div ref={faqRef} className="bg-card px-6 py-20 sm:py-28">
+        <div className="mx-auto max-w-3xl">
+          <div className="h-px w-8 bg-copper/40" style={ruleDraw(faqVisible)} />
+          <div className="mt-3 overflow-hidden">
+            <p className="text-xs font-semibold uppercase tracking-widest text-copper"
+              style={rise(faqVisible, "0.1s", "0.6s")}>
+              {t("about.faq.eyebrow")}
+            </p>
+          </div>
+          <div className="mt-3 overflow-hidden">
+            <p className="text-xl font-semibold text-white/85 sm:text-2xl"
+              style={rise(faqVisible, "0.2s")}>
+              {t("about.faq.headline")}
+            </p>
+          </div>
+
+          <dl className="mt-10">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n, idx) => {
+              const isOpen = openFaq === n;
+              return (
+                <div
+                  key={n}
+                  className="border-t border-white/8"
+                  style={revealUp(faqVisible, `${0.08 + idx * 0.045}s`, "0.55s")}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenFaq(isOpen ? null : n)}
+                    className="group flex w-full items-start justify-between gap-4 py-5 text-start"
+                  >
+                    <dt className="text-sm font-medium leading-relaxed text-white/70 transition-colors duration-200 group-hover:text-white/90">
+                      {t(`about.faq.q${n}`)}
+                    </dt>
+                    <span
+                      className="mt-0.5 shrink-0 text-copper/60 transition-all duration-300 group-hover:text-copper"
+                      style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0deg)" }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                        <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                      </svg>
+                    </span>
+                  </button>
+                  <dd
+                    className="overflow-hidden text-sm leading-relaxed text-white/45"
+                    style={{
+                      maxHeight: isOpen ? "24rem" : "0",
+                      opacity: isOpen ? 1 : 0,
+                      paddingBottom: isOpen ? "1.25rem" : "0",
+                      transition: isOpen
+                        ? "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, padding-bottom 0.3s ease"
+                        : "max-height 0.08s ease, opacity 0.06s ease, padding-bottom 0.08s ease",
+                    }}
+                  >
+                    {t(`about.faq.a${n}`)}
+                  </dd>
+                </div>
+              );
+            })}
+            <div className="border-t border-white/8" />
+          </dl>
         </div>
       </div>
 
