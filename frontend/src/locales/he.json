@@ -403,13 +403,46 @@
       "myJobs": "המשרות שלי",
       "myJobsDesc": "פרסם משרות חדשות ונהל את הרשימות הקיימות."
     },
-    "candidateLinks": {
-      "browseJobs": "משרות פתוחות",
-      "browseJobsDesc": "עיון בכל המשרות הזמינות והגשת מועמדות.",
-      "myApplications": "ההגשות שלי",
-      "myApplicationsDesc": "מעקב אחר ההגשות שלך, התשובות שמילאת, וקורות החיים שצורפו.",
-      "myProfile": "הפרופיל שלי",
-      "myProfileDesc": "פרטים אישיים, קורות חיים, אבטחה ופרטיות."
+    "candidate": {
+      "stats": {
+        "applicationsSubmitted": "הגשות",
+        "applicationsHint": "סך ההגשות שלכם בפלטפורמה",
+        "applicationsHintEmpty": "טרם הגשתם מועמדות",
+        "profileCompletion": "השלמת פרופיל",
+        "profileHintIncomplete": "השלימו לאוטופיל מהיר יותר",
+        "profileHintComplete": "הפרופיל מוכן להגשות"
+      },
+      "profileCompletion": {
+        "title": "השלמת פרופיל",
+        "hint": "השלימו את השדות החסרים — נמלא אותם אוטומטית בטופס ההגשה הבא.",
+        "complete": "הפרופיל שלכם מלא — טפסי הגשה ימולאו אוטומטית.",
+        "fields": {
+          "phone": "מספר טלפון",
+          "linkedin": "קישור LinkedIn",
+          "resume": "קורות חיים"
+        },
+        "inline": {
+          "required": "שדה חובה",
+          "error": "שמירת השדה נכשלה. נסו שוב.",
+          "resumeError": "העלאת הקובץ נכשלה. נסו שוב.",
+          "resumeHint": "בחרו קובץ PDF / DOC / DOCX",
+          "resumePick": "בחירת קובץ",
+          "linkedinHint": "כתובת מלאה — לדוגמה https://linkedin.com/in/your-handle"
+        }
+      },
+      "recentApplications": {
+        "title": "ההגשות האחרונות",
+        "viewAll": "כל ההגשות",
+        "empty": "עדיין לא הגשתם מועמדות. תתחילו ממשרה שמעניינת אתכם.",
+        "browseCta": "לעמוד המשרות"
+      },
+      "browseCta": {
+        "eyebrow": "המשרות שלנו",
+        "titleFirst": "עוד לא הגשתם? מצאו את המשרה הראשונה",
+        "titleReturning": "מעיינים במשרות נוספות",
+        "body": "המשרות מתעדכנות באופן שוטף. הגישו מועמדות והפרטים שלכם ימולאו אוטומטית.",
+        "action": "לעמוד המשרות"
+      }
     }
   },
   "landing": {
@@ -754,6 +787,9 @@
       "eyebrow": "פרופיל מועמד",
       "subtitle": "ניהול הפרטים האישיים שלכם, קורות החיים, אבטחה ופרטיות.",
       "loading": "טוען…",
+      "settings": {
+        "title": "הגדרות חשבון"
+      },
       "identity": {
         "title": "זהות",
         "subtitle": "שם מלא וכתובת דוא\"ל — אלה הפרטים היחידים שאינם ניתנים להחלפה כדי להגיש מועמדות. כתובת הדוא\"ל מקושרת לחשבון ולא ניתנת לשינוי כאן.",
@@ -788,10 +824,19 @@
       "resume": {
         "title": "קורות חיים",
         "currentName": "הקובץ הנוכחי: {{name}}",
+        "attachedHint": "מצורף — לחצו על השם כדי לערוך",
+        "uploadHint": "PDF, DOC או DOCX עד 10MB",
         "none": "טרם הועלו קורות חיים.",
         "upload": "העלאת קובץ",
         "replace": "החלפת קובץ",
         "remove": "מחיקת קורות החיים",
+        "renameTooltip": "ערכו את שם הקובץ",
+        "renameInputLabel": "שם הקובץ",
+        "renameHint": "סיומת הקובץ נשמרת כפי שהיא — ניתן לערוך רק את השם",
+        "renameErrors": {
+          "blank": "שם הקובץ אינו יכול להיות ריק",
+          "invalid": "שם הקובץ אינו תקין"
+        },
         "confirmDelete": "האם אתם בטוחים שברצונכם למחוק את קורות החיים?",
         "errors": {
           "invalidFile": "סוג הקובץ אינו נתמך, או שהקובץ פגום. נתמכים: PDF, DOC, DOCX עד 10MB.",

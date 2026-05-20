@@ -205,6 +205,7 @@ class CandidateMeRead(BaseModel):
     phone: str | None
     linkedin_url: str | None
     resume_path: str | None
+    resume_filename: str | None
     consent_given_at: datetime | None
     consent_policy_version: str | None
     created_at: datetime
@@ -213,7 +214,8 @@ class CandidateMeRead(BaseModel):
 class CandidateMeUpdate(BaseModel):
     """Self-service candidate profile update (Sprint 11 / #608).
 
-    Editable fields only: ``full_name``, ``phone``, ``linkedin_url``.
+    Editable fields only: ``full_name``, ``phone``, ``linkedin_url``,
+    ``resume_filename`` (basename only — see validator).
 
     ``email`` is intentionally absent — auth identity is set at registration
     and a candidate-side email change requires re-verification, which is
@@ -226,6 +228,10 @@ class CandidateMeUpdate(BaseModel):
     full_name: str | None = Field(None, min_length=2, max_length=100)
     phone: str | None = Field(None, max_length=30)
     linkedin_url: str | None = Field(None, max_length=500)
+    # 100-char cap covers any reasonable resume filename and keeps the
+    # candidate-facing UI readable. Tighter than the DB column's
+    # max_length=255 — the column bounds storage, this bounds policy.
+    resume_filename: str | None = Field(None, max_length=100)
 
     @field_validator("phone")
     @classmethod
@@ -246,6 +252,33 @@ class CandidateMeUpdate(BaseModel):
     @classmethod
     def validate_linkedin_url(cls, v: str | None) -> str | None:
         return _validate_linkedin_url_value(v)
+
+    @field_validator("resume_filename")
+    @classmethod
+    def validate_resume_filename(cls, v: str | None) -> str | None:
+        """Shape-validate the resume filename label.
+
+        The extension lock (must match the stored file's) is enforced at
+        the service layer because the schema can't see profile state.
+        Here we just reject path-traversal / unsafe characters so the
+        label can't be used to smuggle anything weird into the storage
+        key (which lives on a separate column anyway).
+        """
+        if v is None:
+            return None
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("resume_filename cannot be blank")
+        # Reject path separators + traversal — defence in depth even
+        # though the storage key is a separate column.
+        if "/" in stripped or "\\" in stripped or ".." in stripped:
+            raise ValueError("resume_filename cannot contain path separators")
+        # Allow letters/digits/space/dot/hyphen/underscore/parentheses
+        # plus a small set of locale punctuation. Reject control bytes
+        # and obvious shell metas.
+        if any(c in stripped for c in '<>:"|?*\x00'):
+            raise ValueError("resume_filename contains unsafe characters")
+        return stripped
 
 
 class ApplicationCreate(BaseModel):

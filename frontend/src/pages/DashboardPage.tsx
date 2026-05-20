@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/api";
 import AdminInbox from "@/components/admin/AdminInbox";
 import AdminStats from "@/components/admin/AdminStats";
+import CandidateDashboard from "@/components/dashboard/CandidateDashboard";
 
 function getGreetingKey(): string {
   const hour = new Date().getHours();
@@ -50,17 +51,21 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* Warm, time-aware hero */}
-      <header className="mb-8 border-b border-white/8 pb-6 sm:mb-10 sm:pb-8">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {today}
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold text-white/90 sm:text-3xl">
-          {greeting}
-          {name && <span className="text-copper/85">{`, ${name}`}</span>}
-        </h1>
-        <p className="mt-2 text-sm text-white/45">{t(heroSubtitleKey)}</p>
-      </header>
+      {/* Warm, time-aware hero — candidate flow owns its own hero so it
+          can use the real CandidateProfile.full_name (fetched alongside
+          the dashboard data) instead of the email-prefix shim. */}
+      {!isCandidate && (
+        <header className="mb-8 border-b border-white/8 pb-6 sm:mb-10 sm:pb-8">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+            {today}
+          </p>
+          <h1 className="mt-3 text-2xl font-semibold text-white/90 sm:text-3xl">
+            {greeting}
+            {name && <span className="text-copper/85">{`, ${name}`}</span>}
+          </h1>
+          <p className="mt-2 text-sm text-white/45">{t(heroSubtitleKey)}</p>
+        </header>
+      )}
 
       {isAdmin ? (
         <div className="space-y-10">
@@ -75,7 +80,7 @@ export default function DashboardPage() {
           </section>
         </div>
       ) : isCandidate ? (
-        <CandidateLinks />
+        <CandidateDashboard />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
@@ -166,44 +171,6 @@ function QuickActions() {
           </Link>
         ))}
       </div>
-    </div>
-  );
-}
-
-/** Candidate landing cards — mirrors the candidate sidebar links. */
-function CandidateLinks() {
-  const { t } = useTranslation();
-  const links = [
-    {
-      to: "/jobs",
-      label: t("dashboard.candidateLinks.browseJobs"),
-      desc: t("dashboard.candidateLinks.browseJobsDesc"),
-    },
-    {
-      to: "/candidate/applications",
-      label: t("dashboard.candidateLinks.myApplications"),
-      desc: t("dashboard.candidateLinks.myApplicationsDesc"),
-    },
-    {
-      to: "/candidate/profile",
-      label: t("dashboard.candidateLinks.myProfile"),
-      desc: t("dashboard.candidateLinks.myProfileDesc"),
-    },
-  ];
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {links.map((l) => (
-        <Link
-          key={l.to}
-          to={l.to}
-          className="group rounded-xl border border-white/8 bg-card p-5 transition duration-200 hover:border-copper/30 hover:bg-card-raised"
-        >
-          <p className="font-medium text-white/85 transition group-hover:text-white/95">
-            {l.label}
-          </p>
-          <p className="mt-1 text-sm text-white/45">{l.desc}</p>
-        </Link>
-      ))}
     </div>
   );
 }
