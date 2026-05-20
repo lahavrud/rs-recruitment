@@ -214,7 +214,15 @@ def test_worker_settings_configuration():
     """Test WorkerSettings configuration."""
     settings = WorkerSettings()
 
-    assert settings.functions == [send_email_task, purge_expired_candidate_data_task]
+    # Sprint 11 / #608 added build_data_export_task between send_email_task
+    # and the nightly cron purge.
+    from src.core.tasks import build_data_export_task
+
+    assert settings.functions == [
+        send_email_task,
+        build_data_export_task,
+        purge_expired_candidate_data_task,
+    ]
     assert settings.max_jobs == 10
     assert settings.job_timeout == 300
     assert settings.retry_jobs is True
