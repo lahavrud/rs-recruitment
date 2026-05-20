@@ -58,6 +58,7 @@ _EMAIL_TASK_TARGETS = [
     "src.services.admin.companies.enqueue_email_task",
     "src.services.company.jobs.enqueue_email_task",
     "src.services.admin.jobs_workflow.enqueue_email_task",
+    "src.services.admin.jobs.enqueue_email_task",
     "src.services.public.applications.enqueue_email_task",
     "src.services.auth.password_reset.enqueue_email_task",
     # applications_admin no longer imports enqueue_email_task directly;

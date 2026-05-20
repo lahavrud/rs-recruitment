@@ -9,7 +9,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from src.core.infrastructure.config import settings
 from src.core.infrastructure.database_helpers import get_by_id_or_raise
 from src.core.infrastructure.pagination import (
     CursorPage,
@@ -17,10 +19,26 @@ from src.core.infrastructure.pagination import (
     build_cursor_page,
     clamp_limit,
 )
+from src.core.infrastructure.transactions import defer_after_commit
+from src.core.tasks import enqueue_email_task
 from src.enums import JobStatus
 from src.models import Application, CompanyProfile, Job
 from src.schemas import JobAdminCreate, JobAdminUpdate, JobRead
 from src.services.exceptions import CompanyNotFoundError, JobNotFoundError
+from src.templates.email import build_job_admin_edited_html
+
+_FIELD_LABELS: dict[str, str] = {
+    "title": "כותרת",
+    "short_description": "תיאור קצר",
+    "description": "תיאור מפורט",
+    "requirements": "דרישות",
+    "tags": "תגיות",
+    "is_featured": "מוצגת",
+    "location": "מיקום",
+    "salary_min": "שכר מינימום",
+    "salary_max": "שכר מקסימום",
+    "status": "סטטוס",
+}
 
 
 async def list_jobs(
@@ -91,22 +109,57 @@ async def update_job(
 ) -> JobRead:
     """Apply a partial update to a job. Admin can edit any field at any status.
 
+    Notifies the company by email when at least one field changes and the
+    company has an attached user account. Admin-created orphan companies
+    (no user) are silently skipped.
+
     Raises:
         JobNotFoundError: If no job with that id exists.
     """
-    job = await get_by_id_or_raise(
-        session, Job, job_id, lambda pk: JobNotFoundError(f"Job {pk} not found")
+    result = await session.execute(
+        select(Job)
+        .options(selectinload(Job.company).selectinload(CompanyProfile.user))
+        .where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
     )
+    job = result.scalar_one_or_none()
+    if job is None:
+        raise JobNotFoundError(f"Job {job_id} not found")
 
     # model_dump serializes nested pydantic items (e.g. JobRequirementItem)
     # to plain dicts, which is exactly what the JSONB column wants.
     payload = data.model_dump(exclude_unset=True)
+
+    changed_labels = [
+        _FIELD_LABELS.get(field, field)
+        for field, value in payload.items()
+        if getattr(job, field) != value
+    ]
+
     for field, value in payload.items():
         setattr(job, field, value)
     job.updated_at = datetime.now(timezone.utc)
 
     await session.flush()
     await session.refresh(job)
+
+    if changed_labels and job.company.user is not None:
+        _email = job.company.user.email
+        _title = job.title
+        _company_name = job.company.name
+        _dashboard_url = f"{settings.frontend_base_url}/company/jobs"
+        defer_after_commit(
+            lambda: enqueue_email_task(
+                to=_email,
+                subject="פרסום משרה עודכן על-ידי המנהל — RS Recruiting",
+                html_body=build_job_admin_edited_html(
+                    job_title=_title,
+                    company_name=_company_name,
+                    changed_fields=changed_labels,
+                    dashboard_url=_dashboard_url,
+                ),
+            )
+        )
+
     return JobRead.model_validate(job)
 
 
