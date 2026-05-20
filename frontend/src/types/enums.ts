@@ -7,6 +7,7 @@
 export const UserRole = {
   ADMIN: "ADMIN",
   COMPANY: "COMPANY",
+  CANDIDATE: "CANDIDATE",
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
@@ -22,6 +23,7 @@ export const ApplicationStatus = {
   APPROVED_BY_ADMIN: "APPROVED_BY_ADMIN",
   REJECTED: "REJECTED",
   HIRED: "HIRED",
+  WITHDRAWN: "WITHDRAWN",
 } as const;
 export type ApplicationStatus =
   (typeof ApplicationStatus)[keyof typeof ApplicationStatus];

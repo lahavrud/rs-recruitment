@@ -12,6 +12,7 @@ class UserRole(str, Enum):
 
     ADMIN = "ADMIN"
     COMPANY = "COMPANY"
+    CANDIDATE = "CANDIDATE"
 
 
 class JobStatus(str, Enum):
@@ -29,6 +30,7 @@ class ApplicationStatus(str, Enum):
     APPROVED_BY_ADMIN = "APPROVED_BY_ADMIN"
     REJECTED = "REJECTED"
     HIRED = "HIRED"
+    WITHDRAWN = "WITHDRAWN"
 
 
 class InviteTokenStatus(str, Enum):

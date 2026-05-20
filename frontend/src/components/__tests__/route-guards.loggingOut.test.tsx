@@ -2,9 +2,10 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { AuthContext, type AuthContextType } from "@/contexts/AuthContext";
-import AdminRoute from "../AdminRoute";
-import ProtectedRoute from "../ProtectedRoute";
-import CompanyRoute from "../CompanyRoute";
+import AdminRoute from "../guards/AdminRoute";
+import ProtectedRoute from "../guards/ProtectedRoute";
+import CompanyRoute from "../guards/CompanyRoute";
+import CandidateRoute from "../guards/CandidateRoute";
 
 function loggingOutCtx(): AuthContextType {
   return {
@@ -46,6 +47,13 @@ describe("route guards — loggingOut sentinel", () => {
   it("CompanyRoute renders null while loggingOut=true", () => {
     const { container } = renderWithCtx(
       <CompanyRoute><div>child</div></CompanyRoute>,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("CandidateRoute renders null while loggingOut=true", () => {
+    const { container } = renderWithCtx(
+      <CandidateRoute><div>child</div></CandidateRoute>,
     );
     expect(container).toBeEmptyDOMElement();
   });

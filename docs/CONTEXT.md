@@ -13,9 +13,8 @@
 * **Vertical Slices**: Build features end-to-end (DB → business logic → API). Do NOT build by technical layers.
 * **Admin as Gatekeeper**: Companies, Jobs, and Matches require Admin approval. Public input is never auto-trusted.
 * **Hybrid Auth Model**:
-* Admins & Companies are authenticated `Users`.
-* Candidates are unauthenticated `CandidateProfile` leads in MVP.
-* Candidate authentication is **planned post-MVP** as an optional "claim" flow (match-by-email links past applications to a new account). Schema must keep this path open: nullable `user_id` on `CandidateProfile`, unique `email`. Do NOT add Candidate authentication endpoints in MVP unless explicitly requested.
+* Admins, Companies, and Candidates are authenticated `Users`.
+* Anonymous applicants exist as bare `CandidateProfile` rows (no linked `User`); they are upgraded to a candidate `User` by registering or by claiming their submission via the public apply form (Sprint 11 — see issues #604–#619 for the candidate-user feature surface).
 
 * **MVP First**: Prefer simple, explicit solutions over abstractions. Avoid over-engineering and premature optimization.
 
@@ -60,11 +59,11 @@
 
 ## 3. Domain Model (Source of Truth)
 
-* **User**: Authenticated entity (Roles: `ADMIN`, `COMPANY`).
+* **User**: Authenticated entity (Roles: `ADMIN`, `COMPANY`, `CANDIDATE`).
 * **CompanyProfile**: 1:1 with User today; `user_id` will become nullable to support admin-posted jobs against companies that have no user yet.
-* **CandidateProfile**: Unauthenticated lead containing interview-related fields. One profile per email (planned constraint), many `Application` rows per profile.
+* **CandidateProfile**: Either an anonymous lead (no `user_id`, created by the public apply form) or a registered candidate (linked 1:1 with a `User(role=CANDIDATE)`). FK to `user` uses `ON DELETE SET NULL` so deleting a candidate User leaves the profile in place for application history; the deletion service PII-scrubs the profile in place (see Sprint 11 / #611). One profile per email (UNIQUE), many `Application` rows per profile.
 * **Job**: Linked to Company (Status: `PENDING_APPROVAL` → `PUBLISHED` → `CLOSED`).
-* **Application**: Links Candidate ↔ Job (Status: `NEW` → `APPROVED_BY_ADMIN` → `REJECTED` → `HIRED`). Carries `admin_notes` (internal). Resume is per-application snapshot; the candidate profile holds the latest.
+* **Application**: Links Candidate ↔ Job (Status: `NEW` → `APPROVED_BY_ADMIN` → `REJECTED` → `HIRED` → `WITHDRAWN`). Carries `admin_notes` (internal) and `resume_path` (per-application snapshot). Unique on `(job_id, candidate_id)` is **partial** — `WHERE status != 'WITHDRAWN'` — so candidates can re-apply to a job they previously withdrew from.
 
 ---
 

@@ -249,6 +249,18 @@ async def test_apply_endpoint_creates_application(
         assert application is not None
         assert application.status == ApplicationStatus.NEW
 
+        # Regression for #604: anonymous apply must still produce a
+        # CandidateProfile with user_id IS NULL (no auth attached).
+        from src.models import CandidateProfile
+
+        profile_result = await session.execute(
+            select(CandidateProfile).where(
+                CandidateProfile.id == candidate_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        profile = profile_result.scalar_one()
+        assert profile.user_id is None, "anonymous apply must not link to a User"
+
 
 @pytest.mark.asyncio
 @patch("src.services.public.applications.enqueue_email_task")

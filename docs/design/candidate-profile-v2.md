@@ -46,6 +46,7 @@ Matching is planned for a future slice but will use different signals — these 
 | `consent_policy_version` | `str \| None` | from #413 |
 | `consent_ip` | `str \| None` | from #413 |
 | `consent_user_agent` | `str \| None` | from #413 |
+| `user_id` | `int \| None` | from #604 — nullable FK to `user.id` with `ON DELETE SET NULL`, UNIQUE. Anonymous leads keep `user_id=NULL`; registered candidates link 1:1 to a `User(role=CANDIDATE)`. |
 | `created_at` | `datetime` | |
 
 **Removed:** `service_concept`, `salary_expectations`, `personality_strength`, `personality_weakness`, `military_service_details`, `transportation`
@@ -60,6 +61,9 @@ Existing columns unchanged, plus:
 | `salary_expectations` | `Text \| None` | moved from CandidateProfile |
 | `strength` | `Text \| None` | renamed from `personality_strength` |
 | `growth_area` | `Text \| None` | renamed from `personality_weakness` |
+| `resume_path` | `Text \| None` | from #604 — per-application snapshot of the uploaded resume at apply time. Independent of `CandidateProfile.resume_path` (the latest). |
+
+**Status enum** also gains `WITHDRAWN` in #604; the existing `UniqueConstraint("job_id", "candidate_id")` is replaced by a partial unique index `WHERE status != 'WITHDRAWN'` so candidates can re-apply after withdrawing.
 
 ---
 
