@@ -31,7 +31,7 @@ flowchart LR
     ECR1[("ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush")]
     ECR2[("ECR rs-recruitment/frontend<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
-    CW["CloudWatch<br/>5 log groups · 8 alarms · 1 dashboard"]
+    CW["CloudWatch<br/>5 log groups · 9 alarms · 1 dashboard"]
     CT["CloudTrail<br/>multi-region · log validation"]
     SNS1["SNS ops-alerts"]
     Budget["AWS Budget<br/>monthly-40<br/>50/80/100 actual + 100 forecast"]
@@ -162,8 +162,12 @@ Default EBS encryption: ON (account-wide).
 | Log group `/rs-recruitment/worker` | **400d retention** (compliance audit trail for `retention.purge candidate_id=`) |
 | Log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` | RDS log export · **30d retention** |
 | Metric filter `nginx-5xx-errors` | `/rs-recruitment/nginx` · nginx combined log field pattern `status=5*` · emits `RsRecruiting/Nginx / Http5xxCount` (Sum, `defaultValue=0`) |
-| Metric filter `auth-login-failures` | `/rs-recruitment/api` · JSON fields `message IN [login_failed, login_account_locked, login_lockout_hit]` · emits `RsRecruiting/Auth / LoginFailureCount` (Sum, `defaultValue=0`) |
-| Alarm `nginx-5xx-rate-high` | `Http5xxCount` Sum > 5 in 5 min → ops-alerts (and OK action → ops-alerts) |
+| Metric filter `auth-login-failed` | `/rs-recruitment/api` · `{ $.message = "login_failed" }` · emits `RsRecruiting/Auth / LoginFailedCount` |
+| Metric filter `auth-account-locked` | `/rs-recruitment/api` · `{ $.message = "login_account_locked" }` · emits `RsRecruiting/Auth / AccountLockedCount` |
+| Metric filter `auth-lockout-hit` | `/rs-recruitment/api` · `{ $.message = "login_lockout_hit" }` · emits `RsRecruiting/Auth / LockoutHitCount` |
+| Metric filter `auth-rate-limited` | `/rs-recruitment/api` · `{ $.message = "rate_limit_hit" }` · emits `RsRecruiting/Auth / RateLimitHitCount` |
+| Alarm `nginx-5xx-rate-high` | `Http5xxCount` Sum > 5 in 5 min → ops-alerts |
+| Alarm `auth-login-failed-spike` | `LoginFailedCount` Sum > 10 in 5 min → ops-alerts (brute-force / credential stuffing signal) |
 | Alarm `ec2-cpu-high-rs-server` | EC2 CPU >80% for 30min → ops-alerts |
 | Alarm `rds-connections-high` | RDS connections high → ops-alerts |
 | Alarm `rds-cpu-high` | RDS CPU >80% for 30min → ops-alerts |
@@ -171,8 +175,8 @@ Default EBS encryption: ON (account-wide).
 | Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
 | Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
 | Alarm `SecurityAlarm-CloudTrailChanges` | CloudTrail configuration changes → ops-alerts |
-| Dashboard `rs-recruiting-ops` | 6 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage, `LoginFailureCount`. Created via `aws cloudwatch put-dashboard`. |
-| Logs Insights saved queries | "Last 50 errors" (`/rs-recruitment/api` · `levelname = "ERROR"`), "Requests to a path" (`/rs-recruitment/nginx`), "Login failures last hour" (`/rs-recruitment/api`), "Audit events by actor" (`/rs-recruitment/worker`) |
+| Dashboard `rs-recruiting-ops` | 6 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage, auth failures (4 series). Created via `aws cloudwatch put-dashboard`. |
+| Logs Insights saved queries | "Last 50 errors" (`levelname = "ERROR"`), "Requests to a path", "Login failures last hour", "Audit events by actor" — all on `/rs-recruitment/api` or `/rs-recruitment/nginx` / `/rs-recruitment/worker` |
 | SNS `ops-alerts` | Email → `<OPS_EMAIL>` (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
 | CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-<ACCOUNT_ID>` |
 | GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency, 30-day free trial active until ~2026-06-08; primary input is CloudTrail (above) |
@@ -191,12 +195,18 @@ Default EBS encryption: ON (account-wide).
 | Namespace | Metric | Source |
 |---|---|---|
 | `RsRecruiting/Retention` | `PurgedCandidatesCount` | Worker — Arq cron, see `tasks.py::_emit_purge_count_metric` |
+| `RsRecruiting/Auth` | `LoginFailedCount`, `AccountLockedCount`, `LockoutHitCount`, `RateLimitHitCount` | API — structured log events via CloudWatch metric filters |
 
 ---
 
 ## 4. Decisions log (append-only)
 
 Newest first. Each entry: date, what, why, links. When updating, append; don't rewrite history.
+
+### 2026-05-20 — Auth observability: structured log events, split metrics, brute-force alarm
+**Decision:** Added structured log events across the auth surface: `login_failed`, `login_account_locked`, `login_lockout_hit`, `login_email_not_found`, `login_success`, `rate_limit_hit` (all with `ip` field), `password_reset_token_invalid`, `registration_email_exists`. Fixed `request_id` correlation ID to appear in every JSON log line (`fmt` fix). Split the old combined `LoginFailureCount` metric filter into four distinct signals (`LoginFailedCount`, `AccountLockedCount`, `LockoutHitCount`, `RateLimitHitCount`) under `RsRecruiting/Auth`. Added alarm `auth-login-failed-spike` (> 10 in 5 min). Updated `rs-recruiting-ops` dashboard auth panel to show all four series. Added `RateLimitExceeded` exception handler that logs and returns clean JSON 429.
+**Why:** Login failures had no IP, no correlation ID, and conflated three distinct attack signals into one metric. Rate limit hits were invisible. The dashboard showed a single number with no way to distinguish brute-force from distributed stuffing from legitimate lockouts.
+**Trade:** `login_email_not_found` is always logged internally but the HTTP response remains identical to `login_failed` — no user-facing information leak. Rate-limit logging only fires in production (limiter is disabled in dev/test per `limiter.py`).
 
 ### 2026-05-20 — Rename CW metric namespaces RsRecruitment → RsRecruiting
 **Decision:** Renamed both custom CloudWatch metric namespaces to match the correct brand name: `RsRecruitment/Retention` → `RsRecruiting/Retention` and `RsRecruitment/Nginx` → `RsRecruiting/Nginx`. Updated IAM inline policy `CloudWatchPutRetentionMetric` condition on `rs-recruitment-app-role` to allow `RsRecruiting/Retention`. Updated `retention-purge-stale` and `nginx-5xx-rate-high` alarms, `rs-recruiting-ops` dashboard, `nginx-5xx-errors` metric filter, `tasks.py` `METRIC_NAMESPACE` constant.
