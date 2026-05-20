@@ -35,6 +35,7 @@ import { useAutoOpenFromRouteState } from "@/hooks/useAutoOpenFromRouteState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { selectCls, textareaCls } from "@/styles/forms";
+import { MIME_TO_EXT } from "@/utils/mime";
 
 const ALL_STATUSES = [
   ApplicationStatus.NEW,
@@ -67,12 +68,6 @@ function formatDate(iso: string): string {
 }
 
 // ── Resume link — fetches via axios so the JWT travels with it ──────────────
-
-const MIME_TO_EXT: Record<string, string> = {
-  "application/pdf": "pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-  "application/msword": "doc",
-};
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
   const slug = candidateName.trim().replace(/\s+/g, "-");

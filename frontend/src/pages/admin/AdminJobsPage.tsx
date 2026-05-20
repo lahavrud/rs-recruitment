@@ -22,7 +22,7 @@ import type {
   JobRead,
   JobRequirementItem,
 } from "@/types/api";
-import { JobStatus, JOB_SHORT_DESC_MAX, JOB_REQ_MIN_COUNT } from "@/types/api";
+import { JobStatus, JOB_SHORT_DESC_MAX, JOB_REQ_MIN_COUNT, JOB_TITLE_MAX, JOB_LOCATION_MAX, JOB_DESC_MAX } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import Dialog from "@/components/ui/Dialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -1569,14 +1569,14 @@ function EditDialog({ job, onClose, onSaved, onError }: EditProps) {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!form.title?.trim()) e.title = t("common.validation.required");
-    else if (form.title.length > 100) e.title = t("common.validation.tooLong", { max: 100 });
+    else if (form.title.length > JOB_TITLE_MAX) e.title = t("common.validation.tooLong", { max: JOB_TITLE_MAX });
     if (!form.short_description?.trim()) e.short_description = t("common.validation.required");
     else if (form.short_description.length > JOB_SHORT_DESC_MAX)
       e.short_description = t("common.validation.tooLong", { max: JOB_SHORT_DESC_MAX });
     if (!form.location?.trim()) e.location = t("common.validation.required");
-    else if (form.location.length > 200) e.location = t("common.validation.tooLong", { max: 200 });
+    else if (form.location.length > JOB_LOCATION_MAX) e.location = t("common.validation.tooLong", { max: JOB_LOCATION_MAX });
     if (!form.description?.trim()) e.description = t("common.validation.required");
-    else if (form.description.length > 5000) e.description = t("common.validation.tooLong", { max: 5000 });
+    else if (form.description.length > JOB_DESC_MAX) e.description = t("common.validation.tooLong", { max: JOB_DESC_MAX });
     const reqs = form.requirements ?? [];
     const filledReqs = reqs.filter((r) => r.text.trim().length > 0);
     if (filledReqs.length < JOB_REQ_MIN_COUNT)
@@ -1897,14 +1897,14 @@ function CreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!form.title?.trim()) e.title = t("common.validation.required");
-    else if (form.title.length > 100) e.title = t("common.validation.tooLong", { max: 100 });
+    else if (form.title.length > JOB_TITLE_MAX) e.title = t("common.validation.tooLong", { max: JOB_TITLE_MAX });
     if (!form.short_description?.trim()) e.short_description = t("common.validation.required");
     else if (form.short_description.length > JOB_SHORT_DESC_MAX)
       e.short_description = t("common.validation.tooLong", { max: JOB_SHORT_DESC_MAX });
     if (!form.location?.trim()) e.location = t("common.validation.required");
-    else if (form.location.length > 200) e.location = t("common.validation.tooLong", { max: 200 });
+    else if (form.location.length > JOB_LOCATION_MAX) e.location = t("common.validation.tooLong", { max: JOB_LOCATION_MAX });
     if (!form.description?.trim()) e.description = t("common.validation.required");
-    else if (form.description.length > 5000) e.description = t("common.validation.tooLong", { max: 5000 });
+    else if (form.description.length > JOB_DESC_MAX) e.description = t("common.validation.tooLong", { max: JOB_DESC_MAX });
     const filledReqs = (form.requirements ?? []).filter((r) => r.text.trim().length > 0);
     if (filledReqs.length < JOB_REQ_MIN_COUNT)
       e.requirements = t("common.validation.requirementsMin", { min: JOB_REQ_MIN_COUNT });

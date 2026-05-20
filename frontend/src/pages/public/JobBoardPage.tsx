@@ -11,6 +11,7 @@ import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
 import { useImageLoaded } from "@/hooks/useImageLoaded";
 import type { JobPublicRead } from "@/types/api";
+import { SALARY_FALLBACK } from "@/types/api";
 
 function rise(delay = "0s", duration = "0.8s"): CSSProperties {
   return { animation: `text-rise ${duration} cubic-bezier(0.16, 1, 0.3, 1) ${delay} both` };
@@ -145,8 +146,6 @@ interface SalaryBounds {
   min: number;
   max: number;
 }
-
-const SALARY_FALLBACK: SalaryBounds = { min: 0, max: 50000 };
 
 function getSalaryBounds(jobs: JobPublicRead[]): SalaryBounds {
   let lo = Infinity;

@@ -1,11 +1,17 @@
 import type { JobStatus } from "@/types/enums";
 
+export const JOB_TITLE_MAX = 100;
+export const JOB_LOCATION_MAX = 200;
+export const JOB_DESC_MAX = 5000;
 export const JOB_SHORT_DESC_MAX = 140;
 export const JOB_TAG_MAX_LEN = 30;
 export const JOB_TAG_MAX_COUNT = 6;
 export const JOB_REQ_TEXT_MAX = 200;
 export const JOB_REQ_MIN_COUNT = 3;
 export const JOB_REQ_MAX_COUNT = 15;
+
+/** Fallback salary bounds used when job list is empty or all salaries are equal. */
+export const SALARY_FALLBACK = { min: 0, max: 50_000 } as const;
 
 export interface JobRequirementItem {
   text: string;

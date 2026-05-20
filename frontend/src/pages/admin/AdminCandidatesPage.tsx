@@ -39,6 +39,7 @@ import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
+import { MIME_TO_EXT } from "@/utils/mime";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("he-IL", {
@@ -47,12 +48,6 @@ function formatDate(iso: string): string {
     year: "numeric",
   });
 }
-
-const MIME_TO_EXT: Record<string, string> = {
-  "application/pdf": "pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-  "application/msword": "doc",
-};
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
   const slug = candidateName.trim().replace(/\s+/g, "-");
