@@ -1,5 +1,6 @@
 """FastAPI dependencies for authentication and authorization."""
 
+import ipaddress
 from typing import Any
 
 import sentry_sdk
@@ -8,6 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.security import (
     decode_access_token,
@@ -273,14 +275,44 @@ async def get_current_candidate(
     return (current_user, candidate_profile)
 
 
-def client_ip(request: Request) -> str | None:
-    """Best-effort client IP, honoring X-Forwarded-For from a trusted proxy.
+def _is_trusted_proxy(peer_ip: str) -> bool:
+    """Return True if peer_ip falls within settings.trusted_proxy_ips."""
+    raw = settings.trusted_proxy_ips.strip()
+    if not raw:
+        return False
+    try:
+        addr = ipaddress.ip_address(peer_ip)
+        for cidr in raw.split(","):
+            cidr = cidr.strip()
+            if cidr and addr in ipaddress.ip_network(cidr, strict=False):
+                return True
+    except ValueError:
+        pass
+    return False
 
-    Returns the leftmost entry of `X-Forwarded-For` if present (most trustworthy
-    when terminating TLS at a single reverse proxy), otherwise the direct peer
-    address. None if neither is available.
+
+def client_ip(request: Request) -> str | None:
+    """Best-effort client IP.
+
+    Two-layer protection against XFF forgery (issue #647):
+
+    1. **Infrastructure layer (primary)**: set the `FORWARDED_ALLOW_IPS` env
+       var to the load-balancer's private CIDR in production.  Uvicorn reads
+       this automatically and only rewrites `request.client.host` from XFF when
+       the TCP peer matches.  The value must mirror `TRUSTED_PROXY_IPS`.
+
+    2. **Application layer (defence-in-depth)**: this function only reads
+       `X-Forwarded-For` when `request.client.host` is in `TRUSTED_PROXY_IPS`.
+       This layer is the sole guard when uvicorn's proxy middleware is not active
+       (e.g. the httpx ASGITransport used in the test suite) and a second check
+       for misconfigured deployments.
+
+    Falls back to `request.client.host` — which is the uvicorn-resolved peer
+    address — when no trusted proxy is configured or the peer is untrusted.
     """
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",", 1)[0].strip() or None
-    return request.client.host if request.client else None
+    peer = request.client.host if request.client else None
+    if peer and _is_trusted_proxy(peer):
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",", 1)[0].strip() or peer
+    return peer

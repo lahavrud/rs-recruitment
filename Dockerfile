@@ -53,6 +53,10 @@ EXPOSE 8000
 # The entrypoint runs as root to fix permissions, then switches to appuser
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-# --proxy-headers: Trust X-Forwarded-* headers from reverse proxy (Docker, nginx, etc.)
-# This ensures rate limiting uses the real client IP, not the proxy IP
+# --proxy-headers: honour X-Forwarded-* headers from the reverse proxy.
+# FORWARDED_ALLOW_IPS: comma-separated IPs/CIDRs whose XFF headers are trusted.
+# Uvicorn reads this env var automatically; set it to the load-balancer's private
+# CIDR in production (e.g. FORWARDED_ALLOW_IPS=10.0.0.0/8).  Leaving it unset
+# defaults to trusting only 127.0.0.1, which does NOT cover a remote LB — rate
+# limiting and IP audit records will use the LB's IP instead of the client's.
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

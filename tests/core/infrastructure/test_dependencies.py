@@ -1,12 +1,14 @@
 """Tests for authentication dependencies."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.dependencies import (
+    _is_trusted_proxy,
+    client_ip,
     get_current_admin,
     get_current_candidate,
     get_current_user,
@@ -410,3 +412,84 @@ class TestGetCurrentCandidate:
             await get_current_candidate(current_user=current_user, session=session)
 
         assert exc_info.value.status_code == 404
+
+
+# ── client_ip / trusted-proxy guard (issue #647) ─────────────────────────────
+
+
+def _make_request(peer: str | None, xff: str | None = None) -> MagicMock:
+    req = MagicMock()
+    req.client = MagicMock(host=peer) if peer else None
+    headers: dict[str, str] = {}
+    if xff is not None:
+        headers["x-forwarded-for"] = xff
+    req.headers = headers
+    return req
+
+
+class TestIsTrustedProxy:
+    def test_empty_config_never_trusted(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = ""
+            assert _is_trusted_proxy("10.0.0.1") is False
+
+    def test_exact_ip_match(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.1"
+            assert _is_trusted_proxy("10.0.0.1") is True
+
+    def test_cidr_match(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8"
+            assert _is_trusted_proxy("10.1.2.3") is True
+
+    def test_cidr_no_match(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8"
+            assert _is_trusted_proxy("192.168.1.1") is False
+
+    def test_multiple_cidrs_second_matches(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8, 172.16.0.0/12"
+            assert _is_trusted_proxy("172.20.0.5") is True
+
+    def test_invalid_peer_ip_returns_false(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8"
+            assert _is_trusted_proxy("not-an-ip") is False
+
+
+class TestClientIp:
+    def test_no_trusted_proxy_ignores_xff(self):
+        """Without trusted_proxy_ips configured, XFF is always ignored."""
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = ""
+            req = _make_request("1.2.3.4", xff="9.9.9.9")
+            assert client_ip(req) == "1.2.3.4"
+
+    def test_trusted_peer_xff_used(self):
+        """When peer is trusted, return leftmost XFF entry."""
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8"
+            req = _make_request("10.0.0.1", xff="203.0.113.5, 10.0.0.1")
+            assert client_ip(req) == "203.0.113.5"
+
+    def test_untrusted_peer_xff_ignored(self):
+        """When peer is not trusted, fall back to peer IP even if XFF is set."""
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8"
+            req = _make_request("203.0.113.99", xff="1.1.1.1")
+            assert client_ip(req) == "203.0.113.99"
+
+    def test_no_client_returns_none(self):
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = ""
+            req = _make_request(None)
+            assert client_ip(req) is None
+
+    def test_trusted_peer_no_xff_falls_back_to_peer(self):
+        """Trusted peer but no XFF header — return the peer IP."""
+        with patch("src.core.infrastructure.dependencies.settings") as s:
+            s.trusted_proxy_ips = "10.0.0.0/8"
+            req = _make_request("10.0.0.1", xff=None)
+            assert client_ip(req) == "10.0.0.1"
