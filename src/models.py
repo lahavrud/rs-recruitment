@@ -8,9 +8,10 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Text,
-    UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship, SQLModel
@@ -129,9 +130,12 @@ class PasswordResetToken(SQLModel, table=True):
 
 
 class User(SQLModel, table=True):
-    """Authenticated user entity (Admins & Companies).
+    """Authenticated user entity (Admins, Companies, Candidates).
 
-    Users authenticate and log in. Candidates do NOT use this model.
+    Admins manage the platform. Companies post jobs. Candidates apply to jobs
+    and manage their own applications. Anonymous applicants exist as bare
+    CandidateProfile rows with no linked User — they're upgraded to a
+    candidate User by registering or claiming via the public apply form.
     """
 
     id: int | None = Field(default=None, primary_key=True)
@@ -147,8 +151,8 @@ class User(SQLModel, table=True):
     # NOTE: annotation is the bare class for SQLModel 0.0.22 compatibility —
     # `Optional[CompanyProfile]` / `CompanyProfile | None` are rejected at
     # mapper init under `from __future__ import annotations`. The relationship
-    # IS effectively nullable: ADMIN users have no profile, and after
-    # `selectinload(User.company_profile)` the value will be None.
+    # IS effectively nullable: ADMIN/CANDIDATE users have no company profile,
+    # and after `selectinload(User.company_profile)` the value will be None.
     # See `tests/models/test_user.py::test_admin_user_company_profile_is_none`.
     company_profile: CompanyProfile = Relationship(
         back_populates="user",
@@ -156,6 +160,16 @@ class User(SQLModel, table=True):
         # rely on the DB's ON DELETE CASCADE (migration c4d2a8f1e9b7) — without
         # it, SA would issue `UPDATE companyprofile SET user_id=NULL` first and
         # orphan the profile instead of cascading.
+        sa_relationship_kwargs={"uselist": False, "passive_deletes": "all"},
+    )
+    # 1:1 with CandidateProfile (effectively nullable: ADMIN/COMPANY users have
+    # no candidate profile). FK uses ON DELETE SET NULL so that deleting a
+    # candidate User leaves the profile as a tombstone for application history
+    # (the deletion service then PII-scrubs the profile in place — see Sprint
+    # 11 / issue #611). `passive_deletes="all"` keeps SQLAlchemy from issuing
+    # its own UPDATE before the DELETE; we trust the DB-side SET NULL.
+    candidate_profile: CandidateProfile = Relationship(
+        back_populates="user",
         sa_relationship_kwargs={"uselist": False, "passive_deletes": "all"},
     )
 
@@ -283,12 +297,26 @@ class Job(SQLModel, table=True):
 
 
 class CandidateProfile(SQLModel, table=True):
-    """Candidate profile (unauthenticated lead).
+    """Candidate profile.
 
-    Candidates do not authenticate. They are treated as leads/data entities.
+    Either an anonymous lead (no `user_id`, created by the public apply form)
+    OR a registered candidate (linked 1:1 with a `User(role=CANDIDATE)`).
+
+    On `User` deletion the FK is SET NULL, leaving the profile in place so
+    `Application` rows survive (see Sprint 11 deletion flow — issue #611).
     """
 
     id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="SET NULL"),
+            nullable=True,
+            unique=True,
+            index=True,
+        ),
+    )
     full_name: str
     email: str = Field(unique=True, index=True)
     phone: str
@@ -314,8 +342,12 @@ class CandidateProfile(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
-    # Note: One-way relationships only (SQLModel 0.0.22 limitation)
-    # Access applications via:
+    # 1:1 back-relationship to User. Effectively nullable at runtime: anonymous
+    # leads have `user_id=None` and this resolves to None after
+    # `selectinload(CandidateProfile.user)`. Bare-class annotation per the
+    # SQLModel 0.0.22 limitation (see CompanyProfile.user above).
+    user: User = Relationship(back_populates="candidate_profile")
+    # Note: applications are one-way (SQLModel 0.0.22 limitation). Access via:
     # session.exec(select(Application).where(Application.candidate_id == candidate.id))
 
     @field_validator("resume_path")
@@ -364,10 +396,27 @@ class Application(SQLModel, table=True):
     """Application (Match) - the core business entity.
 
     Links a Candidate to a Job. Represents the recruitment match.
+
+    `resume_path` snapshots the resume that was uploaded *for this specific
+    application* at apply time (Sprint 11 / issue #604). It is independent of
+    `CandidateProfile.resume_path` (the latest resume on file). Allows
+    candidates to swap their default resume without retroactively changing
+    what companies already received.
     """
 
+    # Partial unique index: a candidate cannot have two non-WITHDRAWN
+    # applications for the same job, but WITHDRAWN ones don't block re-apply
+    # (Sprint 11 / #604 amendment — candidates can change their mind and
+    # apply again to a job they previously withdrew from).
     __table_args__ = (
-        UniqueConstraint("job_id", "candidate_id", name="uq_application_job_candidate"),
+        Index(
+            "uq_application_job_candidate_active",
+            "job_id",
+            "candidate_id",
+            unique=True,
+            postgresql_where=text("status != 'WITHDRAWN'"),
+            sqlite_where=text("status != 'WITHDRAWN'"),
+        ),
     )
 
     id: int | None = Field(default=None, primary_key=True)
@@ -393,6 +442,7 @@ class Application(SQLModel, table=True):
     salary_expectations: str | None = Field(default=None, sa_column=Column(Text))
     strength: str | None = Field(default=None, sa_column=Column(Text))
     growth_area: str | None = Field(default=None, sa_column=Column(Text))
+    resume_path: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),

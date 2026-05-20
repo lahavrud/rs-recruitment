@@ -89,3 +89,109 @@ async def test_application_creation(session: AsyncSession, job_and_candidate):
     assert application.admin_notes is None
     assert application.created_at is not None
     assert application.updated_at is not None
+    assert application.resume_path is None  # new in #604, default is NULL
+
+
+@pytest.mark.asyncio
+async def test_application_resume_path_roundtrip(
+    session: AsyncSession, job_and_candidate
+):
+    """Application.resume_path (per-application snapshot, #604) round-trips."""
+    job = job_and_candidate["job"]
+    candidate = job_and_candidate["candidate"]
+    assert isinstance(job, Job) and isinstance(candidate, CandidateProfile)
+    assert job.id is not None and candidate.id is not None
+
+    app = Application(
+        job_id=job.id,  # type: ignore[arg-type]
+        candidate_id=candidate.id,  # type: ignore[arg-type]
+        resume_path="uploads/resumes/snapshot.pdf",
+    )
+    session.add(app)
+    await session.commit()
+    await session.refresh(app)
+    assert app.resume_path == "uploads/resumes/snapshot.pdf"
+
+
+@pytest.mark.asyncio
+async def test_application_withdrawn_status_roundtrip(
+    session: AsyncSession, job_and_candidate
+):
+    """ApplicationStatus.WITHDRAWN round-trips on the model + DB."""
+    job = job_and_candidate["job"]
+    candidate = job_and_candidate["candidate"]
+    assert isinstance(job, Job) and isinstance(candidate, CandidateProfile)
+    assert job.id is not None and candidate.id is not None
+
+    app = Application(
+        job_id=job.id,  # type: ignore[arg-type]
+        candidate_id=candidate.id,  # type: ignore[arg-type]
+        status=ApplicationStatus.WITHDRAWN,
+    )
+    session.add(app)
+    await session.commit()
+    await session.refresh(app)
+    assert app.status == ApplicationStatus.WITHDRAWN
+
+
+@pytest.mark.asyncio
+async def test_partial_unique_index_blocks_duplicate_active(
+    session: AsyncSession, job_and_candidate
+):
+    """Two non-WITHDRAWN applications for the same (job, candidate) must fail."""
+    job = job_and_candidate["job"]
+    candidate = job_and_candidate["candidate"]
+    assert isinstance(job, Job) and isinstance(candidate, CandidateProfile)
+    assert job.id is not None and candidate.id is not None
+
+    a1 = Application(
+        job_id=job.id,  # type: ignore[arg-type]
+        candidate_id=candidate.id,  # type: ignore[arg-type]
+        status=ApplicationStatus.NEW,
+    )
+    session.add(a1)
+    await session.commit()
+
+    a2 = Application(
+        job_id=job.id,  # type: ignore[arg-type]
+        candidate_id=candidate.id,  # type: ignore[arg-type]
+        status=ApplicationStatus.NEW,
+    )
+    session.add(a2)
+    with pytest.raises(Exception):  # IntegrityError on partial unique index
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_partial_unique_index_allows_reapply_after_withdrawn(
+    session: AsyncSession, job_and_candidate
+):
+    """A WITHDRAWN application does NOT block re-applying to the same job.
+
+    Pins the #604-amendment behavior: the unique index is partial
+    `WHERE status != 'WITHDRAWN'`, so a candidate can apply again after
+    withdrawing.
+    """
+    job = job_and_candidate["job"]
+    candidate = job_and_candidate["candidate"]
+    assert isinstance(job, Job) and isinstance(candidate, CandidateProfile)
+    assert job.id is not None and candidate.id is not None
+
+    withdrawn = Application(
+        job_id=job.id,  # type: ignore[arg-type]
+        candidate_id=candidate.id,  # type: ignore[arg-type]
+        status=ApplicationStatus.WITHDRAWN,
+    )
+    session.add(withdrawn)
+    await session.commit()
+
+    fresh = Application(
+        job_id=job.id,  # type: ignore[arg-type]
+        candidate_id=candidate.id,  # type: ignore[arg-type]
+        status=ApplicationStatus.NEW,
+    )
+    session.add(fresh)
+    await session.commit()
+    await session.refresh(fresh)
+    assert fresh.id is not None
+    assert fresh.status == ApplicationStatus.NEW

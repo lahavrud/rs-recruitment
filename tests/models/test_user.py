@@ -73,6 +73,30 @@ async def test_admin_user_company_profile_is_none(session: AsyncSession):
 
 
 @pytest.mark.asyncio
+async def test_admin_user_candidate_profile_is_none(session: AsyncSession):
+    """ADMIN users have no CandidateProfile — relationship resolves to None.
+
+    Pins the type annotation: User.candidate_profile is Optional, not required
+    (mirrors `test_admin_user_company_profile_is_none`).
+    """
+    admin = User(
+        email="admin-no-cand@example.com",
+        hashed_password=get_password_hash("password"),
+        role=UserRole.ADMIN,
+    )
+    session.add(admin)
+    await session.commit()
+
+    result = await session.execute(
+        select(User)
+        .options(selectinload(User.candidate_profile))
+        .where(User.email == "admin-no-cand@example.com")
+    )
+    fetched = result.scalar_one()
+    assert fetched.candidate_profile is None
+
+
+@pytest.mark.asyncio
 async def test_orphan_company_profile_user_is_none(session: AsyncSession):
     """CompanyProfile created without a User (admin pre-invite flow) has user=None.
 
