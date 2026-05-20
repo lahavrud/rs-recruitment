@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import get_password_hash
 from src.core.infrastructure.transactions import transactional
-from src.enums import ApplicationStatus, UserRole
+from src.enums import ApplicationStatus, JobStatus, UserRole
 from src.models import Application, CandidateProfile, Job, User
 from src.schemas import CandidateProfileCreate
 from src.services.exceptions import (
@@ -30,7 +30,12 @@ async def _make_published_job(
     company_with_user,
     title: str = "Senior Python Developer",
 ) -> Job:
-    """Create + persist a published job under the test company."""
+    """Create + persist a published job under the test company.
+
+    Explicit ``status=PUBLISHED`` — the model defaults to
+    ``PENDING_APPROVAL`` which the apply endpoint correctly rejects
+    (issue #649). The name now matches what the helper actually does.
+    """
     job = Job(
         company_id=company_with_user.id,
         title=title,
@@ -44,6 +49,7 @@ async def _make_published_job(
         location="Tel Aviv, Israel",
         salary_min=15000,
         salary_max=25000,
+        status=JobStatus.PUBLISHED,
     )
     session.add(job)
     await session.commit()
