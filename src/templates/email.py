@@ -444,3 +444,46 @@ def build_new_application_admin_html(
         + _cta(admin_url, "מעבר לניהול מועמדויות")
     )
     return _wrap("מועמדות חדשה — RS Recruiting", body)
+
+
+def build_job_admin_edited_html(
+    job_title: str,
+    company_name: str,
+    changed_fields: list[str],
+    dashboard_url: str,
+    former_title: str | None = None,
+) -> str:
+    """HTML email sent to the company when an admin edits one of their jobs."""
+    stitle = _e(job_title)
+    scompany = _e(company_name)
+    former_suffix = (
+        f' <span style="color:{_TEXT_MID};font-weight:400;">'
+        f"({_e(former_title)} לשעבר)</span>"
+        if former_title
+        else ""
+    )
+    fields_html = "".join(
+        f'<li style="margin:0 0 6px;font-family:Arial,sans-serif;'
+        f"font-size:14px;line-height:1.6;"
+        f'color:{_TEXT_HI};">{_e(f)}</li>'
+        for f in changed_fields
+    )
+    body = (
+        _h("פרסום משרה עודכן על-ידי המנהל")
+        + _p(f"שלום {_company(scompany)},")
+        + _p(
+            f"מנהל המערכת ביצע עדכון במשרת "
+            f"<strong>{stitle}</strong>{former_suffix} שפורסמה בשמכם."
+        )
+        + _rule()
+        + f'<p style="margin:0 0 8px;font-family:Arial,sans-serif;'
+        f'font-size:13px;font-weight:600;color:{_TEXT_MID};">שדות שעודכנו:</p>'
+        + f'<ul style="margin:0 0 20px;padding-right:20px;">{fields_html}</ul>'
+        + _rule()
+        + _p(
+            "אם יש לכם שאלות לגבי השינויים, אנא צרו קשר עם צוות RS Recruiting.",
+            muted=True,
+        )
+        + _cta(dashboard_url, "מעבר למשרות שלי")
+    )
+    return _wrap("פרסום משרה עודכן על-ידי המנהל — RS Recruiting", body)

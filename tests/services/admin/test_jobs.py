@@ -1,6 +1,7 @@
 """Unit tests for the admin jobs CRUD service layer."""
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import select
@@ -79,6 +80,82 @@ async def test_update_job_partial_keeps_unset_fields(
 async def test_update_job_not_found(session: AsyncSession):
     with pytest.raises(JobNotFoundError):
         await update_job(99999, JobAdminUpdate(title="anything"), session)
+
+
+_PATCH_EMAIL = "src.services.admin.jobs.enqueue_email_task"
+_PATCH_DEFER = "src.services.admin.jobs.defer_after_commit"
+
+
+@pytest.mark.asyncio
+async def test_update_job_enqueues_email_on_real_change(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    created = await admin_create_job(_payload(company_with_user.id), session)
+    await session.commit()
+
+    with patch(_PATCH_EMAIL) as mock_email:
+        with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+            await update_job(
+                created.id,
+                JobAdminUpdate(title="Updated Title"),
+                session,
+            )
+            await session.commit()
+
+    mock_email.assert_called_once()
+    call_kwargs = mock_email.call_args.kwargs
+    assert call_kwargs["to"] == company_with_user.contact_email
+    assert "עודכן" in call_kwargs["subject"]
+
+
+@pytest.mark.asyncio
+async def test_update_job_no_email_on_noop(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    created = await admin_create_job(_payload(company_with_user.id), session)
+    await session.commit()
+
+    with patch(_PATCH_EMAIL) as mock_email:
+        with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+            await update_job(
+                created.id,
+                JobAdminUpdate(title="Backend Engineer"),  # same as original
+                session,
+            )
+            await session.commit()
+
+    mock_email.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_job_no_email_when_company_has_no_user(
+    session: AsyncSession,
+):
+    orphan_company = CompanyProfile(
+        name="Orphan Co",
+        company_id="999",
+        address="כתובת",
+        contact_email="orphan@test.com",
+        contact_first_name="א",
+        contact_last_name="ב",
+        contact_mobile_phone="0501234567",
+    )
+    session.add(orphan_company)
+    await session.flush()
+
+    created = await admin_create_job(_payload(orphan_company.id), session)
+    await session.commit()
+
+    with patch(_PATCH_EMAIL) as mock_email:
+        with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+            await update_job(
+                created.id,
+                JobAdminUpdate(title="New Title"),
+                session,
+            )
+            await session.commit()
+
+    mock_email.assert_not_called()
 
 
 # ── delete_job ────────────────────────────────────────────────────────────────

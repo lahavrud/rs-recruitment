@@ -77,7 +77,7 @@ async def create_job(
     if admin_emails:
         from src.core.infrastructure.config import settings
 
-        admin_url = f"{settings.frontend_base_url}/admin/jobs"
+        admin_url = f"{settings.frontend_base_url}/login?redirect=/admin/jobs"
         _plain = f"משרה חדשה ממתינה לאישור: {new_job.title} ({company.name})"
         _html = build_new_job_html(
             job_title=new_job.title,
@@ -220,7 +220,7 @@ async def update_job(
     if admin_emails:
         from src.core.infrastructure.config import settings
 
-        admin_url = f"{settings.frontend_base_url}/admin/jobs"
+        admin_url = f"{settings.frontend_base_url}/login?redirect=/admin/jobs"
         _plain = f"פרסום משרה עודכן: {job.title} ({company.name})"
         _html = build_job_updated_html(
             job_title=job.title,

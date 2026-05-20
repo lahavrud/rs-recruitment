@@ -63,7 +63,7 @@ async def _notify_admins_new_registration(
 ) -> None:
     from src.core.infrastructure.config import settings
 
-    admin_url = f"{settings.frontend_base_url}/admin/companies"
+    admin_url = f"{settings.frontend_base_url}/login?redirect=/admin/companies"
     html = build_new_registration_html(
         company_name=profile.name or "",
         company_id=profile.company_id or "—",
