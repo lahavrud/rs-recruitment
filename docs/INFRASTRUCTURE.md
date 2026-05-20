@@ -31,7 +31,7 @@ flowchart LR
     ECR1[("ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush")]
     ECR2[("ECR rs-recruitment/frontend<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
-    CW["CloudWatch<br/>5 log groups · 5 alarms"]
+    CW["CloudWatch<br/>5 log groups · 8 alarms · 1 dashboard"]
     CT["CloudTrail<br/>multi-region · log validation"]
     SNS1["SNS ops-alerts"]
     Budget["AWS Budget<br/>monthly-40<br/>50/80/100 actual + 100 forecast"]
@@ -160,12 +160,18 @@ Default EBS encryption: ON (account-wide).
 | Log group `/rs-recruitment/nginx` | 14d retention |
 | Log group `/rs-recruitment/redis` | 14d retention |
 | Log group `/rs-recruitment/worker` | **400d retention** (compliance audit trail for `retention.purge candidate_id=`) |
-| Log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` | RDS log export (default retention) |
+| Log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` | RDS log export · **30d retention** |
+| Metric filter `nginx-5xx-errors` | `/rs-recruitment/nginx` · nginx combined log field pattern `status=5*` · emits `RsRecruitment/Nginx / Http5xxCount` (Sum, `defaultValue=0`) |
+| Alarm `nginx-5xx-rate-high` | `Http5xxCount` Sum > 5 in 5 min → ops-alerts (and OK action → ops-alerts) |
 | Alarm `ec2-cpu-high-rs-server` | EC2 CPU >80% for 30min → ops-alerts |
+| Alarm `rds-connections-high` | RDS connections high → ops-alerts |
 | Alarm `rds-cpu-high` | RDS CPU >80% for 30min → ops-alerts |
 | Alarm `rds-storage-low` | RDS free storage <4GB → ops-alerts |
 | Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
 | Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
+| Alarm `SecurityAlarm-CloudTrailChanges` | CloudTrail configuration changes → ops-alerts |
+| Dashboard `rs-recruiting-ops` | 5 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage. Lockout-rate panel pending #588. Created via `aws cloudwatch put-dashboard`. |
+| Logs Insights saved queries | "Last 50 errors" (`/rs-recruitment/api`), "Requests to a path" (`/rs-recruitment/nginx`), "Login failures last hour" (`/rs-recruitment/api` · partial until #588), "Audit events by actor" (`/rs-recruitment/worker`) |
 | SNS `ops-alerts` | Email → `<OPS_EMAIL>` (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
 | CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-<ACCOUNT_ID>` |
 | GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency, 30-day free trial active until ~2026-06-08; primary input is CloudTrail (above) |
@@ -190,6 +196,11 @@ Default EBS encryption: ON (account-wide).
 ## 4. Decisions log (append-only)
 
 Newest first. Each entry: date, what, why, links. When updating, append; don't rewrite history.
+
+### 2026-05-20 — 5xx alarm, RDS log retention, ops dashboard (PRs #587 #595 #596)
+**Decision:** (1) Added CloudWatch metric filter `nginx-5xx-errors` on `/rs-recruitment/nginx` using the nginx combined-log field-extraction pattern (`status=5*`), emitting `RsRecruitment/Nginx / Http5xxCount`. Created alarm `nginx-5xx-rate-high` at Sum > 5 per 5-min window → `ops-alerts`. (2) Set 30d retention on the RDS log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` (was indefinite). (3) Created dashboard `rs-recruiting-ops` with 5 metric panels and 4 saved Logs Insights queries.
+**Why:** A 500 storm on any business endpoint would not have fired any existing alarm (Route53 health check only pings `/health`). RDS log group was the only log group without a retention policy, creating unbounded cost risk. Dashboard reduces mean-time-to-orient when `ops-alerts` fires.
+**Trade:** Alarm threshold of 5 per 5 min is intentionally generous for a low-traffic job board — avoids noise from transient deploys. Lockout-rate dashboard panel deferred pending #588.
 
 ### 2026-05-13 — Permanent S3 file deletion + versioning suspended (PR [#406](https://github.com/lahavrud/rs-recruitment/pull/406))
 **Decision:** (1) Suspend S3 versioning on the app bucket. (2) Add lifecycle rule: noncurrent versions expire after 1 day, delete markers auto-cleaned. (3) Update `S3StorageProvider.delete_file` to walk `list_object_versions` and call `delete_objects` with explicit VersionIds, permanently removing every version and marker rather than creating a new delete marker. (4) Extend `rs-recruitment-app-role` S3 policy with `s3:DeleteObjectVersion` and `s3:ListBucketVersions`.
