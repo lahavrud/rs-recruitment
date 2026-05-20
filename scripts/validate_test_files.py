@@ -36,6 +36,12 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     "src/api/seo/_sitemap.py",
     # Two version-string constants (no logic to test).
     "src/services/utils/legal.py",
+    # Sprint 11 / #606 — helper modules split out of applications.py to
+    # satisfy file-size caps. Exercised end-to-end via
+    # tests/services/public/test_applications.py and
+    # tests/api/public/test_applications.py respectively.
+    "src/services/public/_application_helpers.py",
+    "src/api/public/_apply_handler.py",
 }
 
 # Test files allowed to exist without a matching source file.
