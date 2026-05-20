@@ -130,7 +130,7 @@ async def approve_job_posting(
     """Approve a pending job; sets status to PUBLISHED and notifies the company."""
     try:
         async with transactional(session):
-            return await approve_job(job_id, session)
+            return await approve_job(job_id, session, actor_user_id=current_admin.id)
     except (JobNotFoundError, JobNotPendingError) as e:
         raise service_exception_to_http(e) from e
 
@@ -144,7 +144,7 @@ async def reject_job_posting(
     """Reject a pending job; sets status to CLOSED and notifies the company."""
     try:
         async with transactional(session):
-            await reject_job(job_id, session)
+            await reject_job(job_id, session, actor_user_id=current_admin.id)
     except (JobNotFoundError, JobNotPendingError) as e:
         raise service_exception_to_http(e) from e
 

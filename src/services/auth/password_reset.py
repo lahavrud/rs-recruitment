@@ -29,6 +29,7 @@ from src.core.tasks import enqueue_email_task
 from src.models import PasswordResetToken, RefreshToken, User
 from src.services.auth.session import _clear_failed_attempts
 from src.services.exceptions import InvalidPasswordResetTokenError
+from src.services.utils.audit import record_audit_event
 from src.templates.email import build_password_reset_html
 
 logger = logging.getLogger(__name__)
@@ -179,6 +180,14 @@ async def reset_password(
             RefreshToken.is_revoked == False,  # noqa: E712
         )
         .values(is_revoked=True)
+    )
+
+    await record_audit_event(
+        session,
+        actor_user_id=user.id,
+        action="password_reset",
+        target_type="user",
+        target_id=user.id,
     )
 
     defer_after_commit(lambda: _clear_failed_attempts(user.email))

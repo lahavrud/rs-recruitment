@@ -18,6 +18,7 @@ from src.enums import JobStatus
 from src.models import CompanyProfile, Job
 from src.schemas import JobRead
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
+from src.services.utils.audit import record_audit_event
 from src.templates.email import build_job_contact_html
 
 
@@ -62,7 +63,9 @@ async def list_pending_jobs(
     )
 
 
-async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
+async def approve_job(
+    job_id: int, session: AsyncSession, *, actor_user_id: int | None = None
+) -> JobRead:
     """Approve a job posting by changing status to PUBLISHED.
 
     Sets Job.status=PUBLISHED and sends email notification to the company.
@@ -90,6 +93,15 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
     job.status = JobStatus.PUBLISHED
     job.updated_at = datetime.now(timezone.utc)
     await session.flush()
+
+    await record_audit_event(
+        session,
+        actor_user_id=actor_user_id,
+        action="job_approved",
+        target_type="job",
+        target_id=job.id,
+        detail=job.title,
+    )
 
     # Emails only go out when the company has an active user account.
     # Admin-created (orphan) profiles have no inbox to deliver to, so we
@@ -120,7 +132,9 @@ async def approve_job(job_id: int, session: AsyncSession) -> JobRead:
     return JobRead.model_validate(job)
 
 
-async def reject_job(job_id: int, session: AsyncSession) -> None:
+async def reject_job(
+    job_id: int, session: AsyncSession, *, actor_user_id: int | None = None
+) -> None:
     """Reject a job posting by changing status to CLOSED.
 
     Sets Job.status=CLOSED and sends email notification to the company.
@@ -148,6 +162,15 @@ async def reject_job(job_id: int, session: AsyncSession) -> None:
     job.status = JobStatus.CLOSED
     job.updated_at = datetime.now(timezone.utc)
     await session.flush()
+
+    await record_audit_event(
+        session,
+        actor_user_id=actor_user_id,
+        action="job_rejected",
+        target_type="job",
+        target_id=job.id,
+        detail=job_title,
+    )
 
     if job.company.user is None:
         return

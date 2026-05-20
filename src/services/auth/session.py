@@ -26,6 +26,7 @@ from src.services.exceptions import (
     PendingActivationError,
     PendingApprovalError,
 )
+from src.services.utils.audit import record_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -208,3 +209,11 @@ async def mark_invite_used(token: str, session: AsyncSession) -> None:
         record.status = InviteTokenStatus.USED
         record.used_at = datetime.now(timezone.utc)
         session.add(record)
+        await record_audit_event(
+            session,
+            actor_user_id=None,
+            action="invite_used",
+            target_type="invite",
+            target_id=record.id,
+            detail=record.email,
+        )

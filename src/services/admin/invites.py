@@ -27,6 +27,7 @@ from src.services.exceptions import (
     InviteNotFoundError,
     InvitePendingForEmailError,
 )
+from src.services.utils.audit import record_audit_event
 from src.templates.email import build_invite_html
 
 
@@ -78,6 +79,15 @@ async def create_invite(
     )
     session.add(record)
     await session.flush()
+
+    await record_audit_event(
+        session,
+        actor_user_id=admin_user_id,
+        action="invite_created",
+        target_type="invite",
+        target_id=record.id,
+        detail=data.email,
+    )
 
     _email = data.email
     registration_url = f"{settings.frontend_base_url}/register?token={raw_token}"
