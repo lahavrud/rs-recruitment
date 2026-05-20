@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="משרות בתחום ניהול מבנים — RS Recruiting">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D0B09"/>
+      <stop offset="100%" stop-color="#141210"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B87333" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#B87333" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#ffffff" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- Copper accent line -->
+  <rect x="0" y="540" width="1200" height="1" fill="#B87333" fill-opacity="0.4"/>
+
+  <!-- Left accent bar -->
+  <rect x="80" y="140" width="3" height="350" fill="#B87333" fill-opacity="0.6"/>
+
+  <!-- Job listing cards (decorative) -->
+  <rect x="740" y="120" width="380" height="90" rx="8" fill="#1A1816" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+  <rect x="740" y="228" width="380" height="90" rx="8" fill="#1A1816" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+  <rect x="740" y="336" width="380" height="90" rx="8" fill="#1A1816" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+  <rect x="740" y="444" width="380" height="90" rx="8" fill="#1A1816" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+
+  <!-- Card copper dots (status open) -->
+  <circle cx="770" cy="155" r="6" fill="#B87333" fill-opacity="0.7"/>
+  <circle cx="770" cy="263" r="6" fill="#B87333" fill-opacity="0.7"/>
+  <circle cx="770" cy="371" r="6" fill="#B87333" fill-opacity="0.45"/>
+  <circle cx="770" cy="479" r="6" fill="#B87333" fill-opacity="0.45"/>
+
+  <!-- Card title lines -->
+  <rect x="792" y="143" width="180" height="12" rx="2" fill="#ffffff" fill-opacity="0.25"/>
+  <rect x="792" y="163" width="110" height="8" rx="2" fill="#ffffff" fill-opacity="0.12"/>
+  <rect x="792" y="251" width="200" height="12" rx="2" fill="#ffffff" fill-opacity="0.25"/>
+  <rect x="792" y="271" width="130" height="8" rx="2" fill="#ffffff" fill-opacity="0.12"/>
+  <rect x="792" y="359" width="160" height="12" rx="2" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="792" y="379" width="100" height="8" rx="2" fill="#ffffff" fill-opacity="0.1"/>
+  <rect x="792" y="467" width="190" height="12" rx="2" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="792" y="487" width="140" height="8" rx="2" fill="#ffffff" fill-opacity="0.1"/>
+
+  <!-- Eyebrow -->
+  <text x="112" y="218" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#B87333" fill-opacity="0.9" letter-spacing="4">משרות פתוחות</text>
+
+  <!-- Rule -->
+  <rect x="112" y="232" width="160" height="1" fill="#B87333" fill-opacity="0.5"/>
+
+  <!-- Headline -->
+  <text x="112" y="300" font-family="Arial, sans-serif" font-size="50" font-weight="300" fill="#ffffff" fill-opacity="0.85">ניהול מבנים</text>
+  <text x="112" y="362" font-family="Arial, sans-serif" font-size="50" font-weight="300" fill="#B87333">ונכסים</text>
+
+  <!-- Sub -->
+  <text x="112" y="420" font-family="Arial, sans-serif" font-size="22" font-weight="300" fill="#ffffff" fill-opacity="0.4">תפקידי ניהול ותפעול — כל המשרות במקום אחד</text>
+
+  <!-- Brand -->
+  <text x="112" y="490" font-family="Georgia, serif" font-size="18" fill="#C9A84C" fill-opacity="0.6" letter-spacing="4">RS RECRUITING</text>
+</svg>
