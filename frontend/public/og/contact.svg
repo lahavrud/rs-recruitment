@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="צרו קשר עם RS Recruiting">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D0B09"/>
+      <stop offset="100%" stop-color="#141210"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#B87333" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#B87333" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#ffffff" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="540" width="1200" height="1" fill="#B87333" fill-opacity="0.4"/>
+
+  <!-- Copper vertical bar -->
+  <rect x="80" y="140" width="3" height="350" fill="#B87333" fill-opacity="0.6"/>
+
+  <!-- Decorative envelope outline -->
+  <rect x="740" y="160" width="360" height="260" rx="12" fill="none" stroke="#B87333" stroke-opacity="0.2" stroke-width="1.5"/>
+  <!-- envelope flap -->
+  <polyline points="740,160 920,280 1100,160" fill="none" stroke="#B87333" stroke-opacity="0.2" stroke-width="1.5"/>
+
+  <!-- Email address display -->
+  <rect x="740" y="460" width="360" height="50" rx="6" fill="#1A1816" stroke="#B87333" stroke-opacity="0.25" stroke-width="1"/>
+  <text x="920" y="491" font-family="Arial, sans-serif" font-size="15" fill="#B87333" fill-opacity="0.7" text-anchor="middle" letter-spacing="1">support@rs-recruiting.com</text>
+
+  <!-- Eyebrow -->
+  <text x="112" y="218" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#B87333" fill-opacity="0.9" letter-spacing="4">צרו קשר</text>
+
+  <!-- Rule -->
+  <rect x="112" y="232" width="120" height="1" fill="#B87333" fill-opacity="0.5"/>
+
+  <!-- Headline -->
+  <text x="112" y="300" font-family="Arial, sans-serif" font-size="50" font-weight="300" fill="#ffffff" fill-opacity="0.85">נשמח לשמוע</text>
+  <text x="112" y="362" font-family="Arial, sans-serif" font-size="50" font-weight="300" fill="#B87333">מכם</text>
+
+  <!-- Sub -->
+  <text x="112" y="420" font-family="Arial, sans-serif" font-size="22" font-weight="300" fill="#ffffff" fill-opacity="0.4">מעסיקים ומועמדים — אנחנו כאן</text>
+
+  <!-- Brand -->
+  <text x="112" y="490" font-family="Georgia, serif" font-size="18" fill="#C9A84C" fill-opacity="0.6" letter-spacing="4">RS RECRUITING</text>
+</svg>

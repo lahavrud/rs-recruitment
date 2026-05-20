@@ -300,6 +300,7 @@ export default function LandingPage() {
         title={t("landing.seo.title")}
         description={t("landing.seo.description")}
         canonical={SITE_URL}
+        ogImage={`${SITE_URL}/og/home.svg`}
         structuredData={SITE_SCHEMA}
       />
 

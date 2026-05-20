@@ -28,6 +28,7 @@ export default function ContactPage() {
         title={t("contact.seo.title")}
         description={t("contact.seo.description")}
         canonical={`${SITE_URL}/contact`}
+        ogImage={`${SITE_URL}/og/contact.svg`}
       />
 
       <div className="flex flex-1 flex-col bg-void">

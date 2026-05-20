@@ -510,6 +510,7 @@ export default function JobBoardPage() {
         title={t("publicJobs.board.title")}
         description={t("publicJobs.board.subtitle")}
         canonical={`${SITE_URL}/jobs`}
+        ogImage={`${SITE_URL}/og/jobs.svg`}
         structuredData={structuredData}
       />
 

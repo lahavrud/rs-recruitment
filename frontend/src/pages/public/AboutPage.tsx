@@ -148,6 +148,7 @@ export default function AboutPage() {
         title={t("about.seo.title")}
         description={t("about.seo.description")}
         canonical={`${SITE_URL}/about`}
+        ogImage={`${SITE_URL}/og/about.svg`}
         structuredData={{
           "@context": "https://schema.org",
           "@type": "Organization",
