@@ -140,8 +140,10 @@ async def update_job(
     job.updated_at = datetime.now(timezone.utc)
 
     await session.flush()
-    await session.refresh(job)
 
+    # Capture notification data before session.refresh() — refresh re-fetches
+    # the Job row and expires selectinloaded relationships, making company/user
+    # inaccessible via async lazy-load afterward.
     if changed_labels and job.company.user is not None:
         _email = job.company.user.email
         _title = job.title
@@ -160,6 +162,7 @@ async def update_job(
             )
         )
 
+    await session.refresh(job)
     return JobRead.model_validate(job)
 
 
