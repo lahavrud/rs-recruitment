@@ -133,8 +133,13 @@ def test_request_id_filter_injects_field():
     try:
         f = RequestIdFilter()
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="hello", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="hello",
+            args=(),
+            exc_info=None,
         )
         f.filter(record)
         assert record.__dict__["request_id"] == "test-uuid-1234"
@@ -146,8 +151,13 @@ def test_request_id_filter_empty_outside_request():
     """Outside a request context, request_id is an empty string."""
     f = RequestIdFilter()
     record = logging.LogRecord(
-        name="test", level=logging.INFO, pathname="", lineno=0,
-        msg="hello", args=(), exc_info=None,
+        name="test",
+        level=logging.INFO,
+        pathname="",
+        lineno=0,
+        msg="hello",
+        args=(),
+        exc_info=None,
     )
     f.filter(record)
     assert record.__dict__["request_id"] == ""
