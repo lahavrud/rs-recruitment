@@ -451,10 +451,17 @@ def build_job_admin_edited_html(
     company_name: str,
     changed_fields: list[str],
     dashboard_url: str,
+    former_title: str | None = None,
 ) -> str:
     """HTML email sent to the company when an admin edits one of their jobs."""
     stitle = _e(job_title)
     scompany = _e(company_name)
+    former_suffix = (
+        f' <span style="color:{_TEXT_MID};font-weight:400;">'
+        f"({_e(former_title)} לשעבר)</span>"
+        if former_title
+        else ""
+    )
     fields_html = "".join(
         f'<li style="margin:0 0 6px;font-family:Arial,sans-serif;'
         f"font-size:14px;line-height:1.6;"
@@ -464,7 +471,10 @@ def build_job_admin_edited_html(
     body = (
         _h("פרסום משרה עודכן על-ידי המנהל")
         + _p(f"שלום {_company(scompany)},")
-        + _p(f"מנהל המערכת ביצע עדכון במשרת <strong>{stitle}</strong> שפורסמה בשמכם.")
+        + _p(
+            f"מנהל המערכת ביצע עדכון במשרת "
+            f"<strong>{stitle}</strong>{former_suffix} שפורסמה בשמכם."
+        )
         + _rule()
         + f'<p style="margin:0 0 8px;font-family:Arial,sans-serif;'
         f'font-size:13px;font-weight:600;color:{_TEXT_MID};">שדות שעודכנו:</p>'

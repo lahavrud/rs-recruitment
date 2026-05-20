@@ -129,15 +129,13 @@ async def update_job(
     # to plain dicts, which is exactly what the JSONB column wants.
     payload = data.model_dump(exclude_unset=True)
 
-    changed_labels = []
-    for field, value in payload.items():
-        if getattr(job, field) != value:
-            label = _FIELD_LABELS.get(field, field)
-            if field == "title":
-                label = f"{label} (שם קודם: {job.title})"
-            changed_labels.append(label)
-
+    changed_labels = [
+        _FIELD_LABELS.get(field, field)
+        for field, value in payload.items()
+        if getattr(job, field) != value
+    ]
     _old_title = job.title
+    _title_changed = "title" in payload and payload["title"] != _old_title
 
     for field, value in payload.items():
         setattr(job, field, value)
@@ -150,13 +148,15 @@ async def update_job(
     # inaccessible via async lazy-load afterward.
     if changed_labels and job.company.user is not None:
         _email = job.company.user.email
-        _title = _old_title
+        _new_title = job.title
+        _former_title: str | None = _old_title if _title_changed else None
         _company_name = job.company.name
         _dashboard_url = f"{settings.frontend_base_url}/login?redirect=/company/jobs"
-        _changed_labels = changed_labels  # explicit capture for lambda closure
+        _changed_labels = changed_labels
         _plain = (
-            f"פרסום המשרה '{_title}' עודכן על-ידי המנהל. "
-            f"שדות שעודכנו: {', '.join(_changed_labels)}"
+            f"פרסום המשרה '{_new_title}'"
+            + (f" ({_old_title} לשעבר)" if _title_changed else "")
+            + f" עודכן על-ידי המנהל. שדות שעודכנו: {', '.join(_changed_labels)}"
         )
         defer_after_commit(
             lambda: enqueue_email_task(
@@ -164,10 +164,11 @@ async def update_job(
                 subject="פרסום משרה עודכן על-ידי המנהל — RS Recruiting",
                 body=_plain,
                 html_body=build_job_admin_edited_html(
-                    job_title=_title,
+                    job_title=_new_title,
                     company_name=_company_name,
                     changed_fields=_changed_labels,
                     dashboard_url=_dashboard_url,
+                    former_title=_former_title,
                 ),
             )
         )
