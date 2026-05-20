@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import get_session
-from src.core.infrastructure.dependencies import get_token_payload
+from src.core.infrastructure.dependencies import client_ip, get_token_payload
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.transactions import transactional
@@ -32,12 +32,6 @@ from src.services.utils.audit import record_audit_event
 logger = logging.getLogger(__name__)
 limiter = get_limiter()
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-def _client_ip(request: Request) -> str | None:
-    return request.headers.get("x-real-ip") or (
-        request.client.host if request.client else None
-    )
 
 
 _REFRESH_COOKIE = "refresh_token"
@@ -89,7 +83,7 @@ async def login(
     session: AsyncSession = Depends(get_session),
 ) -> AccessTokenResponse:
     """Login — access token in body, refresh token in HttpOnly cookie."""
-    ip = _client_ip(request)
+    ip = client_ip(request)
     try:
         user = await authenticate_user(
             login_data.email, login_data.password, session, client_ip=ip

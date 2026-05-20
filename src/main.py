@@ -50,6 +50,7 @@ from src.api.public import applications as candidates
 from src.api.public import jobs as public
 from src.core.infrastructure.config import settings, validate_settings
 from src.core.infrastructure.database import init_db
+from src.core.infrastructure.dependencies import client_ip
 from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddleware
 from src.core.tasks import close_redis_pool
 
@@ -128,10 +129,9 @@ app.add_middleware(RequestMiddleware)
 
 @app.exception_handler(RateLimitExceeded)
 async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-    ip = request.headers.get("x-real-ip") or (
-        request.client.host if request.client else None
+    logger.warning(
+        "rate_limit_hit", extra={"path": request.url.path, "ip": client_ip(request)}
     )
-    logger.warning("rate_limit_hit", extra={"path": request.url.path, "ip": ip})
     return JSONResponse(status_code=429, content={"detail": "Too many requests"})
 
 
