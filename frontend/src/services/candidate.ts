@@ -69,3 +69,93 @@ export async function changePassword(
 export async function requestDataExport(): Promise<void> {
   await api.post("/api/candidate/me/export");
 }
+
+/* -------------------------------------------------------------------------
+ * Application list + detail (Sprint 11 / #609)
+ *
+ * The candidate-facing API deliberately never surfaces raw application
+ * status or admin notes — the only state signal is the `editable` flag,
+ * reserved for a follow-up PR that adds edit/withdraw buttons.
+ * ----------------------------------------------------------------------- */
+
+export interface CandidateApplicationJobSummary {
+  id: number;
+  title: string;
+  closed: boolean;
+}
+
+export interface CandidateApplicationJobDetail {
+  id: number;
+  title: string;
+  description: string;
+  closed: boolean;
+}
+
+export interface CandidateApplicationCompany {
+  id: number;
+  name: string;
+}
+
+export interface CandidateApplicationListItem {
+  id: number;
+  submitted_at: string;
+  editable: boolean;
+  job: CandidateApplicationJobSummary;
+  company: CandidateApplicationCompany;
+}
+
+export interface CandidateApplicationMyAnswers {
+  service_concept: string | null;
+  salary_expectations: string | null;
+  strength: string | null;
+  growth_area: string | null;
+}
+
+export interface CandidateApplicationResumeMeta {
+  filename: string;
+  snapshot_present: boolean;
+}
+
+export interface CandidateApplicationDetail {
+  id: number;
+  submitted_at: string;
+  editable: boolean;
+  job: CandidateApplicationJobDetail;
+  company: CandidateApplicationCompany;
+  my_answers: CandidateApplicationMyAnswers;
+  resume: CandidateApplicationResumeMeta | null;
+}
+
+export interface CandidateApplicationsPage {
+  items: CandidateApplicationListItem[];
+  next_cursor: string | null;
+}
+
+export async function listMyApplications(
+  cursor?: string,
+): Promise<CandidateApplicationsPage> {
+  const res = await api.get<CandidateApplicationsPage>(
+    "/api/candidate/me/applications",
+    { params: cursor ? { cursor } : undefined },
+  );
+  return res.data;
+}
+
+export async function getMyApplication(
+  applicationId: number,
+): Promise<CandidateApplicationDetail> {
+  const res = await api.get<CandidateApplicationDetail>(
+    `/api/candidate/me/applications/${applicationId}`,
+  );
+  return res.data;
+}
+
+export async function fetchApplicationResumeBlob(
+  applicationId: number,
+): Promise<Blob> {
+  const res = await api.get<Blob>(
+    `/api/candidate/me/applications/${applicationId}/resume`,
+    { responseType: "blob" },
+  );
+  return res.data;
+}
