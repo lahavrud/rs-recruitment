@@ -132,6 +132,12 @@ class Settings(BaseSettings):
     # Must match the VITE_SENTRY_DSN build arg used for the frontend image.
     frontend_sentry_dsn: str = ""  # Empty = tunnel rejects all envelopes
 
+    # GA4 server-side tunnel — forwards custom events via Measurement Protocol
+    # so ad-blocked browsers still contribute conversion data.
+    # GA4_API_SECRET: GA4 Admin → Data Streams → Measurement Protocol API secrets
+    ga4_measurement_id: str = ""  # e.g. G-XXXXXXXXXX; empty = tunnel disabled
+    ga4_api_secret: str = ""  # Measurement Protocol API secret
+
     # Environment
     environment: Literal["development", "production"] = "development"
 

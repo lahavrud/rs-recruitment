@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
+import { trackEvent } from "@/utils/analytics";
 import { getMe as getCandidateMe } from "@/services/candidate";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
@@ -338,10 +339,7 @@ export default function ApplicationPage() {
 
   useEffect(() => {
     if (!job) return;
-    const dl = (window as unknown as { dataLayer?: unknown[] }).dataLayer;
-    if (Array.isArray(dl)) {
-      dl.push({ event: "apply_start", job_id: job.id, job_title: job.title });
-    }
+    trackEvent("apply_start", { job_id: job.id, job_title: job.title });
   }, [job]);
 
   // ── Resume handling (drag-drop + click) ─────────────────────────────────
@@ -515,10 +513,7 @@ export default function ApplicationPage() {
             ? claimPassword
             : null,
       });
-      const dl = (window as unknown as { dataLayer?: unknown[] }).dataLayer;
-      if (Array.isArray(dl)) {
-        dl.push({ event: "apply_submit", job_id: jobId, job_title: job?.title });
-      }
+      trackEvent("apply_submit", { job_id: jobId, job_title: job?.title ?? "" });
       setSuccess(true);
     } catch (err) {
       // 409 already_applied_editable carries an application_id — redirect
