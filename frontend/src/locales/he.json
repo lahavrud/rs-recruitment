@@ -103,6 +103,14 @@
       "submitText": "התחברות",
       "submittingText": "מתחבר…",
       "forgotPasswordLink": "שכחת סיסמה?",
+      "candidateSignupPrompt": "עוד אין לכם חשבון מועמד?",
+      "candidateSignupLink": "הרשמה מהירה",
+      "resendActivation": {
+        "cta": "לא קיבלת? שלחו לי שוב",
+        "sending": "שולח…",
+        "sent": "שלחנו לכם קישור חדש לתיבת הדוא\"ל.",
+        "error": "לא הצלחנו לשלוח כרגע. נסו שוב בעוד מספר דקות."
+      },
       "validation": {
         "emailRequired": "נדרשת כתובת אימייל",
         "emailInvalid": "נא להזין כתובת אימייל תקינה",
@@ -121,6 +129,40 @@
         "pendingActivation": "בדקו את תיבת הדוא\"ל שלכם — שלחנו קישור להפעלת החשבון.",
         "unexpectedError": "אירעה שגיאה. אנא נסה שוב.",
         "accountLocked": "החשבון נעול זמנית עקב ניסיונות התחברות מרובים. נסה שוב בעוד {{minutes}} דקות."
+      }
+    },
+    "registerCandidate": {
+      "subtitle": "הרשמה כמועמד",
+      "description": "מלאו את הפרטים, ונפעיל את החשבון מיד אחרי שתאשרו את הקישור במייל.",
+      "fullNameLabel": "שם מלא",
+      "emailLabel": "כתובת אימייל",
+      "passwordLabel": "סיסמה",
+      "passwordConfirmLabel": "אימות סיסמה",
+      "privacyConsent": "קראתי ואני מסכים/ה למדיניות הפרטיות.",
+      "termsConsent": "קראתי ואני מסכים/ה לתנאי השימוש.",
+      "submitText": "יצירת חשבון",
+      "submittingText": "שולח…",
+      "backToLoginLink": "חזרה להתחברות",
+      "success": {
+        "title": "תודה שנרשמתם",
+        "body": "שלחנו אליכם קישור להפעלת החשבון. הקישור תקף לשעתיים.",
+        "backToLogin": "חזרה להתחברות"
+      },
+      "validation": {
+        "emailRequired": "נדרשת כתובת אימייל",
+        "emailInvalid": "נא להזין כתובת אימייל תקינה",
+        "fullNameRequired": "נדרש שם מלא",
+        "passwordMin": "הסיסמה חייבת להכיל לפחות 8 תווים",
+        "passwordComplexity": "הסיסמה חייבת לכלול אות גדולה, אות קטנה, ספרה ותו מיוחד.",
+        "passwordMismatch": "הסיסמאות אינן תואמות",
+        "privacyRequired": "יש לאשר את מדיניות הפרטיות",
+        "termsRequired": "יש לאשר את תנאי השימוש"
+      },
+      "errors": {
+        "emailExists": "כתובת האימייל כבר רשומה במערכת. אנא התחברו או השתמשו בכתובת אחרת.",
+        "tooManyAttempts": "יותר מדי בקשות הרשמה. נסו שוב בעוד שעה.",
+        "validation": "אנא בדקו את הפרטים שמילאתם.",
+        "generic": "אירעה שגיאה. אנא נסו שוב."
       }
     },
     "register": {

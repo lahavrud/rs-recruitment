@@ -29,6 +29,7 @@ from src.api.admin import (
 )
 from src.api.auth import (
     activation,
+    candidate_registration,
     invites,
     password_reset,
     registration,
@@ -125,6 +126,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(registration.router)
+app.include_router(candidate_registration.router)
 app.include_router(activation.router)
 app.include_router(password_reset.router)
 app.include_router(invites.router)

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
+import { resendCandidateActivation } from "@/services/auth";
 import axios from "axios";
 
 export default function LoginPage() {
@@ -21,6 +22,23 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ email: "", password: "" });
+  // When login fails with `account_pending_activation`, expose a resend link
+  // tied to the email the user just entered. Cleared on next attempt.
+  const [pendingActivationEmail, setPendingActivationEmail] = useState<string | null>(null);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">(
+    "idle",
+  );
+
+  async function handleResendActivation() {
+    if (!pendingActivationEmail || resendState === "sending") return;
+    setResendState("sending");
+    try {
+      await resendCandidateActivation(pendingActivationEmail);
+      setResendState("sent");
+    } catch {
+      setResendState("error");
+    }
+  }
 
   function validateField(name: string, value: string): string {
     if (name === "email") {
@@ -64,6 +82,8 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setPendingActivationEmail(null);
+    setResendState("idle");
     if (!validateForm()) return;
     setSubmitting(true);
     try {
@@ -78,6 +98,7 @@ export default function LoginPage() {
           const detail = (err.response?.data?.detail ?? "") as string;
           if (detail === "account_pending_activation") {
             setError(t("auth.login.errors.pendingActivation"));
+            setPendingActivationEmail(email);
           } else if (detail === "account_pending_approval") {
             setError(t("auth.login.errors.pendingApproval"));
           } else if (detail === "account_inactive") {
@@ -112,6 +133,26 @@ export default function LoginPage() {
           {error && (
             <div className="rounded-lg border border-danger/20 bg-danger/10 p-3 text-sm text-danger">
               {error}
+              {pendingActivationEmail && (
+                <div className="mt-2 text-xs text-white/60">
+                  {resendState === "sent" ? (
+                    <span>{t("auth.login.resendActivation.sent")}</span>
+                  ) : resendState === "error" ? (
+                    <span>{t("auth.login.resendActivation.error")}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendActivation}
+                      disabled={resendState === "sending"}
+                      className="text-copper underline transition hover:text-gold disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {resendState === "sending"
+                        ? t("auth.login.resendActivation.sending")
+                        : t("auth.login.resendActivation.cta")}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -168,14 +209,25 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="px-6 pb-8 text-center text-sm text-white/35 sm:px-8">
-          <Link
-            to="/forgot-password"
-            className="text-copper transition hover:text-gold"
-          >
-            {t("auth.login.forgotPasswordLink")}
-          </Link>
-        </p>
+        <div className="space-y-2 px-6 pb-8 text-center text-sm text-white/35 sm:px-8">
+          <p>
+            <Link
+              to="/forgot-password"
+              className="text-copper transition hover:text-gold"
+            >
+              {t("auth.login.forgotPasswordLink")}
+            </Link>
+          </p>
+          <p>
+            {t("auth.login.candidateSignupPrompt")}{" "}
+            <Link
+              to="/register-candidate"
+              className="text-copper transition hover:text-gold"
+            >
+              {t("auth.login.candidateSignupLink")}
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
