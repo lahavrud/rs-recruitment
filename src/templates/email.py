@@ -212,6 +212,46 @@ def build_approval_html(company_name: str, activation_url: str) -> str:
     return _wrap("הבקשה שלכם אושרה — RS Recruiting", body)
 
 
+def build_candidate_activation_html(activation_url: str, ttl_hours: int) -> str:
+    """HTML activation email sent after candidate self-registration (#605)."""
+    body = (
+        _h("השלימו את ההרשמה ל-RS Recruiting")
+        + _p("תודה על ההרשמה. עוד צעד קטן ותוכלו לעקוב אחרי כל ההגשות שלכם במקום אחד.")
+        + _cta(activation_url, "הפעלת החשבון")
+        + _rule()
+        + _p(
+            (
+                f"הקישור תקף ל-{ttl_hours} שעות בלבד. "
+                "אם הוא יפוג, ניתן לבקש קישור חדש מדף ההתחברות."
+            ),
+            muted=True,
+        )
+        + _p(
+            "אם לא יזמתם הרשמה, אפשר להתעלם מהמייל הזה — לא בוצעה אף פעולה בחשבונכם.",
+            muted=True,
+        )
+    )
+    return _wrap("הפעלת חשבון מועמד — RS Recruiting", body)
+
+
+def build_candidate_welcome_html(jobs_url: str, profile_url: str) -> str:
+    """HTML post-activation email — quick overview of candidate self-service (#605)."""
+    body = (
+        _h("ברוכים הבאים ל-RS Recruiting")
+        + _p("חשבונכם פעיל. הנה לאן כדאי להמשיך:")
+        + _p("• עיון במשרות פתוחות וקבלת התראות על משרות מתאימות.")
+        + _p("• מילוי הפרופיל האישי כולל קורות חיים — חברות יראו את המידע המעודכן.")
+        + _p("• מעקב אחר ההגשות הקיימות שלכם וניהול שלהן מהאזור האישי.")
+        + _cta(jobs_url, "למשרות פתוחות")
+        + _rule()
+        + _p(
+            f"לעריכת הפרופיל ולניהול ההגשות: {profile_url}",
+            muted=True,
+        )
+    )
+    return _wrap("ברוכים הבאים — RS Recruiting", body)
+
+
 def build_rejection_html(company_name: str) -> str:
     """HTML rejection email sent when admin rejects a company registration."""
     safe_company = _e(company_name)

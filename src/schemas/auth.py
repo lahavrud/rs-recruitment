@@ -85,3 +85,41 @@ class ResetPasswordRequest(BaseModel):
     @classmethod
     def validate_password(cls, v: str) -> str:
         return _validate_password_complexity(v)
+
+
+class CandidateRegisterRequest(BaseModel):
+    """Schema for the candidate self-registration endpoint (Sprint 11 / #605).
+
+    Mirrors company registration password rules but is JSON instead of
+    multipart — candidates upload nothing at registration time.
+    """
+
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str = Field(..., min_length=1, max_length=255)
+    privacy_accepted: bool
+    terms_accepted: bool
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return _validate_password_complexity(v)
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Full name is required")
+        return stripped
+
+
+class ResendActivationRequest(BaseModel):
+    """Schema for candidate resend-activation. Email-only; always 202 silent.
+
+    ``email`` is a plain ``str`` (not ``EmailStr``) so malformed addresses
+    produce the same 202 as valid ones (matches the ``ForgotPasswordRequest``
+    enumeration-resistance pattern above).
+    """
+
+    email: str = Field(..., max_length=255)

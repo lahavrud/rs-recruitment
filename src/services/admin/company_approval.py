@@ -73,7 +73,7 @@ async def approve_company(
     # after the admin rejects and later changes their mind.
     stale_result = await session.execute(
         select(ActivationToken).where(
-            ActivationToken.company_user_id == company_user_id,  # type: ignore[arg-type]
+            ActivationToken.user_id == company_user_id,  # type: ignore[arg-type]
             ActivationToken.used == False,  # noqa: E712
         )
     )
@@ -86,7 +86,7 @@ async def approve_company(
     expires_at = datetime.now(timezone.utc) + timedelta(hours=_ACTIVATION_TTL_HOURS)
     activation = ActivationToken(
         token_hash=hash_token(raw_token),
-        company_user_id=company_user_id,
+        user_id=company_user_id,
         expires_at=expires_at,
     )
     session.add(activation)

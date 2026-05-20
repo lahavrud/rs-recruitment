@@ -209,6 +209,7 @@ function ShellContent({ children }: Props) {
   if (
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/register-candidate" ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password"
   ) {

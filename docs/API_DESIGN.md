@@ -93,10 +93,50 @@ Invalidate the current refresh token and clear the cookie.
 * **Response:** `204 No Content`
 
 ### `POST /api/activate`
-Set a password for an invited user via an activation token.
+Activate a user account via the one-time activation token. Used by both flows:
+* COMPANY — admin approval → company clicks link.
+* CANDIDATE — self-registration (#605) → candidate clicks link. Branches inside
+  the service: creates / links the `CandidateProfile` for the user's email and
+  writes consent fields (IP, UA, policy version) at the moment of activation.
 * **Auth Required:** No
-* **Request Body:** `{ "token": "string", "password": "string" }`
-* **Response:** `200 OK` | `400 Bad Request` | `404 Not Found`
+* **Query:** `?token=<activation-token>`
+* **Response:** `200 OK` | `400 Bad Request` (invalid/expired token)
+
+### `POST /api/auth/candidate/register`
+Candidate self-registration (Sprint 11 / #605). Creates an `is_active=False`
+user and emails a 2-hour activation link; the `CandidateProfile` is created
+later at activation time.
+* **Auth Required:** No
+* **Rate Limit:** 3/hour per IP (slowapi)
+* **Request Body:** `{ "email": "string", "password": "string", "full_name": "string", "privacy_accepted": true, "terms_accepted": true }`
+* **Response:**
+  * `201 Created` — `{ "message": "..." }`. Caller should display a generic
+    "check your email" message; do not surface user existence.
+  * `409 Conflict` — email already belongs to an active user (no resend
+    available for that account through this endpoint).
+  * `422 Unprocessable Entity` — consent checkboxes missing or password
+    rules failed.
+  * `429 Too Many Requests` — IP rate limit exceeded.
+* **Re-registration semantics:** if the email matches an `is_active=False`
+  candidate user, the existing user's password is updated, prior unused
+  activation tokens are deleted, and a new token is minted. Old links die.
+
+### `POST /api/auth/candidate/resend-activation`
+Resend the candidate activation email (Sprint 11 / #605). Silent in all
+branches to prevent email enumeration.
+* **Auth Required:** No
+* **Rate Limits:** 5/hour per IP (slowapi) + 1/hour per email (Redis-backed
+  counter).
+* **Request Body:** `{ "email": "string" }`
+* **Response:** `202 Accepted` regardless of whether a matching pending
+  candidate exists.
+
+### Login behavior for unactivated candidates
+`POST /api/auth/login` returns the existing
+`401 Unauthorized` with `detail: "account_pending_activation"` when a user
+(company OR candidate) has valid credentials but `is_active=False` and at
+least one unused activation token. The frontend uses this string to surface
+the "resend activation" affordance.
 
 ### `GET /api/invite/{token}`
 Public metadata for an invite token (used by the activation page to show context before password entry).

@@ -57,7 +57,7 @@ async def _make_pending_company(session: AsyncSession) -> tuple[User, str]:
     raw_token = secrets.token_urlsafe(32)
     activation = ActivationToken(
         token_hash=hash_token(raw_token),
-        company_user_id=user.id,
+        user_id=user.id,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
         used=False,
     )

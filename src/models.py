@@ -48,16 +48,27 @@ class InviteToken(SQLModel, table=True):
 
 
 class ActivationToken(SQLModel, table=True):
-    """One-time activation tokens sent to companies after admin approval.
+    """One-time activation tokens for newly-registered users.
 
-    Admin approval does not activate the account immediately; instead an
-    ActivationToken is generated and emailed to the company.  The company
-    must follow the link to activate their account.
+    Two flows mint these tokens:
+
+    * COMPANY: admin approval — admin clicks "approve" on a pending company
+      registration. The activation email goes to the company contact; the
+      account flips to active when they click the link.
+    * CANDIDATE: self-service registration — the candidate registers with
+      email + password + consent. The activation email goes to the candidate;
+      clicking the link creates / links their CandidateProfile and activates
+      the account (Sprint 11 / issue #605).
+
+    `consent_policy_version` is set by the candidate flow at registration time
+    so the policy version they agreed to is locked even if the policy changes
+    before they click the link. NULL for company tokens (consent is captured
+    on CompanyProfile at registration time, not at activation).
     """
 
     id: int | None = Field(default=None, primary_key=True)
     token_hash: str = Field(unique=True, index=True)
-    company_user_id: int = Field(
+    user_id: int = Field(
         sa_column=Column(
             Integer,
             ForeignKey("user.id", ondelete="CASCADE"),
@@ -73,6 +84,7 @@ class ActivationToken(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
     used: bool = Field(default=False)
+    consent_policy_version: str | None = Field(default=None, max_length=20)
 
 
 class RefreshToken(SQLModel, table=True):
