@@ -507,29 +507,37 @@ export default function AboutPage() {
                 <div
                   key={n}
                   className="border-t border-white/8"
-                  style={revealUp(faqVisible, `${0.1 + idx * 0.06}s`, "0.6s")}
+                  style={revealUp(faqVisible, `${0.08 + idx * 0.045}s`, "0.55s")}
                 >
                   <button
                     type="button"
                     aria-expanded={isOpen}
                     onClick={() => setOpenFaq(isOpen ? null : n)}
-                    className="flex w-full items-start justify-between gap-4 py-5 text-start transition-colors duration-200 hover:text-white"
+                    className="group flex w-full items-start justify-between gap-4 py-5 text-start"
                   >
-                    <dt className="text-sm font-medium leading-relaxed text-white/80 transition-colors duration-200 group-hover:text-white">
+                    <dt className="text-sm font-medium leading-relaxed text-white/70 transition-colors duration-200 group-hover:text-white/90">
                       {t(`about.faq.q${n}`)}
                     </dt>
-                    <span className="mt-0.5 shrink-0 text-copper transition-transform duration-300"
-                      style={{ transform: isOpen ? "rotate(45deg)" : "none" }}>
+                    <span
+                      className="mt-0.5 shrink-0 text-copper/60 transition-all duration-300 group-hover:text-copper"
+                      style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0deg)" }}
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-4">
                         <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
                       </svg>
                     </span>
                   </button>
-                  {isOpen && (
-                    <dd className="pb-5 text-sm leading-relaxed text-white/50">
-                      {t(`about.faq.a${n}`)}
-                    </dd>
-                  )}
+                  <dd
+                    className="overflow-hidden text-sm leading-relaxed text-white/45"
+                    style={{
+                      maxHeight: isOpen ? "24rem" : "0",
+                      opacity: isOpen ? 1 : 0,
+                      paddingBottom: isOpen ? "1.25rem" : "0",
+                      transition: "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, padding-bottom 0.3s ease",
+                    }}
+                  >
+                    {t(`about.faq.a${n}`)}
+                  </dd>
                 </div>
               );
             })}
