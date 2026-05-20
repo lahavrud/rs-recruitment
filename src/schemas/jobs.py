@@ -201,6 +201,19 @@ class JobRead(BaseModel):
     updated_at: datetime
 
 
+class MyApplicationInfo(BaseModel):
+    """The candidate-facing slice of a candidate's own application.
+
+    Returned on ``GET /api/public/jobs/:id`` when the request bears a valid
+    candidate JWT (Sprint 11 / #606). Withdrawn applications are filtered
+    out server-side; ``editable`` is the only status-derived bit exposed to
+    candidates (per Sprint 11 rule — see #609).
+    """
+
+    id: int
+    editable: bool
+
+
 class JobPublicRead(BaseModel):
     """Schema for public job board responses.
 
@@ -208,6 +221,11 @@ class JobPublicRead(BaseModel):
     not be exposed to unauthenticated users. Status is omitted because the
     public endpoint only ever returns PUBLISHED jobs — it carries no
     information and leaks an internal enum.
+
+    ``my_application`` is populated only for the per-job detail endpoint
+    when the request bears a candidate JWT and that candidate has a
+    non-withdrawn application for the job (#606). Anonymous responses
+    and list-endpoint responses leave it ``None``.
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -223,6 +241,7 @@ class JobPublicRead(BaseModel):
     salary_min: int
     salary_max: int
     created_at: datetime
+    my_application: MyApplicationInfo | None = None
 
 
 class JobContactEmailRequest(BaseModel):

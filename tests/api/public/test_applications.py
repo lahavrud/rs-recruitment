@@ -12,7 +12,7 @@ from tests.conftest import TestSessionLocal
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_success(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -76,7 +76,7 @@ async def test_apply_endpoint_success(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 @patch("src.services.public.applications.get_storage_provider")
 async def test_apply_endpoint_with_resume(
     mock_storage_provider,
@@ -120,7 +120,7 @@ async def test_apply_endpoint_with_resume(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_validation_error(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -141,7 +141,7 @@ async def test_apply_endpoint_validation_error(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 @patch("src.services.public.applications.get_storage_provider")
 async def test_apply_endpoint_invalid_file_type(
     mock_storage_provider,
@@ -176,7 +176,7 @@ async def test_apply_endpoint_invalid_file_type(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 @patch("src.services.public.applications.get_storage_provider")
 async def test_apply_endpoint_file_size_limit(
     mock_storage_provider,
@@ -211,7 +211,7 @@ async def test_apply_endpoint_file_size_limit(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_creates_application(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -263,7 +263,7 @@ async def test_apply_endpoint_creates_application(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_job_not_found(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -287,7 +287,7 @@ async def test_apply_endpoint_job_not_found(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_public_access(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -315,7 +315,7 @@ async def test_apply_endpoint_public_access(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_reuses_existing_profile(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -389,7 +389,7 @@ async def test_apply_endpoint_reuses_existing_profile(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_duplicate_application_conflict(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -413,13 +413,18 @@ async def test_apply_endpoint_duplicate_application_conflict(
     # Try to apply again to same job with same email
     response2 = await public_client.post("/api/candidates/apply", data=form_data)
 
-    # Verify: HTTP 409 Conflict
+    # Verify: HTTP 409 Conflict — Sprint 11 / #606 returns structured detail.
+    # The existing NEW application makes this an "editable" conflict and the
+    # response carries the application_id so the frontend can redirect to
+    # the inline editor.
     assert response2.status_code == 409
-    assert "Application already exists" in response2.json()["detail"]
+    detail = response2.json()["detail"]
+    assert detail["error_code"] == "already_applied_editable"
+    assert isinstance(detail["application_id"], int)
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_requires_privacy_consent(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -444,7 +449,7 @@ async def test_apply_endpoint_requires_privacy_consent(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_writes_consent_audit_event(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -481,7 +486,7 @@ async def test_apply_endpoint_writes_consent_audit_event(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_updates_consent_on_reapplication(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -576,7 +581,7 @@ async def test_apply_endpoint_updates_consent_on_reapplication(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_requires_terms_consent(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -601,7 +606,7 @@ async def test_apply_endpoint_requires_terms_consent(
 
 
 @pytest.mark.asyncio
-@patch("src.services.public.applications.enqueue_email_task")
+@patch("src.services.public._application_helpers.enqueue_email_task")
 async def test_apply_endpoint_persists_tos_acceptance(
     mock_enqueue_email,
     public_client: AsyncClient,
@@ -643,3 +648,174 @@ async def test_apply_endpoint_persists_tos_acceptance(
         event = audit.scalar_one_or_none()
         assert event is not None
         assert event.detail == "terms_version=1.0"
+
+
+# ── Sprint 11 / #606 — claim + logged-in API surfaces ─────────────────────────
+
+
+@pytest.mark.asyncio
+@patch("src.services.public._application_helpers.enqueue_email_task")
+async def test_apply_with_password_creates_pending_candidate_user(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+    test_db,
+):
+    """Anonymous claim: password supplied + no existing user → application
+    persists AND a pending candidate User + ActivationToken are minted."""
+    from src.enums import UserRole
+    from src.models import ActivationToken, User
+
+    mock_enqueue_email.return_value = "test-job-id"
+
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "Claim Me",
+        "email": "claim-me@example.com",
+        "phone": "050-100-1000",
+        "privacy_accepted": "true",
+        "terms_accepted": "true",
+        "password": "ClaimPass1!",  # pragma: allowlist secret
+        "password_confirm": "ClaimPass1!",  # pragma: allowlist secret
+    }
+    resp = await public_client.post("/api/candidates/apply", data=form_data)
+    assert resp.status_code == 201
+
+    async with TestSessionLocal() as session:
+        user = (
+            await session.execute(
+                select(User).where(User.email == "claim-me@example.com")  # type: ignore[arg-type]
+            )
+        ).scalar_one()
+        assert user.role == UserRole.CANDIDATE
+        assert user.is_active is False
+
+        token = (
+            await session.execute(
+                select(ActivationToken).where(
+                    ActivationToken.user_id == user.id  # type: ignore[arg-type]
+                )
+            )
+        ).scalar_one()
+        assert token.consent_policy_version is not None
+
+        # Application landed, profile is still anonymous (user_id NULL —
+        # activation will link it).
+        profile = (
+            await session.execute(
+                select(CandidateProfile).where(
+                    CandidateProfile.email == "claim-me@example.com"  # type: ignore[arg-type]
+                )
+            )
+        ).scalar_one()
+        assert profile.user_id is None
+
+
+@pytest.mark.asyncio
+@patch("src.services.public._application_helpers.enqueue_email_task")
+async def test_apply_password_mismatch_rejected(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+    test_db,
+):
+    """Password supplied but doesn't match confirmation → 400."""
+    mock_enqueue_email.return_value = "test-job-id"
+
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "Bad Confirm",
+        "email": "bad-confirm@example.com",
+        "phone": "050-200-2000",
+        "privacy_accepted": "true",
+        "terms_accepted": "true",
+        "password": "FirstPass1!",  # pragma: allowlist secret
+        "password_confirm": "OtherPass1!",  # pragma: allowlist secret
+    }
+    resp = await public_client.post("/api/candidates/apply", data=form_data)
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "passwords_do_not_match"
+
+
+@pytest.mark.asyncio
+@patch("src.services.public._application_helpers.enqueue_email_task")
+async def test_apply_email_belongs_to_active_candidate_user_returns_409(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+    test_db,
+):
+    """The email belongs to an active candidate User — apply rejected with a
+    structured 409 the frontend can use to prompt 'please log in'."""
+    from src.core.infrastructure.security import get_password_hash
+    from src.enums import UserRole
+    from src.models import User
+
+    mock_enqueue_email.return_value = "test-job-id"
+
+    async with TestSessionLocal() as session:
+        session.add(
+            User(
+                email="taken-apply@example.com",
+                hashed_password=get_password_hash(
+                    "Secret1!"  # pragma: allowlist secret
+                ),
+                role=UserRole.CANDIDATE,
+                is_active=True,
+            )
+        )
+        await session.commit()
+
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "Stranger",
+        "email": "taken-apply@example.com",
+        "phone": "050-300-3000",
+        "privacy_accepted": "true",
+        "terms_accepted": "true",
+    }
+    resp = await public_client.post("/api/candidates/apply", data=form_data)
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["error_code"] == "email_already_registered"
+
+
+@pytest.mark.asyncio
+@patch("src.services.public._application_helpers.enqueue_email_task")
+async def test_apply_returns_already_applied_locked_for_non_new_status(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+    test_db,
+):
+    """Re-applying to a job with a non-NEW non-WITHDRAWN existing application
+    returns 409 `already_applied_locked` with NO application_id."""
+    mock_enqueue_email.return_value = "test-job-id"
+
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "Twice Applied",
+        "email": "twice@example.com",
+        "phone": "050-400-4000",
+        "privacy_accepted": "true",
+        "terms_accepted": "true",
+    }
+    r1 = await public_client.post("/api/candidates/apply", data=form_data)
+    assert r1.status_code == 201
+
+    # Move the application past NEW (simulates admin engagement).
+    async with TestSessionLocal() as session:
+        app_row = (
+            await session.execute(
+                select(Application).where(  # pyright: ignore[reportArgumentType]
+                    Application.job_id == published_job.id,
+                )
+            )
+        ).scalar_one()
+        app_row.status = ApplicationStatus.APPROVED_BY_ADMIN
+        await session.commit()
+
+    r2 = await public_client.post("/api/candidates/apply", data=form_data)
+    assert r2.status_code == 409
+    detail = r2.json()["detail"]
+    assert detail["error_code"] == "already_applied_locked"
+    assert "application_id" not in detail

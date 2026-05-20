@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
+from src.core.infrastructure.dependencies import get_current_user_optional
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, CursorPage
+from src.models import User
 from src.schemas import JobPublicRead
 from src.services.exceptions import JobNotFoundError
 from src.services.public.jobs import get_published_job, list_published_jobs
@@ -32,23 +34,16 @@ async def get_public_jobs(
 async def get_public_job(
     job_id: int,
     session: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user_optional),
 ) -> JobPublicRead:
     """Get a specific published job posting.
 
     No authentication required. Only returns jobs with PUBLISHED status.
-
-    Args:
-        job_id: ID of the job to retrieve
-        session: Database session
-
-    Returns:
-        Job as JobPublicRead schema
-
-    Raises:
-        HTTPException: If job not found or not published
+    When called with a candidate JWT the response includes ``my_application``
+    summarizing the candidate's own non-WITHDRAWN application for this job
+    (Sprint 11 / #606).
     """
     try:
-        job = await get_published_job(job_id, session)
-        return job
+        return await get_published_job(job_id, session, current_user=current_user)
     except JobNotFoundError as e:
         raise service_exception_to_http(e) from e

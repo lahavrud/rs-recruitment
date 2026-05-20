@@ -73,7 +73,18 @@ export interface JobAdminUpdate extends JobUpdate {
   is_featured?: boolean;
 }
 
-/** Mirrors backend JobPublicRead schema. Status is omitted (only PUBLISHED returned). */
+/** Candidate-side info about their own application for the job (Sprint 11 / #606). */
+export interface MyApplicationInfo {
+  id: number;
+  /** True only when the application is still in NEW status — the candidate
+   *  can edit / withdraw it. False means admin engaged with it. The raw
+   *  status is intentionally hidden from candidate-facing payloads. */
+  editable: boolean;
+}
+
+/** Mirrors backend JobPublicRead schema. Status is omitted (only PUBLISHED returned).
+ *  `my_application` is populated only on the per-job detail endpoint when
+ *  the request bears a candidate JWT; otherwise null. */
 export interface JobPublicRead {
   id: number;
   title: string;
@@ -86,4 +97,5 @@ export interface JobPublicRead {
   salary_min: number;
   salary_max: number;
   created_at: string;
+  my_application: MyApplicationInfo | null;
 }

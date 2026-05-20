@@ -28,6 +28,7 @@ export async function submitApplication(
   jobId: number,
   form: Omit<CandidateApplicationForm, "job_id">,
   resume: File | null,
+  options?: { password?: string | null },
 ): Promise<CandidateProfileRead> {
   const data = new FormData();
 
@@ -42,9 +43,19 @@ export async function submitApplication(
   if (form.growth_area) data.append("growth_area", form.growth_area);
   if (form.strength) data.append("strength", form.strength);
 
-  // Legal consent — always true at this point (UI blocks submit otherwise)
+  // Legal consent — always true at this point (UI blocks submit otherwise).
+  // The backend ignores these for logged-in candidates (consent already
+  // captured at activation per Sprint 11 / #605).
   data.append("privacy_accepted", "true");
   data.append("terms_accepted", "true");
+
+  // Optional claim-by-password (Sprint 11 / #606). When supplied alongside
+  // an anonymous apply, the backend creates a pending candidate User +
+  // activation token in the same transaction.
+  if (options?.password) {
+    data.append("password", options.password);
+    data.append("password_confirm", options.password);
+  }
 
   // Append resume file if provided
   if (resume) {
