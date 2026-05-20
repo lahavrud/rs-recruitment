@@ -541,6 +541,13 @@ export default function LandingPage() {
               <p className="mt-8 text-xs uppercase tracking-widest text-white/25" style={cardRise(aboutTextVisible, "0.48s")}>
                 {t("landing.about.pillars")}
               </p>
+              <Link
+                to="/about"
+                className="mt-6 inline-block text-sm text-copper/70 transition hover:text-copper"
+                style={cardRise(aboutTextVisible, "0.56s")}
+              >
+                {t("landing.about.learnMore")} ←
+              </Link>
             </div>
 
             {/* Photo — clip-path wipe reveal (no overlay, no corner bleeding).
