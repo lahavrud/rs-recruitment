@@ -123,11 +123,15 @@ async def _link_or_create_candidate_profile(
     full_name = activation.full_name or user.email.split("@", 1)[0]
 
     if profile is None:
+        # Phone stays NULL — it's optional on the model now and the candidate
+        # will supply it either via the profile page or inline when they hit
+        # the apply form. The "phone is required for a live application"
+        # invariant lives at the apply endpoint, not here.
         profile = CandidateProfile(
             user_id=user.id,
             full_name=full_name,
             email=user.email,
-            phone="",
+            phone=None,
             consent_given_at=now,
             consent_policy_version=policy_version,
             consent_ip=ip_address,

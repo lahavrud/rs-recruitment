@@ -376,7 +376,10 @@ class CandidateProfile(SQLModel, table=True):
     )
     full_name: str
     email: str = Field(unique=True, index=True)
-    phone: str
+    # Optional — only full_name + email are mandatory for a candidate. Phone,
+    # LinkedIn, and resume exist so per-application forms can autofill them
+    # for a returning candidate, not as identity gates (Sprint 11 follow-up).
+    phone: str | None = Field(default=None)
     resume_path: str | None = None
     linkedin_url: str | None = None
 

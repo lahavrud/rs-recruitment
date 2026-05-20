@@ -153,17 +153,14 @@ class CandidateProfileUpdate(BaseModel):
     def validate_phone(cls, v: str | None) -> str | None:
         """Validate phone number format.
 
-        ``phone`` is NOT NULL in the database, so an explicit ``null`` on PATCH
-        is rejected. The field stays Optional purely to keep partial-update
-        semantics (omit-to-leave-unchanged) — only an absent key skips the
-        validator.
+        ``phone`` is nullable on the model — an explicit ``null`` clears the
+        column. Omitting the key leaves the existing value unchanged
+        (partial-update semantics). A non-null value is validated against
+        the Israeli mobile format.
         """
         if v is None:
-            raise ValueError("Phone cannot be set to null on update")
-        result = _validate_phone_value(v)
-        if result is None:
-            raise ValueError("Phone number is required")
-        return result
+            return None
+        return _validate_phone_value(v)
 
     @field_validator("linkedin_url")
     @classmethod
@@ -180,7 +177,7 @@ class CandidateProfileRead(BaseModel):
     id: int
     full_name: str
     email: str
-    phone: str
+    phone: str | None
     resume_path: str | None
     linkedin_url: str | None
     consent_given_at: datetime | None
@@ -205,7 +202,7 @@ class CandidateMeRead(BaseModel):
     id: int
     email: str
     full_name: str
-    phone: str
+    phone: str | None
     linkedin_url: str | None
     resume_path: str | None
     consent_given_at: datetime | None
@@ -233,13 +230,17 @@ class CandidateMeUpdate(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
-        """Phone is NOT NULL on the model; reject explicit-null on PATCH."""
+        """Phone is nullable on the model — explicit-null on PATCH clears it.
+
+        Only ``full_name`` + ``email`` are mandatory identity on the profile;
+        ``phone`` (along with ``linkedin_url`` and ``resume_path``) is
+        autofill metadata for the apply form. The app-level invariant that
+        an Application requires a phone is enforced at the apply-form
+        endpoint, not here.
+        """
         if v is None:
-            raise ValueError("Phone cannot be set to null on update")
-        result = _validate_phone_value(v)
-        if result is None:
-            raise ValueError("Phone number is required")
-        return result
+            return None
+        return _validate_phone_value(v)
 
     @field_validator("linkedin_url")
     @classmethod

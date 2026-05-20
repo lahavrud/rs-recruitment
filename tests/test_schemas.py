@@ -225,8 +225,6 @@ def test_valid_phone(schema_class, phone, expected):
         (CandidateProfileCreate, "+972 50 123 4567", "Israeli mobile"),
         (CandidateProfileUpdate, "!@#$", "digits, spaces"),
         (CandidateProfileUpdate, "1234", "Israeli mobile"),
-        # phone is NOT NULL in the DB — explicit null on PATCH is rejected
-        (CandidateProfileUpdate, None, "null on update"),
     ],
 )
 def test_invalid_phone(schema_class, phone, error_match):
@@ -237,6 +235,18 @@ def test_invalid_phone(schema_class, phone, error_match):
         kwargs = {"phone": phone}
     with pytest.raises(ValidationError, match=error_match):
         schema_class(**kwargs)
+
+
+def test_candidate_profile_update_phone_null_clears():
+    """``phone`` is nullable on the model — explicit-null clears the column.
+
+    Profile UX rule: only full_name + email are mandatory identity. Phone is
+    autofill metadata; the user can drop it and re-enter it inline on the
+    next apply-form submission.
+    """
+    patch = CandidateProfileUpdate(phone=None)
+    # Pydantic keeps the explicit-None when set, so the field is in the dump.
+    assert patch.model_dump(exclude_unset=True) == {"phone": None}
 
 
 # ---------------------------------------------------------------------------
