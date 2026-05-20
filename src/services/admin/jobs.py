@@ -149,14 +149,20 @@ async def update_job(
         _title = job.title
         _company_name = job.company.name
         _dashboard_url = f"{settings.frontend_base_url}/company/jobs"
+        _changed_labels = changed_labels  # explicit capture for lambda closure
+        _plain = (
+            f"פרסום המשרה '{_title}' עודכן על-ידי המנהל. "
+            f"שדות שעודכנו: {', '.join(_changed_labels)}"
+        )
         defer_after_commit(
             lambda: enqueue_email_task(
                 to=_email,
                 subject="פרסום משרה עודכן על-ידי המנהל — RS Recruiting",
+                body=_plain,
                 html_body=build_job_admin_edited_html(
                     job_title=_title,
                     company_name=_company_name,
-                    changed_fields=changed_labels,
+                    changed_fields=_changed_labels,
                     dashboard_url=_dashboard_url,
                 ),
             )
