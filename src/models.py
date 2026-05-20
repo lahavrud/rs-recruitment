@@ -114,7 +114,10 @@ class RefreshToken(SQLModel, table=True):
     expires_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
-    is_revoked: bool = Field(default=False)
+    # ``is_revoked`` removed in #641 — refresh tokens are now deleted on
+    # use / logout / password change instead of being marked revoked.
+    # The column provided no security benefit (revoked + missing were
+    # treated identically) and let dead rows accumulate.
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),

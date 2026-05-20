@@ -81,7 +81,7 @@ async def test_change_password_with_wrong_current_raises(session: AsyncSession):
 async def test_change_password_revokes_only_other_refresh_tokens(
     session: AsyncSession,
 ):
-    """The current session's refresh token survives; all others are revoked."""
+    """The current session's refresh token survives; all others are deleted."""
     user, raws = await _make_user_with_tokens(session, "selective@test.com")
     current_raw = raws[1]  # arbitrary "current" session
 
@@ -94,7 +94,7 @@ async def test_change_password_revokes_only_other_refresh_tokens(
     )
     await session.commit()
 
-    tokens = (
+    remaining = (
         (
             await session.execute(
                 select(RefreshToken).where(RefreshToken.user_id == user.id)  # type: ignore[arg-type]
@@ -103,16 +103,15 @@ async def test_change_password_revokes_only_other_refresh_tokens(
         .scalars()
         .all()
     )
-    by_hash = {t.token_hash: t for t in tokens}
-    assert by_hash[hash_token(current_raw)].is_revoked is False
-    for other_raw in [raws[0], raws[2]]:
-        assert by_hash[hash_token(other_raw)].is_revoked is True
+    # Only the current session's token row should remain.
+    assert len(remaining) == 1
+    assert remaining[0].token_hash == hash_token(current_raw)
 
 
 @pytest.mark.asyncio
 async def test_change_password_with_no_current_revokes_all(session: AsyncSession):
-    """When no current token is supplied (e.g. mobile client), revoke them all."""
-    user, raws = await _make_user_with_tokens(session, "no-current@test.com")
+    """When no current token is supplied (e.g. mobile client), delete them all."""
+    user, _ = await _make_user_with_tokens(session, "no-current@test.com")
     await change_user_password(
         user,
         "Original1!",  # pragma: allowlist secret
@@ -131,4 +130,4 @@ async def test_change_password_with_no_current_revokes_all(session: AsyncSession
         .scalars()
         .all()
     )
-    assert all(t.is_revoked for t in tokens)
+    assert tokens == []

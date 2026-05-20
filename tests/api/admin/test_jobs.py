@@ -130,7 +130,7 @@ async def test_approve_job_not_found(admin_client: AsyncClient):
     """Test approving a non-existent job returns 404."""
     response = await admin_client.post("/api/admin/jobs/99999/approve")
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio
@@ -159,7 +159,7 @@ async def test_approve_job_already_published(
     # Try to approve
     response = await admin_client.post(f"/api/admin/jobs/{job.id}/approve")
     assert response.status_code == 400
-    assert "not pending" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_pending")
 
 
 @pytest.mark.asyncio
@@ -191,7 +191,7 @@ async def test_reject_job_not_found(admin_client: AsyncClient):
     """Test rejecting a non-existent job returns 404."""
     response = await admin_client.post("/api/admin/jobs/99999/reject")
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio
@@ -220,7 +220,7 @@ async def test_reject_job_already_published(
     # Try to reject
     response = await admin_client.post(f"/api/admin/jobs/{job.id}/reject")
     assert response.status_code == 400
-    assert "not pending" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_pending")
 
 
 @pytest.mark.asyncio
@@ -276,7 +276,7 @@ async def test_contact_job_not_found(admin_client: AsyncClient):
         json={"admin_note": "test"},
     )
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert response.json()["detail"].endswith("_not_found")
 
 
 @pytest.mark.asyncio

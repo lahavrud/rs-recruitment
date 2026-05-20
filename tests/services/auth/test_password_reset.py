@@ -150,13 +150,11 @@ async def test_reset_password_revokes_all_refresh_tokens(session: AsyncSession):
                 token_hash="rt-a",
                 user_id=user.id,
                 expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-                is_revoked=False,
             ),
             RefreshToken(
                 token_hash="rt-b",
                 user_id=user.id,
                 expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-                is_revoked=False,
             ),
             PasswordResetToken(
                 token_hash=hash_token(raw_token),
@@ -174,7 +172,9 @@ async def test_reset_password_revokes_all_refresh_tokens(session: AsyncSession):
     result = await session.execute(
         select(RefreshToken).where(RefreshToken.user_id == user.id)
     )
-    assert all(t.is_revoked for t in result.scalars().all())
+    # Password reset deletes all refresh-token rows rather than marking them
+    # revoked — rows deleted = no sessions survive.
+    assert result.scalars().all() == []
 
 
 @pytest.mark.asyncio

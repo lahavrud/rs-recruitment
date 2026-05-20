@@ -190,15 +190,16 @@ async def refresh_user_tokens(
     )
     db_token = result.scalar_one_or_none()
 
-    if (
-        db_token is None
-        or db_token.is_revoked
-        or db_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc)
-    ):
+    if db_token is None:
         raise InvalidCredentialsError("Invalid or expired refresh token")
 
-    db_token.is_revoked = True
-    session.add(db_token)
+    # Expired-on-discovery rows are deleted on the way out so the
+    # ``refreshtoken`` table doesn't accumulate dead state without a
+    # cleanup path (issue #641). The HTTP behaviour is unchanged — the
+    # caller still gets 401.
+    if db_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        await session.delete(db_token)
+        raise InvalidCredentialsError("Invalid or expired refresh token")
 
     user_result = await session.execute(
         select(User).where(User.id == db_token.user_id)  # pyright: ignore[reportArgumentType]
@@ -206,6 +207,14 @@ async def refresh_user_tokens(
     user = user_result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise InvalidCredentialsError("Invalid or expired refresh token")
+
+    # Rotate: drop the consumed token before minting the next one. The
+    # previous "is_revoked = True" approach left rows accumulating
+    # forever — and the code treated ``revoked`` and ``missing``
+    # identically (both raised InvalidCredentialsError), so the column
+    # provided no extra security value.
+    await session.delete(db_token)
+    await session.flush()
 
     return await create_user_tokens(user, session)
 
@@ -216,8 +225,12 @@ async def logout_user(
     raw_refresh_token: str | None,
     session: AsyncSession,
 ) -> None:
-    """Revoke the session: blacklist the access token JTI and revoke the refresh
-    token."""
+    """End the session: blacklist the access token JTI and delete the
+    refresh-token row.
+
+    Delete instead of mark-revoked (issue #641) — same security
+    guarantee, no accumulation of dead rows.
+    """
     await blacklist_access_token(jti, exp)
 
     if raw_refresh_token:
@@ -228,8 +241,8 @@ async def logout_user(
             )
         )
         db_token = result.scalar_one_or_none()
-        if db_token and not db_token.is_revoked:
-            db_token.is_revoked = True
+        if db_token is not None:
+            await session.delete(db_token)
 
 
 async def mark_invite_used(token: str, session: AsyncSession) -> None:

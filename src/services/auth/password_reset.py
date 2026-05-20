@@ -16,7 +16,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.config import settings
@@ -180,13 +180,14 @@ async def reset_password(
     user.hashed_password = get_password_hash(new_password)
     record.used = True
 
+    # Every parallel session for this user is wiped — a password reset
+    # is the canonical "log everyone out" event. Delete instead of
+    # mark-revoked (issue #641); same security guarantee, no row
+    # accumulation.
     await session.execute(
-        update(RefreshToken)
-        .where(
+        delete(RefreshToken).where(
             RefreshToken.user_id == user.id,  # pyright: ignore[reportArgumentType]
-            RefreshToken.is_revoked == False,  # noqa: E712
         )
-        .values(is_revoked=True)
     )
 
     await record_audit_event(

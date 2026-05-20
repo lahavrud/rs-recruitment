@@ -141,6 +141,12 @@ class Settings(BaseSettings):
     # Environment
     environment: Literal["development", "production"] = "development"
 
+    # Trusted reverse-proxy IPs/CIDRs (issue #647)
+    # Comma-separated list of IP addresses or CIDR ranges whose X-Forwarded-For
+    # headers are accepted as authoritative.  Empty = no proxy trust (dev/test);
+    # in production set to the load-balancer's private CIDR (e.g. "10.0.0.0/8").
+    trusted_proxy_ips: str = ""
+
     # Testing Configuration
     testing: bool = False  # Set to True in test environment to disable rate limiting
 
