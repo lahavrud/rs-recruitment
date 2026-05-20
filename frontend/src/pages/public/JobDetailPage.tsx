@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getPublicJob } from "@/services/jobs";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import type { JobPublicRead } from "@/types/api";
+import { trackEvent } from "@/utils/analytics";
 import axios from "axios";
 
 const JOB_POSTING_VALID_DAYS = 90;
@@ -192,10 +193,7 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     if (!job) return;
-    const dl = (window as unknown as { dataLayer?: unknown[] }).dataLayer;
-    if (Array.isArray(dl)) {
-      dl.push({ event: "job_view", job_id: job.id, job_title: job.title });
-    }
+    trackEvent("job_view", { job_id: job.id, job_title: job.title });
   }, [job]);
 
   if (loading) return <DetailSkeleton />;
