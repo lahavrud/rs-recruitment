@@ -101,7 +101,7 @@ EXCEPTION_CODE_MAP: dict[type[Exception], str] = {
     JobNotOwnedByCompanyError: "job_not_owned",
     # Token / credential issues
     InvalidActivationTokenError: "invalid_activation_token",
-    InvalidPasswordResetTokenError: "invalid_password_reset_token",
+    InvalidPasswordResetTokenError: "invalid_password_reset_token",  # pragma: allowlist secret
     InvalidCredentialsError: "invalid_credentials",
     InactiveUserError: "inactive_user",
     PendingApprovalError: "pending_approval",
