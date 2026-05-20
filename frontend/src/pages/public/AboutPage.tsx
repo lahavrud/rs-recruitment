@@ -535,7 +535,7 @@ export default function AboutPage() {
                       paddingBottom: isOpen ? "1.25rem" : "0",
                       transition: isOpen
                         ? "max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, padding-bottom 0.3s ease"
-                        : "none",
+                        : "max-height 0.08s ease, opacity 0.06s ease, padding-bottom 0.08s ease",
                     }}
                   >
                     {t(`about.faq.a${n}`)}
