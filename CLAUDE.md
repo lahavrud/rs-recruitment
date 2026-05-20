@@ -94,6 +94,7 @@ frontend/src/
 | `/dashboard` | `ProtectedRoute` | Role-aware `DashboardPage` |
 | `/admin/companies` `/admin/jobs` `/admin/applications` `/admin/candidates` | `AdminRoute` | Admin pages |
 | `/company/jobs` | `CompanyRoute` | `CompanyJobsPage` |
+| `/candidate/profile` | `CandidateRoute` | `CandidateProfilePage` |
 
 ---
 

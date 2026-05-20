@@ -114,6 +114,44 @@ class RefreshToken(SQLModel, table=True):
     )
 
 
+class DataExportRequest(SQLModel, table=True):
+    """One-shot signed download token for the candidate GDPR data export.
+
+    Sprint 11 / #608: candidates request an export → background task
+    assembles a ZIP (profile JSON + per-application resumes) and uploads
+    it to storage → row is minted here pointing at the ZIP's storage key
+    → confirmation email contains a signed link `/api/candidate/me/export/
+    {token}` → the GET endpoint streams the ZIP and marks `used=True`.
+
+    Tokens are stored as SHA-256 hashes (raw token only ever lives in the
+    email URL). `expires_at` is 24h from creation. The cleanup cron in
+    #10 sweeps expired and used rows (and the corresponding storage
+    objects).
+    """
+
+    __tablename__ = "data_export_request"
+
+    id: int | None = Field(default=None, primary_key=True)
+    token_hash: str = Field(unique=True, index=True)
+    user_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    download_path: str = Field(sa_column=Column(Text, nullable=False))
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    used: bool = Field(default=False)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
 class PasswordResetToken(SQLModel, table=True):
     """Single-use password-reset tokens.
 

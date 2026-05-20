@@ -119,6 +119,47 @@ async def _emit_purge_count_metric(count: int) -> None:
         logger.exception("Failed to emit PurgedCandidatesCount metric")
 
 
+async def build_data_export_task(ctx: dict, user_id: int) -> None:
+    """Assemble a candidate GDPR export ZIP + mail the signed download link.
+
+    Sprint 11 / #608. Runs on Arq. The heavy lifting lives in
+    ``src/services/candidate/data_export.py``; this wrapper opens a
+    session, runs the build, then enqueues the notification email.
+    """
+    from src.core.services.storage import get_storage_provider
+    from src.services.candidate.data_export import (
+        DATA_EXPORT_TTL_HOURS,
+        build_and_persist_export,
+    )
+    from src.templates.email import build_data_export_ready_html
+
+    async with async_session() as session:
+        async with transactional(session):
+            raw_token, candidate_email = await build_and_persist_export(
+                user_id, session, get_storage_provider()
+            )
+
+    download_url = f"{settings.frontend_base_url}/api/candidate/me/export/{raw_token}"
+    html = build_data_export_ready_html(
+        download_url=download_url, ttl_hours=DATA_EXPORT_TTL_HOURS
+    )
+    try:
+        await enqueue_email_task(
+            to=candidate_email,
+            subject="ייצוא הנתונים שלכם מוכן – RS Recruiting",
+            body=(
+                "שלום,\n\n"
+                "ייצוא הנתונים שביקשתם מוכן להורדה.\n\n"
+                f"קישור להורדה (תקף ל-{DATA_EXPORT_TTL_HOURS} שעות):\n"
+                f"{download_url}\n\n"
+                "בברכה,\nצוות RS Recruiting"
+            ),
+            html_body=html,
+        )
+    except Exception:
+        logger.exception("Failed to enqueue data export notification email")
+
+
 async def purge_expired_candidate_data_task(ctx: dict) -> int:
     """Periodic task: purge candidates past the 12-month retention window.
 
@@ -137,7 +178,11 @@ class WorkerSettings:
     """Arq worker configuration."""
 
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
-    functions = [send_email_task, purge_expired_candidate_data_task]
+    functions = [
+        send_email_task,
+        build_data_export_task,
+        purge_expired_candidate_data_task,
+    ]
     cron_jobs = [
         # Nightly at 03:00 UTC — off-peak for our user base.
         cron(purge_expired_candidate_data_task, hour=3, minute=0),

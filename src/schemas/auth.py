@@ -87,6 +87,25 @@ class ResetPasswordRequest(BaseModel):
         return _validate_password_complexity(v)
 
 
+class ChangePasswordRequest(BaseModel):
+    """Authenticated in-session password change (Sprint 11 / #608).
+
+    Distinct from the forgot-password flow:
+    * forgot-password issues an email reset link (anonymous-initiated).
+    * this endpoint requires the existing session's access token AND the
+      candidate's current password, then revokes every other refresh token
+      so a stolen credential can no longer ride existing sessions.
+    """
+
+    current_password: str = Field(..., min_length=1, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return _validate_password_complexity(v)
+
+
 class CandidateRegisterRequest(BaseModel):
     """Schema for the candidate self-registration endpoint (Sprint 11 / #605).
 
