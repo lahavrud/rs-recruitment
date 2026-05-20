@@ -40,7 +40,7 @@ def _mask_email(to: str | List[str]) -> str:
 def _mask_redis_url(url: str) -> str:
     """Strip credentials from a Redis URL before logging.
 
-    redis://user:password@host:port/db → redis://***@host:port/db
+    redis://user:password@host:port/db → redis://***@host:port/db  # pragma: allowlist secret
     """
     if "://" not in url:
         return url
