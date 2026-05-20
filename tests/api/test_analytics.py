@@ -12,7 +12,9 @@ from src.core.infrastructure.config import settings
 @pytest.fixture
 def _configure_ga4(monkeypatch):
     monkeypatch.setattr(settings, "ga4_measurement_id", "G-TEST12345")
-    monkeypatch.setattr(settings, "ga4_api_secret", "test-secret")  # pragma: allowlist secret
+    monkeypatch.setattr(
+        settings, "ga4_api_secret", "test-secret"
+    )  # pragma: allowlist secret
 
 
 def _payload(
@@ -76,7 +78,9 @@ async def test_forwards_event_to_ga4(public_client: AsyncClient, _configure_ga4)
     with patch("src.api.analytics.httpx.AsyncClient", return_value=mock_client):
         resp = await public_client.post(
             "/api/analytics/collect",
-            json=_payload(name="apply_submit", params={"job_id": 42}, client_id="111.222"),
+            json=_payload(
+                name="apply_submit", params={"job_id": 42}, client_id="111.222"
+            ),
         )
 
     assert resp.status_code == 204
