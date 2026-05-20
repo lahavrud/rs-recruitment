@@ -6,8 +6,8 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import and_, select
 
-from src.enums import ApplicationStatus
-from src.models import Application, AuditLog, CandidateProfile, Job
+from src.enums import ApplicationStatus, JobStatus
+from src.models import Application, AuditLog, CandidateProfile, CompanyProfile, Job
 from tests.conftest import TestSessionLocal
 
 # Default resume payload for every apply-endpoint test that doesn't care
@@ -376,6 +376,7 @@ async def test_apply_endpoint_reuses_existing_profile(
             location="Tel Aviv, Israel",
             salary_min=15000,
             salary_max=25000,
+            status=JobStatus.PUBLISHED,
         )
         session.add(job2)
         await session.commit()
@@ -569,6 +570,7 @@ async def test_apply_endpoint_updates_consent_on_reapplication(
             location="Tel Aviv, Israel",
             salary_min=15000,
             salary_max=25000,
+            status=JobStatus.PUBLISHED,
         )
         session.add(job2)
         await session.commit()
@@ -932,3 +934,74 @@ async def test_apply_without_resume_returns_422(
     resp = await public_client.post("/api/candidates/apply", data=form_data)
     assert resp.status_code == 422
     assert resp.json()["detail"] == "resume_required"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "job_status",
+    [JobStatus.PENDING_APPROVAL, JobStatus.CLOSED],
+)
+@patch("src.services.public._application_helpers.enqueue_email_task")
+async def test_apply_against_non_published_job_returns_404(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    company_profile: CompanyProfile,
+    job_status: JobStatus,
+):
+    """Regression for issue #649.
+
+    A candidate that knows (or guesses) a job_id whose ``status`` is
+    not ``PUBLISHED`` — pending admin approval, or already closed —
+    must not be able to slip an application past the apply endpoint.
+    Both branches collapse into the same 404 the response sends for a
+    genuinely missing job ID so the caller can't probe ``status``
+    transitions from the outside.
+    """
+    mock_enqueue_email.return_value = "test-job-id"
+
+    async with TestSessionLocal() as session:
+        from src.models import Job
+
+        job = Job(
+            company_id=company_profile.id,
+            title="Hidden Job",
+            short_description="Short blurb",
+            description="Long enough description to satisfy validation.",
+            requirements=[
+                {"text": "Requirement 1"},
+                {"text": "Requirement 2"},
+                {"text": "Requirement 3"},
+            ],
+            location="Tel Aviv",
+            salary_min=10000,
+            salary_max=20000,
+            status=job_status,
+        )
+        session.add(job)
+        await session.commit()
+        await session.refresh(job)
+        job_id = job.id
+
+    form_data = {
+        "job_id": job_id,
+        "full_name": "Probe",
+        "email": "probe@example.com",
+        "phone": "050-000-0123",
+        "privacy_accepted": "true",
+        "terms_accepted": "true",
+    }
+    resp = await public_client.post(
+        "/api/candidates/apply",
+        data=form_data,
+        files=FAKE_RESUME,
+    )
+
+    assert resp.status_code == 404
+    # No application row was created — confirm via DB lookup.
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(Application).where(
+                Application.job_id == job_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        assert result.scalar_one_or_none() is None

@@ -17,6 +17,7 @@ from src.core.services.storage import get_storage_provider
 # enqueue_email_task")` continue to work even though the email enqueue happens
 # in `_application_helpers`. See `tests/conftest.py::_EMAIL_TASK_TARGETS`.
 from src.core.tasks import enqueue_email_task  # noqa: F401
+from src.enums import JobStatus
 from src.models import Job, User
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.exceptions import EmailAlreadyExistsError, JobNotFoundError
@@ -77,12 +78,24 @@ async def create_candidate_profile(
     if session is None:
         raise ValueError("Database session is required")
 
+    # Restrict apply to PUBLISHED jobs only — PENDING_APPROVAL / CLOSED /
+    # REJECTED rows are not visible on the public job board but a candidate
+    # who has a stale link, brute-forces sequential IDs, or replays an old
+    # URL must not be able to slip an application past them (issue #649).
+    # Pending / closed / rejected rows behave identically to "not found"
+    # from the public surface; we collapse them all into JobNotFoundError
+    # so the response is opaque about why the apply was rejected.
     job_row = await session.execute(
-        select(Job).options(selectinload(Job.company)).where(Job.id == job_id)  # pyright: ignore[reportArgumentType]
+        select(Job)
+        .options(selectinload(Job.company))
+        .where(
+            Job.id == job_id,  # pyright: ignore[reportArgumentType]
+            Job.status == JobStatus.PUBLISHED,
+        )
     )
     job = job_row.scalar_one_or_none()
     if not job:
-        raise JobNotFoundError(f"Job with ID {job_id} not found")
+        raise JobNotFoundError(f"Job with ID {job_id} not found or not published")
 
     company_name = job.company.name if job.company else "Unknown Company"
 
