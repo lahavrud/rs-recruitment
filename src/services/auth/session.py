@@ -50,7 +50,7 @@ def _email_prefix(email: str) -> str:
     return f"{local[:2]}***"
 
 
-async def _check_lockout(email: str) -> None:
+async def _check_lockout(email: str, client_ip: str | None = None) -> None:
     from src.core.tasks import get_redis_pool
 
     try:
@@ -59,7 +59,11 @@ async def _check_lockout(email: str) -> None:
         if ttl > 0:
             logger.warning(
                 "login_lockout_hit",
-                extra={"email_prefix": _email_prefix(email), "ttl_s": ttl},
+                extra={
+                    "email_prefix": _email_prefix(email),
+                    "ttl_s": ttl,
+                    "ip": client_ip,
+                },
             )
             raise AccountLockedError(minutes_remaining=math.ceil(ttl / 60))
     except AccountLockedError:
@@ -68,7 +72,7 @@ async def _check_lockout(email: str) -> None:
         logger.error("redis_unavailable", extra={"surface": "lockout_check"})
 
 
-async def _record_failed_attempt(email: str) -> None:
+async def _record_failed_attempt(email: str, client_ip: str | None = None) -> None:
     from src.core.tasks import get_redis_pool
 
     try:
@@ -81,12 +85,16 @@ async def _record_failed_attempt(email: str) -> None:
             await redis.delete(key)
             logger.warning(
                 "login_account_locked",
-                extra={"email_prefix": _email_prefix(email)},
+                extra={"email_prefix": _email_prefix(email), "ip": client_ip},
             )
         else:
             logger.warning(
                 "login_failed",
-                extra={"email_prefix": _email_prefix(email), "attempt": count},
+                extra={
+                    "email_prefix": _email_prefix(email),
+                    "attempt": count,
+                    "ip": client_ip,
+                },
             )
     except Exception:
         logger.error("redis_unavailable", extra={"surface": "record_failed_attempt"})
@@ -103,7 +111,12 @@ async def _clear_failed_attempts(email: str) -> None:
         logger.error("redis_unavailable", extra={"surface": "clear_failed_attempts"})
 
 
-async def authenticate_user(email: str, password: str, session: AsyncSession) -> User:
+async def authenticate_user(
+    email: str,
+    password: str,
+    session: AsyncSession,
+    client_ip: str | None = None,
+) -> User:
     """Authenticate a user by email and password.
 
     Checks for account lockout before attempting credential validation.
@@ -115,12 +128,13 @@ async def authenticate_user(email: str, password: str, session: AsyncSession) ->
     )
     user = result.scalar_one_or_none()
     if not user:
+        logger.warning("login_email_not_found", extra={"ip": client_ip})
         raise InvalidCredentialsError("Incorrect email or password")
 
-    await _check_lockout(email)
+    await _check_lockout(email, client_ip)
 
     if not verify_password(password, user.hashed_password):
-        await _record_failed_attempt(email)
+        await _record_failed_attempt(email, client_ip)
         raise InvalidCredentialsError("Incorrect email or password")
 
     if not user.is_active:

@@ -1,5 +1,6 @@
 """Tests for authentication endpoints — login, refresh, logout."""
 
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -249,7 +250,7 @@ async def test_account_lockout_after_failed_attempts(client: AsyncClient):
 
     attempt_count = 0
 
-    async def fake_check_lockout(email: str) -> None:
+    async def fake_check_lockout(email: str, client_ip: str | None = None) -> None:
         nonlocal attempt_count
         attempt_count += 1
         if attempt_count > 5:
@@ -277,3 +278,49 @@ async def test_successful_login_clears_failed_attempts(client: AsyncClient):
     """Test that a successful login clears the lockout counter."""
     tokens = await _create_active_user(client, "clearlock@example.com")
     assert "access_token" in tokens  # login succeeded — counter was cleared
+
+
+@pytest.mark.asyncio
+async def test_login_failed_logs_ip(client: AsyncClient, caplog):
+    """A bad-password login emits a login_failed log record with an ip field.
+
+    The autouse mock_auth_redis fixture stubs _record_failed_attempt as a no-op
+    so that CI tests never open a Redis connection.  We override it with a thin
+    stub that calls through to the real logger so the WARNING fires without
+    touching Redis.
+    """
+    await client.post(
+        "/auth/register",
+        params={"token": "valid-test-token"},
+        data=_reg_data(email="logip@example.com"),
+        files={"logo": FAKE_LOGO_FILE},
+    )
+    async with TestSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.email == "logip@example.com")  # pyright: ignore[reportArgumentType]
+        )
+        user = result.scalar_one()
+        user.is_active = True
+        await session.commit()
+
+    _session_logger = logging.getLogger("src.services.auth.session")
+
+    async def _stub_record_failed(email: str, client_ip: str | None = None) -> None:
+        _session_logger.warning(
+            "login_failed",
+            extra={"email_prefix": email[:2] + "***", "attempt": 1, "ip": client_ip},
+        )
+
+    with (
+        patch(
+            "src.services.auth.session._record_failed_attempt",
+            side_effect=_stub_record_failed,
+        ),
+        caplog.at_level(logging.WARNING, logger="src.services.auth.session"),
+    ):
+        await client.post(
+            "/auth/login",
+            json={"email": "logip@example.com", "password": "WrongPass1!"},
+        )
+
+    assert any("login_failed" in r.message and hasattr(r, "ip") for r in caplog.records)

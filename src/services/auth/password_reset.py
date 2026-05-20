@@ -132,8 +132,12 @@ async def _load_active_reset_token(
     )
     record = result.scalar_one_or_none()
     if record is None or record.used:
+        logger.warning(
+            "password_reset_token_invalid", extra={"reason": "not_found_or_used"}
+        )
         raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
     if record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        logger.warning("password_reset_token_invalid", extra={"reason": "expired"})
         raise InvalidPasswordResetTokenError("פג תוקף הקישור")
     return record
 
