@@ -167,11 +167,14 @@ async def reset_password(
     )
     row = result.one_or_none()
     if row is None:
+        logger.warning("password_reset_token_invalid", extra={"reason": "not_found"})
         raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
     record, user = row
     if record.used:
+        logger.warning("password_reset_token_invalid", extra={"reason": "already_used"})
         raise InvalidPasswordResetTokenError("הקישור אינו תקף או שכבר נעשה בו שימוש")
     if record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        logger.warning("password_reset_token_invalid", extra={"reason": "expired"})
         raise InvalidPasswordResetTokenError("פג תוקף הקישור")
 
     user.hashed_password = get_password_hash(new_password)
