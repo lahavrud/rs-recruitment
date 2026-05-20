@@ -6,11 +6,17 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.infrastructure.security import get_password_hash
 from src.core.infrastructure.transactions import transactional
-from src.enums import ApplicationStatus
-from src.models import Application, Job
+from src.enums import ApplicationStatus, UserRole
+from src.models import Application, CandidateProfile, Job, User
 from src.schemas import CandidateProfileCreate
-from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
+from src.services.exceptions import (
+    ApplicationAlreadyEditableError,
+    ApplicationAlreadyLockedError,
+    EmailAlreadyExistsError,
+    JobNotFoundError,
+)
 from src.services.public.applications import create_candidate_profile
 
 _PDF_BYTES = b"%PDF-1.4" + b"\x00" * 50
@@ -451,24 +457,26 @@ async def test_create_candidate_profile_duplicate_application_raises_error(
     session: AsyncSession,
     company_with_user,
 ):
-    """Applying twice to the same job raises ApplicationAlreadyExistsError."""
+    """Applying twice to the same job raises ApplicationAlreadyEditableError
+    (Sprint 11 / #606). The first application is NEW, so the conflict carries
+    its application_id so the frontend can redirect into the inline editor."""
+
     mock_enqueue_email.return_value = "test-job-id"
     job = await _make_published_job(session, company_with_user)
 
-    first = await create_candidate_profile(
+    await create_candidate_profile(
         candidate_data=_default_candidate(),
         job_id=job.id,
         session=session,
     )
 
-    with pytest.raises(ApplicationAlreadyExistsError) as exc_info:
+    with pytest.raises(ApplicationAlreadyEditableError) as exc_info:
         await create_candidate_profile(
             candidate_data=_default_candidate(),
             job_id=job.id,
             session=session,
         )
-    assert exc_info.value.job_id == job.id
-    assert exc_info.value.candidate_id == first.id
+    assert exc_info.value.application_id is not None
 
 
 @pytest.mark.asyncio
@@ -505,3 +513,199 @@ async def test_one_profile_can_have_many_applications(
     )
     assert len(applications) == 5
     assert {a.job_id for a in applications} == {job.id for job in jobs}
+
+
+# ── Sprint 11 / #606 — claim + logged-in + duplicate semantics ─────────────────
+
+
+@pytest.mark.asyncio
+@patch("src.services.public.applications.enqueue_email_task")
+async def test_resume_snapshot_is_written_to_application(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+):
+    """Every NEW Application must carry the resume path that was uploaded
+    with it — the per-application snapshot is the #604 contract."""
+    mock_enqueue_email.return_value = "test-job-id"
+    job = await _make_published_job(session, company_with_user)
+
+    storage = AsyncMock()
+    storage.upload_file = AsyncMock(return_value="uploads/resumes/snap.pdf")
+    with patch(
+        "src.services.public.applications.get_storage_provider", return_value=storage
+    ):
+        candidate = await create_candidate_profile(
+            candidate_data=_default_candidate(),
+            job_id=job.id,
+            resume_file=_PDF_BYTES,
+            resume_filename="snap.pdf",
+            session=session,
+        )
+
+    app_row = (
+        await session.execute(
+            select(Application).where(  # pyright: ignore[reportArgumentType]
+                Application.candidate_id == candidate.id,
+            )
+        )
+    ).scalar_one()
+    assert app_row.resume_path == "uploads/resumes/snap.pdf"
+
+
+@pytest.mark.asyncio
+@patch("src.services.public.applications.enqueue_email_task")
+async def test_active_candidate_email_blocks_anonymous_apply(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+):
+    """If the email belongs to an active candidate User, the apply is rejected
+    even without a password — the visitor should log in instead (#606)."""
+    mock_enqueue_email.return_value = "test-job-id"
+    job = await _make_published_job(session, company_with_user)
+
+    session.add(
+        User(
+            email="taken@example.com",
+            hashed_password=get_password_hash("Secret1!"),  # pragma: allowlist secret
+            role=UserRole.CANDIDATE,
+            is_active=True,
+        )
+    )
+    await session.commit()
+
+    with pytest.raises(EmailAlreadyExistsError):
+        await create_candidate_profile(
+            candidate_data=_default_candidate(email="taken@example.com"),
+            job_id=job.id,
+            session=session,
+        )
+
+
+@pytest.mark.asyncio
+@patch("src.services.public.applications.enqueue_email_task")
+async def test_withdrawn_does_not_block_reapply(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+):
+    """A WITHDRAWN application is invisible to the duplicate-apply check —
+    candidates can re-apply after withdrawing (#604 partial unique index)."""
+    mock_enqueue_email.return_value = "test-job-id"
+    job = await _make_published_job(session, company_with_user)
+
+    first = await create_candidate_profile(
+        candidate_data=_default_candidate(),
+        job_id=job.id,
+        session=session,
+    )
+
+    # Mark the first application as withdrawn directly (simulates #610 path).
+    app_row = (
+        await session.execute(
+            select(Application).where(  # pyright: ignore[reportArgumentType]
+                Application.candidate_id == first.id,
+            )
+        )
+    ).scalar_one()
+    app_row.status = ApplicationStatus.WITHDRAWN
+    await session.commit()
+
+    # Fresh apply by the same candidate to the same job should succeed.
+    second_candidate = await create_candidate_profile(
+        candidate_data=_default_candidate(),
+        job_id=job.id,
+        session=session,
+    )
+    assert second_candidate.id == first.id
+    active_apps = (
+        (
+            await session.execute(
+                select(Application).where(  # pyright: ignore[reportArgumentType]
+                    Application.candidate_id == first.id,
+                    Application.status != ApplicationStatus.WITHDRAWN,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(active_apps) == 1
+
+
+@pytest.mark.asyncio
+@patch("src.services.public.applications.enqueue_email_task")
+async def test_non_new_blocking_application_raises_locked(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+):
+    """Once admin moves the application past NEW, re-apply is locked — the
+    error carries no application_id (candidates can't navigate to it, per
+    Sprint 11 no-status-leak rule)."""
+    mock_enqueue_email.return_value = "test-job-id"
+    job = await _make_published_job(session, company_with_user)
+
+    candidate = await create_candidate_profile(
+        candidate_data=_default_candidate(),
+        job_id=job.id,
+        session=session,
+    )
+    app_row = (
+        await session.execute(
+            select(Application).where(  # pyright: ignore[reportArgumentType]
+                Application.candidate_id == candidate.id,
+            )
+        )
+    ).scalar_one()
+    app_row.status = ApplicationStatus.APPROVED_BY_ADMIN
+    await session.commit()
+
+    with pytest.raises(ApplicationAlreadyLockedError):
+        await create_candidate_profile(
+            candidate_data=_default_candidate(),
+            job_id=job.id,
+            session=session,
+        )
+
+
+@pytest.mark.asyncio
+@patch("src.services.public.applications.enqueue_email_task")
+async def test_logged_in_candidate_apply_uses_session_email(
+    mock_enqueue_email,
+    session: AsyncSession,
+    company_with_user,
+):
+    """A logged-in candidate's session email overrides whatever the form
+    submitted, so a malicious form can't spoof another user's email."""
+    mock_enqueue_email.return_value = "test-job-id"
+    job = await _make_published_job(session, company_with_user)
+
+    user = User(
+        email="session@example.com",
+        hashed_password=get_password_hash("Secret1!"),  # pragma: allowlist secret
+        role=UserRole.CANDIDATE,
+        is_active=True,
+    )
+    session.add(user)
+    await session.flush()
+    profile = CandidateProfile(
+        user_id=user.id,
+        full_name="Session User",
+        email="session@example.com",
+        phone="050-000-1111",
+    )
+    session.add(profile)
+    await session.commit()
+
+    result = await create_candidate_profile(
+        candidate_data=_default_candidate(email="someone-else@example.com"),
+        job_id=job.id,
+        session=session,
+        candidate_user=user,
+    )
+    # The candidate row used is the session user's profile, ignoring the
+    # form email.
+    assert result.id == profile.id
+    assert result.email == "session@example.com"

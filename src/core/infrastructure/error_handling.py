@@ -4,7 +4,9 @@ from fastapi import HTTPException, status
 
 from src.services.exceptions import (
     AccountLockedError,
+    ApplicationAlreadyEditableError,
     ApplicationAlreadyExistsError,
+    ApplicationAlreadyLockedError,
     ApplicationNotFoundError,
     CandidateNotFoundError,
     CompanyNotFoundError,
@@ -38,6 +40,8 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     CandidateNotFoundError: status.HTTP_404_NOT_FOUND,
     # Conflict errors (409)
     ApplicationAlreadyExistsError: status.HTTP_409_CONFLICT,
+    ApplicationAlreadyEditableError: status.HTTP_409_CONFLICT,
+    ApplicationAlreadyLockedError: status.HTTP_409_CONFLICT,
     InvitePendingForEmailError: status.HTTP_409_CONFLICT,
     EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
     # Forbidden errors (403)

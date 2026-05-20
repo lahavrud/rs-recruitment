@@ -19,6 +19,12 @@ from src.services.exceptions import RedisUnavailableError
 
 security = HTTPBearer()
 
+# Optional auth: returns the credential or None when no Authorization header is
+# present. Used by public endpoints that *can* be enriched for logged-in users
+# but must not 401 anonymous traffic (e.g. GET /api/public/jobs/:id with
+# my_application surfacing in #606).
+security_optional = HTTPBearer(auto_error=False)
+
 
 async def get_token_payload(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -98,6 +104,58 @@ async def get_current_user(
         {"id": str(user.id), "email": user.email, "role": user.role.value}
     )
 
+    return user
+
+
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_optional),
+    session: AsyncSession = Depends(get_session),
+) -> User | None:
+    """Resolve the current authenticated user when a valid token is present;
+    return ``None`` for anonymous requests.
+
+    Differs from ``get_current_user`` in three ways:
+
+    * Missing ``Authorization`` header → ``None`` (no 401).
+    * Invalid / expired / blacklisted token → ``None`` (no 401).
+    * Redis outage during blacklist check → ``None`` (degrade open — the
+      caller is a public endpoint, so we'd rather skip personalization
+      than fail closed).
+
+    For inactive accounts we still return ``None`` rather than 403 — a
+    public endpoint that incidentally identifies the requester shouldn't
+    surface their activation state.
+    """
+    if credentials is None:
+        return None
+
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        return None
+
+    jti = payload.get("jti")
+    try:
+        if jti and await is_access_token_blacklisted(jti):
+            return None
+    except RedisUnavailableError:
+        return None
+    except Exception:
+        return None
+
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
+        return None
+    try:
+        user_id_int = int(user_id_raw)
+    except (ValueError, TypeError):
+        return None
+
+    result = await session.execute(
+        select(User).where(User.id == user_id_int)  # pyright: ignore[reportArgumentType]
+    )
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        return None
     return user
 
 

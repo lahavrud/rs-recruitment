@@ -216,7 +216,21 @@ export default function JobDetailPage() {
     );
   }
 
-  const applyHref = `/jobs/${job.id}/apply`;
+  // Sprint 11 / #606 — authed candidate sessions see contextual buttons:
+  // * editable → "edit your application" → /candidate/applications/:id
+  // * locked   → "you already applied" (disabled)
+  // * none     → standard "apply now"
+  const myApp = job.my_application;
+  const applyHref =
+    myApp && myApp.editable
+      ? `/candidate/applications/${myApp.id}`
+      : `/jobs/${job.id}/apply`;
+  const applyLabelKey = myApp
+    ? myApp.editable
+      ? "publicJobs.detail.editYourApplication"
+      : "publicJobs.detail.alreadyApplied"
+    : "publicJobs.detail.applyNow";
+  const applyDisabled = Boolean(myApp && !myApp.editable);
   const salaryStr = formatSalary(job.salary_min, job.salary_max);
 
   const validThrough = new Date(
@@ -406,12 +420,21 @@ export default function JobDetailPage() {
 
             <div className="mt-5 h-px bg-white/8" />
 
-            <Link
-              to={applyHref}
-              className="mt-5 block rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-            >
-              {t("publicJobs.detail.applyNow")}
-            </Link>
+            {applyDisabled ? (
+              <div
+                aria-disabled="true"
+                className="mt-5 block rounded-sm bg-white/10 py-3 text-center text-sm font-medium text-white/40"
+              >
+                {t(applyLabelKey)}
+              </div>
+            ) : (
+              <Link
+                to={applyHref}
+                className="mt-5 block rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+              >
+                {t(applyLabelKey)}
+              </Link>
+            )}
           </div>
         </aside>
       </div>
@@ -424,12 +447,21 @@ export default function JobDetailPage() {
               {salaryStr}
             </p>
           )}
-          <Link
-            to={applyHref}
-            className="flex-1 rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-void"
-          >
-            {t("publicJobs.detail.applyNow")}
-          </Link>
+          {applyDisabled ? (
+            <div
+              aria-disabled="true"
+              className="flex-1 rounded-sm bg-white/10 py-3 text-center text-sm font-medium text-white/40"
+            >
+              {t(applyLabelKey)}
+            </div>
+          ) : (
+            <Link
+              to={applyHref}
+              className="flex-1 rounded-sm bg-copper py-3 text-center text-sm font-medium text-white transition hover:bg-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-void"
+            >
+              {t(applyLabelKey)}
+            </Link>
+          )}
         </div>
       </div>
     </div>

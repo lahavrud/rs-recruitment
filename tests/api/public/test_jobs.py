@@ -177,7 +177,10 @@ async def test_get_public_job_payload_integrity(
     assert job_public.id == published_job.id
     assert job_public.title == published_job.title
 
-    # 4. Assert that only the allowed keys exist in the response
+    # 4. Assert that only the allowed keys exist in the response.
+    # `my_application` is part of the schema (added in #606) but only
+    # populated for authenticated candidate sessions; anonymous responses
+    # serialize it as `null`.
     expected_keys = {
         "id",
         "title",
@@ -190,5 +193,199 @@ async def test_get_public_job_payload_integrity(
         "salary_min",
         "salary_max",
         "created_at",
+        "my_application",
     }
     assert set(data.keys()) == expected_keys
+    assert data["my_application"] is None
+
+
+# ── Sprint 11 / #606 — my_application surfacing ───────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_get_public_job_my_application_for_candidate_with_new_app(
+    public_client: AsyncClient, published_job: Job, test_db
+):
+    """Authed candidate with a NEW application sees `my_application.editable=true`."""
+    from src.core.infrastructure.security import create_access_token, get_password_hash
+    from src.enums import ApplicationStatus, UserRole
+    from src.models import Application, CandidateProfile, User
+
+    async with TestSessionLocal() as session:
+        user = User(
+            email="me@example.com",
+            hashed_password=get_password_hash("Secret1!"),  # pragma: allowlist secret
+            role=UserRole.CANDIDATE,
+            is_active=True,
+        )
+        session.add(user)
+        await session.flush()
+        profile = CandidateProfile(
+            user_id=user.id,
+            full_name="Me",
+            email="me@example.com",
+            phone="050-000-0001",
+        )
+        session.add(profile)
+        await session.flush()
+        app = Application(
+            job_id=published_job.id,
+            candidate_id=profile.id,
+            status=ApplicationStatus.NEW,
+        )
+        session.add(app)
+        await session.commit()
+        await session.refresh(app)
+        token = create_access_token(
+            data={
+                "sub": str(user.id),
+                "email": user.email,
+                "role": user.role.value,
+            }
+        )
+        app_id = app.id
+
+    from unittest.mock import AsyncMock, patch
+
+    # autouse `mock_auth_redis` patches `security.is_access_token_blacklisted`
+    # but `dependencies.py` imports it at module top — the local binding is
+    # still the original function. Patch the dependencies-module binding so
+    # the bearer-token flow doesn't reject valid tokens as blacklisted.
+    with patch(
+        "src.core.infrastructure.dependencies.is_access_token_blacklisted",
+        new_callable=AsyncMock,
+        return_value=False,
+    ):
+        resp = await public_client.get(
+            f"/api/public/jobs/{published_job.id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert resp.status_code == 200
+    my = resp.json()["my_application"]
+    assert my is not None
+    assert my["id"] == app_id
+    assert my["editable"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_public_job_my_application_for_candidate_with_locked_app(
+    public_client: AsyncClient, published_job: Job, test_db
+):
+    """Authed candidate whose application is past NEW sees `editable=false`."""
+    from src.core.infrastructure.security import create_access_token, get_password_hash
+    from src.enums import ApplicationStatus, UserRole
+    from src.models import Application, CandidateProfile, User
+
+    async with TestSessionLocal() as session:
+        user = User(
+            email="locked@example.com",
+            hashed_password=get_password_hash("Secret1!"),  # pragma: allowlist secret
+            role=UserRole.CANDIDATE,
+            is_active=True,
+        )
+        session.add(user)
+        await session.flush()
+        profile = CandidateProfile(
+            user_id=user.id,
+            full_name="Locked",
+            email="locked@example.com",
+            phone="050-000-0002",
+        )
+        session.add(profile)
+        await session.flush()
+        session.add(
+            Application(
+                job_id=published_job.id,
+                candidate_id=profile.id,
+                status=ApplicationStatus.APPROVED_BY_ADMIN,
+            )
+        )
+        await session.commit()
+        token = create_access_token(
+            data={
+                "sub": str(user.id),
+                "email": user.email,
+                "role": user.role.value,
+            }
+        )
+
+    from unittest.mock import AsyncMock, patch
+
+    # autouse `mock_auth_redis` patches `security.is_access_token_blacklisted`
+    # but `dependencies.py` imports it at module top — the local binding is
+    # still the original function. Patch the dependencies-module binding so
+    # the bearer-token flow doesn't reject valid tokens as blacklisted.
+    with patch(
+        "src.core.infrastructure.dependencies.is_access_token_blacklisted",
+        new_callable=AsyncMock,
+        return_value=False,
+    ):
+        resp = await public_client.get(
+            f"/api/public/jobs/{published_job.id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert resp.status_code == 200
+    my = resp.json()["my_application"]
+    assert my is not None
+    assert my["editable"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_public_job_my_application_withdrawn_is_hidden(
+    public_client: AsyncClient, published_job: Job, test_db
+):
+    """Withdrawn applications are invisible — `my_application` is null."""
+    from src.core.infrastructure.security import create_access_token, get_password_hash
+    from src.enums import ApplicationStatus, UserRole
+    from src.models import Application, CandidateProfile, User
+
+    async with TestSessionLocal() as session:
+        user = User(
+            email="withdrawn@example.com",
+            hashed_password=get_password_hash("Secret1!"),  # pragma: allowlist secret
+            role=UserRole.CANDIDATE,
+            is_active=True,
+        )
+        session.add(user)
+        await session.flush()
+        profile = CandidateProfile(
+            user_id=user.id,
+            full_name="Withdrawn",
+            email="withdrawn@example.com",
+            phone="050-000-0003",
+        )
+        session.add(profile)
+        await session.flush()
+        session.add(
+            Application(
+                job_id=published_job.id,
+                candidate_id=profile.id,
+                status=ApplicationStatus.WITHDRAWN,
+            )
+        )
+        await session.commit()
+        token = create_access_token(
+            data={
+                "sub": str(user.id),
+                "email": user.email,
+                "role": user.role.value,
+            }
+        )
+
+    from unittest.mock import AsyncMock, patch
+
+    # autouse `mock_auth_redis` patches `security.is_access_token_blacklisted`
+    # but `dependencies.py` imports it at module top — the local binding is
+    # still the original function. Patch the dependencies-module binding so
+    # the bearer-token flow doesn't reject valid tokens as blacklisted.
+    with patch(
+        "src.core.infrastructure.dependencies.is_access_token_blacklisted",
+        new_callable=AsyncMock,
+        return_value=False,
+    ):
+        resp = await public_client.get(
+            f"/api/public/jobs/{published_job.id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["my_application"] is None

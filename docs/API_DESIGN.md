@@ -285,7 +285,11 @@ List all published jobs for the public job board.
 
 ### `GET /api/public/jobs/{job_id}`
 Get a specific published job posting.
-* **Auth Required:** No
+* **Auth Required:** Optional. Anonymous → standard response. Candidate JWT
+  → response includes `my_application: { id, editable } | null` summarizing
+  the candidate's own non-WITHDRAWN application for this job (Sprint 11 /
+  #606). WITHDRAWN applications are filtered out; `editable` is true iff
+  the underlying status is `NEW`. Raw `Application.status` is never sent.
 * **Parameters:** `job_id` (Integer, Path)
 * **Response:** `200 OK` | `404 Not Found`
 * **Response Body:** Single `JobPublicRead` object.
@@ -296,8 +300,22 @@ Get a specific published job posting.
 Unauthenticated leads submitting data to the system.
 
 ### `POST /api/candidates/apply`
-Submit a candidate profile and resume for a specific job.
-* **Auth Required:** No
+Submit a candidate profile and resume for a specific job. Sprint 11 / #606
+adds three dispatched behaviors on the same endpoint:
+
+1. **Anonymous apply** — no auth, no `password` → existing behavior.
+2. **Anonymous claim** — no auth, `password` + `password_confirm` supplied
+   → application is still created, AND a pending candidate `User` +
+   2-hour `ActivationToken` are minted (reuses the #605 helpers). The
+   activation email goes to the candidate's email.
+3. **Logged-in candidate apply** — request bears a candidate JWT. The
+   form's `email` field is ignored (the session email wins). Consent
+   checkboxes are not required (consent was captured at activation per
+   #605). `Application.resume_path` snapshots the uploaded resume; the
+   candidate's profile is updated with the latest identity fields.
+   Non-candidate authed users (ADMIN/COMPANY) receive `403`.
+
+* **Auth Required:** Optional.
 * **Content-Type:** `multipart/form-data`
 * **Form Data Parameters** (**bold** = required, regular = optional):
   * **`job_id`** (integer)
@@ -307,10 +325,24 @@ Submit a candidate profile and resume for a specific job.
   * `linkedin_url` (string | null)
   * `service_concept` (string | null)
   * `salary_expectations` (string | null)
-  * `military_service_details` (string | null)
-  * `transportation` (string | null)
-  * `personality_weakness` (string | null)
-  * `personality_strength` (string | null)
+  * `strength` (string | null)
+  * `growth_area` (string | null)
+  * **`privacy_accepted`** / **`terms_accepted`** (bool) — ignored for
+    authed candidates; required for anonymous.
+  * `password` / `password_confirm` (string | null) — anonymous claim only.
   * `resume` (File | null)
-* **Response:** `201 Created` | `404 Not Found` (Job unavailable) | `422 Validation Error`
-* **Response Body:** `CandidateProfileRead` object (Contains the assigned Candidate ID and internal file reference).
+* **Response:**
+  * `201 Created` — `CandidateProfileRead`.
+  * `403 Forbidden` — authed user is not a candidate.
+  * `404 Not Found` — job missing or not published.
+  * `409 Conflict` — structured detail:
+    * `{"error_code": "email_already_registered"}` — email belongs to an
+      active candidate `User`; frontend prompts login.
+    * `{"error_code": "already_applied_editable", "application_id": N}` —
+      candidate already has a `NEW` application; frontend redirects to
+      `/candidate/applications/N`.
+    * `{"error_code": "already_applied_locked"}` — candidate already has a
+      non-NEW non-WITHDRAWN application. No `application_id` returned
+      (Sprint 11 rule: no admin-internal status visibility to candidates).
+  * `422 Unprocessable Entity` — validation failure (password rules,
+    invalid resume, etc.). `invalid_application` for file errors.

@@ -17,15 +17,20 @@ from src.core.infrastructure.transactions import defer_after_commit
 from src.core.services.file_validation import validate_document_magic_bytes
 from src.core.services.storage import StorageProvider, get_storage_provider
 from src.core.tasks import enqueue_email_task
-from src.enums import ApplicationStatus
-from src.models import Application, CandidateProfile, Job
+from src.enums import ApplicationStatus, UserRole
+from src.models import Application, CandidateProfile, Job, User
 from src.schemas import CandidateProfileCreate, CandidateProfileRead
 from src.services.admin.companies import get_all_admin_emails
 from src.services.company.candidates import (
     find_candidate_by_email,
     update_candidate_profile,
 )
-from src.services.exceptions import ApplicationAlreadyExistsError, JobNotFoundError
+from src.services.exceptions import (
+    ApplicationAlreadyEditableError,
+    ApplicationAlreadyLockedError,
+    EmailAlreadyExistsError,
+    JobNotFoundError,
+)
 from src.services.utils.audit import record_audit_event
 from src.services.utils.legal import (
     CURRENT_PRIVACY_POLICY_VERSION,
@@ -72,6 +77,38 @@ async def _validate_and_upload_resume(
     )
 
 
+async def _check_no_blocking_application(
+    session: AsyncSession, job_id: int, candidate_id: int
+) -> None:
+    """Reject re-apply when a non-WITHDRAWN application already exists.
+
+    Sprint 11 / #606 + #604 amendment:
+    * NEW   → ``ApplicationAlreadyEditableError`` (carries application_id so
+      the frontend can redirect to the inline editor in #610).
+    * APPROVED_BY_ADMIN / REJECTED / HIRED → ``ApplicationAlreadyLockedError``
+      (no application_id — candidates never see admin-internal status, so
+      we don't surface a navigable handle to a locked record).
+    * WITHDRAWN → allow re-apply (partial unique index already permits the
+      new row).
+    """
+    result = await session.execute(
+        select(Application).where(  # pyright: ignore[reportArgumentType]
+            Application.job_id == job_id,
+            Application.candidate_id == candidate_id,
+            Application.status != ApplicationStatus.WITHDRAWN,
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing is None:
+        return
+    if existing.status == ApplicationStatus.NEW:
+        assert existing.id is not None
+        raise ApplicationAlreadyEditableError(application_id=existing.id)
+    raise ApplicationAlreadyLockedError(
+        f"Application {existing.id} is no longer editable"
+    )
+
+
 async def _upsert_candidate_and_application(
     session: AsyncSession,
     candidate_data: CandidateProfileCreate,
@@ -83,43 +120,69 @@ async def _upsert_candidate_and_application(
     salary_expectations: str | None = None,
     strength: str | None = None,
     growth_area: str | None = None,
+    skip_consent_write: bool = False,
+    candidate_user: User | None = None,
 ) -> CandidateProfile:
     """Find-or-create the candidate profile and create the application row.
 
-    Raises ApplicationAlreadyExistsError if the candidate already applied.
+    Order matters: pre-checks (active-user-by-email, duplicate-apply) MUST
+    run before any profile field is mutated, otherwise a 409 leaves the
+    profile half-updated with the new request's name/phone/linkedin
+    overwriting whatever the candidate had before.
+
+    Raises:
+        EmailAlreadyExistsError: when the email belongs to an *active*
+            candidate user — the apply form should send them to login
+            instead (Sprint 11 / #606).
+        ApplicationAlreadyEditableError / ApplicationAlreadyLockedError:
+            when a non-WITHDRAWN application already exists for this
+            (job_id, candidate). NEW → editable (carries id); other
+            non-WITHDRAWN statuses → locked.
+
     Returns the CandidateProfile (not yet committed).
     """
+    # Pre-check 1: an existing active candidate User with this email blocks
+    # anonymous apply entirely — the frontend prompts the visitor to log in
+    # (#606). Pending (is_active=False) users are silently ignored here so
+    # they can keep applying anonymously while their activation is in flight.
+    # Skipped when the caller IS that user (authed candidate apply path).
+    if candidate_user is None:
+        user_result = await session.execute(
+            select(User).where(User.email == candidate_data.email)  # type: ignore[arg-type]
+        )
+        matching_user = user_result.scalar_one_or_none()
+        if (
+            matching_user is not None
+            and matching_user.is_active
+            and matching_user.role == UserRole.CANDIDATE
+        ):
+            raise EmailAlreadyExistsError(candidate_data.email)
+
+    # Pre-check 2: duplicate-apply (excluding WITHDRAWN). This needs to fire
+    # BEFORE we mutate any existing candidate profile, otherwise a 409 leaves
+    # the profile's name/phone/linkedin silently overwritten with the new
+    # request's values.
     now = datetime.now(timezone.utc)
     existing = await find_candidate_by_email(
         email=candidate_data.email, session=session
     )
+    if existing and existing.id is not None:
+        await _check_no_blocking_application(session, job_id, existing.id)
 
-    if existing:
         candidate = await update_candidate_profile(
             candidate=existing,
             candidate_data=candidate_data,
             resume_path=resume_path,
             session=session,
         )
-        candidate.consent_given_at = now
-        candidate.consent_policy_version = CURRENT_PRIVACY_POLICY_VERSION
-        candidate.consent_ip = consent_ip
-        candidate.consent_user_agent = consent_ua
-        candidate.tos_accepted_at = now
-        candidate.tos_version = CURRENT_TERMS_OF_SERVICE_VERSION
+        if not skip_consent_write:
+            candidate.consent_given_at = now
+            candidate.consent_policy_version = CURRENT_PRIVACY_POLICY_VERSION
+            candidate.consent_ip = consent_ip
+            candidate.consent_user_agent = consent_ua
+            candidate.tos_accepted_at = now
+            candidate.tos_version = CURRENT_TERMS_OF_SERVICE_VERSION
         await session.flush()
-
-        dup = await session.execute(
-            select(Application).where(  # pyright: ignore[reportArgumentType]
-                Application.job_id == job_id,
-                Application.candidate_id == candidate.id,  # type: ignore[reportArgumentType]
-            )
-        )
-        if dup.scalar_one_or_none():
-            raise ApplicationAlreadyExistsError(
-                job_id=job_id,
-                candidate_id=candidate.id,  # type: ignore[arg-type]
-            )
     else:
         candidate = CandidateProfile(
             full_name=candidate_data.full_name,
@@ -127,16 +190,23 @@ async def _upsert_candidate_and_application(
             phone=candidate_data.phone,
             resume_path=resume_path,
             linkedin_url=candidate_data.linkedin_url,
-            consent_given_at=now,
-            consent_policy_version=CURRENT_PRIVACY_POLICY_VERSION,
-            consent_ip=consent_ip,
-            consent_user_agent=consent_ua,
-            tos_accepted_at=now,
-            tos_version=CURRENT_TERMS_OF_SERVICE_VERSION,
+            consent_given_at=None if skip_consent_write else now,
+            consent_policy_version=(
+                None if skip_consent_write else CURRENT_PRIVACY_POLICY_VERSION
+            ),
+            consent_ip=None if skip_consent_write else consent_ip,
+            consent_user_agent=None if skip_consent_write else consent_ua,
+            tos_accepted_at=None if skip_consent_write else now,
+            tos_version=(
+                None if skip_consent_write else CURRENT_TERMS_OF_SERVICE_VERSION
+            ),
         )
         session.add(candidate)
         await session.flush()
 
+    # Snapshot the resume on Application — independent of CandidateProfile's
+    # `latest` resume (per #604 schema, fixes the missing snapshot write that
+    # silently shipped before #606).
     session.add(
         Application(
             job_id=job_id,
@@ -146,6 +216,7 @@ async def _upsert_candidate_and_application(
             salary_expectations=salary_expectations,
             strength=strength,
             growth_area=growth_area,
+            resume_path=resume_path,
         )
     )
     return candidate
@@ -215,13 +286,34 @@ async def create_candidate_profile(
     salary_expectations: str | None = None,
     strength: str | None = None,
     growth_area: str | None = None,
+    *,
+    candidate_user: User | None = None,
+    claim_password: str | None = None,
 ) -> CandidateProfileRead:
     """Create a candidate profile and application for a job.
+
+    Three flavors, dispatched by the (``candidate_user``, ``claim_password``)
+    combo (Sprint 11 / #606):
+
+    * Anonymous apply (no user, no password) — existing behavior.
+    * Anonymous claim (no user, password supplied) — submit the application
+      AND register a candidate User in the same request. Activation token is
+      minted and emailed via the shared #605 helper. If the email is already
+      taken by an active candidate user the apply is rejected upfront with
+      ``EmailAlreadyExistsError`` and the password is irrelevant.
+    * Logged-in candidate apply (user supplied) — use ``user.email`` instead
+      of the form's email, snapshot the new resume on the Application,
+      sync any updated identity fields onto the candidate's existing
+      profile, and skip per-application consent writes (consent was already
+      captured at activation time per #605).
 
     Raises:
         ValueError: If session is missing or file upload fails.
         JobNotFoundError: If the job does not exist.
-        ApplicationAlreadyExistsError: If the candidate already applied.
+        EmailAlreadyExistsError: If apply email belongs to an active
+            candidate user (#606 active-user check).
+        ApplicationAlreadyEditableError / ApplicationAlreadyLockedError: per
+            ``_check_no_blocking_application``.
     """
     if session is None:
         raise ValueError("Database session is required")
@@ -234,6 +326,13 @@ async def create_candidate_profile(
         raise JobNotFoundError(f"Job with ID {job_id} not found")
 
     company_name = job.company.name if job.company else "Unknown Company"
+
+    # Logged-in candidates ignore the form's email field (it could mismatch
+    # their session email and would let one user spoof another's submission).
+    if candidate_user is not None:
+        candidate_data = candidate_data.model_copy(
+            update={"email": candidate_user.email}
+        )
 
     resume_path: str | None = None
     if resume_file is not None and resume_filename is not None:
@@ -255,28 +354,76 @@ async def create_candidate_profile(
         salary_expectations=salary_expectations,
         strength=strength,
         growth_area=growth_area,
+        # Logged-in flow already has consent on the profile — don't overwrite
+        # the activation-time IP/UA with the current (possibly different
+        # device's) values.
+        skip_consent_write=candidate_user is not None,
+        candidate_user=candidate_user,
     )
+
+    # Logged-in candidate → ensure the profile is linked to their User row
+    # (defensive; activation should have done this already).
+    if candidate_user is not None and candidate.user_id is None:
+        candidate.user_id = candidate_user.id
+
     await session.flush()
     await session.refresh(candidate)
 
-    await record_audit_event(
-        session,
-        actor_user_id=None,
-        action="candidate.consent",
-        target_type="CandidateProfile",
-        target_id=candidate.id,  # type: ignore[arg-type]
-        detail=f"policy_version={CURRENT_PRIVACY_POLICY_VERSION}",
-        ip_address=consent_ip,
-    )
-    await record_audit_event(
-        session,
-        actor_user_id=None,
-        action="candidate.terms_accept",
-        target_type="CandidateProfile",
-        target_id=candidate.id,  # type: ignore[arg-type]
-        detail=f"terms_version={CURRENT_TERMS_OF_SERVICE_VERSION}",
-        ip_address=consent_ip,
-    )
+    # Audit only the per-application consent capture path — claim/logged-in
+    # flows have their own audit (candidate_register_via_apply / activation).
+    if candidate_user is None:
+        await record_audit_event(
+            session,
+            actor_user_id=None,
+            action="candidate.consent",
+            target_type="CandidateProfile",
+            target_id=candidate.id,  # type: ignore[arg-type]
+            detail=f"policy_version={CURRENT_PRIVACY_POLICY_VERSION}",
+            ip_address=consent_ip,
+        )
+        await record_audit_event(
+            session,
+            actor_user_id=None,
+            action="candidate.terms_accept",
+            target_type="CandidateProfile",
+            target_id=candidate.id,  # type: ignore[arg-type]
+            detail=f"terms_version={CURRENT_TERMS_OF_SERVICE_VERSION}",
+            ip_address=consent_ip,
+        )
+
+    # Anonymous claim: mint a candidate User + activation token using the
+    # shared #605 helper. The User starts is_active=False; the candidate's
+    # CandidateProfile.user_id stays NULL until activation links them.
+    # If the email belongs to an already-pending user the helper updates the
+    # password + replaces the token (re-registration semantics, #605).
+    if candidate_user is None and claim_password is not None:
+        # Lazy import to avoid a circular dep at module load (auth →
+        # public → auth).
+        from src.services.auth.candidate_registration import register_candidate
+
+        try:
+            await register_candidate(
+                candidate_data.email,
+                claim_password,
+                candidate_data.full_name,
+                privacy_accepted=True,
+                terms_accepted=True,
+                session=session,
+                ip_address=consent_ip,
+                user_agent=consent_ua,
+            )
+            await record_audit_event(
+                session,
+                actor_user_id=None,
+                action="candidate_register_via_apply",
+                target_type="CandidateProfile",
+                target_id=candidate.id,  # type: ignore[arg-type]
+                ip_address=consent_ip,
+            )
+        except EmailAlreadyExistsError:
+            # Race: a registration landed between our pre-check and here.
+            # Surface to the caller so the apply also fails cleanly.
+            raise
 
     _candidate_snapshot = candidate
     _job_snapshot = job
