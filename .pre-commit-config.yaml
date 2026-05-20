@@ -23,13 +23,19 @@ repos:
       - id: check-docstring-first
       - id: debug-statements  # Catch pdb, ipdb, etc.
 
-  # Ruff: Fast Python linter and formatter
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.11
+  # Ruff: Fast Python linter and formatter (version comes from uv.lock)
+  - repo: local
     hooks:
       - id: ruff
-        args: [--fix]  # Auto-fix issues when possible
+        name: ruff
+        language: system
+        entry: uv run ruff check --fix
+        types: [python]
       - id: ruff-format
+        name: ruff-format
+        language: system
+        entry: uv run ruff format
+        types: [python]
 
   # Security: Detect secrets and credentials
   - repo: https://github.com/Yelp/detect-secrets
