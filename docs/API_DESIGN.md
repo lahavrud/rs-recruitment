@@ -355,6 +355,44 @@ session required.
 
 ---
 
+## Candidate Applications (Sprint 11 / #609)
+
+Read-only views of the authenticated candidate's own applications. The raw
+`Application.status` and `admin_notes` are **never** exposed to this surface
+— only the derived `editable` flag (true iff `status == NEW`) is sent.
+`WITHDRAWN` applications are filtered out entirely (the candidate can
+re-apply per the partial unique index added in #604, so showing them would
+be misleading). Foreign-id, withdrawn-row, and missing-snapshot cases all
+collapse to a single `404` so the endpoints can't be used to probe other
+candidates' application IDs.
+
+### `GET /api/candidate/me/applications`
+List the authenticated candidate's applications, newest first.
+* **Auth Required:** Yes (CANDIDATE role).
+* **Query Params:** `cursor` (opaque), `limit` (default 20, max 100).
+* **Response:** `200` with `CursorPage[CandidateApplicationListItem]` where
+  each row is `{ id, submitted_at, editable, job: {id, title, closed},
+  company: {id, name} }`. Excludes `status` and `admin_notes`.
+
+### `GET /api/candidate/me/applications/{id}`
+Single application detail.
+* **Auth Required:** Yes (CANDIDATE role).
+* **Response:** `200` with `{ id, submitted_at, editable, job: {id, title,
+  description, closed}, company: {id, name}, my_answers: {service_concept,
+  salary_expectations, strength, growth_area}, resume: {filename,
+  snapshot_present} | null }`. `404` if the application is foreign,
+  `WITHDRAWN`, or absent. `job.closed` reflects the current `Job.status`.
+
+### `GET /api/candidate/me/applications/{id}/resume`
+Stream the snapshotted resume from `Application.resume_path`.
+* **Auth Required:** Yes (CANDIDATE role).
+* **Response:** `200` with the file bytes (inline for PDFs, attachment
+  otherwise). `404` if the application is foreign, `WITHDRAWN`, or has no
+  snapshot. Reuses the storage-streaming helper at
+  `src/api/_resume_streaming.py` shared with the admin endpoint.
+
+---
+
 ## Candidate Endpoints
 Unauthenticated leads submitting data to the system.
 

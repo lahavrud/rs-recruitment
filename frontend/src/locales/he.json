@@ -808,6 +808,45 @@
       "errors": {
         "loadFailed": "לא הצלחנו לטעון את הפרופיל. רעננו את הדף או נסו שוב מאוחר יותר."
       }
+    },
+    "applications": {
+      "eyebrow": "ההגשות שלי",
+      "subtitle": "המשרות שאליהן הגשתם מועמדות.",
+      "loading": "טוען…",
+      "empty": "עדיין לא הגשתם מועמדות.",
+      "browseLink": "לעמוד המשרות",
+      "submittedLabel": "הוגש",
+      "loadMore": "טען עוד",
+      "closedPill": "המשרה נסגרה",
+      "detail": {
+        "eyebrow": "הגשת מועמדות",
+        "back": "חזרה לכל ההגשות",
+        "jobSection": "פרטי המשרה",
+        "myAnswers": "התשובות שלכם",
+        "answers": {
+          "serviceConcept": "תפיסת השירות",
+          "salaryExpectations": "ציפיות שכר",
+          "strength": "חוזק מקצועי",
+          "growthArea": "תחום לצמיחה"
+        },
+        "answersEmpty": "לא הוזנו תשובות",
+        "resume": "קורות חיים",
+        "resumeDownload": "הורדת הקובץ",
+        "resumeNone": "לא צורף קובץ קורות חיים להגשה זו."
+      },
+      "errors": {
+        "loadFailed": "לא הצלחנו לטעון את ההגשות. רעננו את הדף או נסו שוב.",
+        "notFound": "ההגשה לא נמצאה.",
+        "generic": "אירעה שגיאה. אנא נסו שוב."
+      },
+      "relative": {
+        "today": "היום",
+        "yesterday": "אתמול",
+        "daysAgo": "לפני {{count}} ימים",
+        "weeksAgo": "לפני {{count}} שבועות",
+        "monthsAgo": "לפני {{count}} חודשים",
+        "yearsAgo": "לפני {{count}} שנים"
+      }
     }
   },
   "admin": {
