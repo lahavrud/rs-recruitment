@@ -126,6 +126,7 @@ class Settings(BaseSettings):
 
     # Observability
     sentry_dsn: str = ""  # Empty = Sentry disabled (dev/test)
+    log_level: str = "INFO"  # Runtime log level; override via LOG_LEVEL env / SSM
     # Frontend Sentry DSN — used by the /api/sentry-tunnel endpoint to validate
     # that incoming envelopes belong to our project (prevents open-proxy abuse).
     # Must match the VITE_SENTRY_DSN build arg used for the frontend image.
