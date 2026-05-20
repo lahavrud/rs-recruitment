@@ -22,7 +22,15 @@ async def _override_session():
         yield session
 
 
-app.dependency_overrides[get_session] = _override_session
+# Re-applied per-test because shared fixtures elsewhere in the suite call
+# ``app.dependency_overrides.clear()`` on teardown, which would wipe a
+# module-level assignment and route subsequent requests through the
+# production engine.
+@pytest.fixture(autouse=True)
+def _install_session_override():
+    app.dependency_overrides[get_session] = _override_session
+    yield
+    app.dependency_overrides.pop(get_session, None)
 
 
 @pytest.fixture

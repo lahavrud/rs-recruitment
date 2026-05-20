@@ -24,9 +24,6 @@ async def _override_session():
         yield session
 
 
-app.dependency_overrides[get_session] = _override_session
-
-
 def _override_user(user: User):
     async def _resolver() -> User:
         return user
@@ -34,14 +31,16 @@ def _override_user(user: User):
     app.dependency_overrides[get_current_user] = _resolver
 
 
-def _clear_user_override():
-    app.dependency_overrides.pop(get_current_user, None)
-
-
+# Re-applied per-test because shared fixtures elsewhere in the suite call
+# ``app.dependency_overrides.clear()`` on teardown, which would wipe a
+# module-level assignment and route subsequent requests through the
+# production engine.
 @pytest.fixture(autouse=True)
 def _isolate():
+    app.dependency_overrides[get_session] = _override_session
     yield
-    _clear_user_override()
+    app.dependency_overrides.pop(get_session, None)
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 async def _client() -> AsyncClient:
