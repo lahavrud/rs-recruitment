@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
+import { UserRole } from "@/types/api";
+import { useAuth } from "@/hooks/useAuth";
 import { inputCls, textareaCls as textareaBase } from "@/styles/forms";
 import axios from "axios";
 
@@ -86,12 +88,25 @@ export default function ApplicationPage() {
   const navigate = useNavigate();
   const jobId = id !== undefined ? Number.parseInt(id, 10) : NaN;
 
+  const { user } = useAuth();
+  // Logged-in candidate: their session email is the canonical email — the
+  // backend ignores the form field, and we hide consent + the claim toggle
+  // since consent was captured at activation (Sprint 11 / #605, #606).
+  const isLoggedInCandidate = user?.role === UserRole.CANDIDATE;
+
   const [job, setJob] = useState<JobPublicRead | null>(null);
   const [jobLoading, setJobLoading] = useState(true);
   const [jobError, setJobError] = useState<string | null>(null);
 
-  const [form, setForm] =
-    useState<Omit<CandidateApplicationForm, "job_id">>(EMPTY_FORM);
+  const [form, setForm] = useState<Omit<CandidateApplicationForm, "job_id">>(() =>
+    isLoggedInCandidate ? { ...EMPTY_FORM, email: user!.email } : EMPTY_FORM,
+  );
+  // Anonymous-only claim toggle: when checked we send password +
+  // password_confirm with the apply submission.
+  const [claimAccount, setClaimAccount] = useState(false);
+  const [claimPassword, setClaimPassword] = useState("");
+  const [claimPasswordConfirm, setClaimPasswordConfirm] = useState("");
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
 
@@ -202,16 +217,23 @@ export default function ApplicationPage() {
         delete errors[name];
       }
     }
-    if (!privacyAccepted) {
-      errors.privacy = t("publicJobs.application.validation.privacyRequired");
-      ok = false;
+    // Consent only validated on the anonymous path — logged-in candidates
+    // already accepted at activation time (Sprint 11 / #605).
+    if (!isLoggedInCandidate) {
+      if (!privacyAccepted) {
+        errors.privacy = t("publicJobs.application.validation.privacyRequired");
+        ok = false;
+      } else {
+        delete errors.privacy;
+      }
+      if (!termsAccepted) {
+        errors.terms = t("publicJobs.application.validation.termsRequired");
+        ok = false;
+      } else {
+        delete errors.terms;
+      }
     } else {
       delete errors.privacy;
-    }
-    if (!termsAccepted) {
-      errors.terms = t("publicJobs.application.validation.termsRequired");
-      ok = false;
-    } else {
       delete errors.terms;
     }
     setFieldErrors(errors);
@@ -378,19 +400,31 @@ export default function ApplicationPage() {
       return t("publicJobs.application.errors.generic");
     }
     const httpStatus = err.response?.status;
+    const detail = err.response?.data?.detail;
     if (httpStatus === 409) {
+      const code = typeof detail === "object" ? detail?.error_code : null;
+      // already_applied_editable is handled by the caller (redirect to edit
+      // page); only the locked + email-collision cases need a string here.
+      if (code === "already_applied_locked") {
+        return t("publicJobs.application.errors.alreadyApplied");
+      }
+      if (code === "email_already_registered") {
+        return t("publicJobs.application.errors.emailAlreadyRegistered");
+      }
       return t("publicJobs.application.errors.alreadyApplied");
     }
     if (httpStatus === 404) {
       return t("publicJobs.application.errors.jobUnavailable");
     }
     if (httpStatus === 400) {
-      const detail = err.response?.data?.detail;
       if (detail === "privacy_consent_required") {
         return t("publicJobs.application.validation.privacyRequired");
       }
       if (detail === "terms_consent_required") {
         return t("publicJobs.application.validation.termsRequired");
+      }
+      if (detail === "passwords_do_not_match") {
+        return t("publicJobs.application.validation.passwordMismatch");
       }
       return t("publicJobs.application.errors.generic");
     }
@@ -413,17 +447,52 @@ export default function ApplicationPage() {
     }
     if (!validateStep(3)) return;
 
+    // Client-side guard for the claim password fields before the multipart
+    // submission. The backend re-validates on the same source-of-truth.
+    if (!isLoggedInCandidate && claimAccount) {
+      if (claimPassword !== claimPasswordConfirm) {
+        setClaimError(t("publicJobs.application.validation.passwordMismatch"));
+        return;
+      }
+      if (claimPassword.length < 8) {
+        setClaimError(t("publicJobs.application.validation.passwordMin"));
+        return;
+      }
+      setClaimError(null);
+    }
+
     setSubmitting(true);
     setSubmitError(null);
 
     try {
-      await submitApplication(jobId, form, resumeFile);
+      await submitApplication(jobId, form, resumeFile, {
+        password:
+          !isLoggedInCandidate && claimAccount && claimPassword
+            ? claimPassword
+            : null,
+      });
       const dl = (window as unknown as { dataLayer?: unknown[] }).dataLayer;
       if (Array.isArray(dl)) {
         dl.push({ event: "apply_submit", job_id: jobId, job_title: job?.title });
       }
       setSuccess(true);
     } catch (err) {
+      // 409 already_applied_editable carries an application_id — redirect
+      // the candidate straight to their existing application's editor (lands
+      // in #610). For now navigate to the placeholder candidate-applications
+      // route; if it 404s, the message in submitError still informs them.
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        const detail = err.response?.data?.detail;
+        if (
+          detail &&
+          typeof detail === "object" &&
+          detail.error_code === "already_applied_editable" &&
+          typeof detail.application_id === "number"
+        ) {
+          navigate(`/candidate/applications/${detail.application_id}`);
+          return;
+        }
+      }
       setSubmitError(describeServerError(err));
     } finally {
       setSubmitting(false);
@@ -580,6 +649,7 @@ export default function ApplicationPage() {
               fieldErrors={fieldErrors}
               onChange={handleChange}
               onBlur={handleBlur}
+              emailReadOnly={isLoggedInCandidate}
             />
           )}
           {step === 2 && (
@@ -592,18 +662,32 @@ export default function ApplicationPage() {
             />
           )}
           {step === 3 && (
-            <QuestionsStep
-              form={form}
-              fieldErrors={fieldErrors}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              privacyAccepted={privacyAccepted}
-              onPrivacyChange={setPrivacyAccepted}
-              onPrivacyOpen={() => setPrivacyOpen(true)}
-              termsAccepted={termsAccepted}
-              onTermsChange={setTermsAccepted}
-              onTermsOpen={() => setTermsOpen(true)}
-            />
+            <>
+              <QuestionsStep
+                form={form}
+                fieldErrors={fieldErrors}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                privacyAccepted={privacyAccepted}
+                onPrivacyChange={setPrivacyAccepted}
+                onPrivacyOpen={() => setPrivacyOpen(true)}
+                termsAccepted={termsAccepted}
+                onTermsChange={setTermsAccepted}
+                onTermsOpen={() => setTermsOpen(true)}
+                hideConsent={isLoggedInCandidate}
+              />
+              {!isLoggedInCandidate && (
+                <ClaimAccountSection
+                  enabled={claimAccount}
+                  onToggle={setClaimAccount}
+                  password={claimPassword}
+                  onPasswordChange={setClaimPassword}
+                  passwordConfirm={claimPasswordConfirm}
+                  onPasswordConfirmChange={setClaimPasswordConfirm}
+                  error={claimError}
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -625,8 +709,8 @@ export default function ApplicationPage() {
     <StepNav
       step={step}
       submitting={submitting}
-      privacyAccepted={privacyAccepted}
-      termsAccepted={termsAccepted}
+      privacyAccepted={isLoggedInCandidate ? true : privacyAccepted}
+      termsAccepted={isLoggedInCandidate ? true : termsAccepted}
       onBack={handleBack}
       onNext={handleNext}
     />
@@ -740,11 +824,13 @@ function IdentityStep({
   fieldErrors,
   onChange,
   onBlur,
+  emailReadOnly = false,
 }: {
   form: Omit<CandidateApplicationForm, "job_id">;
   fieldErrors: Record<string, string>;
   onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onBlur: (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  emailReadOnly?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -785,6 +871,13 @@ function IdentityStep({
           placeholder={t("publicJobs.application.placeholders.email")}
           autoComplete="email"
           aria-invalid={!!fieldErrors.email}
+          readOnly={emailReadOnly}
+          aria-readonly={emailReadOnly}
+          title={
+            emailReadOnly
+              ? t("publicJobs.application.emailLockedHint")
+              : undefined
+          }
         />
         {fieldErrors.email && (
           <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
@@ -985,6 +1078,7 @@ function QuestionsStep({
   termsAccepted,
   onTermsChange,
   onTermsOpen,
+  hideConsent = false,
 }: {
   form: Omit<CandidateApplicationForm, "job_id">;
   fieldErrors: Record<string, string>;
@@ -996,6 +1090,7 @@ function QuestionsStep({
   termsAccepted: boolean;
   onTermsChange: (v: boolean) => void;
   onTermsOpen: () => void;
+  hideConsent?: boolean;
 }) {
   const { t } = useTranslation();
   const fields: Array<{ name: keyof typeof form; label: string; ph: string }> =
@@ -1066,6 +1161,10 @@ function QuestionsStep({
         );
       })}
 
+      {/* Consent blocks are hidden for logged-in candidates — consent was
+          captured at activation time (Sprint 11 / #605). */}
+      {!hideConsent && (
+      <>
       {/* Site Terms of Service consent — spans full width of the 2-col grid */}
       <div
         className={`sm:col-span-2 rounded-xl border p-4 transition-colors ${
@@ -1145,6 +1244,88 @@ function QuestionsStep({
           </p>
         )}
       </div>
+      </>
+      )}
+    </div>
+  );
+}
+
+function ClaimAccountSection({
+  enabled,
+  onToggle,
+  password,
+  onPasswordChange,
+  passwordConfirm,
+  onPasswordConfirmChange,
+  error,
+}: {
+  enabled: boolean;
+  onToggle: (v: boolean) => void;
+  password: string;
+  onPasswordChange: (v: string) => void;
+  passwordConfirm: string;
+  onPasswordConfirmChange: (v: string) => void;
+  error: string | null;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="sm:col-span-2 mt-3 rounded-xl border border-white/10 bg-card p-4">
+      <label className="flex cursor-pointer items-start gap-2.5">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onToggle(e.target.checked)}
+          className="mt-0.5 size-4 shrink-0 cursor-pointer accent-copper"
+        />
+        <span className="text-sm text-white/80">
+          {t("publicJobs.application.claim.toggle")}
+        </span>
+      </label>
+      <p className="mt-1 ms-7 text-xs text-white/50">
+        {t("publicJobs.application.claim.description")}
+      </p>
+
+      {enabled && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="claim_password"
+              className="block text-xs text-white/55"
+            >
+              {t("publicJobs.application.claim.passwordLabel")}
+            </label>
+            <input
+              id="claim_password"
+              name="claim_password"
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => onPasswordChange(e.target.value)}
+              className={`mt-1 ${inputCls}`}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="claim_password_confirm"
+              className="block text-xs text-white/55"
+            >
+              {t("publicJobs.application.claim.passwordConfirmLabel")}
+            </label>
+            <input
+              id="claim_password_confirm"
+              name="claim_password_confirm"
+              type="password"
+              autoComplete="new-password"
+              value={passwordConfirm}
+              onChange={(e) => onPasswordConfirmChange(e.target.value)}
+              className={`mt-1 ${inputCls}`}
+            />
+          </div>
+          {error && (
+            <p className="text-xs text-danger sm:col-span-2">{error}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
