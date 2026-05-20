@@ -3,6 +3,7 @@
 import logging
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -12,6 +13,8 @@ from starlette.responses import Response
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 logger = logging.getLogger(__name__)
+
+_HEALTH_PATH = "/health"
 
 
 class RequestIdFilter(logging.Filter):
@@ -29,31 +32,40 @@ class RequestIdFilter(logging.Filter):
 class RequestMiddleware(BaseHTTPMiddleware):
     """Per-request correlation ID + APM latency in a single middleware pass.
 
-    Sets a UUID for every request, threads it through all log lines via
-    ContextVar, returns it in the X-Request-ID response header, and logs
-    method / path / status / duration_ms on response so CloudWatch Logs
-    Insights can compute p95/p99 per endpoint without a separate APM agent.
+    Generates a UUID per request, stores it in a ContextVar so every log line
+    in the request carries the same request_id, and returns it as X-Request-ID.
+
+    Logs method/path/status_code/duration_ms on every response (including
+    errors — the finally block fires even when call_next raises) so CloudWatch
+    Logs Insights can compute p95/p99 per endpoint without a separate APM agent.
+
+    /health is excluded from APM logging (Route 53 polls it every 30 s).
     """
 
-    async def dispatch(self, request: Request, call_next: object) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         rid = str(uuid.uuid4())
         request_id_var.set(rid)
 
+        path = request.url.path
         t0 = time.perf_counter()
-        response: Response = await call_next(request)  # type: ignore[operator]
-        duration_ms = round((time.perf_counter() - t0) * 1000)
-
-        response.headers["X-Request-ID"] = rid
-
-        logger.info(
-            "request",
-            extra={
-                "request_id": rid,
-                "method": request.method,
-                "path": request.url.path,
-                "status_code": response.status_code,
-                "duration_ms": duration_ms,
-            },
-        )
-
-        return response
+        status_code = 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["X-Request-ID"] = rid
+            return response
+        finally:
+            if path != _HEALTH_PATH:
+                duration_ms = round((time.perf_counter() - t0) * 1000)
+                logger.info(
+                    "request",
+                    extra={
+                        "request_id": rid,
+                        "method": request.method,
+                        "path": path,
+                        "status_code": status_code,
+                        "duration_ms": duration_ms,
+                    },
+                )
