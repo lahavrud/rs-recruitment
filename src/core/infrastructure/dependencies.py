@@ -14,7 +14,7 @@ from src.core.infrastructure.security import (
     is_access_token_blacklisted,
 )
 from src.enums import UserRole
-from src.models import CompanyProfile, User
+from src.models import CandidateProfile, CompanyProfile, User
 from src.services.exceptions import RedisUnavailableError
 
 security = HTTPBearer()
@@ -172,6 +172,47 @@ async def get_current_company(
         )
 
     return (current_user, company_profile)
+
+
+async def get_current_candidate(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> tuple[User, CandidateProfile]:
+    """Get current authenticated candidate user and their candidate profile.
+
+    Ensures the current user has CANDIDATE role and is active. Returns both
+    the user and their candidate profile for convenience — mirrors
+    `get_current_company`.
+
+    Raises 403 if the user is not a candidate, 404 if their profile is not
+    yet linked (defensive — should not happen post-activation since the
+    activation flow creates / links the profile).
+    """
+    if current_user.role != UserRole.CANDIDATE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Candidate access required",
+        )
+
+    result = await session.execute(
+        select(CandidateProfile).where(
+            CandidateProfile.user_id == current_user.id  # type: ignore[comparison-overlap]
+        )
+    )
+    candidate_profile = result.scalar_one_or_none()
+    if not candidate_profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate profile not found",
+        )
+
+    if candidate_profile.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Candidate profile ID is missing",
+        )
+
+    return (current_user, candidate_profile)
 
 
 def client_ip(request: Request) -> str | None:

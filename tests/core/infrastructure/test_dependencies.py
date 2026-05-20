@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.dependencies import (
     get_current_admin,
+    get_current_candidate,
     get_current_user,
     get_token_payload,
 )
 from src.core.infrastructure.security import create_access_token, decode_access_token
 from src.enums import UserRole
-from src.models import User
+from src.models import CandidateProfile, User
 
 
 @pytest.fixture
@@ -285,3 +286,127 @@ class TestGetCurrentAdmin:
 
         assert exc_info.value.status_code == 403
         assert "inactive" in exc_info.value.detail.lower()
+
+
+@pytest.fixture
+async def candidate_user_with_profile(session: AsyncSession):
+    """Create an active candidate user with a linked profile."""
+    from src.core.infrastructure.security import get_password_hash
+
+    user = User(
+        email="candidate-dep@example.com",
+        hashed_password=get_password_hash("candpw"),
+        role=UserRole.CANDIDATE,
+        is_active=True,
+    )
+    session.add(user)
+    await session.flush()
+
+    profile = CandidateProfile(
+        user_id=user.id,  # type: ignore[arg-type]
+        full_name="Dep Test Candidate",
+        email="candidate-dep@example.com",
+        phone="050-000-0001",
+    )
+    session.add(profile)
+    await session.commit()
+    await session.refresh(user)
+    await session.refresh(profile)
+    return user, profile
+
+
+class TestGetCurrentCandidate:
+    """Tests for get_current_candidate() dependency."""
+
+    @pytest.mark.asyncio
+    async def test_candidate_user_access(
+        self,
+        session: AsyncSession,
+        candidate_user_with_profile,
+    ):
+        """Candidate user with a linked profile passes; returns (user, profile)."""
+        user, profile = candidate_user_with_profile
+        token = create_access_token(
+            data={
+                "sub": str(user.id),
+                "email": user.email,
+                "role": user.role.value,
+            }
+        )
+        payload = _make_payload(token)
+        current_user = await get_current_user(payload=payload, session=session)
+        ret_user, ret_profile = await get_current_candidate(
+            current_user=current_user, session=session
+        )
+        assert ret_user.id == user.id
+        assert ret_profile.id == profile.id
+
+    @pytest.mark.asyncio
+    async def test_company_user_rejected(
+        self, session: AsyncSession, company_user: User
+    ):
+        """COMPANY-role token receives 403 from get_current_candidate."""
+        token = create_access_token(
+            data={
+                "sub": str(company_user.id),
+                "email": company_user.email,
+                "role": company_user.role.value,
+            }
+        )
+        payload = _make_payload(token)
+        current_user = await get_current_user(payload=payload, session=session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_candidate(current_user=current_user, session=session)
+
+        assert exc_info.value.status_code == 403
+        assert "candidate" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_admin_user_rejected(self, session: AsyncSession, admin_user: User):
+        """ADMIN-role token receives 403 from get_current_candidate."""
+        token = create_access_token(
+            data={
+                "sub": str(admin_user.id),
+                "email": admin_user.email,
+                "role": admin_user.role.value,
+            }
+        )
+        payload = _make_payload(token)
+        current_user = await get_current_user(payload=payload, session=session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_candidate(current_user=current_user, session=session)
+
+        assert exc_info.value.status_code == 403
+        assert "candidate" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_candidate_without_profile_404(self, session: AsyncSession):
+        """Candidate user without a linked profile returns 404 (defensive case)."""
+        from src.core.infrastructure.security import get_password_hash
+
+        user = User(
+            email="cand-no-profile@example.com",
+            hashed_password=get_password_hash("password"),
+            role=UserRole.CANDIDATE,
+            is_active=True,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        token = create_access_token(
+            data={
+                "sub": str(user.id),
+                "email": user.email,
+                "role": user.role.value,
+            }
+        )
+        payload = _make_payload(token)
+        current_user = await get_current_user(payload=payload, session=session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_candidate(current_user=current_user, session=session)
+
+        assert exc_info.value.status_code == 404

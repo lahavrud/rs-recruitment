@@ -36,8 +36,9 @@ backend/src/
 frontend/src/
 ├── components/
 │   ├── guards/
-│   │   ├── AdminRoute.tsx    # Route guard: requires role=ADMIN
-│   │   ├── CompanyRoute.tsx  # Route guard: requires role=COMPANY
+│   │   ├── AdminRoute.tsx     # Route guard: requires role=ADMIN
+│   │   ├── CompanyRoute.tsx   # Route guard: requires role=COMPANY
+│   │   ├── CandidateRoute.tsx # Route guard: requires role=CANDIDATE
 │   │   └── ProtectedRoute.tsx # Route guard: requires authenticated user
 │   ├── layout/
 │   │   ├── AppShell.tsx      # Root layout switcher (auth / public / bare)
@@ -210,7 +211,7 @@ The frontend handles `429` explicitly with Hebrew messages. The raw slowapi deta
 ### Authentication flow
 - Access token in `localStorage`; refresh token in HttpOnly cookie set by backend
 - `AuthContext` resolves initial state synchronously from `localStorage`, then verifies via `/api/auth/me` on mount
-- `ProtectedRoute`, `AdminRoute`, `CompanyRoute` enforce role-based access
+- `ProtectedRoute`, `AdminRoute`, `CompanyRoute`, `CandidateRoute` enforce role-based access
 - Login redirects to `/dashboard`; unauthenticated access redirects to `/login`
 - Activation flow: invite token → `/activate` → password set → login
 
