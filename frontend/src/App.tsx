@@ -28,6 +28,9 @@ const ContactPage = lazyWithRetry(() => import("@/pages/public/ContactPage"));
 const ArticlesIndexPage = lazyWithRetry(() => import("@/pages/public/ArticlesIndexPage"));
 const ArticlePage = lazyWithRetry(() => import("@/pages/public/ArticlePage"));
 const RegisterPage = lazyWithRetry(() => import("@/pages/RegisterPage"));
+const RegisterCandidatePage = lazyWithRetry(
+  () => import("@/pages/RegisterCandidatePage"),
+);
 const ActivatePage = lazyWithRetry(() => import("@/pages/ActivatePage"));
 const ForgotPasswordPage = lazyWithRetry(() => import("@/pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazyWithRetry(() => import("@/pages/ResetPasswordPage"));
@@ -88,6 +91,10 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route
+                path="/register-candidate"
+                element={<RegisterCandidatePage />}
+              />
               <Route path="/activate" element={<ActivatePage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />

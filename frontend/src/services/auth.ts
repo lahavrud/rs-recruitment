@@ -44,6 +44,24 @@ export async function activateAccount(token: string): Promise<void> {
   });
 }
 
+export interface CandidateRegisterPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  privacy_accepted: boolean;
+  terms_accepted: boolean;
+}
+
+export async function registerCandidate(
+  payload: CandidateRegisterPayload,
+): Promise<void> {
+  await api.post("/auth/candidate/register", payload);
+}
+
+export async function resendCandidateActivation(email: string): Promise<void> {
+  await api.post("/auth/candidate/resend-activation", { email });
+}
+
 export async function requestPasswordReset(email: string): Promise<void> {
   await api.post("/auth/forgot-password", { email });
 }

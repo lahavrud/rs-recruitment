@@ -12,9 +12,11 @@ through this barrel.
 from src.schemas.audit import AuditLogRead
 from src.schemas.auth import (
     AccessTokenResponse,
+    CandidateRegisterRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshRequest,
+    ResendActivationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UserRead,
@@ -68,9 +70,11 @@ from src.schemas.jobs import (
 __all__ = [
     # auth
     "AccessTokenResponse",
+    "CandidateRegisterRequest",
     "ForgotPasswordRequest",
     "LoginRequest",
     "RefreshRequest",
+    "ResendActivationRequest",
     "ResetPasswordRequest",
     "TokenResponse",
     "UserRead",

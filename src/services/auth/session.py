@@ -128,7 +128,7 @@ async def authenticate_user(email: str, password: str, session: AsyncSession) ->
         # hasn't clicked the link yet.  No token → still awaiting admin review.
         activation_result = await session.execute(
             select(ActivationToken).where(
-                ActivationToken.company_user_id == user.id,  # type: ignore[arg-type]
+                ActivationToken.user_id == user.id,  # type: ignore[arg-type]
                 ActivationToken.used == False,  # noqa: E712
             )
         )

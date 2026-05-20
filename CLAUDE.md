@@ -213,7 +213,9 @@ The frontend handles `429` explicitly with Hebrew messages. The raw slowapi deta
 - `AuthContext` resolves initial state synchronously from `localStorage`, then verifies via `/api/auth/me` on mount
 - `ProtectedRoute`, `AdminRoute`, `CompanyRoute`, `CandidateRoute` enforce role-based access
 - Login redirects to `/dashboard`; unauthenticated access redirects to `/login`
-- Activation flow: invite token → `/activate` → password set → login
+- **Company activation:** admin approves → activation email → `/activate?token=` → 48h TTL.
+- **Candidate activation (Sprint 11 / #605):** self-register at `/register-candidate` → activation email (2h TTL) → `/activate?token=` → `CandidateProfile` created + consent written from activation request's IP/UA.
+- Unactivated logins return `401 detail=account_pending_activation` regardless of role; the login page surfaces a "resend activation" affordance for candidates that calls `POST /api/auth/candidate/resend-activation`.
 
 ### Logo loading
 `Logo.tsx` renders `opacity-0` until the SVG `onLoad` fires, then fades to `opacity-1` (0.25s ease). This prevents the flash of broken-image placeholder on first load.

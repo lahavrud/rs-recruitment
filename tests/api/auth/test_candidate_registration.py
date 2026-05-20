@@ -1,0 +1,390 @@
+"""API tests for the candidate self-registration + resend-activation endpoints
+(Sprint 11 / issue #605)."""
+
+import secrets
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
+
+from src.core.infrastructure.database import get_session
+from src.core.infrastructure.security import get_password_hash
+from src.enums import UserRole
+from src.main import app
+from src.models import ActivationToken, AuditLog, User
+from tests.conftest import TestSessionLocal
+
+
+async def _override_session():
+    async with TestSessionLocal() as session:
+        yield session
+
+
+app.dependency_overrides[get_session] = _override_session
+
+
+@pytest.fixture
+def _mock_resend_redis():
+    """Patch the per-email Redis throttle so it never blocks tests.
+
+    The real implementation falls open on Redis errors, but the tests
+    run xdist parallel and we don't want them to share a hot Redis key.
+    """
+    async_mock_redis = AsyncMock()
+    async_mock_redis.incr = AsyncMock(return_value=1)
+    async_mock_redis.expire = AsyncMock(return_value=True)
+    with patch(
+        "src.core.tasks.get_redis_pool",
+        new_callable=AsyncMock,
+        return_value=async_mock_redis,
+    ):
+        yield async_mock_redis
+
+
+@pytest.fixture
+def _patch_enqueue_email():
+    with patch(
+        "src.services.auth.candidate_registration.enqueue_email_task",
+        new_callable=AsyncMock,
+    ) as p:
+        yield p
+
+
+@pytest.fixture
+def _patch_activation_email():
+    with patch(
+        "src.api.auth.activation.enqueue_email_task",
+        new_callable=AsyncMock,
+    ) as p:
+        yield p
+
+
+async def _client() -> AsyncClient:
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+def _unique_email() -> str:
+    return f"cand-{secrets.token_hex(4)}@test.com"
+
+
+# --------------------------------------------------------------------------
+# /auth/candidate/register
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_register_creates_pending_user_and_token(test_db, _patch_enqueue_email):
+    email = _unique_email()
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/register",
+            json={
+                "email": email,
+                "password": "SecurePass1!",  # pragma: allowlist secret
+                "full_name": "Test Candidate",
+                "privacy_accepted": True,
+                "terms_accepted": True,
+            },
+        )
+
+    assert resp.status_code == 201
+    assert "message" in resp.json()
+
+    async with TestSessionLocal() as session:
+        user = (
+            await session.execute(
+                select(User).where(User.email == email)  # type: ignore[arg-type]
+            )
+        ).scalar_one()
+        assert user.role == UserRole.CANDIDATE
+        assert user.is_active is False
+
+        tokens = (
+            (
+                await session.execute(
+                    select(ActivationToken).where(
+                        ActivationToken.user_id == user.id  # type: ignore[arg-type]
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(tokens) == 1
+        assert tokens[0].consent_policy_version is not None
+        # Token TTL is 2 hours — assert it lands in (1.9, 2.1) hours window.
+        delta = tokens[0].expires_at.replace(tzinfo=timezone.utc) - datetime.now(
+            timezone.utc
+        )
+        assert 1.9 * 3600 < delta.total_seconds() < 2.1 * 3600
+
+    _patch_enqueue_email.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_register_rejects_active_email(test_db, _patch_enqueue_email):
+    email = _unique_email()
+    async with TestSessionLocal() as session:
+        session.add(
+            User(
+                email=email,
+                hashed_password=get_password_hash("Existing1!"),
+                role=UserRole.CANDIDATE,
+                is_active=True,
+            )
+        )
+        await session.commit()
+
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/register",
+            json={
+                "email": email,
+                "password": "AnotherPass1!",  # pragma: allowlist secret
+                "full_name": "Hijack Attempt",
+                "privacy_accepted": True,
+                "terms_accepted": True,
+            },
+        )
+
+    assert resp.status_code == 409
+    _patch_enqueue_email.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_register_recycles_pending_candidate_and_kills_old_token(
+    test_db, _patch_enqueue_email
+):
+    """Submitting the same email twice while is_active=False updates the
+    password and replaces the old token — mirrors the locked Sprint 11 spec."""
+    email = _unique_email()
+    async with TestSessionLocal() as session:
+        user = User(
+            email=email,
+            hashed_password=get_password_hash("OldPass1!"),
+            role=UserRole.CANDIDATE,
+            is_active=False,
+        )
+        session.add(user)
+        await session.flush()
+        session.add(
+            ActivationToken(
+                token_hash="old-hash",
+                user_id=user.id,
+                expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            )
+        )
+        await session.commit()
+
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/register",
+            json={
+                "email": email,
+                "password": "FreshPass1!",  # pragma: allowlist secret
+                "full_name": "Fresh Reg",
+                "privacy_accepted": True,
+                "terms_accepted": True,
+            },
+        )
+
+    assert resp.status_code == 201
+    async with TestSessionLocal() as session:
+        tokens = (
+            (
+                await session.execute(
+                    select(ActivationToken).where(
+                        ActivationToken.user_id
+                        == (
+                            await session.execute(
+                                select(User.id).where(User.email == email)  # type: ignore[arg-type]
+                            )
+                        ).scalar_one()
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        # Old token deleted, new fresh one in its place.
+        assert len(tokens) == 1
+        assert tokens[0].token_hash != "old-hash"
+
+
+@pytest.mark.asyncio
+async def test_register_requires_consent(test_db, _patch_enqueue_email):
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/register",
+            json={
+                "email": _unique_email(),
+                "password": "SecurePass1!",  # pragma: allowlist secret
+                "full_name": "No Consent",
+                "privacy_accepted": False,
+                "terms_accepted": True,
+            },
+        )
+    assert resp.status_code == 422
+    _patch_enqueue_email.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_register_audits_request(test_db, _patch_enqueue_email):
+    """Audit row `candidate_register_requested` exists after success."""
+    email = _unique_email()
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/register",
+            json={
+                "email": email,
+                "password": "SecurePass1!",  # pragma: allowlist secret
+                "full_name": "Audit Me",
+                "privacy_accepted": True,
+                "terms_accepted": True,
+            },
+        )
+    assert resp.status_code == 201
+
+    async with TestSessionLocal() as session:
+        user = (
+            await session.execute(
+                select(User).where(User.email == email)  # type: ignore[arg-type]
+            )
+        ).scalar_one()
+        audit = (
+            await session.execute(
+                select(AuditLog).where(
+                    AuditLog.actor_user_id == user.id,  # type: ignore[arg-type]
+                    AuditLog.action == "candidate_register_requested",  # type: ignore[arg-type]
+                )
+            )
+        ).scalar_one()
+        assert audit is not None
+        assert "Audit Me" in (audit.detail or "")
+
+
+# --------------------------------------------------------------------------
+# /auth/candidate/resend-activation
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_resend_for_pending_candidate_mints_fresh_token(
+    test_db, _patch_enqueue_email, _mock_resend_redis
+):
+    email = _unique_email()
+    async with TestSessionLocal() as session:
+        user = User(
+            email=email,
+            hashed_password=get_password_hash("Old1!"),
+            role=UserRole.CANDIDATE,
+            is_active=False,
+        )
+        session.add(user)
+        await session.flush()
+        session.add(
+            ActivationToken(
+                token_hash="old-resend-hash",
+                user_id=user.id,
+                expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            )
+        )
+        await session.commit()
+        user_id = user.id
+
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/resend-activation",
+            json={"email": email},
+        )
+
+    assert resp.status_code == 202
+    async with TestSessionLocal() as session:
+        tokens = (
+            (
+                await session.execute(
+                    select(ActivationToken).where(
+                        ActivationToken.user_id == user_id  # type: ignore[arg-type]
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(tokens) == 1
+        assert tokens[0].token_hash != "old-resend-hash"
+    _patch_enqueue_email.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_resend_for_active_user_is_silent(
+    test_db, _patch_enqueue_email, _mock_resend_redis
+):
+    email = _unique_email()
+    async with TestSessionLocal() as session:
+        session.add(
+            User(
+                email=email,
+                hashed_password=get_password_hash("Active1!"),
+                role=UserRole.CANDIDATE,
+                is_active=True,
+            )
+        )
+        await session.commit()
+
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/resend-activation",
+            json={"email": email},
+        )
+
+    assert resp.status_code == 202
+    _patch_enqueue_email.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resend_for_unknown_email_is_silent(
+    test_db, _patch_enqueue_email, _mock_resend_redis
+):
+    async with await _client() as client:
+        resp = await client.post(
+            "/auth/candidate/resend-activation",
+            json={"email": _unique_email()},
+        )
+    assert resp.status_code == 202
+    _patch_enqueue_email.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resend_throttles_per_email(test_db, _patch_enqueue_email):
+    """When Redis says we've already sent in the window, the resend is a no-op."""
+    email = _unique_email()
+    async with TestSessionLocal() as session:
+        session.add(
+            User(
+                email=email,
+                hashed_password=get_password_hash("X1!"),
+                role=UserRole.CANDIDATE,
+                is_active=False,
+            )
+        )
+        await session.commit()
+
+    blocked_redis = AsyncMock()
+    blocked_redis.incr = AsyncMock(return_value=2)  # over the 1/hour limit
+    blocked_redis.expire = AsyncMock(return_value=True)
+    with patch(
+        "src.core.tasks.get_redis_pool",
+        new_callable=AsyncMock,
+        return_value=blocked_redis,
+    ):
+        async with await _client() as client:
+            resp = await client.post(
+                "/auth/candidate/resend-activation",
+                json={"email": email},
+            )
+
+    assert resp.status_code == 202
+    _patch_enqueue_email.assert_not_called()
