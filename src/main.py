@@ -42,6 +42,7 @@ from src.api.public import applications as candidates
 from src.api.public import jobs as public
 from src.core.infrastructure.config import settings, validate_settings
 from src.core.infrastructure.database import init_db
+from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddleware
 from src.core.tasks import close_redis_pool
 
 if settings.sentry_dsn:
@@ -83,9 +84,11 @@ class _HealthCheckLogFilter(logging.Filter):
 
 
 logging.getLogger("uvicorn.access").addFilter(_HealthCheckLogFilter())
+logging.getLogger().addFilter(RequestIdFilter())
 
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
+app.add_middleware(RequestMiddleware)
 
 # Configure CORS middleware
 app.add_middleware(
