@@ -57,10 +57,17 @@ def test_apply_identity_patch_omitted_linkedin_preserves_existing():
     assert profile.linkedin_url == "https://linkedin.com/in/keep"
 
 
-def test_apply_identity_patch_rejects_phone_null():
-    """phone is NOT NULL on the model — schema raises on explicit null."""
-    with pytest.raises(ValueError):
-        CandidateMeUpdate(phone=None)
+def test_apply_identity_patch_clears_phone_on_explicit_null():
+    """phone is nullable on the model — explicit null clears the value.
+
+    Was rejecting null because only full_name + email are mandatory identity
+    on the profile; phone is autofill metadata for the apply form and may
+    be cleared. The apply-form endpoint enforces that a *new application*
+    has a phone, regardless of what's on the profile.
+    """
+    profile = _make_profile(phone="050-111-2222")
+    apply_identity_patch(profile, CandidateMeUpdate(phone=None))
+    assert profile.phone is None
 
 
 @pytest.mark.asyncio

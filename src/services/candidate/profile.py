@@ -38,7 +38,9 @@ def apply_identity_patch(profile: CandidateProfile, patch: CandidateMeUpdate) ->
     data = patch.model_dump(exclude_unset=True)
     if "full_name" in data and data["full_name"] is not None:
         profile.full_name = data["full_name"]
-    if "phone" in data and data["phone"] is not None:
+    # phone and linkedin_url are nullable on the model — explicit-null on the
+    # patch clears the column (omitting the key leaves it alone).
+    if "phone" in data:
         profile.phone = data["phone"]
     if "linkedin_url" in data:
         profile.linkedin_url = data["linkedin_url"]

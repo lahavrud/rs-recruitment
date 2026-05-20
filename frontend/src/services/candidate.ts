@@ -16,7 +16,10 @@ export interface CandidateMeRead {
   id: number;
   email: string;
   full_name: string;
-  phone: string;
+  // Optional — only full_name + email are mandatory profile identity.
+  // Phone / LinkedIn / resume are autofill metadata for the apply form
+  // (Sprint 11 PR A). null after a deletion-PII-scrub too.
+  phone: string | null;
   linkedin_url: string | null;
   resume_path: string | null;
   consent_given_at: string | null;
@@ -26,7 +29,8 @@ export interface CandidateMeRead {
 
 export interface CandidateMeUpdate {
   full_name?: string;
-  phone?: string;
+  // Explicit null clears the column (the backend validator accepts it).
+  phone?: string | null;
   linkedin_url?: string | null;
 }
 

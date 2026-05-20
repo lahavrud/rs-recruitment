@@ -16,12 +16,18 @@ import {
 /**
  * Candidate self-service profile (Sprint 11 / #608).
  *
- * Four sections, each owns its own submit-state so a failure on one
+ * Five sections, each owns its own submit-state so a failure on one
  * doesn't grey out the others:
- *  1. Identity         — name / phone / LinkedIn (email read-only)
- *  2. Resume           — current file + upload (replace) + remove
- *  3. Security         — change-password (current + new + confirm)
- *  4. Your data        — request GDPR export (emailed download link)
+ *  1. Identity         — name + email (email read-only). Only these two
+ *                        are mandatory; everything below is optional
+ *                        autofill metadata used by the apply form.
+ *  2. Apply autofill   — phone + LinkedIn. Both nullable — clear to
+ *                        remove. The apply form will prompt the
+ *                        candidate inline if a live application is
+ *                        missing phone.
+ *  3. Resume           — current file + upload (replace) + remove
+ *  4. Security         — change-password (current + new + confirm)
+ *  5. Your data        — request GDPR export (emailed download link)
  */
 export default function CandidateProfilePage() {
   const { t } = useTranslation();
@@ -70,6 +76,7 @@ export default function CandidateProfilePage() {
         subtitle={t("candidate.profile.subtitle")}
       />
       <IdentitySection me={me} onChange={setMe} />
+      <ApplyAutofillSection me={me} onChange={setMe} />
       <ResumeSection me={me} onChange={setMe} />
       <SecuritySection />
       <DataExportSection />
@@ -88,8 +95,6 @@ function IdentitySection({
 }) {
   const { t } = useTranslation();
   const [fullName, setFullName] = useState(me.full_name);
-  const [phone, setPhone] = useState(me.phone);
-  const [linkedin, setLinkedin] = useState(me.linkedin_url ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [state, setState] = useState<"idle" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -100,11 +105,7 @@ function IdentitySection({
     setState("idle");
     setError(null);
     try {
-      const updated = await patchMe({
-        full_name: fullName,
-        phone,
-        linkedin_url: linkedin.trim() ? linkedin : null,
-      });
+      const updated = await patchMe({ full_name: fullName });
       onChange(updated);
       setState("saved");
     } catch (err) {
@@ -120,7 +121,10 @@ function IdentitySection({
   }
 
   return (
-    <Section title={t("candidate.profile.identity.title")}>
+    <Section
+      title={t("candidate.profile.identity.title")}
+      subtitle={t("candidate.profile.identity.subtitle")}
+    >
       <form className="space-y-4" onSubmit={handleSubmit}>
         <Field label={t("candidate.profile.identity.email")}>
           <input
@@ -140,26 +144,8 @@ function IdentitySection({
             }
             className={inputCls}
             required
-          />
-        </Field>
-        <Field label={t("candidate.profile.identity.phone")}>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
-            className={inputCls}
-            required
-          />
-        </Field>
-        <Field label={t("candidate.profile.identity.linkedin")}>
-          <input
-            type="url"
-            value={linkedin}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setLinkedin(e.target.value)
-            }
-            className={inputCls}
-            placeholder="https://linkedin.com/in/your-handle"
+            minLength={2}
+            maxLength={100}
           />
         </Field>
 
@@ -182,6 +168,115 @@ function IdentitySection({
             {submitting
               ? t("candidate.profile.identity.saving")
               : t("candidate.profile.identity.save")}
+          </button>
+        </div>
+      </form>
+    </Section>
+  );
+}
+
+// ── Apply autofill (phone + LinkedIn) ────────────────────────────────────
+// These fields exist purely to prefill the public apply form for returning
+// candidates. They are NOT identity — clearing them is allowed; the
+// apply-form endpoint will prompt for them inline if a live application is
+// missing the data. The "live application requires phone+resume" invariant
+// lives at the apply endpoint, not on the profile.
+function ApplyAutofillSection({
+  me,
+  onChange,
+}: {
+  me: CandidateMeRead;
+  onChange: (next: CandidateMeRead) => void;
+}) {
+  const { t } = useTranslation();
+  const [phone, setPhone] = useState(me.phone ?? "");
+  const [linkedin, setLinkedin] = useState(me.linkedin_url ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [state, setState] = useState<"idle" | "saved" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setState("idle");
+    setError(null);
+    try {
+      const updated = await patchMe({
+        phone: phone.trim() ? phone : null,
+        linkedin_url: linkedin.trim() ? linkedin : null,
+      });
+      onChange(updated);
+      setState("saved");
+    } catch (err) {
+      setState("error");
+      setError(
+        axios.isAxiosError(err) && err.response?.status === 422
+          ? t("candidate.profile.autofill.errors.validation")
+          : t("candidate.profile.autofill.errors.generic"),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Section
+      title={t("candidate.profile.autofill.title")}
+      subtitle={t("candidate.profile.autofill.subtitle")}
+    >
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <Field
+          label={t("candidate.profile.autofill.phone")}
+          hint={t("candidate.profile.autofill.phoneHint")}
+        >
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setPhone(e.target.value)
+            }
+            className={inputCls}
+            dir="ltr"
+            placeholder="050-000-0000"
+            maxLength={30}
+          />
+        </Field>
+        <Field
+          label={t("candidate.profile.autofill.linkedin")}
+          hint={t("candidate.profile.autofill.linkedinHint")}
+        >
+          <input
+            type="url"
+            value={linkedin}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setLinkedin(e.target.value)
+            }
+            className={inputCls}
+            dir="ltr"
+            placeholder="https://linkedin.com/in/your-handle"
+            maxLength={500}
+          />
+        </Field>
+
+        <div className="flex items-center justify-between">
+          <div className="text-xs">
+            {state === "saved" && (
+              <span className="text-copper">
+                {t("candidate.profile.autofill.saved")}
+              </span>
+            )}
+            {state === "error" && error && (
+              <span className="text-danger">{error}</span>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting
+              ? t("candidate.profile.autofill.saving")
+              : t("candidate.profile.autofill.save")}
           </button>
         </div>
       </form>
@@ -437,20 +532,40 @@ function DataExportSection() {
 
 // ── Local helpers ────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-xl border border-white/10 bg-card p-6">
-      <h2 className="mb-4 text-base font-semibold text-white/85">{title}</h2>
-      {children}
+      <h2 className="text-base font-semibold text-white/85">{title}</h2>
+      {subtitle && (
+        <p className="mt-1 text-xs text-white/45">{subtitle}</p>
+      )}
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="block text-xs text-white/55">{label}</span>
       <div className="mt-1">{children}</div>
+      {hint && <p className="mt-1 text-[11px] text-white/35">{hint}</p>}
     </label>
   );
 }
