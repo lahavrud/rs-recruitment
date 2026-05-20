@@ -129,14 +129,14 @@ async def update_job(
     # to plain dicts, which is exactly what the JSONB column wants.
     payload = data.model_dump(exclude_unset=True)
 
-    changed_labels = [
-        _FIELD_LABELS.get(field, field)
-        for field, value in payload.items()
-        if getattr(job, field) != value
-    ]
+    changed_labels = []
+    for field, value in payload.items():
+        if getattr(job, field) != value:
+            label = _FIELD_LABELS.get(field, field)
+            if field == "title":
+                label = f"{label} (שם קודם: {job.title})"
+            changed_labels.append(label)
 
-    # Snapshot title before applying changes — the email should name the job
-    # as the company recognises it, not the post-edit value.
     _old_title = job.title
 
     for field, value in payload.items():
