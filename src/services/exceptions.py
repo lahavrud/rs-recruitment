@@ -110,7 +110,14 @@ class JobNotPendingError(Exception):
 
 
 class ApplicationAlreadyExistsError(Exception):
-    """Raised when attempting to create an application that already exists."""
+    """Raised when attempting to create an application that already exists.
+
+    Used as a fallback / safety net. The Sprint 11 apply flow (#606) prefers
+    the role-specific ``ApplicationAlreadyEditableError`` /
+    ``ApplicationAlreadyLockedError`` so the candidate-side response can
+    differentiate without leaking admin-internal status (see #609 — candidates
+    never see raw ``Application.status``).
+    """
 
     def __init__(self, job_id: int, candidate_id: int) -> None:
         self.job_id = job_id
@@ -118,6 +125,29 @@ class ApplicationAlreadyExistsError(Exception):
         super().__init__(
             f"Application already exists for job {job_id} and candidate {candidate_id}"
         )
+
+
+class ApplicationAlreadyEditableError(Exception):
+    """Raised when a candidate re-applies to a job they already have a NEW
+    application for. Carries the application_id so the frontend can redirect
+    the candidate straight to their existing application's edit page (#606)."""
+
+    def __init__(self, application_id: int) -> None:
+        self.application_id = application_id
+        super().__init__(
+            f"Candidate already has an editable application: {application_id}"
+        )
+
+
+class ApplicationAlreadyLockedError(Exception):
+    """Raised when a candidate re-applies to a job they already have a
+    non-NEW, non-WITHDRAWN application for.
+
+    Does NOT carry the application_id — the candidate doesn't get to navigate
+    to non-editable applications (Sprint 11 rule: candidates never see raw
+    ``Application.status``)."""
+
+    pass
 
 
 class ApplicationNotFoundError(Exception):
