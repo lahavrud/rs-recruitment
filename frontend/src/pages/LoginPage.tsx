@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
@@ -11,7 +11,11 @@ export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
+  const [searchParams] = useSearchParams();
+  const queryRedirect = searchParams.get("redirect");
+  const stateFrom = (location.state as { from?: string } | null)?.from;
+  // Query param wins (email links); only allow relative paths to prevent open redirect.
+  const from = (queryRedirect?.startsWith("/") ? queryRedirect : null) ?? stateFrom ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +59,7 @@ export default function LoginPage() {
     if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: "" }));
   }
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to={from} replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

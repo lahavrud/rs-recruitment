@@ -135,6 +135,10 @@ async def update_job(
         if getattr(job, field) != value
     ]
 
+    # Snapshot title before applying changes — the email should name the job
+    # as the company recognises it, not the post-edit value.
+    _old_title = job.title
+
     for field, value in payload.items():
         setattr(job, field, value)
     job.updated_at = datetime.now(timezone.utc)
@@ -146,9 +150,9 @@ async def update_job(
     # inaccessible via async lazy-load afterward.
     if changed_labels and job.company.user is not None:
         _email = job.company.user.email
-        _title = job.title
+        _title = _old_title
         _company_name = job.company.name
-        _dashboard_url = f"{settings.frontend_base_url}/company/jobs"
+        _dashboard_url = f"{settings.frontend_base_url}/login?redirect=/company/jobs"
         _changed_labels = changed_labels  # explicit capture for lambda closure
         _plain = (
             f"פרסום המשרה '{_title}' עודכן על-ידי המנהל. "

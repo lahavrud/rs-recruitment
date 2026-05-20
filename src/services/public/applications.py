@@ -178,7 +178,7 @@ async def _send_application_emails(
         admin_recipients = await get_all_admin_emails(session)
 
     if admin_recipients:
-        admin_url = f"{settings.frontend_base_url}/admin/applications"
+        admin_url = f"{settings.frontend_base_url}/login?redirect=/admin/applications"
         await enqueue_email_task(
             to=admin_recipients,
             subject=f"מועמדות חדשה למשרת '{job.title}' — {candidate.full_name}",
