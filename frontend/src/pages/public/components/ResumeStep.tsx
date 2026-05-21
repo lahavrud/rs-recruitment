@@ -1,7 +1,6 @@
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-const MAX_FILE_SIZE_MB = 10;
+import { RESUME_MAX_FILE_SIZE_MB } from "@/utils/resume";
 
 export default function ResumeStep({
   file,
@@ -179,7 +178,7 @@ export default function ResumeStep({
 
       {error && <p className="mt-3 text-xs text-danger">{error}</p>}
       <p className="mt-3 text-xs text-white/30">
-        {t("publicJobs.application.fileHint", { maxSize: MAX_FILE_SIZE_MB })}
+        {t("publicJobs.application.fileHint", { maxSize: RESUME_MAX_FILE_SIZE_MB })}
       </p>
     </div>
   );

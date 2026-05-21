@@ -24,10 +24,12 @@ import QuestionsStep from "./components/QuestionsStep";
 import ClaimAccountSection from "./components/ClaimAccountSection";
 import { PrivacyModal, TermsModal } from "./components/LegalModals";
 import StepNav from "./components/StepNav";
+import {
+  RESUME_ALLOWED_EXTENSIONS,
+  RESUME_MAX_FILE_SIZE_BYTES,
+  RESUME_MAX_FILE_SIZE_MB,
+} from "@/utils/resume";
 
-const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const TEXT_FIELD_MAX = 2000;
 
 const TOTAL_STEPS = 3;
@@ -314,16 +316,16 @@ export default function ApplicationPage() {
       return;
     }
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    if (!(RESUME_ALLOWED_EXTENSIONS as readonly string[]).includes(ext)) {
       setResumeError(
         t("publicJobs.application.resumeErrors.invalidExtension"),
       );
       return;
     }
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > RESUME_MAX_FILE_SIZE_BYTES) {
       setResumeError(
         t("publicJobs.application.resumeErrors.fileTooBig", {
-          maxSize: MAX_FILE_SIZE_MB,
+          maxSize: RESUME_MAX_FILE_SIZE_MB,
         }),
       );
       return;
