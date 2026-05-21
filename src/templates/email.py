@@ -38,7 +38,10 @@ _env = Environment(
 
 def _company_filter(name: str) -> Markup:
     """Copper-accent company name — mirrors <CompanyName> in the frontend."""
-    return Markup(f'<span style="color:#B87333;font-weight:500;">{escape(name)}</span>')
+    # PALETTE is built at module load; accessed lazily so definition order is safe.
+    return Markup(
+        f'<span style="color:{PALETTE["c_copper"]};font-weight:500;">{escape(name)}</span>'
+    )
 
 
 _env.filters["company"] = _company_filter
@@ -62,9 +65,89 @@ def _logo_src() -> str | None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Design tokens — single source of truth for all email colors
+# ---------------------------------------------------------------------------
+
+
+def _load_frontend_tokens() -> dict[str, str]:
+    """Parse CSS custom properties from frontend/src/index.css @theme block.
+
+    Returns a dict of token name → hex value, e.g. {"copper": "#B87333"}.
+    Falls back to hard-coded defaults if the file is not found (CI / missing
+    frontend checkout), so email rendering never fails due to a missing asset.
+    """
+    import re
+
+    _FALLBACK = {
+        "canvas": "#F7F5F1",
+        "surface": "#FDFCFA",
+        "subtle": "#EFEBE4",
+        "ink": "#1C1917",
+        "ink-2": "#57534E",
+        "ink-3": "#A8A29E",
+        "line": "#E7E2DA",
+        "line-2": "#CEC6BB",
+        "copper": "#B87333",
+    }
+    css_path = Path(__file__).parents[2] / "frontend" / "src" / "index.css"
+    if not css_path.exists():
+        return _FALLBACK
+    css = css_path.read_text()
+    tokens: dict[str, str] = {}
+    for m in re.finditer(r"--color-([\w-]+):\s*(#[0-9A-Fa-f]{3,6})", css):
+        tokens[m.group(1)] = m.group(2)
+    return tokens if tokens else _FALLBACK
+
+
+def _build_palette() -> dict[str, str]:
+    """Map frontend design tokens to email palette variables."""
+    t = _load_frontend_tokens()
+    return {
+        # Surfaces
+        "c_outer": t.get("subtle", "#EFEBE4"),
+        "c_card": t.get("surface", "#FDFCFA"),
+        "c_header": t.get("canvas", "#F7F5F1"),
+        "c_footer_bg": t.get("canvas", "#F7F5F1"),
+        # Borders
+        "c_border": t.get("line", "#E7E2DA"),
+        "c_border_card": t.get("line-2", "#CEC6BB"),
+        # Text
+        "c_text": t.get("ink", "#1C1917"),
+        "c_muted": t.get("ink-2", "#57534E"),
+        "c_low": t.get("ink-3", "#A8A29E"),
+        "c_label": t.get("ink-2", "#57534E"),
+        "c_footer_link": t.get("ink-3", "#A8A29E"),
+        "c_footer_legal": t.get("ink-3", "#A8A29E"),
+        "c_sep": t.get("line-2", "#CEC6BB"),
+        # Brand
+        "c_copper": t.get("copper", "#B87333"),
+        "c_copper_text": "#ffffff",
+    }
+
+
+PALETTE = _build_palette()
+
+
+def _base_ctx() -> dict:
+    """Shared context injected into every template render."""
+    from datetime import datetime
+
+    base_url = _settings.frontend_base_url.rstrip("/")
+    return {
+        "logo_src": _logo_src(),
+        "footer_jobs_url": f"{base_url}/jobs",
+        "footer_about_url": f"{base_url}/about",
+        "footer_support_email": _settings.support_email,
+        "footer_year": datetime.now().year,
+        **PALETTE,
+    }
+
+
 def _render(template_name: str, **kwargs) -> str:
-    kwargs.setdefault("logo_src", _logo_src())
-    html = _env.get_template(template_name).render(**kwargs)
+    ctx = _base_ctx()
+    ctx.update(kwargs)
+    html = _env.get_template(template_name).render(**ctx)
     return _premailer_transform(
         html,
         keep_style_tags=True,
@@ -153,11 +236,15 @@ def build_new_registration_html(
 
 
 def build_password_reset_html(reset_url: str) -> str:
+    from src.services.auth.password_reset import _RESET_TOKEN_TTL
+
+    ttl_minutes = int(_RESET_TOKEN_TTL.total_seconds() // 60)
     return _render(
         "password_reset.html",
         subject="איפוס סיסמה — RS Recruiting",
-        preheader="לחצו להגדרת סיסמה חדשה. הקישור תקף ל-60 דקות.",
+        preheader=f"לחצו להגדרת סיסמה חדשה. הקישור תקף ל-{ttl_minutes} דקות.",
         reset_url=reset_url,
+        ttl_minutes=ttl_minutes,
     )
 
 

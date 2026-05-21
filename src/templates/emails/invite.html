@@ -3,29 +3,29 @@
 {% block content %}
 <h2 class="thi"
     style="margin:0 0 20px;font-size:22px;font-weight:300;line-height:1.3;
-           color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+           color:{{ c_text }};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
   הוזמנתם להצטרף ל-RS Recruiting
 </h2>
 
 {% if contact_name %}
 <p class="thi"
-   style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#E0DCDB;
+   style="margin:0 0 14px;font-size:14px;line-height:1.7;color:{{ c_text }};
           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
   שלום {{ contact_name }},
 </p>
 {% endif %}
 
 <p class="thi"
-   style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#E0DCDB;
+   style="margin:0 0 14px;font-size:14px;line-height:1.7;color:{{ c_text }};
           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
   קיבלתם הזמנה אישית להירשם לפלטפורמת RS Recruiting ולהתחיל לפרסם משרות ולמצוא את המועמדים הנכונים.
 </p>
 
-<table cellpadding="0" cellspacing="0" role="presentation" style="margin:28px 0;">
+<table cellpadding="0" cellspacing="0" role="presentation" width="100%" style="margin:28px 0;">
   <tr>
-    <td>
+    <td align="center">
       <a href="{{ registration_url }}" target="_blank"
-         style="display:inline-block;background:#B87333;color:#ffffff;
+         style="display:inline-block;background:{{ c_copper }};color:{{ c_copper_text }};
                 text-decoration:none;font-family:Arial,sans-serif;
                 font-size:13px;font-weight:700;letter-spacing:1px;
                 padding:16px 36px;border-radius:4px;">
@@ -35,10 +35,10 @@
   </tr>
 </table>
 
-<div class="hr" style="border:0;border-top:1px solid #302C28;margin:28px 0;"></div>
+<div class="hr" style="border:0;border-top:1px solid {{ c_border }};margin:28px 0;"></div>
 
 <p class="tmi"
-   style="margin:0;font-size:12px;line-height:1.6;color:#999693;
+   style="margin:0;font-size:12px;line-height:1.6;color:{{ c_muted }};
           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
   הקישור תקף לשעתיים בלבד. לאחר מכן יש לפנות לצוות RS Recruiting לקבלת הזמנה חדשה.
 </p>
