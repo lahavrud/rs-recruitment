@@ -3,44 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <meta name="supported-color-schemes" content="dark light">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <title>{{ subject }}</title>
   <style>
-    /* ── Default: dark brand ──────────────────────────────────────────────── */
-    .eo  { background: #0D0B09; }
-    .ec  { background: #1A1816; border: 1px solid #302C28; border-radius: 4px; }
-    .eh  { background: #141210; border-bottom: 1px solid #302C28; }
-    .ef  { border-top: 1px solid #302C28; }
-    .thi { color: #E0DCDB; }
-    .tmi { color: #999693; }
-    .tlo { color: #6B6866; }
-    .tlo a { color: #6B6866; }
-    .hr  { border-top: 1px solid #302C28; }
+    /* ── Default: light (white) ───────────────────────────────────────────── */
+    .eo  { background: #F4F1ED; }
+    .ec  { background: #FFFFFF; border: 1px solid #E5DDD5; border-radius: 6px;
+           border-top: 3px solid #B87333; }
+    .eh  { background: #FDFCFB; border-bottom: 1px solid #EDE8E2; }
+    .eb  { background: #FFFFFF; }
+    .ef  { background: #FAF8F5; border-top: 1px solid #EDE8E2; }
+    .thi { color: #1C1916; }
+    .tmi { color: #5C5550; }
+    .tlo { color: #9C9490; }
+    .tlo a { color: #9C9490; }
+    .hr  { border-top: 1px solid #EDE8E2; }
 
-    /* ── Light mode ───────────────────────────────────────────────────────── */
-    @media (prefers-color-scheme: light) {
-      .eo  { background: #F5F3F0 !important; }
-      .ec  { background: #FFFFFF !important; border-color: #E5E0DB !important; }
-      .eh  { background: #FAF9F7 !important; border-bottom-color: #E5E0DB !important; }
-      .ef  { border-top-color: #E5E0DB !important; }
-      .thi { color: #1A1816 !important; }
-      .tmi { color: #4A4744 !important; }
-      .tlo { color: #888480 !important; }
-      .tlo a { color: #888480 !important; }
-      .hr  { border-top-color: #E5E0DB !important; }
+    /* ── Dark mode override ───────────────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      .eo  { background: #0D0B09 !important; }
+      .ec  { background: #1A1816 !important; border-color: #302C28 !important;
+             border-top-color: #B87333 !important; }
+      .eh  { background: #141210 !important; border-bottom-color: #302C28 !important; }
+      .eb  { background: #1A1816 !important; }
+      .ef  { background: #141210 !important; border-top-color: #302C28 !important; }
+      .thi { color: #E0DCDB !important; }
+      .tmi { color: #999693 !important; }
+      .tlo { color: #6B6866 !important; }
+      .tlo a { color: #6B6866 !important; }
+      .hr  { border-top-color: #302C28 !important; }
     }
 
-    /* ── Outlook dark mode (OGS) — keep brand dark ────────────────────────── */
+    /* ── Outlook dark mode — keep dark brand ─────────────────────────────── */
     [data-ogsc] .eo,  [data-ogsb] .eo  { background: #0D0B09 !important; }
     [data-ogsc] .ec,  [data-ogsb] .ec  { background: #1A1816 !important; }
     [data-ogsc] .eh,  [data-ogsb] .eh  { background: #141210 !important; }
+    [data-ogsc] .ef,  [data-ogsb] .ef  { background: #141210 !important; }
     [data-ogsc] .thi, [data-ogsb] .thi { color: #E0DCDB !important; }
     [data-ogsc] .tmi, [data-ogsb] .tmi { color: #999693 !important; }
+    [data-ogsc] .tlo, [data-ogsb] .tlo { color: #6B6866 !important; }
   </style>
 </head>
-<body bgcolor="#0D0B09"
-      style="margin:0;padding:0;background:#0D0B09;
+<body bgcolor="#F4F1ED"
+      style="margin:0;padding:0;background:#F4F1ED;
              font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
              direction:rtl;">
 
@@ -48,33 +54,35 @@
   <span style="display:none;max-height:0;overflow:hidden;font-size:1px;mso-hide:all;">{{ preheader }}</span>
   <span style="display:none;max-height:0;overflow:hidden;font-size:1px;mso-hide:all;">&zwnj;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&zwnj;</span>
 
-  <table class="eo" bgcolor="#0D0B09" width="100%"
+  <table class="eo" bgcolor="#F4F1ED" width="100%"
          cellpadding="0" cellspacing="0" role="presentation"
-         style="background:#0D0B09;padding:48px 16px;">
+         style="background:#F4F1ED;padding:40px 16px;">
     <tr>
       <td align="center">
 
-        <table class="ec" bgcolor="#1A1816" width="560"
+        <table class="ec" bgcolor="#FFFFFF" width="580"
                cellpadding="0" cellspacing="0" role="presentation"
-               style="background:#1A1816;border-radius:4px;border:1px solid #302C28;
-                      max-width:560px;width:100%;overflow:hidden;">
+               style="background:#FFFFFF;border-radius:6px;
+                      border:1px solid #E5DDD5;border-top:3px solid #B87333;
+                      max-width:580px;width:100%;overflow:hidden;">
 
-          {# ── Header band ── dir=ltr keeps logo on physical left in RTL doc #}
+          {# ── Header ── dir=ltr keeps logo on physical left in RTL document #}
           <tr>
-            <td class="eh" bgcolor="#141210" dir="ltr"
-                style="background:#141210;padding:18px 32px;
-                       border-bottom:1px solid #302C28;">
+            <td class="eh" bgcolor="#FDFCFB" dir="ltr"
+                style="background:#FDFCFB;padding:20px 32px;
+                       border-bottom:1px solid #EDE8E2;">
               <table cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
-                  {% if logo_url %}
-                  <td style="vertical-align:middle;padding-right:10px;">
-                    <img src="{{ logo_url }}" alt="RS"
-                         width="36" height="36"
-                         style="display:block;width:36px;height:36px;border:0;">
+                  {% if logo_src %}
+                  <td style="vertical-align:middle;padding-right:12px;">
+                    <img src="{{ logo_src }}" alt="RS Recruiting"
+                         width="40" height="40"
+                         style="display:block;width:40px;height:40px;
+                                border:0;outline:0;text-decoration:none;">
                   </td>
                   {% endif %}
                   <td style="vertical-align:middle;">
-                    <span style="font-size:10px;font-weight:700;letter-spacing:4px;
+                    <span style="font-size:11px;font-weight:700;letter-spacing:4px;
                                  text-transform:uppercase;color:#B87333;
                                  font-family:Arial,sans-serif;">RS RECRUITING</span>
                   </td>
@@ -85,25 +93,65 @@
 
           {# ── Body ─────────────────────────────────────────────────────────── #}
           <tr>
-            <td style="padding:36px 36px 32px;">
+            <td class="eb" bgcolor="#FFFFFF"
+                style="background:#FFFFFF;padding:36px 36px 28px;">
               {% block content %}{% endblock %}
             </td>
           </tr>
 
           {# ── Footer ───────────────────────────────────────────────────────── #}
           <tr>
-            <td class="ef" style="padding:18px 32px;border-top:1px solid #302C28;">
-              <p class="tlo"
-                 style="margin:0 0 4px;font-size:11px;line-height:1.5;
-                        color:#6B6866;font-family:Arial,sans-serif;">
-                שאלות? <a href="mailto:support@rs-recruiting.co.il"
-                           style="color:#6B6866;text-decoration:underline;">support@rs-recruiting.co.il</a>
-              </p>
-              <p class="tlo"
-                 style="margin:0;font-size:11px;line-height:1.5;
-                        color:#6B6866;font-family:Arial,sans-serif;">
-                RS Recruiting &middot; תל אביב, ישראל
-              </p>
+            <td class="ef" bgcolor="#FAF8F5"
+                style="background:#FAF8F5;padding:0;border-top:1px solid #EDE8E2;">
+
+              <table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                <tr>
+                  <td style="padding:18px 32px 14px;" dir="ltr">
+                    <table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                      <tr>
+                        <td>
+                          <a href="https://rs-recruiting.com"
+                             style="font-size:12px;font-weight:600;color:#B87333;
+                                    text-decoration:none;font-family:Arial,sans-serif;">
+                            rs-recruiting.com
+                          </a>
+                        </td>
+                        <td align="left">
+                          <a href="mailto:support@rs-recruiting.com"
+                             class="tlo"
+                             style="font-size:11px;color:#9C9490;
+                                    text-decoration:none;font-family:Arial,sans-serif;">
+                            support@rs-recruiting.com
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:0 32px;">
+                    <div class="hr" style="border:0;border-top:1px solid #EDE8E2;"></div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:12px 32px 18px;">
+                    <p class="tlo"
+                       style="margin:0 0 3px;font-size:11px;line-height:1.6;
+                              color:#9C9490;font-family:Arial,sans-serif;">
+                      RS Recruiting &middot; תל אביב, ישראל
+                    </p>
+                    <p class="tlo"
+                       style="margin:0;font-size:10px;line-height:1.6;
+                              color:#9C9490;font-family:Arial,sans-serif;">
+                      &copy; 2026 RS Recruiting. כל הזכויות שמורות.
+                      מייל זה נשלח אליכם כחלק מפעילות הפלטפורמה.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
             </td>
           </tr>
 
