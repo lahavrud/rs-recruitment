@@ -5,6 +5,7 @@ import { getPublicJob } from "@/services/jobs";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import type { JobPublicRead } from "@/types/api";
 import { trackEvent } from "@/utils/analytics";
+import { formatDateLong as formatDate } from "@/utils/formatDate";
 import axios from "axios";
 
 const JOB_POSTING_VALID_DAYS = 90;
@@ -36,14 +37,6 @@ function formatSalary(min: number | null, max: number | null): string | null {
   if (min && max) return `${fmt(min)}–${fmt(max)} ₪/חודש`;
   if (min) return `מ-${fmt(min)} ₪/חודש`;
   return `עד ${fmt(max!)} ₪/חודש`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 function DetailSkeleton() {

@@ -6,14 +6,7 @@ import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import { CollapsibleSection } from "@/components/admin/AnimatedAccordion";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
 
 /**
  * Tiny diagonal sash anchored to the top-right corner of a desktop title

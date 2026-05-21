@@ -37,6 +37,7 @@ import JobDetailDialog, {
 } from "./components/JobDetailDialog";
 import JobEditDialog from "./components/JobEditDialog";
 import JobCreateDialog from "./components/JobCreateDialog";
+import { formatDate } from "@/utils/formatDate";
 
 const ALL_STATUSES = [
   JobStatus.PENDING_APPROVAL,
@@ -53,14 +54,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ALL_FILTER = "ALL";
 type FilterValue = string;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 // ── Page ────────────────────────────────────────────────────────────────────
 

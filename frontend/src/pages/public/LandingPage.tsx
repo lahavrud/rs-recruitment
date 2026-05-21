@@ -7,6 +7,7 @@ import type { JobPublicRead } from "@/types/api";
 import LogoBanner from "@/components/ui/LogoBanner";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
+import { formatDate } from "@/utils/formatDate";
 
 function useReveal(threshold = 0.05) {
   const ref = useRef<HTMLDivElement>(null);
@@ -41,14 +42,6 @@ function clipRise(visible: boolean, delay = "0s"): CSSProperties {
     : { transform: "translateY(105%)" };
 }
 
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 const SEARCH_TAGS = ["תפקיד", "מיקום"] as const;
 const LONG_PRESS_MS = 140;

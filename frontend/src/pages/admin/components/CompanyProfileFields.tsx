@@ -5,10 +5,6 @@ import type {
 } from "@/types/api";
 import { inputCls } from "@/styles/forms";
 
-export const COMPANY_ID_RE = /^\d{9}$/;
-export const MOBILE_RE = /^05[0-9]\d{7}$/;
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export function Field({
   label,
   children,

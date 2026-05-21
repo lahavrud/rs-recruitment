@@ -2,18 +2,11 @@ import { Link } from "react-router-dom";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import FadeInImage from "@/components/ui/FadeInImage";
 import { articles } from "@/content/articles";
+import { formatDateLong as formatDate } from "@/utils/formatDate";
 
 const PAGE_TITLE = "RS Recruiting — מאמרים ומדריכים";
 const PAGE_DESCRIPTION =
   "מדריכים, ניתוחי שוק וטיפים לתפקידים בתחום ניהול ותפעול מבנים ונכסים בישראל.";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 export default function ArticlesIndexPage() {
   const breadcrumb = {

@@ -19,14 +19,7 @@ import DropdownMenu, {
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { useToast } from "@/hooks/useToast";
 import CompanyDetailDialog, { CompanyDetailBody } from "./CompanyDetailDialog";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
 
 export default function CompanyPendingTab({ query }: { query: string }) {
   const { t } = useTranslation();

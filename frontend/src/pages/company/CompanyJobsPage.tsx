@@ -18,14 +18,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
 import JobTagsInput from "@/components/ui/JobTagsInput";
 import { inputCls, textareaCls } from "@/styles/forms";
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
 
 const emptyRequirements = (): JobRequirementItem[] =>
   Array.from({ length: JOB_REQ_MIN_COUNT }, () => ({ text: "" }));

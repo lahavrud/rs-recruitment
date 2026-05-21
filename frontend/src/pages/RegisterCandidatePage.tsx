@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { registerCandidate } from "@/services/auth";
+import { EMAIL_RE } from "@/utils/validation";
 
 type FieldName =
   | "fullName"
@@ -23,8 +24,6 @@ const PASSWORD_RE = {
   digit: /\d/,
   special: /[^A-Za-z0-9]/,
 };
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /**
  * Candidate self-registration form. Mirrors the company `RegisterPage`
  * shape: per-field inline errors validated on blur (cleared on next

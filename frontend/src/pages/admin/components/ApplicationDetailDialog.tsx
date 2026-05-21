@@ -3,14 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { ApplicationWithDetails } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import ResumeLink from "./ResumeLink";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
 
 interface DetailProps {
   app: ApplicationWithDetails | null;

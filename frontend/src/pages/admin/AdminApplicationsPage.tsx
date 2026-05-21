@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/useToast";
 import ApplicationDetailDialog, { ApplicationDetailBody } from "./components/ApplicationDetailDialog";
 import ApplicationStatusDialog from "./components/ApplicationStatusDialog";
 import ApplicationNotesDialog from "./components/ApplicationNotesDialog";
+import { formatDate } from "@/utils/formatDate";
 
 const ALL_STATUSES = [
   ApplicationStatus.NEW,
@@ -48,13 +49,6 @@ const STATUS_COLORS: Record<string, string> = {
 const ALL_FILTER = "ALL";
 type FilterValue = string;
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminApplicationsPage() {

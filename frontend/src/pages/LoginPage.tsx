@@ -6,6 +6,7 @@ import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { resendCandidateActivation } from "@/services/auth";
 import axios from "axios";
+import { EMAIL_RE } from "@/utils/validation";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -43,8 +44,7 @@ export default function LoginPage() {
   function validateField(name: string, value: string): string {
     if (name === "email") {
       if (!value.trim()) return t("auth.login.validation.emailRequired");
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) return t("auth.login.validation.emailInvalid");
+      if (!EMAIL_RE.test(value)) return t("auth.login.validation.emailInvalid");
     }
     if (name === "password") {
       if (!value.trim()) return t("auth.login.validation.passwordRequired");

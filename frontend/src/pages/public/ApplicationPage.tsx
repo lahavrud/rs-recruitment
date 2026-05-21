@@ -9,6 +9,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
 import { trackEvent } from "@/utils/analytics";
+import { EMAIL_RE, MOBILE_RE } from "@/utils/validation";
 import { getMe as getCandidateMe } from "@/services/candidate";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
@@ -119,20 +120,13 @@ export default function ApplicationPage() {
         return t("publicJobs.application.validation.emailRequired");
       if (value.length > 255)
         return t("publicJobs.application.validation.emailMax");
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value))
+      if (!EMAIL_RE.test(value))
         return t("publicJobs.application.validation.emailInvalid");
     }
     if (name === "phone") {
       if (!value.trim())
         return t("publicJobs.application.validation.phoneRequired");
-      const phoneRegex = /^[+\d\s()-]*$/;
-      if (!phoneRegex.test(value))
-        return t("publicJobs.application.validation.phoneInvalid");
-      // Israeli mobile: exactly 10 digits starting with 05 after stripping
-      // spaces/dashes/parens. Matches backend `_validate_phone_value`.
-      const digits = value.replace(/\D/g, "");
-      if (!/^05\d{8}$/.test(digits))
+      if (!MOBILE_RE.test(value.replace(/\D/g, "")))
         return t("publicJobs.application.validation.phoneFormat");
     }
     if (name === "linkedin_url" && value.trim()) {

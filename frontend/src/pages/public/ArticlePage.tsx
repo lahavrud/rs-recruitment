@@ -6,16 +6,9 @@ import FadeInImage from "@/components/ui/FadeInImage";
 import { getArticle } from "@/content/articles";
 import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
+import { formatDateLong as formatDate } from "@/utils/formatDate";
 
 const RELATED_JOBS_LIMIT = 6;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 function formatSalary(min: number | null, max: number | null): string | null {
   if (!min && !max) return null;

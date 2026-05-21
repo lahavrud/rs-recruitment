@@ -40,14 +40,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
 import { MIME_TO_EXT } from "@/utils/mime";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
+import { EMAIL_RE, MOBILE_RE } from "@/utils/validation";
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
   const slug = candidateName.trim().replace(/\s+/g, "-");
@@ -887,9 +881,6 @@ interface EditProps {
   onError: () => void;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[+\d\s().-]{5,20}$/;
-
 function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState<CandidateProfileUpdate>({});
@@ -932,7 +923,7 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
     if (!form.email?.trim()) e.email = t("common.validation.required");
     else if (!EMAIL_RE.test(form.email)) e.email = t("common.validation.emailInvalid");
     if (!form.phone?.trim()) e.phone = t("common.validation.required");
-    else if (!PHONE_RE.test(form.phone.trim())) {
+    else if (!MOBILE_RE.test(form.phone.trim())) {
       e.phone = t("common.validation.phoneInvalid");
     }
     if (form.linkedin_url?.trim()) {

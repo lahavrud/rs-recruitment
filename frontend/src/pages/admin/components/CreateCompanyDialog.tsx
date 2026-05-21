@@ -6,7 +6,8 @@ import Dialog from "@/components/ui/Dialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/hooks/useToast";
 import { focusFirstError } from "@/utils/focusFirstError";
-import CompanyProfileFields, { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "./CompanyProfileFields";
+import CompanyProfileFields from "./CompanyProfileFields";
+import { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "@/utils/validation";
 
 const CREATE_COMPANY_FIELD_ORDER = [
   "name",
