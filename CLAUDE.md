@@ -44,34 +44,53 @@ frontend/src/
 │   │   ├── AppShell.tsx      # Root layout switcher (auth / public / bare)
 │   │   ├── Header.tsx        # Authenticated top bar
 │   │   └── Sidebar.tsx       # Authenticated nav sidebar (mobile drawer + desktop)
+│   ├── admin/
+│   │   ├── ActiveFilterChip.tsx   # Copper chip with remove button
+│   │   ├── AdminField.tsx         # Label-wrapper field for admin dialogs (full/required/hint)
+│   │   ├── AnimatedAccordion.tsx  # Accordion + CollapsibleSection + FormSection exports
+│   │   ├── FunnelIcon.tsx
+│   │   ├── MobileEntityCard.tsx
+│   │   ├── MobileListSkeleton.tsx
+│   │   ├── SearchableMultiSelect.tsx
+│   │   └── SearchableSelect.tsx
 │   └── ui/
-│       ├── Logo.tsx          # SVG logo with opacity fade-in on load
-│       ├── LogoBanner.tsx    # Hero-size logo + wordmark
-│       └── PageHeader.tsx    # Copper eyebrow + gold rule + subtitle (reusable)
+│       ├── AutoGrowTextarea.tsx   # Textarea that auto-grows with content
+│       ├── Button.tsx             # Action button — variants: primary/ghost/danger/success
+│       ├── ConfirmDialog.tsx
+│       ├── Dialog.tsx
+│       ├── EmptyState.tsx
+│       ├── ErrorState.tsx
+│       ├── Eyebrow.tsx            # Copper section-label (10px, uppercase, tracking-widest)
+│       ├── FormField.tsx          # Div-wrapped field for public/auth pages (id/error/hint)
+│       ├── Logo.tsx
+│       ├── LogoBanner.tsx
+│       ├── PageHeader.tsx         # Copper eyebrow + gold rule + subtitle (reusable)
+│       ├── StatusBadge.tsx        # Generic rounded-full badge — <StatusBadge label colorCls>
+│       └── TableSkeleton.tsx
 ├── pages/
-│   ├── ActivatePage.tsx      # Token-based account activation
-│   ├── DashboardPage.tsx     # Authenticated landing (role-aware)
-│   ├── LoginPage.tsx
-│   ├── NotFoundPage.tsx
-│   ├── RegisterPage.tsx
-│   ├── admin/                # Admin-only (AdminRoute)
+│   ├── admin/
+│   │   ├── components/            # Co-located sub-components (dialogs, tabs, helpers)
 │   │   ├── AdminApplicationsPage.tsx
 │   │   ├── AdminCandidatesPage.tsx
 │   │   ├── AdminCompaniesPage.tsx
 │   │   └── AdminJobsPage.tsx
-│   ├── company/              # Company-only (CompanyRoute)
-│   │   └── CompanyJobsPage.tsx
-│   └── public/               # Unauthenticated
-│       ├── ApplicationPage.tsx
-│       ├── JobBoardPage.tsx
-│       ├── JobDetailPage.tsx
-│       └── LandingPage.tsx
-├── contexts/                 # AuthContext
+│   ├── public/
+│   │   ├── components/            # Co-located sub-components (steps, modals, nav)
+│   │   ├── ApplicationPage.tsx
+│   │   ├── JobBoardPage.tsx
+│   │   ├── JobDetailPage.tsx
+│   │   └── LandingPage.tsx
+│   └── …                          # Other pages (auth, candidate, company)
+├── utils/
+│   ├── formatDate.ts              # formatDate / formatDateLong (he-IL locale)
+│   ├── validation.ts              # EMAIL_RE, MOBILE_RE (strict Israeli), COMPANY_ID_RE
+│   └── …                          # apiError, analytics, focusFirstError, mime, token
+├── contexts/                      # AuthContext
 ├── styles/
-│   └── forms.ts              # Shared dark-input CSS class strings (inputCls, textareaCls, selectCls)
+│   └── forms.ts                   # inputCls, textareaCls, selectCls
 ├── locales/
-│   └── he.json               # All UI strings in Hebrew
-└── index.css                 # Tailwind @theme tokens + global utilities
+│   └── he.json                    # All UI strings in Hebrew
+└── index.css                      # Tailwind @theme tokens + global utilities
 ```
 
 ### AppShell routing logic
@@ -139,9 +158,8 @@ The light tokens (`canvas`, `surface`, `ink`, `line`, etc.) are defined but curr
 ### Spacing / shape conventions
 - Cards: `rounded-xl border border-white/8 bg-card`
 - Inputs: import `inputCls` from `@/styles/forms` — never define locally
-- Buttons primary: `rounded-sm bg-copper px-* py-* text-sm font-medium text-white hover:bg-gold`
-- Buttons ghost: `rounded-sm border border-white/20 text-white/60 hover:border-white/40 hover:text-white/90`
-- Eyebrow labels: `text-[10px] font-semibold uppercase tracking-widest text-copper`
+- Buttons: use `<Button>` from `@/components/ui/Button` — never write button classes inline
+- Eyebrow section labels: use `<Eyebrow>` from `@/components/ui/Eyebrow` — never write the class string inline
 
 ### PageHeader component
 
@@ -173,6 +191,65 @@ import CompanyName from "@/components/ui/CompanyName";
 
 In email templates (`src/templates/email.py`) use the `_company(name)` helper — it produces the equivalent inline-style copper span.
 
+### Button
+
+```tsx
+import Button from "@/components/ui/Button";
+
+<Button variant="primary">Save</Button>                  // bg-copper → hover:bg-gold
+<Button variant="ghost" onClick={onClose}>Cancel</Button> // white/20 border, white/60 text
+<Button variant="danger" disabled={saving}>Delete</Button>
+<Button variant="success">Approve</Button>               // success/15 bg
+
+// Sizes: "sm" (px-3 py-1.5), "md" (default, px-4 py-2), "lg" (px-6 py-2.5)
+// Extra layout classes go in className:
+<Button variant="primary" className="flex-1">Submit</Button>
+// All HTML button props (type, form, disabled, onClick) pass through
+```
+
+**Never write button Tailwind classes inline** — always use `<Button>`.
+
+### Eyebrow
+
+```tsx
+import Eyebrow from "@/components/ui/Eyebrow";
+
+<Eyebrow>Section title</Eyebrow>
+<Eyebrow className="mb-3">With spacing</Eyebrow>
+```
+
+Renders a `<p>` styled `text-[10px] font-semibold uppercase tracking-widest text-copper`. Use for all section labels inside dialogs, cards, and form sections. **Never write the class string inline.**
+
+### StatusBadge
+
+```tsx
+import StatusBadge from "@/components/ui/StatusBadge";
+
+<StatusBadge label={STATUS_LABELS[status]} colorCls={STATUS_COLORS[status]} />
+```
+
+Color maps (`STATUS_COLORS`) stay domain-specific in the page or component that knows the domain. `StatusBadge` only handles the rendering.
+
+### FormField and AdminField
+
+Two canonical form field wrappers — pick the right one for the context:
+
+```tsx
+// Public / auth pages — <div> wrapper with explicit htmlFor
+import FormField from "@/components/ui/FormField";
+<FormField label="Email" id="email" required error={fieldErrors.email}>
+  <input id="email" ... />
+</FormField>
+
+// Admin dialogs — <label> wrapper, grid-aware
+import AdminField from "@/components/admin/AdminField";
+<AdminField label="Title" name="title" full required>
+  <input ... />
+</AdminField>
+```
+
+**Never define a local `Field` component** — always import one of these.
+
 ### Shared form styles
 
 ```ts
@@ -180,6 +257,19 @@ import { inputCls, textareaCls, selectCls } from "@/styles/forms";
 ```
 
 These produce dark-themed inputs consistent with `bg-well`, copper focus ring, and white/85 text. Always import from here — never copy the class string.
+
+### Shared utilities
+
+```ts
+import { formatDate, formatDateLong } from "@/utils/formatDate";
+// formatDate  → "3 ינו׳ 2026"  (month: "short")
+// formatDateLong → "3 ינואר 2026" (month: "long")
+
+import { EMAIL_RE, MOBILE_RE, COMPANY_ID_RE } from "@/utils/validation";
+// MOBILE_RE = strict Israeli 05XXXXXXXX — use everywhere, not loose patterns
+```
+
+**Never define these locally** — import from the shared utils.
 
 ---
 
@@ -238,10 +328,29 @@ Prefer `selectinload` at the call site over `lazy="selectin"` on the model unles
 
 1. Create the page in the appropriate `pages/` subdirectory
 2. Use `PageHeader` for the heading
-3. Use `inputCls` / `textareaCls` from `@/styles/forms` for any inputs
-4. Use only token-based Tailwind classes — no `bg-[#hex]` or inline style colors
-5. Map all error states to `t()` keys in `he.json`
-6. Register the route in `App.tsx` with the appropriate route guard
+3. Use `<Button>` for all action buttons — never inline button Tailwind classes
+4. Use `<Eyebrow>` for section labels — never write the class string inline
+5. Use `inputCls` / `textareaCls` from `@/styles/forms` for inputs
+6. Use `FormField` (public/auth) or `AdminField` (admin dialogs) — never define a local Field
+7. Use `formatDate` / `formatDateLong` from `@/utils/formatDate` — never define locally
+8. Use only token-based Tailwind classes — no `bg-[#hex]` or inline style colors
+9. Map all error states to `t()` keys in `he.json`
+10. Register the route in `App.tsx` with the appropriate route guard
+
+### Co-locating sub-components
+
+When a page grows large, extract dialogs and helpers to a `components/` folder next to the page:
+
+```
+pages/admin/
+├── AdminJobsPage.tsx          # orchestration only — state, handlers, layout
+└── components/
+    ├── JobDetailDialog.tsx
+    ├── JobEditDialog.tsx
+    └── JobFormHelpers.tsx      # shared helpers used by multiple dialogs
+```
+
+**Rule:** page files should stay under ~400 lines. If a component is used only within one page's subtree, co-locate it. If it's used across multiple pages, promote it to `components/ui/` or `components/admin/`.
 
 ---
 
