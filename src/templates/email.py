@@ -44,43 +44,6 @@ def _company_filter(name: str) -> Markup:
 _env.filters["company"] = _company_filter
 
 
-# ---------------------------------------------------------------------------
-# Status label mapping
-# ---------------------------------------------------------------------------
-
-# What a candidate sees when their application status changes.
-# Deliberately vague — no internal workflow state, no old→new transition.
-# Keyed by the NEW status; value is (subject_suffix, heading, body).
-_CANDIDATE_STATUS_MESSAGES: dict[str, tuple[str, str, str]] = {
-    "APPROVED_BY_ADMIN": (
-        "יש עדכון במועמדותכם",
-        "המועמדות שלכם ממשיכה קדימה",
-        "אנחנו שמחים לעדכן שמועמדותכם עברה בדיקה ומתקדמת. נציג יצור אתכם קשר בקרוב עם הפרטים הבאים.",  # noqa: E501
-    ),
-    "REJECTED": (
-        "עדכון בנוגע למועמדותכם",
-        "תודה על ההגשה",
-        "לאחר בדיקה מעמיקה, החלטנו שלא להמשיך בתהליך לגבי משרה זו בשלב זה. אנו מעריכים את הזמן שהשקעתם ומאחלים לכם בהצלחה.",  # noqa: E501
-    ),
-    "HIRED": (
-        "ברכות — התקבלתם לתפקיד",
-        "ברכות!",
-        "אנחנו שמחים מאוד לבשר שהתקבלתם לתפקיד! נציג יצור אתכם קשר בקרוב עם כל הפרטים הנוספים.",  # noqa: E501
-    ),
-    "WITHDRAWN": (
-        "המועמדות בוטלה",
-        "המועמדות בוטלה",
-        "מועמדותכם למשרה זו בוטלה. תוכלו להגיש מועמדות למשרות אחרות בכל עת.",
-    ),
-}
-
-_DEFAULT_CANDIDATE_MESSAGE = (
-    "יש עדכון במועמדותכם",
-    "עדכון מועמדות",
-    "יש עדכון לגבי מועמדותכם. נחזור אליכם בקרוב עם פרטים נוספים.",
-)
-
-
 _LOGO_PATH = Path(__file__).parent.parent / "assets" / "rs-logo-email.png"
 
 
@@ -235,48 +198,6 @@ def build_job_updated_html(
         job_id=job_id,
         status=status,
         admin_url=admin_url,
-    )
-
-
-def build_application_status_candidate_html(
-    candidate_name: str,
-    job_title: str,
-    old_status: str,
-    new_status: str,
-    notes: str | None,
-) -> str:
-    # Candidates never see raw status names or old→new transitions.
-    # old_status and notes are intentionally ignored.
-    subject_suffix, heading, body_text = _CANDIDATE_STATUS_MESSAGES.get(
-        new_status, _DEFAULT_CANDIDATE_MESSAGE
-    )
-    return _render(
-        "application_status_candidate.html",
-        subject=f"{subject_suffix} — RS Recruiting",
-        preheader=f"יש עדכון בנוגע למועמדותכם למשרת {job_title}.",
-        candidate_name=candidate_name,
-        job_title=job_title,
-        heading=heading,
-        body_text=body_text,
-    )
-
-
-def build_application_status_company_html(
-    company_name: str,
-    job_title: str,
-    candidate_name: str,
-    old_status: str,
-    new_status: str,
-    notes: str | None,
-) -> str:
-    # Companies do not manage applications — admin handles all candidate
-    # interactions. No candidate details or status transitions are shared.
-    return _render(
-        "application_status_company.html",
-        subject=f"עדכון בנוגע למשרת {job_title} — RS Recruiting",
-        preheader=f"יש עדכון בנוגע למשרת {job_title}.",
-        company_name=company_name,
-        job_title=job_title,
     )
 
 
