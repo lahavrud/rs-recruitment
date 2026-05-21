@@ -10,6 +10,7 @@ Call sites are unchanged from the previous Python-string approach —
 all build_* signatures are identical.
 """
 
+import base64
 import logging
 from pathlib import Path
 
@@ -47,17 +48,50 @@ _env.filters["company"] = _company_filter
 # Status label mapping
 # ---------------------------------------------------------------------------
 
-_STATUS_LABELS: dict[str, str] = {
-    "NEW": "קורות חיים התקבלו",
-    "APPROVED_BY_ADMIN": "עבר/ה לשלב הבא",
-    "REJECTED": "לא מתאים/ה בשלב זה",
-    "HIRED": "התקבלת!",
-    "WITHDRAWN": "המועמדות בוטלה",
+# What a candidate sees when their application status changes.
+# Deliberately vague — no internal workflow state, no old→new transition.
+# Keyed by the NEW status; value is (subject_suffix, heading, body).
+_CANDIDATE_STATUS_MESSAGES: dict[str, tuple[str, str, str]] = {
+    "APPROVED_BY_ADMIN": (
+        "יש עדכון במועמדותכם",
+        "המועמדות שלכם ממשיכה קדימה",
+        "אנחנו שמחים לעדכן שמועמדותכם עברה בדיקה ומתקדמת. נציג יצור אתכם קשר בקרוב עם הפרטים הבאים.",  # noqa: E501
+    ),
+    "REJECTED": (
+        "עדכון בנוגע למועמדותכם",
+        "תודה על ההגשה",
+        "לאחר בדיקה מעמיקה, החלטנו שלא להמשיך בתהליך לגבי משרה זו בשלב זה. אנו מעריכים את הזמן שהשקעתם ומאחלים לכם בהצלחה.",  # noqa: E501
+    ),
+    "HIRED": (
+        "ברכות — התקבלתם לתפקיד",
+        "ברכות!",
+        "אנחנו שמחים מאוד לבשר שהתקבלתם לתפקיד! נציג יצור אתכם קשר בקרוב עם כל הפרטים הנוספים.",  # noqa: E501
+    ),
+    "WITHDRAWN": (
+        "המועמדות בוטלה",
+        "המועמדות בוטלה",
+        "מועמדותכם למשרה זו בוטלה. תוכלו להגיש מועמדות למשרות אחרות בכל עת.",
+    ),
 }
 
+_DEFAULT_CANDIDATE_MESSAGE = (
+    "יש עדכון במועמדותכם",
+    "עדכון מועמדות",
+    "יש עדכון לגבי מועמדותכם. נחזור אליכם בקרוב עם פרטים נוספים.",
+)
 
-def _status_label(status: str) -> str:
-    return _STATUS_LABELS.get(status, status)
+
+_LOGO_PATH = Path(__file__).parent.parent / "assets" / "rs-logo-email.png"
+
+
+def _logo_src() -> str | None:
+    """Return logo src — URL in production, base64 PNG for local dev (Mailpit)."""
+    if _settings.logo_public_url:
+        return _settings.logo_public_url
+    if _LOGO_PATH.exists():
+        encoded = base64.b64encode(_LOGO_PATH.read_bytes()).decode()
+        return f"data:image/png;base64,{encoded}"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +100,7 @@ def _status_label(status: str) -> str:
 
 
 def _render(template_name: str, **kwargs) -> str:
-    kwargs.setdefault("logo_url", _settings.logo_public_url or None)
+    kwargs.setdefault("logo_src", _logo_src())
     html = _env.get_template(template_name).render(**kwargs)
     return _premailer_transform(
         html,
@@ -211,15 +245,19 @@ def build_application_status_candidate_html(
     new_status: str,
     notes: str | None,
 ) -> str:
+    # Candidates never see raw status names or old→new transitions.
+    # old_status and notes are intentionally ignored.
+    subject_suffix, heading, body_text = _CANDIDATE_STATUS_MESSAGES.get(
+        new_status, _DEFAULT_CANDIDATE_MESSAGE
+    )
     return _render(
         "application_status_candidate.html",
-        subject=f"עדכון מועמדות — {job_title}",
-        preheader=f"סטטוס מועמדותך למשרת {job_title} עודכן.",
+        subject=f"{subject_suffix} — RS Recruiting",
+        preheader=f"יש עדכון בנוגע למועמדותכם למשרת {job_title}.",
         candidate_name=candidate_name,
         job_title=job_title,
-        old_status=_status_label(old_status),
-        new_status=_status_label(new_status),
-        notes=notes,
+        heading=heading,
+        body_text=body_text,
     )
 
 
@@ -231,16 +269,14 @@ def build_application_status_company_html(
     new_status: str,
     notes: str | None,
 ) -> str:
+    # Companies do not manage applications — admin handles all candidate
+    # interactions. No candidate details or status transitions are shared.
     return _render(
         "application_status_company.html",
-        subject=f"עדכון מועמדות — {job_title}",
-        preheader=f"סטטוס מועמדות למשרת {job_title} עודכן.",
+        subject=f"עדכון בנוגע למשרת {job_title} — RS Recruiting",
+        preheader=f"יש עדכון בנוגע למשרת {job_title}.",
         company_name=company_name,
         job_title=job_title,
-        candidate_name=candidate_name,
-        old_status=_status_label(old_status),
-        new_status=_status_label(new_status),
-        notes=notes,
     )
 
 
@@ -262,7 +298,7 @@ def build_job_contact_html(
 def build_application_received_html(
     candidate_name: str,
     job_title: str,
-    company_name: str = "",
+    company_name: str = "",  # kept for call-site compatibility; never rendered
 ) -> str:
     return _render(
         "application_received.html",
@@ -270,7 +306,6 @@ def build_application_received_html(
         preheader=f"קיבלנו את מועמדותך למשרת {job_title}. נחזור אליך בקרוב.",
         candidate_name=candidate_name,
         job_title=job_title,
-        company_name=company_name,
     )
 
 

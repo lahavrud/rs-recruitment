@@ -3,37 +3,27 @@
 {% block content %}
 <h2 class="thi"
     style="margin:0 0 20px;font-size:22px;font-weight:300;line-height:1.3;
-           color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-  עדכון סטטוס מועמדות
+           color:#1C1916;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  {{ heading }}
 </h2>
 
 <p class="thi"
-   style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#E0DCDB;
+   style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#1C1916;
           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-  שלום {{ candidate_name }}, יש עדכון לגבי מועמדותך למשרת <strong>{{ job_title }}</strong>.
+  שלום {{ candidate_name }},
 </p>
 
-<div class="hr" style="border:0;border-top:1px solid #302C28;margin:0 0 20px;"></div>
-
-<table cellpadding="0" cellspacing="0" role="presentation" width="100%" style="margin:0 0 24px;">
-  <tr>
-    <td style="padding:10px 0;border-bottom:1px solid #302C28;" width="50%">
-      <p class="tmi" style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999693;font-family:Arial,sans-serif;">סטטוס קודם</p>
-      <p class="tmi" style="margin:0;font-size:14px;color:#999693;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">{{ old_status }}</p>
-    </td>
-    <td style="padding:10px 0;border-bottom:1px solid #302C28;" width="50%">
-      <p class="tmi" style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999693;font-family:Arial,sans-serif;">סטטוס חדש</p>
-      <p class="thi" style="margin:0;font-size:15px;font-weight:600;color:#B87333;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">{{ new_status }}</p>
-    </td>
-  </tr>
-</table>
-
-{% if notes %}
 <p class="thi"
-   style="margin:0 0 8px;font-size:13px;font-weight:600;color:#E0DCDB;
-          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">הערות:</p>
+   style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#1C1916;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  {{ body_text }}
+</p>
+
+<div class="hr" style="border:0;border-top:1px solid #EDE8E2;margin:28px 0;"></div>
+
 <p class="tmi"
-   style="margin:0;font-size:14px;line-height:1.7;color:#999693;
-          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">{{ notes }}</p>
-{% endif %}
+   style="margin:0;font-size:12px;line-height:1.6;color:#5C5550;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  מייל זה נשלח בנוגע למועמדותך למשרת <strong>{{ job_title }}</strong>.
+</p>
 {% endblock %}
