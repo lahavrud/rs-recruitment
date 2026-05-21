@@ -175,8 +175,7 @@ async def _create_active_user(client: AsyncClient, email: str) -> dict:
 @pytest.mark.asyncio
 async def test_refresh_returns_new_tokens(client: AsyncClient):
     """Refresh-token cookie yields a new access token and rotated cookie."""
-    tokens = await _create_active_user(client, "refresh@example.com")
-    old_access = tokens["access_token"]
+    await _create_active_user(client, "refresh@example.com")
     old_refresh_cookie = client.cookies.get("refresh_token")
     assert old_refresh_cookie is not None
 
