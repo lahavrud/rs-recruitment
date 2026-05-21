@@ -264,35 +264,43 @@ These principles guide all architectural decisions:
 frontend/
 ├── src/
 │   ├── components/
-│   │   ├── AdminRoute.tsx      # Role guard: ADMIN
-│   │   ├── CompanyRoute.tsx    # Role guard: COMPANY
-│   │   ├── ProtectedRoute.tsx  # Auth guard
+│   │   ├── guards/             # AdminRoute, CompanyRoute, CandidateRoute, ProtectedRoute
 │   │   ├── layout/             # AppShell, Header, Sidebar, PublicHeader
-│   │   └── ui/                 # Logo, LogoBanner, PageHeader
+│   │   ├── admin/              # Shared admin components (ActiveFilterChip, AdminField,
+│   │   │                       #   AnimatedAccordion, FunnelIcon, MobileEntityCard, …)
+│   │   └── ui/                 # Shared UI primitives (Button, Dialog, Eyebrow, FormField,
+│   │                           #   StatusBadge, AutoGrowTextarea, PageHeader, …)
 │   ├── pages/
-│   │   ├── admin/              # 4 admin pages (Companies, Jobs, Applications, Candidates)
+│   │   ├── admin/
+│   │   │   ├── components/     # Co-located dialogs, tabs, helpers per page
+│   │   │   └── Admin*Page.tsx  # 4 admin pages — orchestration only (~200–800 lines each)
 │   │   ├── company/            # CompanyJobsPage
-│   │   ├── public/             # LandingPage, JobBoardPage, JobDetailPage, ApplicationPage
+│   │   ├── public/
+│   │   │   ├── components/     # Co-located step/modal components for ApplicationPage
+│   │   │   └── *.tsx           # LandingPage, JobBoardPage, JobDetailPage, ApplicationPage
+│   │   ├── candidate/          # CandidateProfilePage, CandidateApplicationsPage, …
 │   │   ├── ActivatePage.tsx
 │   │   ├── DashboardPage.tsx
 │   │   ├── LoginPage.tsx
-│   │   ├── NotFoundPage.tsx
 │   │   └── RegisterPage.tsx
+│   ├── utils/                  # formatDate, validation (EMAIL_RE/MOBILE_RE), apiError, …
 │   ├── contexts/               # AuthContext
-│   ├── styles/                 # forms.ts (shared input class strings)
+│   ├── styles/                 # forms.ts (inputCls, textareaCls, selectCls)
 │   ├── locales/                # he.json (Hebrew UI strings)
-│   └── index.css               # Tailwind @theme tokens
-├── vite.config.ts              # Vite config (Tailwind, proxy, path aliases)
-├── .env.example
+│   └── index.css               # Tailwind @theme tokens + color-scheme: dark
+├── vite.config.ts
 └── package.json
 ```
+
+**Design system conventions** are documented in `CLAUDE.md` (Design System section). Key rules: use `<Button>` for all action buttons, `<Eyebrow>` for section labels, `FormField`/`AdminField` instead of local Field components, and import `formatDate`/validation from `utils/`.
 
 **Related Issues:**
 - [#91](https://github.com/lahavrud/rs-recruitment/issues/91) - frontend1: Frontend Structure & Setup ✅ CLOSED
 - [#92](https://github.com/lahavrud/rs-recruitment/issues/92) - frontend2: Public Pages ✅ CLOSED
-- [#93](https://github.com/lahavrud/rs-recruitment/issues/93) - frontend3: Admin/Company dashboards (in progress)
+- [#93](https://github.com/lahavrud/rs-recruitment/issues/93) - frontend3: Admin/Company dashboards ✅ CLOSED
+- [#655](https://github.com/lahavrud/rs-recruitment/issues/655) - Decompose monolith pages + design system ✅ CLOSED
 
-**Status:** ✅ Implemented (structure, auth, public pages, admin + company pages scaffolded), 🔄 In progress (admin polish, modal detail views, full CRUD wiring — see local PLAN.md)
+**Status:** ✅ Fully implemented and polished. Admin pages decomposed into co-located components. Design system primitives established.
 
 ---
 
