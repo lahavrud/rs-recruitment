@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pythonjsonlogger import json as jsonlogger
 from slowapi.errors import RateLimitExceeded
 
-from src.api import sentry_tunnel, seo
+from src.api import analytics, sentry_tunnel, seo
 from src.api.admin import (
     applications as admin_applications,
 )
@@ -168,6 +168,7 @@ app.include_router(candidates.router)
 app.include_router(candidates.jobs_apply_router)
 app.include_router(resumes.router)
 app.include_router(sentry_tunnel.router)
+app.include_router(analytics.router)
 app.include_router(seo.router)
 
 
