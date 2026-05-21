@@ -588,6 +588,11 @@ export default function ApplicationPage() {
             <span className="text-white/70">{job?.title}</span>.{" "}
             {t("publicJobs.application.submittedDetail")}
           </p>
+          {claimAccount && (
+            <p className="mt-4 rounded-lg border border-copper/20 bg-copper/5 px-4 py-3 text-sm leading-relaxed text-white/65">
+              {t("publicJobs.application.claim.accountCreated")}
+            </p>
+          )}
           <Link
             to="/jobs"
             className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
@@ -1374,6 +1379,19 @@ function ClaimAccountSection({
   error: string | null;
 }) {
   const { t } = useTranslation();
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  function validatePassword(val: string): string | null {
+    if (val && val.length < 8) return t("publicJobs.application.validation.passwordMin");
+    return null;
+  }
+
+  function validateConfirm(val: string, pw: string): string | null {
+    if (val && val !== pw) return t("publicJobs.application.validation.passwordMismatch");
+    return null;
+  }
+
   return (
     <div className="sm:col-span-2 mt-3 rounded-xl border border-white/10 bg-card p-4">
       <label className="flex cursor-pointer items-start gap-2.5">
@@ -1406,9 +1424,18 @@ function ClaimAccountSection({
               type="password"
               autoComplete="new-password"
               value={password}
-              onChange={(e) => onPasswordChange(e.target.value)}
+              onChange={(e) => {
+                onPasswordChange(e.target.value);
+                if (passwordError) setPasswordError(null);
+                if (confirmError && passwordConfirm) setConfirmError(validateConfirm(passwordConfirm, e.target.value));
+              }}
+              onBlur={(e) => setPasswordError(validatePassword(e.target.value))}
+              aria-invalid={!!passwordError}
               className={`mt-1 ${inputCls}`}
             />
+            {passwordError && (
+              <p className="mt-1 text-xs text-danger">{passwordError}</p>
+            )}
           </div>
           <div>
             <label
@@ -1423,9 +1450,17 @@ function ClaimAccountSection({
               type="password"
               autoComplete="new-password"
               value={passwordConfirm}
-              onChange={(e) => onPasswordConfirmChange(e.target.value)}
+              onChange={(e) => {
+                onPasswordConfirmChange(e.target.value);
+                if (confirmError) setConfirmError(null);
+              }}
+              onBlur={(e) => setConfirmError(validateConfirm(e.target.value, password))}
+              aria-invalid={!!confirmError}
               className={`mt-1 ${inputCls}`}
             />
+            {confirmError && (
+              <p className="mt-1 text-xs text-danger">{confirmError}</p>
+            )}
           </div>
           {error && (
             <p className="text-xs text-danger sm:col-span-2">{error}</p>
