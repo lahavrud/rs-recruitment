@@ -1,0 +1,67 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<h2 class="thi"
+    style="margin:0 0 20px;font-size:22px;font-weight:300;line-height:1.3;
+           color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  מועמדות חדשה
+</h2>
+
+<p class="thi"
+   style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#E0DCDB;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <strong>{{ candidate_name }}</strong> הגיש/ה מועמדות למשרת
+  <strong>{{ job_title }}</strong> ב-<span style="color:#B87333;font-weight:500;">{{ company_name }}</span>.
+</p>
+
+<div class="hr" style="border:0;border-top:1px solid #302C28;margin:0 0 20px;"></div>
+
+<table cellpadding="0" cellspacing="0" role="presentation" width="100%" style="margin:0 0 28px;">
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #302C28;">
+      <p class="tmi" style="margin:0;font-size:12px;color:#999693;font-family:Arial,sans-serif;">שם מלא</p>
+      <p class="thi" style="margin:4px 0 0;font-size:14px;color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"><strong>{{ candidate_name }}</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #302C28;">
+      <p class="tmi" style="margin:0;font-size:12px;color:#999693;font-family:Arial,sans-serif;">דוא"ל</p>
+      <p class="thi" style="margin:4px 0 0;font-size:14px;color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">{{ candidate_email }}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #302C28;">
+      <p class="tmi" style="margin:0;font-size:12px;color:#999693;font-family:Arial,sans-serif;">טלפון</p>
+      <p class="thi" style="margin:4px 0 0;font-size:14px;color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">{{ candidate_phone or "לא צויין" }}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #302C28;">
+      <p class="tmi" style="margin:0;font-size:12px;color:#999693;font-family:Arial,sans-serif;">LinkedIn</p>
+      <p class="thi" style="margin:4px 0 0;font-size:14px;color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">{{ candidate_linkedin or "לא צויין" }}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:8px 0;">
+      <p class="tmi" style="margin:0;font-size:12px;color:#999693;font-family:Arial,sans-serif;">חברה</p>
+      <p class="thi" style="margin:4px 0 0;font-size:14px;color:#E0DCDB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+        <span style="color:#B87333;font-weight:500;">{{ company_name }}</span>
+      </p>
+    </td>
+  </tr>
+</table>
+
+<table cellpadding="0" cellspacing="0" role="presentation">
+  <tr>
+    <td>
+      <a href="{{ admin_url }}" target="_blank"
+         style="display:inline-block;background:#B87333;color:#ffffff;
+                text-decoration:none;font-family:Arial,sans-serif;
+                font-size:13px;font-weight:700;letter-spacing:1px;
+                padding:16px 36px;border-radius:4px;">
+        מעבר לניהול מועמדויות
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
