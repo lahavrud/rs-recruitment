@@ -4,12 +4,9 @@ import axios from "axios";
 import { createJob } from "@/services/adminJobs";
 import { getActiveCompanies } from "@/services/adminCompanies";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
+import { validateJob } from "@/utils/validators";
 import {
-  JOB_DESC_MAX,
-  JOB_LOCATION_MAX,
   JOB_REQ_MIN_COUNT,
-  JOB_SHORT_DESC_MAX,
-  JOB_TITLE_MAX,
   JobStatus,
 } from "@/types/api";
 import type {
@@ -22,17 +19,15 @@ import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { FormSection } from "@/components/admin/AnimatedAccordion";
-import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
-import JobTagsInput from "@/components/ui/JobTagsInput";
 import { focusFirstError } from "@/utils/focusFirstError";
-import { inputCls, selectCls, textareaCls } from "@/styles/forms";
+import { inputCls, selectCls } from "@/styles/forms";
 import {
-  AutoGrowTextarea,
   FeaturedStarButton,
   Field,
   SalaryRangeField,
   StatusPills,
 } from "./JobFormHelpers";
+import JobContentLists from "./JobContentLists";
 
 const JOB_CREATE_FIELD_ORDER = [
   "company_id",
@@ -121,22 +116,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
   }
 
   function validate(): boolean {
-    const e: Record<string, string> = {};
-    if (!form.title?.trim()) e.title = t("common.validation.required");
-    else if (form.title.length > JOB_TITLE_MAX) e.title = t("common.validation.tooLong", { max: JOB_TITLE_MAX });
-    if (!form.short_description?.trim()) e.short_description = t("common.validation.required");
-    else if (form.short_description.length > JOB_SHORT_DESC_MAX)
-      e.short_description = t("common.validation.tooLong", { max: JOB_SHORT_DESC_MAX });
-    if (!form.location?.trim()) e.location = t("common.validation.required");
-    else if (form.location.length > JOB_LOCATION_MAX) e.location = t("common.validation.tooLong", { max: JOB_LOCATION_MAX });
-    if (!form.description?.trim()) e.description = t("common.validation.required");
-    else if (form.description.length > JOB_DESC_MAX) e.description = t("common.validation.tooLong", { max: JOB_DESC_MAX });
-    const filledReqs = (form.requirements ?? []).filter((r) => r.text.trim().length > 0);
-    if (filledReqs.length < JOB_REQ_MIN_COUNT)
-      e.requirements = t("common.validation.requirementsMin", { min: JOB_REQ_MIN_COUNT });
-    if (form.salary_min == null || form.salary_min < 0) e.salary_min = t("common.validation.required");
-    if (form.salary_max == null || form.salary_max < 0) e.salary_max = t("common.validation.required");
-    else if (form.salary_min != null && form.salary_max < form.salary_min) e.salary_max = t("common.validation.salaryMaxBelowMin");
+    const e = validateJob(form, t);
     setErrors(e);
     if (Object.keys(e).length > 0) {
       focusFirstError(e, JOB_CREATE_FIELD_ORDER);
@@ -278,65 +258,14 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
             </Field>
           </div>
         </FormSection>
-        <FormSection title={t("admin.jobs.formSections.content")}>
-          <div className="space-y-3">
-            <Field
-              label={t("admin.jobs.fields.shortDescription")}
-              full
-              name="short_description"
-              error={errors.short_description}
-            >
-              <input
-                type="text"
-                maxLength={JOB_SHORT_DESC_MAX}
-                value={form.short_description ?? ""}
-                onChange={(e) => set("short_description", e.target.value)}
-                className={inputCls}
-              />
-              <p className="mt-1 text-[11px] text-white/35">
-                {t("admin.jobs.fields.shortDescriptionHint", {
-                  count: (form.short_description ?? "").length,
-                  max: JOB_SHORT_DESC_MAX,
-                })}
-              </p>
-            </Field>
-            <Field
-              label={t("admin.jobs.fields.description")}
-              full
-              name="description"
-              error={errors.description}
-            >
-              <AutoGrowTextarea
-                value={form.description ?? ""}
-                onChange={(v) => set("description", v)}
-                minRows={6}
-                className={`${textareaCls} min-h-40`}
-              />
-            </Field>
-          </div>
-        </FormSection>
-        <FormSection title={t("admin.jobs.formSections.lists")}>
-          <div className="space-y-3">
-            <Field
-              label={t("admin.jobs.fields.requirements")}
-              full
-              name="requirements"
-            >
-              <JobRequirementsInput
-                value={form.requirements ?? []}
-                onChange={(reqs) => set("requirements", reqs)}
-                error={errors.requirements}
-              />
-            </Field>
-            <Field label={t("admin.jobs.fields.tags")} full>
-              <JobTagsInput
-                value={form.tags ?? []}
-                onChange={(tags) => set("tags", tags)}
-                error={errors.tags}
-              />
-            </Field>
-          </div>
-        </FormSection>
+        <JobContentLists
+          form={form}
+          errors={errors}
+          onShortDescriptionChange={(v) => set("short_description", v)}
+          onDescriptionChange={(v) => set("description", v)}
+          onRequirementsChange={(reqs) => set("requirements", reqs)}
+          onTagsChange={(tags) => set("tags", tags)}
+        />
       </div>
     </Dialog>
     <ConfirmDialog

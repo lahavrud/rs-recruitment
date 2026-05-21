@@ -9,8 +9,8 @@ import { useToast } from "@/hooks/useToast";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { focusFirstError } from "@/utils/focusFirstError";
+import { validateCompanyProfile } from "@/utils/validators";
 import CompanyProfileFields from "./CompanyProfileFields";
-import { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "@/utils/validation";
 
 const CREATE_COMPANY_FIELD_ORDER = [
   "name",
@@ -64,25 +64,7 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
   }
 
   function validate(): boolean {
-    const e: Record<string, string> = {};
-    if (!form.name?.trim()) e.name = t("common.validation.required");
-    if (!form.company_id?.trim())
-      e.company_id = t("common.validation.required");
-    else if (!COMPANY_ID_RE.test(form.company_id))
-      e.company_id = t("admin.companies.validation.companyId");
-    if (!form.address?.trim()) e.address = t("common.validation.required");
-    if (!form.contact_email?.trim())
-      e.contact_email = t("common.validation.required");
-    else if (!EMAIL_RE.test(form.contact_email))
-      e.contact_email = t("admin.companies.validation.email");
-    if (!form.contact_first_name?.trim())
-      e.contact_first_name = t("common.validation.required");
-    if (!form.contact_last_name?.trim())
-      e.contact_last_name = t("common.validation.required");
-    if (!form.contact_mobile_phone?.trim())
-      e.contact_mobile_phone = t("common.validation.required");
-    else if (!MOBILE_RE.test(form.contact_mobile_phone))
-      e.contact_mobile_phone = t("admin.companies.validation.mobile");
+    const e = validateCompanyProfile(form, t);
     setErrors(e);
     if (Object.keys(e).length > 0) {
       focusFirstError(e, CREATE_COMPANY_FIELD_ORDER);

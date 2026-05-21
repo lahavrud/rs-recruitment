@@ -7,8 +7,19 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/hooks/useToast";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
+import { focusFirstError } from "@/utils/focusFirstError";
+import { validateCompanyProfile } from "@/utils/validators";
 import CompanyProfileFields from "./CompanyProfileFields";
-import { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "@/utils/validation";
+
+const EDIT_COMPANY_FIELD_ORDER = [
+  "name",
+  "company_id",
+  "address",
+  "contact_email",
+  "contact_first_name",
+  "contact_last_name",
+  "contact_mobile_phone",
+] as const;
 
 interface EditProps {
   profile: CompanyProfileRead | null;
@@ -35,19 +46,25 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
   const [form, setForm] = useState<CompanyProfileAdminUpdate>({});
   const [initialForm, setInitialForm] = useState<CompanyProfileAdminUpdate>({});
   const [saving, setSaving] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useResetOnTrigger(profile, () => {
     if (!profile) return;
     const seed = seedFromProfile(profile);
     setForm(seed);
     setInitialForm(seed);
-    setValidationError(null);
+    setErrors({});
   });
 
   function set<K extends keyof CompanyProfileAdminUpdate>(key: K, value: CompanyProfileAdminUpdate[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    setValidationError(null);
+    if (errors[key as string]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key as string];
+        return next;
+      });
+    }
   }
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
@@ -55,28 +72,13 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
 
   async function handleSave() {
     if (!profile) return;
-    if (
-      !form.name?.trim() ||
-      !form.company_id?.trim() ||
-      !form.address?.trim() ||
-      !form.contact_email?.trim() ||
-      !form.contact_first_name?.trim() ||
-      !form.contact_last_name?.trim() ||
-      !form.contact_mobile_phone?.trim()
-    ) {
-      setValidationError(t("common.validation.required")); return;
-    }
-    if (!COMPANY_ID_RE.test(form.company_id)) {
-      setValidationError(t("admin.companies.validation.companyId")); return;
-    }
-    if (!EMAIL_RE.test(form.contact_email)) {
-      setValidationError(t("admin.companies.validation.email")); return;
-    }
-    if (!MOBILE_RE.test(form.contact_mobile_phone)) {
-      setValidationError(t("admin.companies.validation.mobile")); return;
+    const e = validateCompanyProfile(form, t);
+    setErrors(e);
+    if (Object.keys(e).length > 0) {
+      focusFirstError(e, EDIT_COMPANY_FIELD_ORDER);
+      return;
     }
     setSaving(true);
-    setValidationError(null);
     try {
       const updated = await updateCompanyProfile(profile.id, {
         ...form,
@@ -126,8 +128,8 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
               v as CompanyProfileAdminUpdate[keyof CompanyProfileAdminUpdate],
             )
           }
+          errors={errors}
         />
-        {validationError && <p className="mt-3 text-xs text-danger">{validationError}</p>}
       </Dialog>
       {discardConfirm}
     </>

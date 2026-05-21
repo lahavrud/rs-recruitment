@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { JobStatus } from "@/types/api";
 import RangeSlider from "@/components/ui/RangeSlider";
-export { default as AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 
 const ALL_STATUSES = [
   JobStatus.PENDING_APPROVAL,
