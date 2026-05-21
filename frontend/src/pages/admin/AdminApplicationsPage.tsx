@@ -626,4 +626,3 @@ export default function AdminApplicationsPage() {
     </div>
   );
 }
-

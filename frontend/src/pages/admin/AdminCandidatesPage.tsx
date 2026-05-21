@@ -1019,4 +1019,3 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
     </>
   );
 }
-

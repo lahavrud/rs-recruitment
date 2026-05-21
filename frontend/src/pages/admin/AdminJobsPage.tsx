@@ -805,4 +805,3 @@ export default function AdminJobsPage() {
     </div>
   );
 }
-

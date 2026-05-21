@@ -901,4 +901,3 @@ function SettingsCard({
     </section>
   );
 }
-
