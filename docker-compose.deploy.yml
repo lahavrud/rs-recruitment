@@ -15,11 +15,16 @@
 #   s3:GetObject + s3:PutObject on rs-recruitment-<account-id>
 #   ecr:GetAuthorizationToken + ecr:BatchGetImage
 #   logs:CreateLogStream + logs:PutLogEvents on /rs-recruitment/* (awslogs driver)
+#   sqs:SendMessage + sqs:ReceiveMessage + sqs:DeleteMessage on rs-recruiting-tasks
 #
 # SSM Parameter Store (us-east-1):
 #   /rs-recruitment/prod/*       — app config (loaded at startup, see Settings)
 #   /rs-recruitment/infra/TLS_CERT, TLS_KEY  — Cloudflare Origin cert (SecureString)
 #   /rs-recruitment/infra/CURRENT_SHA        — currently-deployed git SHA (String)
+#
+# EventBridge Scheduler:
+#   Rule: cron(0 3 * * ? *)  →  SQS target: rs-recruiting-tasks
+#   Input: {"task":"purge_expired_candidates"}
 #
 # Deploy: scripts/deploy_ec2.sh   Rollback: scripts/rollback.sh <SHA>
 
@@ -49,9 +54,6 @@ services:
       - SENTRY_RELEASE=${IMAGE_TAG}
     volumes:
       - app-data:/app/data
-    depends_on:
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 30s
@@ -69,13 +71,10 @@ services:
 
   worker:
     image: ${ECR_REGISTRY}/rs-recruitment/api:${IMAGE_TAG}
-    command: ["arq", "src.core.tasks.WorkerSettings"]
+    command: ["python", "-m", "src.worker"]
     environment:
       - ENVIRONMENT=production
       - SENTRY_RELEASE=${IMAGE_TAG}
-    depends_on:
-      redis:
-        condition: service_healthy
     restart: unless-stopped
     logging:
       driver: awslogs
@@ -85,35 +84,5 @@ services:
         awslogs-stream: worker
         tag: "{{.Name}}/{{.ID}}"
 
-  redis:
-    image: redis:7-alpine
-    # Password is mounted via Docker secrets (tmpfs at /run/secrets/redis_password)
-    # so it never appears in `docker inspect` environment.
-    # deploy_ec2.sh writes the SSM-fetched value to ./secrets/redis_password before
-    # `docker compose up`, so the file always exists when the container starts.
-    command: ["sh", "-c", "exec redis-server --requirepass \"$(cat /run/secrets/redis_password)\""]
-    secrets:
-      - redis_password
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "sh", "-c", "redis-cli -a \"$(cat /run/secrets/redis_password)\" --no-auth-warning ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: unless-stopped
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: us-east-1
-        awslogs-group: /rs-recruitment/redis
-        awslogs-stream: redis
-        tag: "{{.Name}}/{{.ID}}"
-
 volumes:
   app-data:   # persistent storage for local file uploads (/app/data)
-  redis-data: # persistent redis data for Arq job queue
-
-secrets:
-  redis_password:
-    file: ./secrets/redis_password  # written by deploy_ec2.sh before compose up
