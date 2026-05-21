@@ -574,7 +574,8 @@ export default function ApplicationPage() {
 
   if (success) {
     return (
-      <div className="mx-auto max-w-2xl px-6 pt-24 pb-8">
+      <div className="flex min-h-screen items-center justify-center px-6 py-8">
+      <div className="w-full max-w-2xl">
         <div className="rounded-xl border border-success/20 bg-success/8 p-10 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-success/30 bg-success/10 text-lg text-success">
             ✓
@@ -594,6 +595,7 @@ export default function ApplicationPage() {
             {t("publicJobs.application.browseMore")}
           </Link>
         </div>
+      </div>
       </div>
     );
   }
