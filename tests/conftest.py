@@ -251,17 +251,16 @@ _BASE_DATABASE_URL = os.environ.get(
     "postgresql+asyncpg://postgres:postgres@localhost:5432/rs_recruitment",
 )
 
-# Each xdist worker gets its own database so they don't fight over the shared
-# table.delete() cleanup. Solo (non-xdist) runs keep the original DB name.
+# Every run (solo or xdist) gets its own isolated database so tests never
+# touch the dev DB. Solo runs use <dbname>_test; xdist workers use <dbname>_gw0 etc.
 WORKER_ID = os.environ.get("PYTEST_XDIST_WORKER", "master")
 
 
 def _per_worker_url(base_url: str, worker_id: str) -> str:
-    if worker_id == "master":
-        return base_url
+    suffix = "test" if worker_id == "master" else worker_id
     base, sep, dbname = base_url.rpartition("/")
     db_only, qs_sep, qs = dbname.partition("?")
-    return f"{base}{sep}{db_only}_{worker_id}{qs_sep}{qs}"
+    return f"{base}{sep}{db_only}_{suffix}{qs_sep}{qs}"
 
 
 def _admin_url(base_url: str) -> str:
@@ -274,7 +273,8 @@ def _admin_url(base_url: str) -> str:
 def _per_worker_dbname(base_url: str, worker_id: str) -> str:
     _, _, dbname = base_url.rpartition("/")
     db_only, _, _ = dbname.partition("?")
-    return f"{db_only}_{worker_id}"
+    suffix = "test" if worker_id == "master" else worker_id
+    return f"{db_only}_{suffix}"
 
 
 TEST_DATABASE_URL = _per_worker_url(_BASE_DATABASE_URL, WORKER_ID)
@@ -301,75 +301,61 @@ async def _create_tables_once() -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_testing_environment():
-    """Set up testing environment + per-worker database before any tests run.
+    """Set up testing environment + isolated database before any tests run.
 
-    Solo runs use the existing DATABASE_URL DB. Under pytest-xdist each worker
-    creates its own DB (rs_recruitment_test_gw0, _gw1, …) so workers cannot
-    collide on the shared autouse cleanup.
+    Every run gets its own database (solo: <dbname>_test, xdist: <dbname>_gw0 …)
+    so tests never touch the dev DB and workers cannot collide on cleanup.
 
-    Table creation runs ONCE per worker (here), not per test — `create_all`
-    is a no-op when the tables already exist, but it still does a metadata
-    introspection roundtrip on every call, which adds up over hundreds of
-    tests.
+    Table creation runs ONCE per worker — `create_all` is a no-op when tables
+    exist but still does a metadata introspection roundtrip on every call, which
+    adds up over hundreds of tests.
     """
-    # Enable testing mode (disables rate limiting and config validation)
     settings.testing = True
 
     import asyncio
 
-    if WORKER_ID != "master":
-        worker_dbname = _per_worker_dbname(_BASE_DATABASE_URL, WORKER_ID)
-        admin_url = _admin_url(_BASE_DATABASE_URL)
+    worker_dbname = _per_worker_dbname(_BASE_DATABASE_URL, WORKER_ID)
+    admin_url = _admin_url(_BASE_DATABASE_URL)
 
-        async def _create_db() -> None:
-            engine = create_async_engine(
-                admin_url, isolation_level="AUTOCOMMIT", poolclass=NullPool
-            )
-            try:
-                async with engine.connect() as conn:
-                    from sqlalchemy import text
-
-                    await conn.execute(
-                        text(f'DROP DATABASE IF EXISTS "{worker_dbname}"')
-                    )
-                    await conn.execute(text(f'CREATE DATABASE "{worker_dbname}"'))
-            finally:
-                await engine.dispose()
-
-        async def _drop_db() -> None:
-            engine = create_async_engine(
-                admin_url, isolation_level="AUTOCOMMIT", poolclass=NullPool
-            )
-            try:
-                async with engine.connect() as conn:
-                    from sqlalchemy import text
-
-                    await conn.execute(
-                        text(
-                            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity"
-                            f" WHERE datname = '{worker_dbname}'"
-                        )
-                    )
-                    await conn.execute(
-                        text(f'DROP DATABASE IF EXISTS "{worker_dbname}"')
-                    )
-            finally:
-                await engine.dispose()
-
-        asyncio.run(_create_db())
-        asyncio.run(_create_tables_once())
+    async def _create_db() -> None:
+        engine = create_async_engine(
+            admin_url, isolation_level="AUTOCOMMIT", poolclass=NullPool
+        )
         try:
-            yield
-        finally:
-            # Engine may have lingering connections; release them before dropping.
-            asyncio.run(test_engine.dispose())
-            asyncio.run(_drop_db())
-            settings.testing = False
-        return
+            async with engine.connect() as conn:
+                from sqlalchemy import text
 
+                await conn.execute(text(f'DROP DATABASE IF EXISTS "{worker_dbname}"'))
+                await conn.execute(text(f'CREATE DATABASE "{worker_dbname}"'))
+        finally:
+            await engine.dispose()
+
+    async def _drop_db() -> None:
+        engine = create_async_engine(
+            admin_url, isolation_level="AUTOCOMMIT", poolclass=NullPool
+        )
+        try:
+            async with engine.connect() as conn:
+                from sqlalchemy import text
+
+                await conn.execute(
+                    text(
+                        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity"
+                        f" WHERE datname = '{worker_dbname}'"
+                    )
+                )
+                await conn.execute(text(f'DROP DATABASE IF EXISTS "{worker_dbname}"'))
+        finally:
+            await engine.dispose()
+
+    asyncio.run(_create_db())
     asyncio.run(_create_tables_once())
-    yield
-    settings.testing = False
+    try:
+        yield
+    finally:
+        asyncio.run(test_engine.dispose())
+        asyncio.run(_drop_db())
+        settings.testing = False
 
 
 # Build the TRUNCATE statement once at import time — table list is constant.
