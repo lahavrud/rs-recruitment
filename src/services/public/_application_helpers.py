@@ -149,6 +149,8 @@ async def upsert_candidate_and_application(
             candidate=existing,
             candidate_data=candidate_data,
             resume_path=resume_path,
+            resume_filename=resume_filename,
+            resume_hash=resume_hash,
             session=session,
         )
         if not skip_consent_write:
@@ -165,6 +167,8 @@ async def upsert_candidate_and_application(
             email=candidate_data.email,
             phone=candidate_data.phone,
             resume_path=resume_path,
+            resume_filename=resume_filename,
+            resume_hash=resume_hash,
             linkedin_url=candidate_data.linkedin_url,
             consent_given_at=None if skip_consent_write else now,
             consent_policy_version=(
