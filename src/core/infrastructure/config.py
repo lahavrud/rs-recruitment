@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     # JWT Configuration
     jwt_secret_key: Optional[str] = None  # Must be set via environment variable
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 30
+    jwt_access_token_expire_minutes: int = 10
     jwt_refresh_token_expire_days: int = 7
 
     # CORS Configuration (infra8 requirement)
@@ -87,8 +87,8 @@ class Settings(BaseSettings):
     db_pool_recycle: int = 1800  # 30 min — avoid stale conns from RDS / NAT
     db_pool_pre_ping: bool = True  # SELECT 1 before checkout — survives blips
 
-    # Redis Configuration (for Arq task queue)
-    redis_url: str = "redis://localhost:6379/0"
+    # SQS task queue — empty string means tasks run inline (local dev)
+    sqs_queue_url: str = ""
 
     # AWS Configuration
     aws_access_key_id: Optional[str] = None
@@ -187,6 +187,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # tolerate REDIS_URL and other stale env vars during rollout
     )
 
 

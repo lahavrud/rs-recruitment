@@ -74,17 +74,15 @@ async def test_post_export_enqueues_and_returns_202(test_db):
         user, profile = await _seed_candidate(session, "post-export@test.com")
     _override_candidate(user, profile)
 
-    redis_mock = AsyncMock()
-    redis_mock.enqueue_job = AsyncMock()
     with patch(
-        "src.core.tasks.get_redis_pool",
+        "src.api.candidate.data_export.enqueue_data_export_task",
         new_callable=AsyncMock,
-        return_value=redis_mock,
-    ):
+        return_value="inline",
+    ) as mock_enqueue:
         async with await _client() as client:
             resp = await client.post("/api/candidate/me/export")
     assert resp.status_code == 202
-    redis_mock.enqueue_job.assert_awaited_once_with("build_data_export_task", user.id)
+    mock_enqueue.assert_awaited_once_with(user.id)
 
 
 @pytest.mark.asyncio

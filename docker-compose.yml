@@ -27,20 +27,6 @@ services:
       - "8025:8025"   # Web UI — http://localhost:8025
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: rs-recruitment-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: unless-stopped
-
   api:
     build:
       context: .
@@ -55,19 +41,15 @@ services:
       # If not set, validation will fail at startup (by design for security)
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
-      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-10}
       # CORS Configuration: Comma-separated list of allowed origins
-      # Example: ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
-      # Hardcoded to Docker service name — .env value (localhost) must not override this
-      - REDIS_URL=redis://redis:6379/0
       - FRONTEND_BASE_URL=${FRONTEND_BASE_URL:-http://localhost:3000}
+      # SQS_QUEUE_URL is intentionally absent — tasks run inline in local dev
       # Set TESTING=true to disable rate limiting in local dev
       - TESTING=${TESTING:-false}
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -77,42 +59,31 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      # Optional: Set APP_UID and APP_GID to match your host user's UID/GID
-      # This ensures proper permissions when using bind mounts
-      # Example: args: { APP_UID: "1000", APP_GID: "1000" }
-    container_name: rs-recruitment-worker
-    environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/rs_recruitment}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
-      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
-      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
-      # Hardcoded to Docker service name — .env value (localhost) must not override this
-      - REDIS_URL=redis://redis:6379/0
-      # Email — routes to the Mailpit container; view at http://localhost:8025
-      - EMAIL_PROVIDER=smtp
-      - SMTP_HOST=mailpit
-      - SMTP_PORT=1025
-      - SMTP_USER=
-      - SMTP_PASSWORD=
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@rsrecruit.local}
-      - SMTP_USE_TLS=false
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-      mailpit:
-        condition: service_started
-    command: ["arq", "src.core.tasks.WorkerSettings"]
-    restart: unless-stopped
+  # Worker is only needed in production (SQS). In local dev tasks run inline
+  # inside the API process (SQS_QUEUE_URL is unset). To run the worker locally
+  # point SQS_QUEUE_URL at a LocalStack endpoint and uncomment below.
+  #
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: rs-recruitment-worker
+  #   environment:
+  #     - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/rs_recruitment}
+  #     - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+  #     - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+  #     - EMAIL_PROVIDER=smtp
+  #     - SMTP_HOST=mailpit
+  #     - SMTP_PORT=1025
+  #     - SMTP_USER=
+  #     - SMTP_PASSWORD=
+  #     - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@rsrecruit.local}
+  #     - SMTP_USE_TLS=false
+  #   depends_on:
+  #     - db
+  #     - mailpit
+  #   command: ["python", "-m", "src.worker"]
+  #   restart: unless-stopped
 
 volumes:
   postgres-data:
-  redis-data:

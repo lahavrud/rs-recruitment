@@ -162,12 +162,12 @@ class TestSettingsInitialization:
 
     def test_settings_initialization_defaults(self):
         """Test Settings initialization with defaults."""
-        # Clear relevant env vars
+        keys_to_clear = ["JWT_SECRET_KEY", "JWT_ACCESS_TOKEN_EXPIRE_MINUTES"]
         with patch.dict(os.environ, {}, clear=False):
-            # Remove JWT_SECRET_KEY if it exists
-            os.environ.pop("JWT_SECRET_KEY", None)
+            for k in keys_to_clear:
+                os.environ.pop(k, None)
             settings = Settings()
             assert settings.jwt_algorithm == "HS256"
-            assert settings.jwt_access_token_expire_minutes == 30
+            assert settings.jwt_access_token_expire_minutes == 10
             assert settings.database_echo is False
             assert settings.testing is False
