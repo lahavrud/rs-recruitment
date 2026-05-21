@@ -19,6 +19,9 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import KebabButton from "@/components/ui/KebabButton";
+import NoResults from "@/components/ui/NoResults";
+import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { useToast } from "@/hooks/useToast";
 import InviteFormDialog from "./InviteFormDialog";
@@ -133,15 +136,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
     return (
       <DropdownMenu
         ariaLabel={t("admin.companies.rowActionsLabel")}
-        trigger={
-          <button
-            type="button"
-            className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span aria-hidden>⋮</span>
-          </button>
-        }
+        trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
       >
         {canResend && (
           <DropdownMenuItem onSelect={() => handleResend(invite)}>
@@ -191,11 +186,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
           headline={t("admin.companies.inviteList.empty")}
         />
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
-          <p className="text-sm text-white/40">
-            {t("publicJobs.board.noResults")}
-          </p>
-        </div>
+        <NoResults />
       ) : (
         <>
           {/* Mobile: collapsible card per invite */}
@@ -255,12 +246,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
               </tbody>
             </table>
           </div>
-          <div ref={sentinelRef} />
-          {isFetchingMore && (
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("common.loading")}
-            </p>
-          )}
+          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
       )}
 

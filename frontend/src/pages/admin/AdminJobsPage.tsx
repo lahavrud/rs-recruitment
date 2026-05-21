@@ -30,6 +30,9 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import KebabButton from "@/components/ui/KebabButton";
+import NoResults from "@/components/ui/NoResults";
+import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
@@ -558,10 +561,7 @@ export default function AdminJobsPage() {
       ) : jobs.length === 0 ? (
         <EmptyState eyebrow={t("admin.jobs.title")} headline={t("admin.jobs.empty")} />
       ) : filteredJobs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
-          <p className="text-sm text-white/40">
-            {t("publicJobs.board.noResults")}
-          </p>
+        <NoResults>
           <button
             type="button"
             onClick={clearFilters}
@@ -569,7 +569,7 @@ export default function AdminJobsPage() {
           >
             {t("publicJobs.board.clearFilters")}
           </button>
-        </div>
+        </NoResults>
       ) : (
         <>
           {/* Mobile cards — tap row to expand inline; 3-dot menu for actions */}
@@ -585,13 +585,7 @@ export default function AdminJobsPage() {
                   <DropdownMenu
                     ariaLabel={t("admin.jobs.rowActionsLabel")}
                     trigger={
-                      <button
-                        type="button"
-                        className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span aria-hidden>⋮</span>
-                      </button>
+                      <KebabButton onClick={(e) => e.stopPropagation()} />
                     }
                   >
                     <DropdownMenuItem onSelect={() => setEditing(job)}>
@@ -679,14 +673,7 @@ export default function AdminJobsPage() {
                     >
                       <DropdownMenu
                         ariaLabel={t("admin.jobs.rowActionsLabel")}
-                        trigger={
-                          <button
-                            type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition hover:bg-white/8 hover:text-white/80"
-                          >
-                            <span aria-hidden>⋮</span>
-                          </button>
-                        }
+                        trigger={<KebabButton size="sm" />}
                       >
                         <DropdownMenuItem onSelect={() => setDetail(job)}>
                           {t("admin.jobs.viewAction")}
@@ -726,12 +713,7 @@ export default function AdminJobsPage() {
             </table>
           </div>
 
-          <div ref={sentinelRef} />
-          {isFetchingMore && (
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("common.loading")}
-            </p>
-          )}
+          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
       )}
 

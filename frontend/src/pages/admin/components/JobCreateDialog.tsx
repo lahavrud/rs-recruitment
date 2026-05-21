@@ -230,7 +230,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                 </select>
               )}
             </Field>
-            <Field label={t("admin.jobs.fields.title")} full name="title">
+            <Field label={t("admin.jobs.fields.title")} full name="title" error={errors.title}>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -243,17 +243,15 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                   onToggleRequest={() => setConfirmFeatured(true)}
                 />
               </div>
-              {errors.title && <p className="mt-1 text-xs text-danger">{errors.title}</p>}
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label={t("admin.jobs.fields.location")} name="location">
+              <Field label={t("admin.jobs.fields.location")} name="location" error={errors.location}>
                 <input
                   type="text"
                   value={form.location ?? ""}
                   onChange={(e) => set("location", e.target.value)}
                   className={inputCls}
                 />
-                {errors.location && <p className="mt-1 text-xs text-danger">{errors.location}</p>}
               </Field>
               <Field label={t("admin.jobs.fields.status")}>
                 <StatusPills
@@ -284,6 +282,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
               label={t("admin.jobs.fields.shortDescription")}
               full
               name="short_description"
+              error={errors.short_description}
             >
               <input
                 type="text"
@@ -298,12 +297,12 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                   max: JOB_SHORT_DESC_MAX,
                 })}
               </p>
-              {errors.short_description && <p className="mt-1 text-xs text-danger">{errors.short_description}</p>}
             </Field>
             <Field
               label={t("admin.jobs.fields.description")}
               full
               name="description"
+              error={errors.description}
             >
               <AutoGrowTextarea
                 value={form.description ?? ""}
@@ -311,7 +310,6 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                 minRows={6}
                 className={`${textareaCls} min-h-40`}
               />
-              {errors.description && <p className="mt-1 text-xs text-danger">{errors.description}</p>}
             </Field>
           </div>
         </FormSection>

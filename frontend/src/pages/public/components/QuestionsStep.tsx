@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import Eyebrow from "@/components/ui/Eyebrow";
 import type { CandidateApplicationForm } from "@/types/api";
 import { textareaCls as textareaBase } from "@/styles/forms";
-import Field from "./Field";
+import FormField from "@/components/ui/FormField";
 
 const TEXT_FIELD_MAX = 2000;
 const textareaCls = textareaBase + " min-h-[96px]";
@@ -71,7 +71,7 @@ export default function QuestionsStep({
         const over = count > TEXT_FIELD_MAX;
         const isHalf = name === "strength" || name === "growth_area";
         return (
-          <Field key={name} label={label} id={name} optional className={isHalf ? "sm:col-span-1" : "sm:col-span-2"}>
+          <FormField key={name} label={label} id={name} optional className={isHalf ? "sm:col-span-1" : "sm:col-span-2"}>
             <textarea
               id={name}
               name={name}
@@ -98,7 +98,7 @@ export default function QuestionsStep({
                 })}
               </span>
             </div>
-          </Field>
+          </FormField>
         );
       })}
 

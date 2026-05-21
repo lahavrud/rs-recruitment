@@ -17,6 +17,9 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import KebabButton from "@/components/ui/KebabButton";
+import NoResults from "@/components/ui/NoResults";
+import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { useToast } from "@/hooks/useToast";
 import CompanyDetailDialog, { CompanyDetailBody } from "./CompanyDetailDialog";
@@ -90,15 +93,7 @@ export default function CompanyPendingTab({ query }: { query: string }) {
     return (
       <DropdownMenu
         ariaLabel={t("admin.companies.rowActionsLabel")}
-        trigger={
-          <button
-            type="button"
-            className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span aria-hidden>⋮</span>
-          </button>
-        }
+        trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
       >
         <DropdownMenuItem onSelect={() => setDetail(row.company_profile)}>
           {t("admin.companies.viewAction")}
@@ -135,11 +130,7 @@ export default function CompanyPendingTab({ query }: { query: string }) {
           headline={t("admin.companies.empty")}
         />
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
-          <p className="text-sm text-white/40">
-            {t("publicJobs.board.noResults")}
-          </p>
-        </div>
+        <NoResults />
       ) : (
         <>
           {/* Mobile: collapsible cards with detail body inline */}
@@ -163,12 +154,13 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                   >
                     {t("admin.companies.approveAction")}
                   </Button>
-                  <button
+                  <Button
+                    variant="danger"
                     onClick={() => setRejectPending(row)}
-                    className="flex-1 rounded-sm border border-danger/25 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"
+                    className="flex-1"
                   >
                     {t("admin.companies.rejectAction")}
-                  </button>
+                  </Button>
                 </div>
               </MobileEntityCard>
             ))}
@@ -199,24 +191,20 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                   className="flex shrink-0 items-center gap-2"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button
+                  <Button
+                    variant="success"
+                    size="sm"
                     onClick={() => handleApprove(row)}
-                    className="rounded-sm bg-success/15 px-4 py-1.5 text-sm font-medium text-success hover:bg-success/25"
                   >
                     {t("admin.companies.approveAction")}
-                  </button>
+                  </Button>
                   {renderRowActions(row)}
                 </div>
               </div>
             ))}
           </div>
 
-          <div ref={sentinelRef} />
-          {isFetchingMore && (
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("common.loading")}
-            </p>
-          )}
+          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
       )}
 

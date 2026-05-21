@@ -9,6 +9,8 @@ interface AdminFieldProps {
   full?: boolean;
   required?: boolean;
   optional?: boolean;
+  /** Inline validation error shown below the field. */
+  error?: string;
   /** Subtle hint shown below the field. */
   hint?: string;
   children: ReactNode;
@@ -20,6 +22,7 @@ export default function AdminField({
   full,
   required,
   optional,
+  error,
   hint,
   children,
 }: AdminFieldProps) {
@@ -37,6 +40,7 @@ export default function AdminField({
         )}
       </span>
       <span className="mt-1 block">{children}</span>
+      {error && <span className="mt-1 block text-xs text-danger">{error}</span>}
       {hint && <span className="mt-1 block text-[11px] text-white/30">{hint}</span>}
     </label>
   );

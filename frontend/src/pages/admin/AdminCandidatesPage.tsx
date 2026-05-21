@@ -37,6 +37,9 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import KebabButton from "@/components/ui/KebabButton";
+import NoResults from "@/components/ui/NoResults";
+import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -428,11 +431,7 @@ export default function AdminCandidatesPage() {
           headline={t("admin.candidates.empty")}
         />
       ) : filteredCandidates.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
-          <p className="text-sm text-white/40">
-            {t("publicJobs.board.noResults")}
-          </p>
-        </div>
+        <NoResults />
       ) : (
         <>
           {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
@@ -441,15 +440,7 @@ export default function AdminCandidatesPage() {
               const actions = (
                 <DropdownMenu
                   ariaLabel={t("admin.candidates.rowActionsLabel")}
-                  trigger={
-                    <button
-                      type="button"
-                      className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span aria-hidden>⋮</span>
-                    </button>
-                  }
+                  trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
                   <DropdownMenuItem onSelect={() => setEditing(c)}>
                     {t("admin.candidates.editAction")}
@@ -565,14 +556,7 @@ export default function AdminCandidatesPage() {
                     >
                       <DropdownMenu
                         ariaLabel={t("admin.candidates.rowActionsLabel")}
-                        trigger={
-                          <button
-                            type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition hover:bg-white/8 hover:text-white/80"
-                          >
-                            <span aria-hidden>⋮</span>
-                          </button>
-                        }
+                        trigger={<KebabButton size="sm" />}
                       >
                         <DropdownMenuItem onSelect={() => setDetail(c)}>
                           {t("admin.candidates.viewAction")}
@@ -595,12 +579,7 @@ export default function AdminCandidatesPage() {
             </table>
           </div>
 
-          <div ref={sentinelRef} />
-          {isFetchingMore && (
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("common.loading")}
-            </p>
-          )}
+          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
       )}
 
@@ -988,21 +967,17 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       }
     >
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <AdminField label={t("admin.candidates.fields.fullName")}>
+        <AdminField label={t("admin.candidates.fields.fullName")} error={errors.full_name}>
           <input type="text" value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} className={inputCls} />
-          {errors.full_name && <p className="mt-1 text-xs text-danger">{errors.full_name}</p>}
         </AdminField>
-        <AdminField label={t("admin.candidates.fields.email")}>
+        <AdminField label={t("admin.candidates.fields.email")} error={errors.email}>
           <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={inputCls} />
-          {errors.email && <p className="mt-1 text-xs text-danger">{errors.email}</p>}
         </AdminField>
-        <AdminField label={t("admin.candidates.fields.phone")}>
+        <AdminField label={t("admin.candidates.fields.phone")} error={errors.phone}>
           <input type="tel" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
-          {errors.phone && <p className="mt-1 text-xs text-danger">{errors.phone}</p>}
         </AdminField>
-        <AdminField label={t("admin.candidates.fields.linkedin")}>
+        <AdminField label={t("admin.candidates.fields.linkedin")} error={errors.linkedin_url}>
           <input type="url" value={form.linkedin_url ?? ""} onChange={(e) => set("linkedin_url", e.target.value)} className={inputCls} />
-          {errors.linkedin_url && <p className="mt-1 text-xs text-danger">{errors.linkedin_url}</p>}
         </AdminField>
       </div>
     </Dialog>

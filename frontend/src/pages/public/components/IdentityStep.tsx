@@ -2,7 +2,7 @@ import { type ChangeEvent, type FocusEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { CandidateApplicationForm } from "@/types/api";
 import { inputCls } from "@/styles/forms";
-import Field from "./Field";
+import FormField from "@/components/ui/FormField";
 
 export default function IdentityStep({
   form,
@@ -20,10 +20,11 @@ export default function IdentityStep({
   const { t } = useTranslation();
   return (
     <div className="grid gap-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
-      <Field
+      <FormField
         label={t("publicJobs.application.fullName")}
         id="full_name"
         required
+        error={fieldErrors.full_name}
       >
         <input
           id="full_name"
@@ -38,12 +39,14 @@ export default function IdentityStep({
           autoComplete="name"
           aria-invalid={!!fieldErrors.full_name}
         />
-        {fieldErrors.full_name && (
-          <p className="mt-1 text-xs text-danger">{fieldErrors.full_name}</p>
-        )}
-      </Field>
+      </FormField>
 
-      <Field label={t("publicJobs.application.email")} id="email" required>
+      <FormField
+        label={t("publicJobs.application.email")}
+        id="email"
+        required
+        error={fieldErrors.email}
+      >
         <input
           id="email"
           name="email"
@@ -64,12 +67,14 @@ export default function IdentityStep({
               : undefined
           }
         />
-        {fieldErrors.email && (
-          <p className="mt-1 text-xs text-danger">{fieldErrors.email}</p>
-        )}
-      </Field>
+      </FormField>
 
-      <Field label={t("publicJobs.application.phone")} id="phone" required>
+      <FormField
+        label={t("publicJobs.application.phone")}
+        id="phone"
+        required
+        error={fieldErrors.phone}
+      >
         <input
           id="phone"
           name="phone"
@@ -82,16 +87,14 @@ export default function IdentityStep({
           autoComplete="tel"
           aria-invalid={!!fieldErrors.phone}
         />
-        {fieldErrors.phone && (
-          <p className="mt-1 text-xs text-danger">{fieldErrors.phone}</p>
-        )}
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         label={t("publicJobs.application.linkedin")}
         id="linkedin_url"
         optional
         className="sm:col-span-2"
+        error={fieldErrors.linkedin_url}
       >
         <input
           id="linkedin_url"
@@ -104,10 +107,7 @@ export default function IdentityStep({
           placeholder={t("publicJobs.application.placeholders.linkedin")}
           aria-invalid={!!fieldErrors.linkedin_url}
         />
-        {fieldErrors.linkedin_url && (
-          <p className="mt-1 text-xs text-danger">{fieldErrors.linkedin_url}</p>
-        )}
-      </Field>
+      </FormField>
     </div>
   );
 }

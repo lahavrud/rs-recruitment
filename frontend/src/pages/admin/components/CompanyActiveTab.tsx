@@ -16,6 +16,9 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import KebabButton from "@/components/ui/KebabButton";
+import NoResults from "@/components/ui/NoResults";
+import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { useToast } from "@/hooks/useToast";
 import CompanyDetailDialog, { CompanyDetailBody } from "./CompanyDetailDialog";
@@ -118,11 +121,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
           headline={t("admin.companies.active.empty")}
         />
       ) : filteredCompanies.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
-          <p className="text-sm text-white/40">
-            {t("publicJobs.board.noResults")}
-          </p>
-        </div>
+        <NoResults />
       ) : (
         <>
           {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
@@ -131,15 +130,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
               const actions = (
                 <DropdownMenu
                   ariaLabel={t("admin.companies.rowActionsLabel")}
-                  trigger={
-                    <button
-                      type="button"
-                      className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span aria-hidden>⋮</span>
-                    </button>
-                  }
+                  trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
                   <DropdownMenuItem onSelect={() => setEditing(row.company_profile)}>
                     {t("admin.companies.editAction")}
@@ -224,14 +215,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
                     >
                       <DropdownMenu
                         ariaLabel={t("admin.companies.rowActionsLabel")}
-                        trigger={
-                          <button
-                            type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition hover:bg-white/8 hover:text-white/80"
-                          >
-                            <span aria-hidden>⋮</span>
-                          </button>
-                        }
+                        trigger={<KebabButton size="sm" />}
                       >
                         <DropdownMenuItem
                           onSelect={() => setDetail(row.company_profile)}
@@ -267,12 +251,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
             </table>
           </div>
 
-          <div ref={sentinelRef} />
-          {isFetchingMore && (
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("common.loading")}
-            </p>
-          )}
+          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
       )}
 

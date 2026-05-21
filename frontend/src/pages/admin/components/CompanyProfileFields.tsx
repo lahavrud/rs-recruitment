@@ -5,8 +5,7 @@ import type {
 } from "@/types/api";
 import { inputCls } from "@/styles/forms";
 import Eyebrow from "@/components/ui/Eyebrow";
-
-export { default as Field } from "@/components/admin/AdminField";
+import AdminField from "@/components/admin/AdminField";
 
 interface ProfileFieldsProps {
   form: CompanyProfileAdminUpdate | Partial<CompanyProfileAdminCreate>;
@@ -31,11 +30,12 @@ export default function CompanyProfileFields({
           {t("admin.companies.formSections.company")}
         </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <Field
+          <AdminField
             label={t("admin.companies.fields.name")}
             required={showRequired}
             full
             name="name"
+            error={errors?.name}
           >
             <input
               type="text"
@@ -45,15 +45,13 @@ export default function CompanyProfileFields({
               placeholder={t("admin.companies.placeholders.name")}
               aria-invalid={!!errors?.name}
             />
-            {errors?.name && (
-              <p className="mt-1 text-xs text-danger">{errors.name}</p>
-            )}
-          </Field>
-          <Field
+          </AdminField>
+          <AdminField
             label={t("admin.companies.fields.companyId")}
             required={showRequired}
             hint={showRequired ? t("admin.companies.hints.companyId") : undefined}
             name="company_id"
+            error={errors?.company_id}
           >
             <input
               type="text"
@@ -65,14 +63,12 @@ export default function CompanyProfileFields({
               aria-invalid={!!errors?.company_id}
               maxLength={9}
             />
-            {errors?.company_id && (
-              <p className="mt-1 text-xs text-danger">{errors.company_id}</p>
-            )}
-          </Field>
-          <Field
+          </AdminField>
+          <AdminField
             label={t("admin.companies.fields.address")}
             required={showRequired}
             name="address"
+            error={errors?.address}
           >
             <input
               type="text"
@@ -82,10 +78,7 @@ export default function CompanyProfileFields({
               placeholder={t("admin.companies.placeholders.address")}
               aria-invalid={!!errors?.address}
             />
-            {errors?.address && (
-              <p className="mt-1 text-xs text-danger">{errors.address}</p>
-            )}
-          </Field>
+          </AdminField>
         </div>
       </section>
 
@@ -95,11 +88,12 @@ export default function CompanyProfileFields({
           {t("admin.companies.formSections.contact")}
         </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <Field
+          <AdminField
             label={t("admin.companies.fields.contactEmail")}
             required={showRequired}
             full
             name="contact_email"
+            error={errors?.contact_email}
           >
             <input
               type="email"
@@ -110,14 +104,12 @@ export default function CompanyProfileFields({
               autoComplete="email"
               aria-invalid={!!errors?.contact_email}
             />
-            {errors?.contact_email && (
-              <p className="mt-1 text-xs text-danger">{errors.contact_email}</p>
-            )}
-          </Field>
-          <Field
+          </AdminField>
+          <AdminField
             label={t("admin.companies.fields.contactFirstName")}
             required={showRequired}
             name="contact_first_name"
+            error={errors?.contact_first_name}
           >
             <input
               type="text"
@@ -127,14 +119,12 @@ export default function CompanyProfileFields({
               autoComplete="given-name"
               aria-invalid={!!errors?.contact_first_name}
             />
-            {errors?.contact_first_name && (
-              <p className="mt-1 text-xs text-danger">{errors.contact_first_name}</p>
-            )}
-          </Field>
-          <Field
+          </AdminField>
+          <AdminField
             label={t("admin.companies.fields.contactLastName")}
             required={showRequired}
             name="contact_last_name"
+            error={errors?.contact_last_name}
           >
             <input
               type="text"
@@ -144,15 +134,13 @@ export default function CompanyProfileFields({
               autoComplete="family-name"
               aria-invalid={!!errors?.contact_last_name}
             />
-            {errors?.contact_last_name && (
-              <p className="mt-1 text-xs text-danger">{errors.contact_last_name}</p>
-            )}
-          </Field>
-          <Field
+          </AdminField>
+          <AdminField
             label={t("admin.companies.fields.contactMobile")}
             required={showRequired}
             hint={showRequired ? t("admin.companies.hints.mobile") : undefined}
             name="contact_mobile_phone"
+            error={errors?.contact_mobile_phone}
           >
             <input
               type="tel"
@@ -164,11 +152,8 @@ export default function CompanyProfileFields({
               aria-invalid={!!errors?.contact_mobile_phone}
               maxLength={10}
             />
-            {errors?.contact_mobile_phone && (
-              <p className="mt-1 text-xs text-danger">{errors.contact_mobile_phone}</p>
-            )}
-          </Field>
-          <Field
+          </AdminField>
+          <AdminField
             label={t("admin.companies.fields.contactLandline")}
             optional
           >
@@ -180,7 +165,7 @@ export default function CompanyProfileFields({
               placeholder="03-1234567"
               autoComplete="tel"
             />
-          </Field>
+          </AdminField>
         </div>
       </section>
     </div>
