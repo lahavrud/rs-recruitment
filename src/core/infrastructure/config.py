@@ -87,8 +87,8 @@ class Settings(BaseSettings):
     db_pool_recycle: int = 1800  # 30 min — avoid stale conns from RDS / NAT
     db_pool_pre_ping: bool = True  # SELECT 1 before checkout — survives blips
 
-    # Redis Configuration (for Arq task queue)
-    redis_url: str = "redis://localhost:6379/0"
+    # SQS task queue — empty string means tasks run inline (local dev)
+    sqs_queue_url: str = ""
 
     # AWS Configuration
     aws_access_key_id: Optional[str] = None
@@ -187,6 +187,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # tolerate REDIS_URL and other stale env vars during rollout
     )
 
 

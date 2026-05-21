@@ -26,6 +26,7 @@ from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.security import hash_token
 from src.core.infrastructure.transactions import defer_after_commit, transactional
 from src.core.services.storage import get_storage_provider
+from src.core.tasks import enqueue_data_export_task
 from src.models import CandidateProfile, DataExportRequest, User
 from src.services.candidate.data_export import has_pending_export
 
@@ -55,19 +56,10 @@ async def request_export(
             detail="export_already_pending",
         )
 
-    from src.core.tasks import get_redis_pool
-
     user_id = user.id
 
-    async def _enqueue() -> None:
-        try:
-            pool = await get_redis_pool()
-            await pool.enqueue_job("build_data_export_task", user_id)
-        except Exception:
-            logger.exception("Failed to enqueue build_data_export_task")
-
     async with transactional(session):
-        defer_after_commit(_enqueue)
+        defer_after_commit(lambda: enqueue_data_export_task(user_id))
 
     return {"message": "אנו מכינים את הקובץ ונשלח אליכם קישור להורדה."}
 

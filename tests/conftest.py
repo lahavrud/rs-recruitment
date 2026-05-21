@@ -90,25 +90,6 @@ def _fast_bcrypt_for_tests():
 
 
 @pytest.fixture(autouse=True)
-def _mock_redis_pool():
-    """Patch `get_redis_pool` so Arq task-queue callers see an AsyncMock.
-
-    Auth paths no longer use Redis (PR fix/auth-off-redis). The remaining
-    callers are the Arq task queue (enqueue_email_task, build_data_export_task)
-    which are separately mocked via mock_enqueue_email. This fixture stays
-    to guard against any direct get_redis_pool() call in non-auth paths
-    (e.g. data_export.py) until PR 2 (SQS migration) removes it entirely.
-    """
-    mock_redis = AsyncMock()
-    with patch(
-        "src.core.tasks.get_redis_pool",
-        new_callable=AsyncMock,
-        return_value=mock_redis,
-    ):
-        yield mock_redis
-
-
-@pytest.fixture(autouse=True)
 def mock_enqueue_email():
     """Patch enqueue_email_task in every service module for all tests.
 

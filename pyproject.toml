@@ -17,7 +17,6 @@ dependencies = [
     "boto3>=1.35.0,<2",
     "aioboto3>=15.5.0,<16",
     "slowapi>=0.1.9",
-    "arq>=0.25.0,<1",
     "pymupdf>=1.24.0,<2",
     "sentry-sdk[fastapi]>=2.60.0,<3",
     "aiosmtplib>=5.1.0,<6",
