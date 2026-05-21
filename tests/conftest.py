@@ -56,16 +56,18 @@ from src.services.auth.registration import register_company_user
 
 _EMAIL_TASK_TARGETS = [
     "src.services.auth.registration.enqueue_email_task",
+    "src.services.auth.candidate_registration.enqueue_email_task",
+    "src.services.auth.password_reset.enqueue_email_task",
     "src.services.admin.companies.enqueue_email_task",
-    "src.services.company.jobs.enqueue_email_task",
-    "src.services.admin.jobs_workflow.enqueue_email_task",
+    "src.services.admin.company_approval.enqueue_email_task",
+    "src.services.admin.invites.enqueue_email_task",
     "src.services.admin.jobs.enqueue_email_task",
+    "src.services.admin.jobs_workflow.enqueue_email_task",
+    "src.services.company.jobs.enqueue_email_task",
     "src.services.public.applications.enqueue_email_task",
     "src.services.public._application_helpers.enqueue_email_task",
-    "src.services.auth.password_reset.enqueue_email_task",
-    # applications_admin no longer imports enqueue_email_task directly;
-    # the router enqueues after commit — patch at the router level instead.
     "src.api.admin.applications.enqueue_email_task",
+    "src.api.auth.activation.enqueue_email_task",
 ]
 
 
