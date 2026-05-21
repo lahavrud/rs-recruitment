@@ -184,7 +184,7 @@ class TestS3StorageProvider:
         mock_paginator.paginate = fake_paginate
 
         mock_s3_client = AsyncMock()
-        mock_s3_client.get_paginator = AsyncMock(return_value=mock_paginator)
+        mock_s3_client.get_paginator = MagicMock(return_value=mock_paginator)
         mock_s3_client.delete_objects = AsyncMock(return_value={})
 
         with patch.object(provider.session, "client") as mock_client:
@@ -279,7 +279,7 @@ class TestS3StorageProviderErrors:
     async def test_delete_file_failure_returns_false(self, provider: S3StorageProvider):
         """delete_file swallows ClientError and returns False (idempotent semantics)."""
         mock_s3 = AsyncMock()
-        mock_s3.get_paginator = AsyncMock(
+        mock_s3.get_paginator = MagicMock(
             side_effect=self._client_error("AccessDenied")
         )
 

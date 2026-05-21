@@ -115,7 +115,7 @@ class S3StorageProvider(StorageProvider):
         """
         async with self.session.client("s3", **self._client_kwargs()) as s3:  # type: ignore[attr-defined]
             try:
-                paginator = await s3.get_paginator("list_object_versions")
+                paginator = s3.get_paginator("list_object_versions")
                 to_delete: list[dict] = []
                 async for page in paginator.paginate(
                     Bucket=self.bucket_name, Prefix=file_identifier
