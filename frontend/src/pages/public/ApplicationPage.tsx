@@ -520,6 +520,7 @@ export default function ApplicationPage() {
         dl.push({ event: "apply_submit", job_id: jobId, job_title: job?.title });
       }
       setSuccess(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       // 409 already_applied_editable carries an application_id — redirect
       // the candidate straight to their existing application's editor (lands
