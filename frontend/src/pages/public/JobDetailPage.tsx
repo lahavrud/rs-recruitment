@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import Eyebrow from "@/components/ui/Eyebrow";
 import { useTranslation } from "react-i18next";
 import { getPublicJob } from "@/services/jobs";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
@@ -362,9 +363,9 @@ export default function JobDetailPage() {
 
           {/* About the role */}
           <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+            <Eyebrow className="mb-3">
               {t("publicJobs.detail.aboutRole")}
-            </p>
+            </Eyebrow>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65 sm:text-[15px]">
               {job.description}
             </p>
@@ -373,9 +374,9 @@ export default function JobDetailPage() {
           {/* Requirements */}
           {job.requirements.length > 0 && (
             <div className="mt-8">
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-3">
                 {t("publicJobs.detail.requirements")}
-              </p>
+              </Eyebrow>
               <ul className="space-y-2 text-sm leading-relaxed text-white/65 sm:text-[15px]">
                 {job.requirements.map((req, i) => (
                   <li key={i} className="flex items-start gap-2">

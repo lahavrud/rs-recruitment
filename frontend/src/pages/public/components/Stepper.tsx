@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import Eyebrow from "@/components/ui/Eyebrow";
 
 type Step = 1 | 2 | 3;
 const TOTAL_STEPS = 3;
@@ -20,12 +21,12 @@ export default function Stepper({
   ];
   return (
     <div>
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+      <Eyebrow className="mb-3">
         {t("publicJobs.application.steps.indicator", {
           current: step,
           total: TOTAL_STEPS,
         })}
-      </p>
+      </Eyebrow>
       {/* Step 1 sits at the visual start of the row — in RTL that means
           the right side. Hebrew labels render naturally. */}
       <ol className="flex items-center gap-2">

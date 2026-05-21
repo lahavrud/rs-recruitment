@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { createInvite } from "@/services/adminInvites";
+import Eyebrow from "@/components/ui/Eyebrow";
 import type { InviteTokenCreate, InviteTokenRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import { useToast } from "@/hooks/useToast";
@@ -146,9 +147,9 @@ function InviteFlowExplainer() {
   ];
   return (
     <div className="mb-5 rounded-md border border-white/8 bg-card/40 p-3">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+      <Eyebrow className="mb-3">
         {t("admin.companies.inviteForm.flow.title")}
-      </p>
+      </Eyebrow>
       {/* dir="ltr" so the step sequence renders left-to-right regardless of
           document direction. Hebrew labels inside each cell still render RTL
           naturally because the characters themselves carry direction. */}

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getApplications } from "@/services/adminApplications";
+import Eyebrow from "@/components/ui/Eyebrow";
+import StatusBadge from "@/components/ui/StatusBadge";
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
@@ -159,11 +161,7 @@ export function JobDetailBody({
     <div className="space-y-4 text-sm">
       {/* Header strip: status + featured ribbon eyebrow only */}
       <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[job.status]}`}
-        >
-          {statusLabels[job.status]}
-        </span>
+        <StatusBadge label={statusLabels[job.status]} colorCls={statusColors[job.status]} />
         {job.is_featured && (
           <span className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-gold">
             <svg
@@ -241,9 +239,9 @@ export function JobDetailBody({
 
       {/* Short description: lifted into a subtle well so it doesn't compete with the metadata */}
       <div className="rounded-md border border-white/6 bg-well/30 px-3 py-2.5">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           {t("admin.jobs.fields.shortDescription")}
-        </p>
+        </Eyebrow>
         <p className="mt-1 leading-relaxed text-white/80">{job.short_description}</p>
       </div>
 
@@ -336,11 +334,7 @@ export function MobileJobCard({
         <p className="min-w-0 flex-1 truncate font-medium text-white/85">
           {job.title}
         </p>
-        <span
-          className={`shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusColors[job.status]}`}
-        >
-          {statusLabels[job.status]}
-        </span>
+        <StatusBadge label={statusLabels[job.status]} colorCls={statusColors[job.status]} />
       </button>
       <div className="absolute end-1 top-2">{actions}</div>
       <div

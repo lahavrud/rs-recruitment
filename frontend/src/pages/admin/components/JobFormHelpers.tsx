@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { JobStatus } from "@/types/api";
 import RangeSlider from "@/components/ui/RangeSlider";
+export { default as AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 
 const ALL_STATUSES = [
   JobStatus.PENDING_APPROVAL,
@@ -13,63 +13,7 @@ const SALARY_FORM_MIN = 0;
 const SALARY_FORM_MAX = 60000;
 const SALARY_FORM_STEP = 500;
 
-export function Field({
-  label,
-  children,
-  full,
-  name,
-}: {
-  label: string;
-  children: React.ReactNode;
-  full?: boolean;
-  name?: string;
-}) {
-  return (
-    <label
-      className={`block ${full ? "sm:col-span-2" : ""}`}
-      data-field={name}
-    >
-      <span className="block text-xs text-white/45">{label}</span>
-      <span className="mt-1 block">{children}</span>
-    </label>
-  );
-}
-
-/**
- * Textarea that auto-grows with its content. Mobile users can't drag the
- * native resize handle, so the box expands as they type instead.
- */
-export function AutoGrowTextarea({
-  value,
-  onChange,
-  className,
-  minRows = 4,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  className?: string;
-  minRows?: number;
-  placeholder?: string;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      rows={minRows}
-      placeholder={placeholder}
-      className={`${className ?? ""} resize-none overflow-hidden`}
-    />
-  );
-}
+export { default as Field } from "@/components/admin/AdminField";
 
 /** Featured-toggle as a star button. Click opens a confirm dialog in the parent. */
 export function FeaturedStarButton({

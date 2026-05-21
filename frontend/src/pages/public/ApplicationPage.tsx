@@ -17,6 +17,7 @@ import { UserRole } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import Stepper from "./components/Stepper";
+import Eyebrow from "@/components/ui/Eyebrow";
 import IdentityStep from "./components/IdentityStep";
 import ResumeStep from "./components/ResumeStep";
 import QuestionsStep from "./components/QuestionsStep";
@@ -610,9 +611,9 @@ export default function ApplicationPage() {
       {/* Compact job header */}
       <div className="mb-8 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-5 sm:p-6">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+          <Eyebrow>
             {t("publicJobs.application.applyFor")}
-          </p>
+          </Eyebrow>
           <h1 className="mt-1 truncate text-lg font-semibold text-white/90 sm:text-xl">
             {job?.title}
           </h1>

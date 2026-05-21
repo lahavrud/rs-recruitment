@@ -5,8 +5,10 @@ import { getInviteMetadata, register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import SignatureCanvas, { type SignatureCanvasRef } from "@/components/ui/SignatureCanvas";
+import FormField from "@/components/ui/FormField";
 import { inputCls } from "@/styles/forms";
 import axios from "axios";
+import Eyebrow from "@/components/ui/Eyebrow";
 
 function useValidation() {
   const { t } = useTranslation();
@@ -104,24 +106,6 @@ const EMPTY: FormState = {
   contactMobilePhone: "",
   contactLandlinePhone: "",
 };
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs text-white/45">{label}</label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
-  );
-}
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -390,97 +374,97 @@ export default function RegisterPage() {
         {step === 1 && (
           <div className="space-y-4">
             <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-4">
                 {t("auth.register.companySection")}
-              </p>
+              </Eyebrow>
               <div className="space-y-3">
-                <Field label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
+                <FormField label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
                   <input
                     name="companyName" type="text" required maxLength={100}
                     value={form.companyName} onChange={handleChange} onBlur={handleBlur}
                     className={inputCls} placeholder="Acme בע״מ"
                     autoComplete="organization"
                   />
-                </Field>
+                </FormField>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.companyIdLabel")} *`} error={fieldErrors.companyId}>
+                  <FormField label={`${t("auth.register.companyIdLabel")} *`} error={fieldErrors.companyId}>
                     <input
                       name="companyId" type="text" required maxLength={9}
                       value={form.companyId} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder="123456789" dir="ltr"
                     />
-                  </Field>
-                  <Field label={`${t("auth.register.addressLabel")} *`} error={fieldErrors.address}>
+                  </FormField>
+                  <FormField label={`${t("auth.register.addressLabel")} *`} error={fieldErrors.address}>
                     <input
                       name="address" type="text" required maxLength={200}
                       value={form.address} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.addressPlaceholder")}
                       autoComplete="street-address"
                     />
-                  </Field>
+                  </FormField>
                 </div>
 
-                <Field label={`${t("auth.register.logoLabel")} *`} error={fieldErrors.logo}>
+                <FormField label={`${t("auth.register.logoLabel")} *`} error={fieldErrors.logo}>
                   <input
                     ref={logoInputRef} type="file" accept="image/*"
                     onChange={handleLogoChange}
                     className="mt-0.5 block w-full cursor-pointer rounded-sm border border-white/10 bg-well px-3 py-2 text-xs text-white/50 file:ml-3 file:rounded-sm file:border-0 file:bg-copper/20 file:px-2.5 file:py-1 file:text-[11px] file:font-medium file:text-copper hover:file:bg-copper/30"
                   />
-                </Field>
+                </FormField>
               </div>
             </div>
 
             <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-4">
                 {t("auth.register.contactSection", "איש קשר")}
-              </p>
+              </Eyebrow>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.contactFirstName")} *`} error={fieldErrors.contactFirstName}>
+                  <FormField label={`${t("auth.register.contactFirstName")} *`} error={fieldErrors.contactFirstName}>
                     <input
                       name="contactFirstName" type="text" required maxLength={100}
                       value={form.contactFirstName} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.contactFirstNamePlaceholder")}
                       autoComplete="given-name"
                     />
-                  </Field>
-                  <Field label={`${t("auth.register.contactLastName")} *`} error={fieldErrors.contactLastName}>
+                  </FormField>
+                  <FormField label={`${t("auth.register.contactLastName")} *`} error={fieldErrors.contactLastName}>
                     <input
                       name="contactLastName" type="text" required maxLength={100}
                       value={form.contactLastName} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.contactLastNamePlaceholder")}
                       autoComplete="family-name"
                     />
-                  </Field>
+                  </FormField>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.contactMobilePhone")} *`} error={fieldErrors.contactMobilePhone}>
+                  <FormField label={`${t("auth.register.contactMobilePhone")} *`} error={fieldErrors.contactMobilePhone}>
                     <input
                       name="contactMobilePhone" type="tel" required maxLength={15}
                       value={form.contactMobilePhone} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.contactMobilePhonePlaceholder")}
                       autoComplete="tel" dir="ltr"
                     />
-                  </Field>
-                  <Field label={t("auth.register.contactLandlinePhone")}>
+                  </FormField>
+                  <FormField label={t("auth.register.contactLandlinePhone")}>
                     <input
                       name="contactLandlinePhone" type="tel" maxLength={15}
                       value={form.contactLandlinePhone} onChange={handleChange}
                       className={inputCls} placeholder={t("auth.register.contactLandlinePhonePlaceholder")}
                       dir="ltr"
                     />
-                  </Field>
+                  </FormField>
                 </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-4">
                 {t("auth.register.accountSection")}
-              </p>
+              </Eyebrow>
               <div className="space-y-3">
-                <Field label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
+                <FormField label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
                   <input
                     name="email" type="email" required maxLength={255}
                     value={form.email} onChange={handleChange} onBlur={handleBlur}
@@ -489,24 +473,24 @@ export default function RegisterPage() {
                     placeholder={t("auth.register.emailPlaceholder")}
                     autoComplete="email" dir="ltr"
                   />
-                </Field>
+                </FormField>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.passwordLabel")} *`} error={fieldErrors.password}>
+                  <FormField label={`${t("auth.register.passwordLabel")} *`} error={fieldErrors.password}>
                     <input
                       name="password" type="password" required
                       value={form.password} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder="••••••••"
                       autoComplete="new-password"
                     />
-                  </Field>
-                  <Field label={`${t("auth.register.confirmLabel")} *`} error={fieldErrors.confirm}>
+                  </FormField>
+                  <FormField label={`${t("auth.register.confirmLabel")} *`} error={fieldErrors.confirm}>
                     <input
                       name="confirm" type="password" required
                       value={form.confirm} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder="••••••••"
                       autoComplete="new-password"
                     />
-                  </Field>
+                  </FormField>
                 </div>
               </div>
             </div>
@@ -526,9 +510,9 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} noValidate>
             <div className="space-y-4">
               <div className="rounded-xl border border-white/8 bg-card px-5 py-5 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+                <Eyebrow>
                   {t("auth.register.agreementSection")}
-                </p>
+                </Eyebrow>
 
                 {/* Contract */}
                 <div className="rounded-lg border border-white/6 bg-card-raised px-4 py-3">

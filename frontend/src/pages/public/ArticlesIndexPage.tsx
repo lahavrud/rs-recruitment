@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
+import Eyebrow from "@/components/ui/Eyebrow";
 import FadeInImage from "@/components/ui/FadeInImage";
 import { articles } from "@/content/articles";
 import { formatDateLong as formatDate } from "@/utils/formatDate";
@@ -43,9 +44,9 @@ export default function ArticlesIndexPage() {
       />
 
       <header className="mb-10">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           מאמרים
-        </p>
+        </Eyebrow>
         <div className="mt-3 h-px w-8 bg-copper/40" />
         <h1 className="mt-4 text-2xl font-semibold text-white/90 sm:text-3xl">
           מדריכים וניתוחי שוק

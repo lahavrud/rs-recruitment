@@ -14,6 +14,7 @@ import {
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import StatusBadge from "@/components/ui/StatusBadge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -667,11 +668,7 @@ export default function AdminJobsPage() {
                         : <span className="text-white/20">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[job.status]}`}
-                      >
-                        {STATUS_LABELS[job.status]}
-                      </span>
+                      <StatusBadge label={STATUS_LABELS[job.status]} colorCls={STATUS_COLORS[job.status]} />
                     </td>
                     <td className="px-4 py-3 text-white/40">
                       {formatDate(job.created_at)}

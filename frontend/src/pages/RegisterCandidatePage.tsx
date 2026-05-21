@@ -7,6 +7,8 @@ import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { registerCandidate } from "@/services/auth";
 import { EMAIL_RE } from "@/utils/validation";
+import FormField from "@/components/ui/FormField";
+import Eyebrow from "@/components/ui/Eyebrow";
 
 type FieldName =
   | "fullName"
@@ -209,7 +211,7 @@ export default function RegisterCandidatePage() {
             </div>
           )}
 
-          <Field
+          <FormField
             label={t("auth.registerCandidate.fullNameLabel")}
             error={fieldErrors.fullName}
           >
@@ -225,9 +227,9 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.registerCandidate.fullNamePlaceholder")}
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             label={t("auth.register.emailLabel")}
             error={fieldErrors.email}
           >
@@ -244,9 +246,9 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.registerCandidate.emailPlaceholder")}
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             label={t("auth.register.passwordLabel")}
             error={fieldErrors.password}
           >
@@ -262,9 +264,9 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.register.passwordPlaceholder")}
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             label={t("auth.register.confirmLabel")}
             error={fieldErrors.passwordConfirm}
           >
@@ -280,13 +282,13 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.register.confirmPlaceholder")}
             />
-          </Field>
+          </FormField>
 
           {/* ───────── Agreement section ───────── */}
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-copper">
+            <Eyebrow className="mb-2">
               {t("auth.register.agreementSection")}
-            </p>
+            </Eyebrow>
             <AgreementCard
               title={t("auth.register.agreementSectionSiteTerms")}
               readFullLabel={t("auth.register.agreementReadFull")}
@@ -365,25 +367,6 @@ export default function RegisterCandidatePage() {
           onClose={() => setPrivacyOpen(false)}
         />
       )}
-    </div>
-  );
-}
-
-/** Label + input + inline error. Matches the company `Field` helper. */
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs text-white/55">{label}</label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );
 }

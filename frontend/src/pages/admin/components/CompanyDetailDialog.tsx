@@ -5,6 +5,7 @@ import axios from "axios";
 import { getJobs } from "@/services/adminJobs";
 import type { CompanyProfileRead, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Eyebrow from "@/components/ui/Eyebrow";
 
 interface DetailProps {
   profile: CompanyProfileRead | null;
@@ -168,9 +169,9 @@ export function CompanyDetailBody({
       </dl>
 
       <div className="border-t border-white/8 pt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           {t("admin.companies.jobsSection")}
-        </p>
+        </Eyebrow>
         {jobsError ? (
           <p className="mt-3 text-xs text-danger">
             {t("admin.companies.errors.jobsLoadFailed")}

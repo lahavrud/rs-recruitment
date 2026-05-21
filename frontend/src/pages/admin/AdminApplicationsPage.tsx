@@ -8,6 +8,7 @@ import type { ApplicationListParams } from "@/services/adminApplications";
 import { ApplicationStatus } from "@/types/api";
 import type { ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import StatusBadge from "@/components/ui/StatusBadge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -452,11 +453,7 @@ export default function AdminApplicationsPage() {
                     </div>
                   }
                   badge={
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${STATUS_COLORS[app.status]}`}
-                    >
-                      {STATUS_LABELS[app.status]}
-                    </span>
+                    <StatusBadge label={STATUS_LABELS[app.status]} colorCls={STATUS_COLORS[app.status]} />
                   }
                   actions={actions}
                 >
@@ -504,11 +501,7 @@ export default function AdminApplicationsPage() {
                       <p className="text-xs text-white/40">{app.job.location}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[app.status]}`}
-                      >
-                        {STATUS_LABELS[app.status]}
-                      </span>
+                      <StatusBadge label={STATUS_LABELS[app.status]} colorCls={STATUS_COLORS[app.status]} />
                     </td>
                     <td className="px-4 py-3 text-white/40">
                       {formatDate(app.created_at)}

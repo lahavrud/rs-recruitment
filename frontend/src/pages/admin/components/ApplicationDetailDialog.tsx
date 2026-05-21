@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { ApplicationWithDetails } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Eyebrow from "@/components/ui/Eyebrow";
 import ResumeLink from "./ResumeLink";
 import { formatDate } from "@/utils/formatDate";
 
@@ -165,9 +166,9 @@ export function ApplicationDetailBody({
 
       {app.admin_notes && (
         <div className="rounded-md border border-white/8 bg-card p-3 text-white/70">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+          <Eyebrow>
             {t("admin.applications.modal.adminNotes")}
-          </p>
+          </Eyebrow>
           <p className="mt-1 whitespace-pre-wrap">{app.admin_notes}</p>
         </div>
       )}

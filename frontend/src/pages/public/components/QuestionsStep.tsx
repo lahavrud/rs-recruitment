@@ -1,5 +1,6 @@
 import { type ChangeEvent, type FocusEvent } from "react";
 import { useTranslation } from "react-i18next";
+import Eyebrow from "@/components/ui/Eyebrow";
 import type { CandidateApplicationForm } from "@/types/api";
 import { textareaCls as textareaBase } from "@/styles/forms";
 import Field from "./Field";
@@ -113,9 +114,9 @@ export default function QuestionsStep({
             : "border-white/10 bg-card"
         }`}
       >
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           {t("publicJobs.application.termsConsentTitle")}
-        </p>
+        </Eyebrow>
         <p className="mt-2 text-xs leading-relaxed text-white/55">
           {t("publicJobs.application.termsConsentPreview")}
         </p>
@@ -153,9 +154,9 @@ export default function QuestionsStep({
             : "border-white/10 bg-card"
         }`}
       >
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           {t("publicJobs.application.privacyConsentTitle")}
-        </p>
+        </Eyebrow>
         <p className="mt-2 text-xs leading-relaxed text-white/55">
           {t("publicJobs.application.privacyConsentPreview")}
         </p>

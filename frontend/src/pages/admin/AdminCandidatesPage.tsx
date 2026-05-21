@@ -19,6 +19,7 @@ import type {
   CandidateProfileUpdate,
 } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import Eyebrow from "@/components/ui/Eyebrow";
 import Dialog from "@/components/ui/Dialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
@@ -27,6 +28,7 @@ import TableSkeleton from "@/components/ui/TableSkeleton";
 import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
 import MobileEntityCard from "@/components/admin/MobileEntityCard";
+import AdminField from "@/components/admin/AdminField";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import FunnelIcon from "@/components/admin/FunnelIcon";
 import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
@@ -787,9 +789,9 @@ function CandidateDetailBody({
       </div>
 
       <div className="border-t border-white/8 pt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           {t("admin.candidates.applicationsSection")}
-        </p>
+        </Eyebrow>
         {appsError ? (
           <p className="mt-3 text-xs text-danger">
             {t("admin.candidates.errors.applicationsLoadFailed")}
@@ -987,22 +989,22 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       }
     >
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <Field label={t("admin.candidates.fields.fullName")}>
+        <AdminField label={t("admin.candidates.fields.fullName")}>
           <input type="text" value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} className={inputCls} />
           {errors.full_name && <p className="mt-1 text-xs text-danger">{errors.full_name}</p>}
-        </Field>
-        <Field label={t("admin.candidates.fields.email")}>
+        </AdminField>
+        <AdminField label={t("admin.candidates.fields.email")}>
           <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={inputCls} />
           {errors.email && <p className="mt-1 text-xs text-danger">{errors.email}</p>}
-        </Field>
-        <Field label={t("admin.candidates.fields.phone")}>
+        </AdminField>
+        <AdminField label={t("admin.candidates.fields.phone")}>
           <input type="tel" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
           {errors.phone && <p className="mt-1 text-xs text-danger">{errors.phone}</p>}
-        </Field>
-        <Field label={t("admin.candidates.fields.linkedin")}>
+        </AdminField>
+        <AdminField label={t("admin.candidates.fields.linkedin")}>
           <input type="url" value={form.linkedin_url ?? ""} onChange={(e) => set("linkedin_url", e.target.value)} className={inputCls} />
           {errors.linkedin_url && <p className="mt-1 text-xs text-danger">{errors.linkedin_url}</p>}
-        </Field>
+        </AdminField>
       </div>
     </Dialog>
     <ConfirmDialog
@@ -1019,19 +1021,3 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
   );
 }
 
-function Field({
-  label,
-  children,
-  full,
-}: {
-  label: string;
-  children: React.ReactNode;
-  full?: boolean;
-}) {
-  return (
-    <label className={`block ${full ? "sm:col-span-2" : ""}`}>
-      <span className="block text-xs text-white/45">{label}</span>
-      <span className="mt-1 block">{children}</span>
-    </label>
-  );
-}

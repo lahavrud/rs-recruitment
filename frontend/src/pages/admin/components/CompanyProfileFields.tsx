@@ -4,42 +4,9 @@ import type {
   CompanyProfileAdminUpdate,
 } from "@/types/api";
 import { inputCls } from "@/styles/forms";
+import Eyebrow from "@/components/ui/Eyebrow";
 
-export function Field({
-  label,
-  children,
-  full,
-  required,
-  optional,
-  hint,
-  name,
-}: {
-  label: string;
-  children: React.ReactNode;
-  full?: boolean;
-  required?: boolean;
-  optional?: boolean;
-  hint?: string;
-  name?: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <label
-      className={`block ${full ? "sm:col-span-2" : ""}`}
-      data-field={name}
-    >
-      <span className="flex items-center gap-1.5 text-xs text-white/55">
-        <span>{label}</span>
-        {required && <span className="text-copper/80">*</span>}
-        {optional && (
-          <span className="text-[10px] text-white/30">({t("common.optional")})</span>
-        )}
-      </span>
-      <span className="mt-1 block">{children}</span>
-      {hint && <span className="mt-1 block text-[11px] text-white/30">{hint}</span>}
-    </label>
-  );
-}
+export { default as Field } from "@/components/admin/AdminField";
 
 interface ProfileFieldsProps {
   form: CompanyProfileAdminUpdate | Partial<CompanyProfileAdminCreate>;
@@ -60,9 +27,9 @@ export default function CompanyProfileFields({
     <div className="space-y-5">
       {/* Section: Company */}
       <section>
-        <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow className="mb-3">
           {t("admin.companies.formSections.company")}
-        </p>
+        </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <Field
             label={t("admin.companies.fields.name")}
@@ -124,9 +91,9 @@ export default function CompanyProfileFields({
 
       {/* Section: Contact person */}
       <section>
-        <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow className="mb-3">
           {t("admin.companies.formSections.contact")}
-        </p>
+        </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <Field
             label={t("admin.companies.fields.contactEmail")}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import StatusBadge from "@/components/ui/StatusBadge";
 import {
   deleteInvite,
   getInvites,
@@ -330,10 +331,6 @@ function InviteStatusBadge({ status }: { status: string }) {
           ? "bg-white/8 text-white/40"
           : "bg-danger/10 text-danger";
   return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}
-    >
-      {t(`admin.companies.inviteStatusLabels.${status}`)}
-    </span>
+    <StatusBadge label={t(`admin.companies.inviteStatusLabels.${status}`)} colorCls={cls} />
   );
 }
