@@ -14,6 +14,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import SearchInput from "@/components/ui/SearchInput";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useToast } from "@/hooks/useToast";
 import CompanyActiveTab from "./components/CompanyActiveTab";
 import CompanyPendingTab from "./components/CompanyPendingTab";
 import CompanyInvitesTab from "./components/CompanyInvitesTab";
