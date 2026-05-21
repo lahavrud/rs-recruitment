@@ -1,0 +1,179 @@
+import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { JobStatus } from "@/types/api";
+import RangeSlider from "@/components/ui/RangeSlider";
+
+const ALL_STATUSES = [
+  JobStatus.PENDING_APPROVAL,
+  JobStatus.PUBLISHED,
+  JobStatus.CLOSED,
+];
+
+const SALARY_FORM_MIN = 0;
+const SALARY_FORM_MAX = 60000;
+const SALARY_FORM_STEP = 500;
+
+export function Field({
+  label,
+  children,
+  full,
+  name,
+}: {
+  label: string;
+  children: React.ReactNode;
+  full?: boolean;
+  name?: string;
+}) {
+  return (
+    <label
+      className={`block ${full ? "sm:col-span-2" : ""}`}
+      data-field={name}
+    >
+      <span className="block text-xs text-white/45">{label}</span>
+      <span className="mt-1 block">{children}</span>
+    </label>
+  );
+}
+
+/**
+ * Textarea that auto-grows with its content. Mobile users can't drag the
+ * native resize handle, so the box expands as they type instead.
+ */
+export function AutoGrowTextarea({
+  value,
+  onChange,
+  className,
+  minRows = 4,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+  minRows?: number;
+  placeholder?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={minRows}
+      placeholder={placeholder}
+      className={`${className ?? ""} resize-none overflow-hidden`}
+    />
+  );
+}
+
+/** Featured-toggle as a star button. Click opens a confirm dialog in the parent. */
+export function FeaturedStarButton({
+  active,
+  onToggleRequest,
+}: {
+  active: boolean;
+  onToggleRequest: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onToggleRequest}
+      aria-pressed={active}
+      aria-label={t("admin.jobs.fields.featuredToggleAria")}
+      title={t(active ? "admin.jobs.featuredOnHint" : "admin.jobs.featuredOffHint")}
+      className={`inline-flex size-10 shrink-0 items-center justify-center rounded-sm border transition duration-200 active:scale-90 ${
+        active
+          ? "border-gold/60 bg-gold/15 text-gold hover:bg-gold/25"
+          : "border-white/15 text-white/40 hover:border-gold/40 hover:text-gold/80"
+      }`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill={active ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        className="size-5"
+        aria-hidden="true"
+      >
+        <path d="M12 2.5l3.09 6.26 6.91 1.01-5 4.87 1.18 6.88L12 18.27l-6.18 3.25L7 14.64 2 9.77l6.91-1.01L12 2.5z" />
+      </svg>
+    </button>
+  );
+}
+
+/** Status as segmented pills (replaces the dropdown). */
+export function StatusPills({
+  value,
+  onChange,
+}: {
+  value: JobStatus;
+  onChange: (s: JobStatus) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {ALL_STATUSES.map((s) => {
+        const active = value === s;
+        return (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              active
+                ? "bg-copper text-white"
+                : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
+            }`}
+          >
+            {t(`admin.jobs.statusLabels.${s}`)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Salary range slider + numeric display (replaces two number inputs). */
+export function SalaryRangeField({
+  min,
+  max,
+  onChange,
+  error,
+}: {
+  min?: number;
+  max?: number;
+  onChange: (lo: number, hi: number) => void;
+  error?: string;
+}) {
+  const { t } = useTranslation();
+  const lo = Math.max(SALARY_FORM_MIN, Math.min(min ?? SALARY_FORM_MIN, SALARY_FORM_MAX));
+  const hi = Math.max(
+    Math.min(SALARY_FORM_MAX, Math.max(max ?? SALARY_FORM_MAX, SALARY_FORM_MIN)),
+    lo,
+  );
+  return (
+    <div className="mt-1 space-y-3 rounded-md border border-white/8 bg-well/40 px-3 pb-3 pt-2.5">
+      <p className="text-sm font-medium text-copper/85">
+        {lo.toLocaleString("he-IL")}–{hi.toLocaleString("he-IL")} ₪/חודש
+      </p>
+      <RangeSlider
+        min={SALARY_FORM_MIN}
+        max={SALARY_FORM_MAX}
+        step={SALARY_FORM_STEP}
+        value={[lo, hi]}
+        onChange={([newLo, newHi]) => onChange(newLo, newHi)}
+        formatValue={(n) => `${n.toLocaleString("he-IL")} ₪`}
+        ariaLabelMin={t("common.salaryMin")}
+        ariaLabelMax={t("common.salaryMax")}
+      />
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
