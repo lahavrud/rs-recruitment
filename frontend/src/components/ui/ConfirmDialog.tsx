@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import Dialog from "./Dialog";
+import Button from "./Button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -33,11 +34,6 @@ export default function ConfirmDialog({
   const confirmText = confirmLabel ?? t("common.confirm");
   const cancelText = cancelLabel ?? t("common.cancel");
 
-  const confirmCls =
-    variant === "danger"
-      ? "rounded-sm bg-danger px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-60"
-      : "rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-60";
-
   return (
     <Dialog
       open={open}
@@ -47,22 +43,22 @@ export default function ConfirmDialog({
       size="sm"
       footer={
         <>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => onOpenChange(false)}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90"
             disabled={isPending}
           >
             {cancelText}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={variant}
             onClick={() => void onConfirm()}
-            className={confirmCls}
             disabled={isPending}
           >
             {isPending ? t("common.loading") : confirmText}
-          </button>
+          </Button>
         </>
       }
     />

@@ -18,6 +18,7 @@ import type {
   JobRequirementItem,
 } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { FormSection } from "@/components/admin/AnimatedAccordion";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
@@ -185,20 +186,19 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
       preventOutsideClose
       footer={
         <>
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             disabled={saving}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
           >
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={requestSave}
             disabled={saving}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-60"
           >
             {saving ? t("common.saving") : t("common.save")}
-          </button>
+          </Button>
         </>
       }
     >

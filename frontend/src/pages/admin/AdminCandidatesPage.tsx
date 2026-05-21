@@ -19,6 +19,7 @@ import type {
   CandidateProfileUpdate,
 } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
 import Dialog from "@/components/ui/Dialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -692,18 +693,17 @@ function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
       size="lg"
       footer={
         <>
-          <button
+          <Button
+            variant="danger"
             onClick={onDelete}
-            className="rounded-sm border border-danger/40 px-4 py-2 text-sm text-danger hover:bg-danger/10"
           >
             {t("admin.candidates.deleteAction")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onEdit}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
             {t("admin.candidates.editAction")}
-          </button>
+          </Button>
         </>
       }
     >
@@ -971,20 +971,19 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       size="lg"
       footer={
         <>
-          <button
+          <Button
+            variant="ghost"
             onClick={handleClose}
             disabled={saving}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
           >
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-60"
           >
             {saving ? t("common.saving") : t("common.save")}
-          </button>
+          </Button>
         </>
       }
     >

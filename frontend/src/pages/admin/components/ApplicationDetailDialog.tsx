@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { ApplicationWithDetails } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
 import ResumeLink from "./ResumeLink";
 import { formatDate } from "@/utils/formatDate";
@@ -33,24 +34,23 @@ export default function ApplicationDetailDialog({
       size="lg"
       footer={
         <>
-          <button
+          <Button
+            variant="danger"
             onClick={onDelete}
-            className="rounded-sm border border-danger/40 px-4 py-2 text-sm text-danger hover:bg-danger/10"
           >
             {t("admin.applications.deleteAction")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={onEditNotes}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/70 hover:border-white/40 hover:text-white/90"
           >
             {t("admin.applications.editNotesAction")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onUpdateStatus}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
             {t("admin.applications.updateStatusAction")}
-          </button>
+          </Button>
         </>
       }
     >

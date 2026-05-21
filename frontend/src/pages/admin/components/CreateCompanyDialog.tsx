@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { adminCreateCompany } from "@/services/adminCompanies";
 import type { CompanyProfileAdminCreate, CompanyProfileRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/hooks/useToast";
 import { focusFirstError } from "@/utils/focusFirstError";
@@ -137,20 +138,20 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
         size="lg"
         footer={
           <>
-            <button
+            <Button
+              variant="ghost"
               onClick={requestClose}
               disabled={saving}
-              className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
             >
               {t("common.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={requestSave}
               disabled={saving}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition active:scale-95 hover:bg-gold disabled:cursor-not-allowed disabled:opacity-60"
+              className="active:scale-95"
             >
               {saving ? t("common.saving") : t("admin.companies.createSubmit")}
-            </button>
+            </Button>
           </>
         }
       >

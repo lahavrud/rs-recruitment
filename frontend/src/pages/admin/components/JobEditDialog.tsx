@@ -11,6 +11,7 @@ import {
 } from "@/types/api";
 import type { JobAdminUpdate, JobRead, JobRequirementItem } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { FormSection } from "@/components/admin/AnimatedAccordion";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
@@ -157,20 +158,19 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
         preventOutsideClose
         footer={
           <>
-            <button
+            <Button
+              variant="ghost"
               onClick={handleClose}
               disabled={saving}
-              className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
             >
               {t("common.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={requestSave}
               disabled={saving || !isDirty}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? t("common.saving") : t("common.save")}
-            </button>
+            </Button>
           </>
         }
       >

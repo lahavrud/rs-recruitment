@@ -5,6 +5,7 @@ import { createInvite } from "@/services/adminInvites";
 import Eyebrow from "@/components/ui/Eyebrow";
 import type { InviteTokenCreate, InviteTokenRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Button from "@/components/ui/Button";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
 
@@ -63,22 +64,21 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
       size="md"
       footer={
         <>
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
           >
             {t("admin.companies.inviteForm.cancelButton")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={submitting || !form.email}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-60"
           >
             {submitting
               ? t("admin.companies.inviteForm.submittingButton")
               : t("admin.companies.inviteForm.submitButton")}
-          </button>
+          </Button>
         </>
       }
     >

@@ -14,6 +14,7 @@ import {
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
@@ -320,12 +321,11 @@ export default function AdminJobsPage() {
         eyebrow={t("admin.jobs.title")}
         subtitle={t("admin.jobs.subtitle")}
         action={
-          <button
+          <Button
             onClick={() => setCreating(true)}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
             {t("admin.jobs.newJob")}
-          </button>
+          </Button>
         }
       />
 

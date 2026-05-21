@@ -7,6 +7,7 @@ import {
 } from "@/services/adminCompanies";
 import type { CompanyProfileRead, PendingCompanyRead } from "@/types/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
@@ -155,12 +156,13 @@ export default function CompanyPendingTab({ query }: { query: string }) {
               >
                 <CompanyDetailBody profile={row.company_profile} />
                 <div className="mt-4 flex gap-2">
-                  <button
+                  <Button
+                    variant="success"
                     onClick={() => handleApprove(row)}
-                    className="flex-1 rounded-sm bg-success/15 px-4 py-2 text-sm font-medium text-success hover:bg-success/25"
+                    className="flex-1"
                   >
                     {t("admin.companies.approveAction")}
-                  </button>
+                  </Button>
                   <button
                     onClick={() => setRejectPending(row)}
                     className="flex-1 rounded-sm border border-danger/25 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"

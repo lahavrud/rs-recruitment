@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import PageHeader from "@/components/ui/PageHeader";
 import FormField from "@/components/ui/FormField";
+import Button from "@/components/ui/Button";
 import { inputCls } from "@/styles/forms";
 import {
   changePassword,
@@ -234,15 +235,14 @@ function IdentitySection({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <button
+          <Button
             type="submit"
             disabled={submitting}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting
               ? t("candidate.profile.identity.saving")
               : t("candidate.profile.identity.save")}
-          </button>
+          </Button>
           <span
             aria-live="polite"
             className={`text-[11px] ${
@@ -388,15 +388,14 @@ function ApplyAutofillSection({
                 <span className="text-danger">{error}</span>
               )}
             </div>
-            <button
+            <Button
               type="submit"
               disabled={submitting}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? t("candidate.profile.autofill.saving")
                 : t("candidate.profile.autofill.save")}
-            </button>
+            </Button>
           </div>
         </form>
 

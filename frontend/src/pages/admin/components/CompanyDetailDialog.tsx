@@ -5,6 +5,7 @@ import axios from "axios";
 import { getJobs } from "@/services/adminJobs";
 import type { CompanyProfileRead, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
+import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
 
 interface DetailProps {
@@ -56,12 +57,11 @@ export default function CompanyDetailDialog({
       size="lg"
       footer={
         hideEditButton ? undefined : (
-          <button
+          <Button
             onClick={onEdit}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
             {t("admin.companies.editAction")}
-          </button>
+          </Button>
         )
       }
     >

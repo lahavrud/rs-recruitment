@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getApplications } from "@/services/adminApplications";
 import Eyebrow from "@/components/ui/Eyebrow";
 import StatusBadge from "@/components/ui/StatusBadge";
+import Button from "@/components/ui/Button";
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
@@ -73,34 +74,33 @@ export default function JobDetailDialog({
       size="lg"
       footer={
         <>
-          <button
+          <Button
+            variant="danger"
             onClick={onDelete}
-            className="rounded-sm border border-danger/40 px-4 py-2 text-sm text-danger hover:bg-danger/10"
           >
             {t("admin.jobs.deleteAction")}
-          </button>
+          </Button>
           {isPending && onReject && (
-            <button
+            <Button
+              variant="ghost"
               onClick={onReject}
-              className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/70 hover:border-white/40 hover:text-white"
             >
               {t("admin.jobs.reject")}
-            </button>
+            </Button>
           )}
           {isPending && onApprove && (
-            <button
+            <Button
+              variant="success"
               onClick={onApprove}
-              className="rounded-sm border border-success/40 bg-success/15 px-4 py-2 text-sm font-medium text-success hover:bg-success/25"
             >
               {t("admin.jobs.approve")}
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             onClick={onEdit}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
             {t("admin.jobs.editAction")}
-          </button>
+          </Button>
         </>
       }
     >

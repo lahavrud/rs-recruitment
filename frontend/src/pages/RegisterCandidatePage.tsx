@@ -9,6 +9,7 @@ import { registerCandidate } from "@/services/auth";
 import { EMAIL_RE } from "@/utils/validation";
 import FormField from "@/components/ui/FormField";
 import Eyebrow from "@/components/ui/Eyebrow";
+import Button from "@/components/ui/Button";
 
 type FieldName =
   | "fullName"
@@ -474,13 +475,13 @@ function PolicyModal({
           ))}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-white/8 px-5 py-3">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="rounded-sm border border-white/20 px-3 py-1.5 text-sm text-white/65 transition hover:border-white/40 hover:text-white"
           >
             {closeLabel}
-          </button>
+          </Button>
           <button
             type="button"
             onClick={onAccept}

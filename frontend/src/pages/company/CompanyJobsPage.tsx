@@ -15,6 +15,7 @@ import type {
   JobUpdate,
 } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
 import StatusBadge from "@/components/ui/StatusBadge";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
@@ -277,12 +278,11 @@ export default function CompanyJobsPage() {
         subtitle={t("company.jobs.subtitle")}
         action={
           !showForm ? (
-            <button
+            <Button
               onClick={() => setMode("create")}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition hover:bg-gold"
             >
               {t("company.jobs.postJob")}
-            </button>
+            </Button>
           ) : undefined
         }
       />
