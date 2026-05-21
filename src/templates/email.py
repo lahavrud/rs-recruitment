@@ -39,7 +39,9 @@ _env = Environment(
 def _company_filter(name: str) -> Markup:
     """Copper-accent company name — mirrors <CompanyName> in the frontend."""
     copper = PALETTE["c_copper"]  # accessed lazily; PALETTE is built at module load
-    return Markup(f'<span style="color:{copper};font-weight:500;">{escape(name)}</span>')
+    return Markup(
+        f'<span style="color:{copper};font-weight:500;">{escape(name)}</span>'
+    )
 
 
 _env.filters["company"] = _company_filter
