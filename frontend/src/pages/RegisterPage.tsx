@@ -5,7 +5,7 @@ import { getInviteMetadata, register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import SignatureCanvas, { type SignatureCanvasRef } from "@/components/ui/SignatureCanvas";
-import FormField from "@/components/ui/FormField";
+import Field from "@/components/ui/Field";
 import { inputCls } from "@/styles/forms";
 import axios from "axios";
 import Eyebrow from "@/components/ui/Eyebrow";
@@ -378,40 +378,40 @@ export default function RegisterPage() {
                 {t("auth.register.companySection")}
               </Eyebrow>
               <div className="space-y-3">
-                <FormField label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
+                <Field label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
                   <input
                     name="companyName" type="text" required maxLength={100}
                     value={form.companyName} onChange={handleChange} onBlur={handleBlur}
                     className={inputCls} placeholder="Acme בע״מ"
                     autoComplete="organization"
                   />
-                </FormField>
+                </Field>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label={`${t("auth.register.companyIdLabel")} *`} error={fieldErrors.companyId}>
+                  <Field label={`${t("auth.register.companyIdLabel")} *`} error={fieldErrors.companyId}>
                     <input
                       name="companyId" type="text" required maxLength={9}
                       value={form.companyId} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder="123456789" dir="ltr"
                     />
-                  </FormField>
-                  <FormField label={`${t("auth.register.addressLabel")} *`} error={fieldErrors.address}>
+                  </Field>
+                  <Field label={`${t("auth.register.addressLabel")} *`} error={fieldErrors.address}>
                     <input
                       name="address" type="text" required maxLength={200}
                       value={form.address} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.addressPlaceholder")}
                       autoComplete="street-address"
                     />
-                  </FormField>
+                  </Field>
                 </div>
 
-                <FormField label={`${t("auth.register.logoLabel")} *`} error={fieldErrors.logo}>
+                <Field label={`${t("auth.register.logoLabel")} *`} error={fieldErrors.logo}>
                   <input
                     ref={logoInputRef} type="file" accept="image/*"
                     onChange={handleLogoChange}
                     className="mt-0.5 block w-full cursor-pointer rounded-sm border border-white/10 bg-well px-3 py-2 text-xs text-white/50 file:ml-3 file:rounded-sm file:border-0 file:bg-copper/20 file:px-2.5 file:py-1 file:text-[11px] file:font-medium file:text-copper hover:file:bg-copper/30"
                   />
-                </FormField>
+                </Field>
               </div>
             </div>
 
@@ -421,40 +421,40 @@ export default function RegisterPage() {
               </Eyebrow>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label={`${t("auth.register.contactFirstName")} *`} error={fieldErrors.contactFirstName}>
+                  <Field label={`${t("auth.register.contactFirstName")} *`} error={fieldErrors.contactFirstName}>
                     <input
                       name="contactFirstName" type="text" required maxLength={100}
                       value={form.contactFirstName} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.contactFirstNamePlaceholder")}
                       autoComplete="given-name"
                     />
-                  </FormField>
-                  <FormField label={`${t("auth.register.contactLastName")} *`} error={fieldErrors.contactLastName}>
+                  </Field>
+                  <Field label={`${t("auth.register.contactLastName")} *`} error={fieldErrors.contactLastName}>
                     <input
                       name="contactLastName" type="text" required maxLength={100}
                       value={form.contactLastName} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.contactLastNamePlaceholder")}
                       autoComplete="family-name"
                     />
-                  </FormField>
+                  </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label={`${t("auth.register.contactMobilePhone")} *`} error={fieldErrors.contactMobilePhone}>
+                  <Field label={`${t("auth.register.contactMobilePhone")} *`} error={fieldErrors.contactMobilePhone}>
                     <input
                       name="contactMobilePhone" type="tel" required maxLength={15}
                       value={form.contactMobilePhone} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder={t("auth.register.contactMobilePhonePlaceholder")}
                       autoComplete="tel" dir="ltr"
                     />
-                  </FormField>
-                  <FormField label={t("auth.register.contactLandlinePhone")}>
+                  </Field>
+                  <Field label={t("auth.register.contactLandlinePhone")}>
                     <input
                       name="contactLandlinePhone" type="tel" maxLength={15}
                       value={form.contactLandlinePhone} onChange={handleChange}
                       className={inputCls} placeholder={t("auth.register.contactLandlinePhonePlaceholder")}
                       dir="ltr"
                     />
-                  </FormField>
+                  </Field>
                 </div>
               </div>
             </div>
@@ -464,7 +464,7 @@ export default function RegisterPage() {
                 {t("auth.register.accountSection")}
               </Eyebrow>
               <div className="space-y-3">
-                <FormField label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
+                <Field label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
                   <input
                     name="email" type="email" required maxLength={255}
                     value={form.email} onChange={handleChange} onBlur={handleBlur}
@@ -473,24 +473,24 @@ export default function RegisterPage() {
                     placeholder={t("auth.register.emailPlaceholder")}
                     autoComplete="email" dir="ltr"
                   />
-                </FormField>
+                </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label={`${t("auth.register.passwordLabel")} *`} error={fieldErrors.password}>
+                  <Field label={`${t("auth.register.passwordLabel")} *`} error={fieldErrors.password}>
                     <input
                       name="password" type="password" required
                       value={form.password} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder="••••••••"
                       autoComplete="new-password"
                     />
-                  </FormField>
-                  <FormField label={`${t("auth.register.confirmLabel")} *`} error={fieldErrors.confirm}>
+                  </Field>
+                  <Field label={`${t("auth.register.confirmLabel")} *`} error={fieldErrors.confirm}>
                     <input
                       name="confirm" type="password" required
                       value={form.confirm} onChange={handleChange} onBlur={handleBlur}
                       className={inputCls} placeholder="••••••••"
                       autoComplete="new-password"
                     />
-                  </FormField>
+                  </Field>
                 </div>
               </div>
             </div>

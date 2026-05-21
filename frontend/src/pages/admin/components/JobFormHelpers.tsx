@@ -13,7 +13,7 @@ const SALARY_FORM_MIN = 0;
 const SALARY_FORM_MAX = 60000;
 const SALARY_FORM_STEP = 500;
 
-export { default as Field } from "@/components/admin/AdminField";
+export { default as Field } from "@/components/ui/Field";
 
 /** Featured-toggle as a star button. Click opens a confirm dialog in the parent. */
 export function FeaturedStarButton({

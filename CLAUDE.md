@@ -46,7 +46,6 @@ frontend/src/
 │   │   └── Sidebar.tsx       # Authenticated nav sidebar (mobile drawer + desktop)
 │   ├── admin/
 │   │   ├── ActiveFilterChip.tsx   # Copper chip with remove button
-│   │   ├── AdminField.tsx         # Label-wrapper field for admin dialogs (full/required/hint)
 │   │   ├── AnimatedAccordion.tsx  # Accordion + CollapsibleSection + FormSection exports
 │   │   ├── FunnelIcon.tsx
 │   │   ├── MobileEntityCard.tsx
@@ -61,9 +60,12 @@ frontend/src/
 │       ├── EmptyState.tsx
 │       ├── ErrorState.tsx
 │       ├── Eyebrow.tsx            # Copper section-label (10px, uppercase, tracking-widest)
-│       ├── FormField.tsx          # Div-wrapped field for public/auth pages (id/error/hint)
+│       ├── Field.tsx              # Unified form field — label/error/hint, label or div wrapper
+│       ├── InfiniteScrollFooter.tsx # Sentinel + "loading more" for useInfiniteList
+│       ├── KebabButton.tsx        # 3-dot DropdownMenu trigger (size sm|md)
 │       ├── Logo.tsx
 │       ├── LogoBanner.tsx
+│       ├── NoResults.tsx          # Dashed-border filtered-empty placeholder
 │       ├── PageHeader.tsx         # Copper eyebrow + gold rule + subtitle (reusable)
 │       ├── StatusBadge.tsx        # Generic rounded-full badge — <StatusBadge label colorCls>
 │       └── TableSkeleton.tsx
@@ -230,25 +232,27 @@ import StatusBadge from "@/components/ui/StatusBadge";
 
 Color maps (`STATUS_COLORS`) stay domain-specific in the page or component that knows the domain. `StatusBadge` only handles the rendering.
 
-### FormField and AdminField
+### Field
 
-Two canonical form field wrappers — pick the right one for the context:
+Canonical form field wrapper. Tag switches between `<div>` (when `id` is
+set, with explicit `htmlFor`) and `<label>` (implicit association).
 
 ```tsx
-// Public / auth pages — <div> wrapper with explicit htmlFor
-import FormField from "@/components/ui/FormField";
-<FormField label="Email" id="email" required error={fieldErrors.email}>
-  <input id="email" ... />
-</FormField>
+import Field from "@/components/ui/Field";
 
-// Admin dialogs — <label> wrapper, grid-aware
-import AdminField from "@/components/admin/AdminField";
-<AdminField label="Title" name="title" full required>
+// Public / auth — explicit `id` mode (div + label htmlFor)
+<Field label="Email" id="email" required error={fieldErrors.email}>
+  <input id="email" ... />
+</Field>
+
+// Admin dialogs — implicit mode (label wraps input). `name` sets data-field
+// for focusFirstError lookups; `full` spans 2 cols in a grid.
+<Field label="Title" name="title" full required error={errors.title}>
   <input ... />
-</AdminField>
+</Field>
 ```
 
-**Never define a local `Field` component** — always import one of these.
+**Never define a local `Field` component** — always import this one.
 
 ### Shared form styles
 
@@ -331,7 +335,7 @@ Prefer `selectinload` at the call site over `lazy="selectin"` on the model unles
 3. Use `<Button>` for all action buttons — never inline button Tailwind classes
 4. Use `<Eyebrow>` for section labels — never write the class string inline
 5. Use `inputCls` / `textareaCls` from `@/styles/forms` for inputs
-6. Use `FormField` (public/auth) or `AdminField` (admin dialogs) — never define a local Field
+6. Use `Field` from `@/components/ui/Field` — pass `id` for explicit `htmlFor` mode, or omit for `<label>`-wrap mode
 7. Use `formatDate` / `formatDateLong` from `@/utils/formatDate` — never define locally
 8. Use only token-based Tailwind classes — no `bg-[#hex]` or inline style colors
 9. Map all error states to `t()` keys in `he.json`

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { adminCreateCompany } from "@/services/adminCompanies";
 import type { CompanyProfileAdminCreate, CompanyProfileRead } from "@/types/api";
@@ -6,6 +6,8 @@ import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/hooks/useToast";
+import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
+import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { focusFirstError } from "@/utils/focusFirstError";
 import CompanyProfileFields from "./CompanyProfileFields";
 import { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "@/utils/validation";
@@ -33,27 +35,18 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
-  const isDirty = Object.values(form).some((v) => v != null && v !== "");
+  const isDirty = !saving && Object.values(form).some((v) => v != null && v !== "");
+  const { handleClose: requestClose, discardConfirm } = useConfirmableClose({
+    isDirty,
+    onClose,
+  });
 
-  useEffect(() => {
-    if (!open) return;
-    /* eslint-disable react-hooks/set-state-in-effect */
+  useResetOnTrigger(open, () => {
     setForm({});
     setErrors({});
     setConfirmCreateOpen(false);
-    setConfirmDiscard(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open]);
-
-  function requestClose() {
-    if (!saving && isDirty) {
-      setConfirmDiscard(true);
-    } else {
-      onClose();
-    }
-  }
+  });
 
   function set<K extends keyof CompanyProfileAdminCreate>(
     key: K,
@@ -180,16 +173,7 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
         confirmLabel={t("admin.companies.createSubmit")}
         onConfirm={executeSave}
       />
-      <ConfirmDialog
-        open={confirmDiscard}
-        onOpenChange={(o) => !o && setConfirmDiscard(false)}
-        title={t("common.discardTitle")}
-        message={t("common.discardMessage")}
-        cancelLabel={t("common.continueEditing")}
-        confirmLabel={t("common.discard")}
-        variant="danger"
-        onConfirm={() => { setConfirmDiscard(false); onClose(); }}
-      />
+      {discardConfirm}
     </>
   );
 }

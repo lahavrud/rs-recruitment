@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateJob } from "@/services/adminJobs";
 import {
@@ -17,6 +17,8 @@ import { FormSection } from "@/components/admin/AnimatedAccordion";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
 import JobTagsInput from "@/components/ui/JobTagsInput";
 import { focusFirstError } from "@/utils/focusFirstError";
+import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
+import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { inputCls, textareaCls } from "@/styles/forms";
 import {
   AutoGrowTextarea,
@@ -50,12 +52,11 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
   const [initialForm, setInitialForm] = useState<JobAdminUpdate>({});
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [confirmFeatured, setConfirmFeatured] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<JobStatus | null>(null);
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
 
-  useEffect(() => {
+  useResetOnTrigger(job, () => {
     if (!job) return;
     const seed: JobAdminUpdate = {
       title: job.title,
@@ -72,12 +73,10 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
       salary_max: job.salary_max ?? undefined,
       status: job.status,
     };
-    /* eslint-disable react-hooks/set-state-in-effect */
     setForm(seed);
     setInitialForm(seed);
     setErrors({});
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [job]);
+  });
 
   function set<K extends keyof JobAdminUpdate>(key: K, value: JobAdminUpdate[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -85,10 +84,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
   }
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-
-  function handleClose() {
-    if (isDirty) { setConfirmDiscard(true); } else { onClose(); }
-  }
+  const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -288,16 +284,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
           </FormSection>
         </div>
       </Dialog>
-      <ConfirmDialog
-        open={confirmDiscard}
-        onOpenChange={(o) => !o && setConfirmDiscard(false)}
-        title={t("common.discardTitle")}
-        message={t("common.discardMessage")}
-        cancelLabel={t("common.continueEditing")}
-        confirmLabel={t("common.discard")}
-        variant="danger"
-        onConfirm={() => { setConfirmDiscard(false); onClose(); }}
-      />
+      {discardConfirm}
       <ConfirmDialog
         open={confirmFeatured}
         onOpenChange={(o) => !o && setConfirmFeatured(false)}

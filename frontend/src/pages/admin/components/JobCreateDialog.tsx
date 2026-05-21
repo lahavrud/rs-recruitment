@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { createJob } from "@/services/adminJobs";
 import { getActiveCompanies } from "@/services/adminCompanies";
+import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import {
   JOB_DESC_MAX,
   JOB_LOCATION_MAX,
@@ -76,10 +77,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
   const [confirmFeatured, setConfirmFeatured] = useState(false);
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const ctrl = new AbortController();
-    /* eslint-disable react-hooks/set-state-in-effect */
+  useResetOnTrigger(open, () => {
     setCompanies(null);
     setCompaniesError(false);
     setErrors({});
@@ -95,7 +93,11 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
       salary_min: undefined,
       salary_max: undefined,
     });
-    /* eslint-enable react-hooks/set-state-in-effect */
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const ctrl = new AbortController();
     getActiveCompanies({ limit: 100 }, ctrl.signal)
       .then((page) => {
         setCompanies(page.items);

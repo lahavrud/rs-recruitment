@@ -7,7 +7,7 @@ import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { registerCandidate } from "@/services/auth";
 import { EMAIL_RE } from "@/utils/validation";
-import FormField from "@/components/ui/FormField";
+import Field from "@/components/ui/Field";
 import Eyebrow from "@/components/ui/Eyebrow";
 import Button from "@/components/ui/Button";
 
@@ -212,7 +212,7 @@ export default function RegisterCandidatePage() {
             </div>
           )}
 
-          <FormField
+          <Field
             label={t("auth.registerCandidate.fullNameLabel")}
             error={fieldErrors.fullName}
           >
@@ -228,9 +228,9 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.registerCandidate.fullNamePlaceholder")}
             />
-          </FormField>
+          </Field>
 
-          <FormField
+          <Field
             label={t("auth.register.emailLabel")}
             error={fieldErrors.email}
           >
@@ -247,9 +247,9 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.registerCandidate.emailPlaceholder")}
             />
-          </FormField>
+          </Field>
 
-          <FormField
+          <Field
             label={t("auth.register.passwordLabel")}
             error={fieldErrors.password}
           >
@@ -265,9 +265,9 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.register.passwordPlaceholder")}
             />
-          </FormField>
+          </Field>
 
-          <FormField
+          <Field
             label={t("auth.register.confirmLabel")}
             error={fieldErrors.passwordConfirm}
           >
@@ -283,7 +283,7 @@ export default function RegisterCandidatePage() {
               className={inputCls}
               placeholder={t("auth.register.confirmPlaceholder")}
             />
-          </FormField>
+          </Field>
 
           {/* ───────── Agreement section ───────── */}
           <div>

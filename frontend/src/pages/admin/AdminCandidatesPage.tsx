@@ -29,7 +29,7 @@ import TableSkeleton from "@/components/ui/TableSkeleton";
 import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
 import MobileEntityCard from "@/components/admin/MobileEntityCard";
-import AdminField from "@/components/admin/AdminField";
+import Field from "@/components/ui/Field";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import FunnelIcon from "@/components/admin/FunnelIcon";
 import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
@@ -42,6 +42,8 @@ import NoResults from "@/components/ui/NoResults";
 import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
+import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
+import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
@@ -868,9 +870,8 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
   const [initialForm, setInitialForm] = useState<CandidateProfileUpdate>({});
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
-  useEffect(() => {
+  useResetOnTrigger(candidate, () => {
     if (!candidate) return;
     const seed: CandidateProfileUpdate = {
       full_name: candidate.full_name,
@@ -878,12 +879,10 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       phone: candidate.phone ?? "",
       linkedin_url: candidate.linkedin_url ?? "",
     };
-    /* eslint-disable react-hooks/set-state-in-effect */
     setForm(seed);
     setInitialForm(seed);
     setErrors({});
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [candidate]);
+  });
 
   function set<K extends keyof CandidateProfileUpdate>(key: K, value: CandidateProfileUpdate[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -891,10 +890,7 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
   }
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-
-  function handleClose() {
-    if (isDirty) { setConfirmDiscard(true); } else { onClose(); }
-  }
+  const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -967,30 +963,21 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       }
     >
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <AdminField label={t("admin.candidates.fields.fullName")} error={errors.full_name}>
+        <Field label={t("admin.candidates.fields.fullName")} error={errors.full_name}>
           <input type="text" value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} className={inputCls} />
-        </AdminField>
-        <AdminField label={t("admin.candidates.fields.email")} error={errors.email}>
+        </Field>
+        <Field label={t("admin.candidates.fields.email")} error={errors.email}>
           <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={inputCls} />
-        </AdminField>
-        <AdminField label={t("admin.candidates.fields.phone")} error={errors.phone}>
+        </Field>
+        <Field label={t("admin.candidates.fields.phone")} error={errors.phone}>
           <input type="tel" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
-        </AdminField>
-        <AdminField label={t("admin.candidates.fields.linkedin")} error={errors.linkedin_url}>
+        </Field>
+        <Field label={t("admin.candidates.fields.linkedin")} error={errors.linkedin_url}>
           <input type="url" value={form.linkedin_url ?? ""} onChange={(e) => set("linkedin_url", e.target.value)} className={inputCls} />
-        </AdminField>
+        </Field>
       </div>
     </Dialog>
-    <ConfirmDialog
-      open={confirmDiscard}
-      onOpenChange={(o) => !o && setConfirmDiscard(false)}
-      title={t("common.discardTitle")}
-      message={t("common.discardMessage")}
-      cancelLabel={t("common.continueEditing")}
-        confirmLabel={t("common.discard")}
-      variant="danger"
-      onConfirm={() => { setConfirmDiscard(false); onClose(); }}
-    />
+    {discardConfirm}
     </>
   );
 }

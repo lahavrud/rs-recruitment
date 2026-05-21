@@ -5,7 +5,7 @@ import type {
 } from "@/types/api";
 import { inputCls } from "@/styles/forms";
 import Eyebrow from "@/components/ui/Eyebrow";
-import AdminField from "@/components/admin/AdminField";
+import Field from "@/components/ui/Field";
 
 interface ProfileFieldsProps {
   form: CompanyProfileAdminUpdate | Partial<CompanyProfileAdminCreate>;
@@ -30,7 +30,7 @@ export default function CompanyProfileFields({
           {t("admin.companies.formSections.company")}
         </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <AdminField
+          <Field
             label={t("admin.companies.fields.name")}
             required={showRequired}
             full
@@ -45,8 +45,8 @@ export default function CompanyProfileFields({
               placeholder={t("admin.companies.placeholders.name")}
               aria-invalid={!!errors?.name}
             />
-          </AdminField>
-          <AdminField
+          </Field>
+          <Field
             label={t("admin.companies.fields.companyId")}
             required={showRequired}
             hint={showRequired ? t("admin.companies.hints.companyId") : undefined}
@@ -63,8 +63,8 @@ export default function CompanyProfileFields({
               aria-invalid={!!errors?.company_id}
               maxLength={9}
             />
-          </AdminField>
-          <AdminField
+          </Field>
+          <Field
             label={t("admin.companies.fields.address")}
             required={showRequired}
             name="address"
@@ -78,7 +78,7 @@ export default function CompanyProfileFields({
               placeholder={t("admin.companies.placeholders.address")}
               aria-invalid={!!errors?.address}
             />
-          </AdminField>
+          </Field>
         </div>
       </section>
 
@@ -88,7 +88,7 @@ export default function CompanyProfileFields({
           {t("admin.companies.formSections.contact")}
         </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <AdminField
+          <Field
             label={t("admin.companies.fields.contactEmail")}
             required={showRequired}
             full
@@ -104,8 +104,8 @@ export default function CompanyProfileFields({
               autoComplete="email"
               aria-invalid={!!errors?.contact_email}
             />
-          </AdminField>
-          <AdminField
+          </Field>
+          <Field
             label={t("admin.companies.fields.contactFirstName")}
             required={showRequired}
             name="contact_first_name"
@@ -119,8 +119,8 @@ export default function CompanyProfileFields({
               autoComplete="given-name"
               aria-invalid={!!errors?.contact_first_name}
             />
-          </AdminField>
-          <AdminField
+          </Field>
+          <Field
             label={t("admin.companies.fields.contactLastName")}
             required={showRequired}
             name="contact_last_name"
@@ -134,8 +134,8 @@ export default function CompanyProfileFields({
               autoComplete="family-name"
               aria-invalid={!!errors?.contact_last_name}
             />
-          </AdminField>
-          <AdminField
+          </Field>
+          <Field
             label={t("admin.companies.fields.contactMobile")}
             required={showRequired}
             hint={showRequired ? t("admin.companies.hints.mobile") : undefined}
@@ -152,8 +152,8 @@ export default function CompanyProfileFields({
               aria-invalid={!!errors?.contact_mobile_phone}
               maxLength={10}
             />
-          </AdminField>
-          <AdminField
+          </Field>
+          <Field
             label={t("admin.companies.fields.contactLandline")}
             optional
           >
@@ -165,7 +165,7 @@ export default function CompanyProfileFields({
               placeholder="03-1234567"
               autoComplete="tel"
             />
-          </AdminField>
+          </Field>
         </div>
       </section>
     </div>

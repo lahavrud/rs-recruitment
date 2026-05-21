@@ -2,7 +2,7 @@ import { type ChangeEvent, type FocusEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { CandidateApplicationForm } from "@/types/api";
 import { inputCls } from "@/styles/forms";
-import FormField from "@/components/ui/FormField";
+import Field from "@/components/ui/Field";
 
 export default function IdentityStep({
   form,
@@ -20,7 +20,7 @@ export default function IdentityStep({
   const { t } = useTranslation();
   return (
     <div className="grid gap-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
-      <FormField
+      <Field
         label={t("publicJobs.application.fullName")}
         id="full_name"
         required
@@ -39,9 +39,9 @@ export default function IdentityStep({
           autoComplete="name"
           aria-invalid={!!fieldErrors.full_name}
         />
-      </FormField>
+      </Field>
 
-      <FormField
+      <Field
         label={t("publicJobs.application.email")}
         id="email"
         required
@@ -67,9 +67,9 @@ export default function IdentityStep({
               : undefined
           }
         />
-      </FormField>
+      </Field>
 
-      <FormField
+      <Field
         label={t("publicJobs.application.phone")}
         id="phone"
         required
@@ -87,9 +87,9 @@ export default function IdentityStep({
           autoComplete="tel"
           aria-invalid={!!fieldErrors.phone}
         />
-      </FormField>
+      </Field>
 
-      <FormField
+      <Field
         label={t("publicJobs.application.linkedin")}
         id="linkedin_url"
         optional
@@ -107,7 +107,7 @@ export default function IdentityStep({
           placeholder={t("publicJobs.application.placeholders.linkedin")}
           aria-invalid={!!fieldErrors.linkedin_url}
         />
-      </FormField>
+      </Field>
     </div>
   );
 }

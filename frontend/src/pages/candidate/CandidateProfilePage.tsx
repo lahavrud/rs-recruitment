@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import PageHeader from "@/components/ui/PageHeader";
-import FormField from "@/components/ui/FormField";
+import Field from "@/components/ui/Field";
 import Button from "@/components/ui/Button";
 import { inputCls } from "@/styles/forms";
 import {
@@ -209,7 +209,7 @@ function IdentitySection({
             doesn't actually constrain to the parent flex column and
             the whole row overflows the viewport on narrow screens. */}
         <div className="min-w-0 flex-1 space-y-2">
-          <FormField label={t("candidate.profile.identity.fullName")}>
+          <Field label={t("candidate.profile.identity.fullName")}>
             <input
               type="text"
               value={fullName}
@@ -221,7 +221,7 @@ function IdentitySection({
               minLength={2}
               maxLength={100}
             />
-          </FormField>
+          </Field>
           <p
             className="truncate text-xs text-white/45"
             title={t("candidate.profile.identity.emailLockedHint")}
@@ -344,7 +344,7 @@ function ApplyAutofillSection({
       <div className="grid gap-6 grid-cols-[minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* ── Left column: phone + LinkedIn ────────────────────────── */}
         <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
-          <FormField
+          <Field
             label={t("candidate.profile.autofill.phone")}
             hint={t("candidate.profile.autofill.phoneHint")}
           >
@@ -359,8 +359,8 @@ function ApplyAutofillSection({
               placeholder="050-000-0000"
               maxLength={30}
             />
-          </FormField>
-          <FormField
+          </Field>
+          <Field
             label={t("candidate.profile.autofill.linkedin")}
             hint={t("candidate.profile.autofill.linkedinHint")}
           >
@@ -375,7 +375,7 @@ function ApplyAutofillSection({
               placeholder="https://linkedin.com/in/your-handle"
               maxLength={500}
             />
-          </FormField>
+          </Field>
 
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs">
@@ -735,7 +735,7 @@ function SecuritySection() {
       title={t("candidate.profile.security.title")}
     >
       <form className="space-y-3" onSubmit={handleSubmit}>
-        <FormField label={t("candidate.profile.security.current")}>
+        <Field label={t("candidate.profile.security.current")}>
           <input
             type="password"
             value={current}
@@ -744,8 +744,8 @@ function SecuritySection() {
             autoComplete="current-password"
             required
           />
-        </FormField>
-        <FormField label={t("candidate.profile.security.new")}>
+        </Field>
+        <Field label={t("candidate.profile.security.new")}>
           <input
             type="password"
             value={next}
@@ -754,8 +754,8 @@ function SecuritySection() {
             autoComplete="new-password"
             required
           />
-        </FormField>
-        <FormField label={t("candidate.profile.security.confirm")}>
+        </Field>
+        <Field label={t("candidate.profile.security.confirm")}>
           <input
             type="password"
             value={confirmNext}
@@ -766,7 +766,7 @@ function SecuritySection() {
             autoComplete="new-password"
             required
           />
-        </FormField>
+        </Field>
         <div className="flex items-center justify-between gap-3 pt-1">
           <div className="text-[11px]">
             {state === "saved" && (

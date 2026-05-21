@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateCompanyProfile } from "@/services/adminCompanies";
 import type { CompanyProfileAdminUpdate, CompanyProfileRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
-import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/hooks/useToast";
+import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
+import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import CompanyProfileFields from "./CompanyProfileFields";
 import { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "@/utils/validation";
 
@@ -15,6 +16,19 @@ interface EditProps {
   onSaved: (next: CompanyProfileRead) => void;
 }
 
+function seedFromProfile(p: CompanyProfileRead): CompanyProfileAdminUpdate {
+  return {
+    name: p.name,
+    company_id: p.company_id ?? "",
+    address: p.address ?? "",
+    contact_email: p.contact_email ?? "",
+    contact_first_name: p.contact_first_name ?? "",
+    contact_last_name: p.contact_last_name ?? "",
+    contact_mobile_phone: p.contact_mobile_phone ?? "",
+    contact_landline_phone: p.contact_landline_phone ?? "",
+  };
+}
+
 export default function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -22,26 +36,14 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
   const [initialForm, setInitialForm] = useState<CompanyProfileAdminUpdate>({});
   const [saving, setSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
-  useEffect(() => {
+  useResetOnTrigger(profile, () => {
     if (!profile) return;
-    const seed: CompanyProfileAdminUpdate = {
-      name: profile.name,
-      company_id: profile.company_id ?? "",
-      address: profile.address ?? "",
-      contact_email: profile.contact_email ?? "",
-      contact_first_name: profile.contact_first_name ?? "",
-      contact_last_name: profile.contact_last_name ?? "",
-      contact_mobile_phone: profile.contact_mobile_phone ?? "",
-      contact_landline_phone: profile.contact_landline_phone ?? "",
-    };
-    /* eslint-disable react-hooks/set-state-in-effect */
+    const seed = seedFromProfile(profile);
     setForm(seed);
     setInitialForm(seed);
     setValidationError(null);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [profile]);
+  });
 
   function set<K extends keyof CompanyProfileAdminUpdate>(key: K, value: CompanyProfileAdminUpdate[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -49,10 +51,7 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
   }
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-
-  function handleClose() {
-    if (isDirty) { setConfirmDiscard(true); } else { onClose(); }
-  }
+  const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   async function handleSave() {
     if (!profile) return;
@@ -95,51 +94,42 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
 
   return (
     <>
-    <Dialog
-      open={profile != null}
-      onOpenChange={(o) => !o && handleClose()}
-      title={t("admin.companies.editModalTitle")}
-      description={profile.name}
-      size="lg"
-      footer={
-        <>
-          <Button
-            variant="ghost"
-            onClick={handleClose}
-            disabled={saving}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? t("common.saving") : t("common.save")}
-          </Button>
-        </>
-      }
-    >
-      <CompanyProfileFields
-        form={form}
-        setField={(k, v) =>
-          set(
-            k as keyof CompanyProfileAdminUpdate,
-            v as CompanyProfileAdminUpdate[keyof CompanyProfileAdminUpdate],
-          )
+      <Dialog
+        open={profile != null}
+        onOpenChange={(o) => !o && handleClose()}
+        title={t("admin.companies.editModalTitle")}
+        description={profile.name}
+        size="lg"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={handleClose}
+              disabled={saving}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? t("common.saving") : t("common.save")}
+            </Button>
+          </>
         }
-      />
-      {validationError && <p className="mt-3 text-xs text-danger">{validationError}</p>}
-    </Dialog>
-    <ConfirmDialog
-      open={confirmDiscard}
-      onOpenChange={(o) => !o && setConfirmDiscard(false)}
-      title={t("common.discardTitle")}
-      message={t("common.discardMessage")}
-      cancelLabel={t("common.continueEditing")}
-        confirmLabel={t("common.discard")}
-      variant="danger"
-      onConfirm={() => { setConfirmDiscard(false); onClose(); }}
-    />
+      >
+        <CompanyProfileFields
+          form={form}
+          setField={(k, v) =>
+            set(
+              k as keyof CompanyProfileAdminUpdate,
+              v as CompanyProfileAdminUpdate[keyof CompanyProfileAdminUpdate],
+            )
+          }
+        />
+        {validationError && <p className="mt-3 text-xs text-danger">{validationError}</p>}
+      </Dialog>
+      {discardConfirm}
     </>
   );
 }
