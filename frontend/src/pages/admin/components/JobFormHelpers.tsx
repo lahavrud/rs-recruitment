@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { JobStatus } from "@/types/api";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import RangeSlider from "@/components/ui/RangeSlider";
 
 const ALL_STATUSES = [
@@ -80,6 +81,42 @@ export function StatusPills({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Confirm dialog for flipping a job's `is_featured` flag. Shared between
+ * Create and Edit since copy + behavior are identical.
+ */
+export function FeaturedConfirmDialog({
+  open,
+  active,
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  active: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ConfirmDialog
+      open={open}
+      onOpenChange={(o) => !o && onClose()}
+      title={
+        active
+          ? t("admin.jobs.featuredUnsetTitle")
+          : t("admin.jobs.featuredSetTitle")
+      }
+      message={
+        active
+          ? t("admin.jobs.featuredUnsetMessage")
+          : t("admin.jobs.featuredSetMessage")
+      }
+      confirmLabel={t("common.confirm")}
+      onConfirm={onConfirm}
+    />
   );
 }
 

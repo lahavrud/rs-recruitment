@@ -22,6 +22,7 @@ import { FormSection } from "@/components/admin/AnimatedAccordion";
 import { focusFirstError } from "@/utils/focusFirstError";
 import { inputCls, selectCls } from "@/styles/forms";
 import {
+  FeaturedConfirmDialog,
   FeaturedStarButton,
   Field,
   SalaryRangeField,
@@ -268,20 +269,10 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
         />
       </div>
     </Dialog>
-    <ConfirmDialog
+    <FeaturedConfirmDialog
       open={confirmFeatured}
-      onOpenChange={(o) => !o && setConfirmFeatured(false)}
-      title={
-        form.is_featured
-          ? t("admin.jobs.featuredUnsetTitle")
-          : t("admin.jobs.featuredSetTitle")
-      }
-      message={
-        form.is_featured
-          ? t("admin.jobs.featuredUnsetMessage")
-          : t("admin.jobs.featuredSetMessage")
-      }
-      confirmLabel={t("common.confirm")}
+      active={form.is_featured ?? false}
+      onClose={() => setConfirmFeatured(false)}
       onConfirm={() => {
         setForm((prev) => ({ ...prev, is_featured: !(prev.is_featured ?? false) }));
         setConfirmFeatured(false);

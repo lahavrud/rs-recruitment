@@ -17,6 +17,7 @@ import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { inputCls } from "@/styles/forms";
 import {
+  FeaturedConfirmDialog,
   FeaturedStarButton,
   Field,
   SalaryRangeField,
@@ -214,20 +215,10 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
         </div>
       </Dialog>
       {discardConfirm}
-      <ConfirmDialog
+      <FeaturedConfirmDialog
         open={confirmFeatured}
-        onOpenChange={(o) => !o && setConfirmFeatured(false)}
-        title={
-          form.is_featured
-            ? t("admin.jobs.featuredUnsetTitle")
-            : t("admin.jobs.featuredSetTitle")
-        }
-        message={
-          form.is_featured
-            ? t("admin.jobs.featuredUnsetMessage")
-            : t("admin.jobs.featuredSetMessage")
-        }
-        confirmLabel={t("common.confirm")}
+        active={form.is_featured ?? false}
+        onClose={() => setConfirmFeatured(false)}
         onConfirm={() => {
           set("is_featured", !(form.is_featured ?? false));
           setConfirmFeatured(false);
