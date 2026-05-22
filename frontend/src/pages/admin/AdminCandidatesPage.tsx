@@ -373,9 +373,9 @@ export default function AdminCandidatesPage() {
           >
             {/* Company first → in RTL it lands on the visual right */}
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-1.5">
                 {t("admin.candidates.filterByCompany")}
-              </p>
+              </Eyebrow>
               <SearchableMultiSelect<number>
                 values={companyFilter}
                 onChange={(next) => {
@@ -397,9 +397,9 @@ export default function AdminCandidatesPage() {
               />
             </div>
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-1.5">
                 {t("admin.candidates.filterByJob")}
-              </p>
+              </Eyebrow>
               <SearchableMultiSelect<number>
                 values={jobFilter}
                 onChange={setJobFilter}

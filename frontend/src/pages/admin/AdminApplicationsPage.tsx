@@ -9,6 +9,7 @@ import { ApplicationStatus } from "@/types/api";
 import type { ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import Eyebrow from "@/components/ui/Eyebrow";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -313,9 +314,9 @@ export default function AdminApplicationsPage() {
             }`}
           >
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-2">
                 {t("admin.applications.table.status")}
-              </p>
+              </Eyebrow>
               <div className="flex flex-wrap gap-1.5">
                 {filterTabs.map((tab) => {
                   const active = filter === tab;
@@ -341,9 +342,9 @@ export default function AdminApplicationsPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {/* Company first → in RTL it lands on the visual right */}
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                <Eyebrow size="md" className="mb-1.5">
                   {t("admin.applications.filterByCompany")}
-                </p>
+                </Eyebrow>
                 <SearchableMultiSelect<number>
                   values={companyFilter}
                   onChange={(next) => {
@@ -366,9 +367,9 @@ export default function AdminApplicationsPage() {
                 />
               </div>
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+                <Eyebrow size="md" className="mb-1.5">
                   {t("admin.applications.filterByJob")}
-                </p>
+                </Eyebrow>
                 <SearchableMultiSelect<number>
                   values={jobFilter}
                   onChange={setJobFilter}

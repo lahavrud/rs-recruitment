@@ -16,6 +16,7 @@ import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
+import Eyebrow from "@/components/ui/Eyebrow";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -422,9 +423,9 @@ export default function AdminJobsPage() {
             }`}
           >
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-copper">
+            <Eyebrow size="md" className="mb-2">
               {t("admin.jobs.fields.status")}
-            </p>
+            </Eyebrow>
             <div className="flex flex-wrap gap-1.5">
               {filterTabs.map((tab) => {
                 const active = filter === tab;
@@ -449,9 +450,9 @@ export default function AdminJobsPage() {
           </div>
           {uniqueLocations.length >= 2 && (
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-2">
                 {t("publicJobs.board.locationLabel")}
-              </p>
+              </Eyebrow>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
@@ -492,9 +493,7 @@ export default function AdminJobsPage() {
           )}
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-copper">
-                {t("publicJobs.board.salaryRange")}
-              </p>
+              <Eyebrow size="md">{t("publicJobs.board.salaryRange")}</Eyebrow>
               {isSalaryActive && (
                 <button
                   type="button"
@@ -520,9 +519,9 @@ export default function AdminJobsPage() {
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-1.5">
                 {t("admin.jobs.fields.company")}
-              </p>
+              </Eyebrow>
               <SearchableMultiSelect<number>
                 values={companyFilter}
                 onChange={setCompanyFilter}
