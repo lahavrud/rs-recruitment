@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { JobStatus } from "@/types/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import FilterPill from "@/components/ui/FilterPill";
 import RangeSlider from "@/components/ui/RangeSlider";
 
 const ALL_STATUSES = [
@@ -80,23 +81,11 @@ export function StatusPills({
   const { t } = useTranslation();
   return (
     <div className="mt-1 flex flex-wrap gap-1.5">
-      {ALL_STATUSES.map((s) => {
-        const active = value === s;
-        return (
-          <button
-            key={s}
-            type="button"
-            onClick={() => onChange(s)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              active
-                ? "bg-copper text-white"
-                : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
-            }`}
-          >
-            {t(`admin.jobs.statusLabels.${s}`)}
-          </button>
-        );
-      })}
+      {ALL_STATUSES.map((s) => (
+        <FilterPill key={s} active={value === s} onClick={() => onChange(s)}>
+          {t(`admin.jobs.statusLabels.${s}`)}
+        </FilterPill>
+      ))}
     </div>
   );
 }

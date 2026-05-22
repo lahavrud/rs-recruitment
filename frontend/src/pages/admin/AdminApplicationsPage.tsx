@@ -10,6 +10,7 @@ import type { ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Eyebrow from "@/components/ui/Eyebrow";
+import FilterPill from "@/components/ui/FilterPill";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -318,25 +319,17 @@ export default function AdminApplicationsPage() {
                 {t("admin.applications.table.status")}
               </Eyebrow>
               <div className="flex flex-wrap gap-1.5">
-                {filterTabs.map((tab) => {
-                  const active = filter === tab;
-                  return (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setFilter(tab)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                        active
-                          ? "bg-copper text-white"
-                          : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85"
-                      }`}
-                    >
-                      {tab === ALL_FILTER
-                        ? t("admin.applications.filterAll")
-                        : STATUS_LABELS[tab]}
-                    </button>
-                  );
-                })}
+                {filterTabs.map((tab) => (
+                  <FilterPill
+                    key={tab}
+                    active={filter === tab}
+                    onClick={() => setFilter(tab)}
+                  >
+                    {tab === ALL_FILTER
+                      ? t("admin.applications.filterAll")
+                      : STATUS_LABELS[tab]}
+                  </FilterPill>
+                ))}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
