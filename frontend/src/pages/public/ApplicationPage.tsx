@@ -109,6 +109,11 @@ export default function ApplicationPage() {
 
   // ── Validation ──────────────────────────────────────────────────────────
 
+  function validateClaimPassword(val: string): string | null {
+    const key = checkPasswordComplexity(val);
+    return key ? t(key) : null;
+  }
+
   function validateField(name: string, value: string): string | null {
     if (name === "full_name") {
       if (!value.trim())
@@ -461,8 +466,9 @@ export default function ApplicationPage() {
         setClaimError(t("publicJobs.application.validation.passwordMismatch"));
         return;
       }
-      if (claimPassword.length < 8) {
-        setClaimError(t("publicJobs.application.validation.passwordMin"));
+      const claimPwError = validateClaimPassword(claimPassword);
+      if (claimPwError) {
+        setClaimError(claimPwError);
         return;
       }
       setClaimError(null);

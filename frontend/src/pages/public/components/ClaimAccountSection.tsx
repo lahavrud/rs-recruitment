@@ -2,6 +2,16 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { inputCls } from "@/styles/forms";
 
+/** Mirror of backend `_validate_password_complexity`. Returns an i18n key or null. */
+function checkPasswordComplexity(val: string): string | null {
+  if (val.length < 8) return "publicJobs.application.validation.passwordMin";
+  if (!/[A-Z]/.test(val)) return "publicJobs.application.validation.passwordUppercase";
+  if (!/[a-z]/.test(val)) return "publicJobs.application.validation.passwordLowercase";
+  if (!/\d/.test(val)) return "publicJobs.application.validation.passwordDigit";
+  if (/^[A-Za-z0-9]*$/.test(val)) return "publicJobs.application.validation.passwordSpecial";
+  return null;
+}
+
 export default function ClaimAccountSection({
   enabled,
   onToggle,
@@ -21,11 +31,13 @@ export default function ClaimAccountSection({
 }) {
   const { t } = useTranslation();
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
   function validatePassword(val: string): string | null {
-    if (val && val.length < 8) return t("publicJobs.application.validation.passwordMin");
-    return null;
+    if (!val) return null;
+    const key = checkPasswordComplexity(val);
+    return key ? t(key) : null;
   }
 
   function validateConfirm(val: string, pw: string): string | null {
@@ -67,15 +79,22 @@ export default function ClaimAccountSection({
               value={password}
               onChange={(e) => {
                 onPasswordChange(e.target.value);
-                if (passwordError) setPasswordError(null);
+                if (passwordTouched) setPasswordError(validatePassword(e.target.value));
                 if (confirmError && passwordConfirm) setConfirmError(validateConfirm(passwordConfirm, e.target.value));
               }}
-              onBlur={(e) => setPasswordError(validatePassword(e.target.value))}
+              onBlur={(e) => {
+                setPasswordTouched(true);
+                setPasswordError(validatePassword(e.target.value));
+              }}
               aria-invalid={!!passwordError}
               className={`mt-1 ${inputCls}`}
             />
-            {passwordError && (
+            {passwordError ? (
               <p className="mt-1 text-xs text-danger">{passwordError}</p>
+            ) : (
+              <p className="mt-1 text-xs text-white/35">
+                {t("publicJobs.application.claim.passwordHint")}
+              </p>
             )}
           </div>
           <div>
