@@ -15,17 +15,13 @@ import type {
   JobUpdate,
 } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
+import Eyebrow from "@/components/ui/Eyebrow";
+import StatusBadge from "@/components/ui/StatusBadge";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
 import JobTagsInput from "@/components/ui/JobTagsInput";
 import { inputCls, textareaCls } from "@/styles/forms";
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
 
 const emptyRequirements = (): JobRequirementItem[] =>
   Array.from({ length: JOB_REQ_MIN_COUNT }, () => ({ text: "" }));
@@ -282,12 +278,11 @@ export default function CompanyJobsPage() {
         subtitle={t("company.jobs.subtitle")}
         action={
           !showForm ? (
-            <button
+            <Button
               onClick={() => setMode("create")}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition hover:bg-gold"
             >
               {t("company.jobs.postJob")}
-            </button>
+            </Button>
           ) : undefined
         }
       />
@@ -298,9 +293,9 @@ export default function CompanyJobsPage() {
 
       {showForm && (
         <div className="mb-6 rounded-xl border border-copper/20 bg-card p-6">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+          <Eyebrow className="mb-4">
             {mode === "create" ? t("company.jobs.createTitle") : t("company.jobs.editTitle")}
-          </p>
+          </Eyebrow>
           <JobForm
             initial={
               typeof mode === "object" && mode.type === "edit"
@@ -353,9 +348,7 @@ export default function CompanyJobsPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-white/85">{job.title}</p>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[job.status]}`}>
-                      {STATUS_LABEL[job.status]}
-                    </span>
+                    <StatusBadge label={STATUS_LABEL[job.status]} colorCls={STATUS_COLOR[job.status]} />
                   </div>
                   <p className="mt-0.5 text-sm text-white/45">{job.location}</p>
                   <p className="mt-1 text-xs text-white/25">

@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import Eyebrow from "@/components/ui/Eyebrow";
 import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import FadeInImage from "@/components/ui/FadeInImage";
 import { getArticle } from "@/content/articles";
 import { getPublicJobs } from "@/services/jobs";
 import type { JobPublicRead } from "@/types/api";
+import { formatDateLong as formatDate } from "@/utils/formatDate";
 
 const RELATED_JOBS_LIMIT = 6;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 function formatSalary(min: number | null, max: number | null): string | null {
   if (!min && !max) return null;
@@ -51,9 +45,9 @@ function RelatedJobs() {
 
   return (
     <section className="mt-16 border-t border-white/8 pt-10">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+      <Eyebrow>
         משרות פתוחות
-      </p>
+      </Eyebrow>
       <div className="mt-3 h-px w-8 bg-copper/40" />
       <h2 className="mt-4 text-xl font-semibold text-white/90 sm:text-2xl">
         משרות פתוחות בתחום

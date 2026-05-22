@@ -12,6 +12,7 @@ import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
 import { useImageLoaded } from "@/hooks/useImageLoaded";
 import type { JobPublicRead } from "@/types/api";
 import { SALARY_FALLBACK } from "@/types/api";
+import { formatDate } from "@/utils/formatDate";
 
 function rise(delay = "0s", duration = "0.8s"): CSSProperties {
   return { animation: `text-rise ${duration} cubic-bezier(0.16, 1, 0.3, 1) ${delay} both` };
@@ -24,14 +25,6 @@ function ruleDraw(delay = "0s"): CSSProperties {
 }
 
 const SALARY_STEP = 500;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function formatSalaryShort(n: number): string {
   return `${n.toLocaleString("he-IL")} ₪`;
