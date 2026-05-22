@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { registerCandidate } from "@/services/auth";
-import { EMAIL_RE } from "@/utils/validation";
+import { EMAIL_RE } from "@/utils/validators";
 import Field from "@/components/ui/Field";
 import Eyebrow from "@/components/ui/Eyebrow";
 import Button from "@/components/ui/Button";

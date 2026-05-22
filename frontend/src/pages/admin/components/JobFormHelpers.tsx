@@ -10,23 +10,6 @@ const ALL_STATUSES = [
   JobStatus.CLOSED,
 ];
 
-/**
- * Field order for `focusFirstError`. The create dialog has a leading
- * company selector; edit does not, so it slices the head off.
- */
-export const JOB_CREATE_FIELD_ORDER = [
-  "company_id",
-  "title",
-  "location",
-  "salary_min",
-  "salary_max",
-  "short_description",
-  "description",
-  "requirements",
-  "tags",
-] as const;
-export const JOB_EDIT_FIELD_ORDER = JOB_CREATE_FIELD_ORDER.slice(1);
-
 const SALARY_FORM_MIN = 0;
 const SALARY_FORM_MAX = 60000;
 const SALARY_FORM_STEP = 500;

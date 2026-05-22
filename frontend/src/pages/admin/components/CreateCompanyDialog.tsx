@@ -9,10 +9,11 @@ import { useToast } from "@/hooks/useToast";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { focusFirstError } from "@/utils/focusFirstError";
-import { validateCompanyProfile } from "@/utils/validators";
-import CompanyProfileFields, {
+import {
   COMPANY_PROFILE_FIELD_ORDER,
-} from "./CompanyProfileFields";
+  validateCompanyProfile,
+} from "@/utils/validators";
+import CompanyProfileFields from "./CompanyProfileFields";
 
 interface CreateProps {
   open: boolean;

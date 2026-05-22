@@ -85,7 +85,7 @@ frontend/src/
 │   └── …                          # Other pages (auth, candidate, company)
 ├── utils/
 │   ├── formatDate.ts              # formatDate / formatDateLong (he-IL locale)
-│   ├── validation.ts              # EMAIL_RE, MOBILE_RE (strict Israeli), COMPANY_ID_RE
+│   ├── validators.ts              # EMAIL_RE, MOBILE_RE (strict Israeli), COMPANY_ID_RE + validateCompanyProfile/validateJob
 │   └── …                          # apiError, analytics, focusFirstError, mime, token
 ├── contexts/                      # AuthContext
 ├── styles/
@@ -269,7 +269,7 @@ import { formatDate, formatDateLong } from "@/utils/formatDate";
 // formatDate  → "3 ינו׳ 2026"  (month: "short")
 // formatDateLong → "3 ינואר 2026" (month: "long")
 
-import { EMAIL_RE, MOBILE_RE, COMPANY_ID_RE } from "@/utils/validation";
+import { EMAIL_RE, MOBILE_RE, COMPANY_ID_RE } from "@/utils/validators";
 // MOBILE_RE = strict Israeli 05XXXXXXXX — use everywhere, not loose patterns
 ```
 

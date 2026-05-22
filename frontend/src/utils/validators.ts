@@ -7,7 +7,43 @@ import {
   JOB_TITLE_MAX,
 } from "@/types/api";
 import type { JobRequirementItem } from "@/types/api";
-import { COMPANY_ID_RE, EMAIL_RE, MOBILE_RE } from "./validation";
+
+// ── Regex patterns ──────────────────────────────────────────────────────────
+
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Strict Israeli mobile: 05X followed by 7 digits */
+export const MOBILE_RE = /^05[0-9]\d{7}$/;
+
+/** 9-digit Israeli company registration number */
+export const COMPANY_ID_RE = /^\d{9}$/;
+
+// ── Field-order constants for focusFirstError ────────────────────────────────
+
+/** Visual top-to-bottom order of the admin company-profile form. */
+export const COMPANY_PROFILE_FIELD_ORDER = [
+  "name",
+  "company_id",
+  "address",
+  "contact_email",
+  "contact_first_name",
+  "contact_last_name",
+  "contact_mobile_phone",
+] as const;
+
+/** Job create-dialog field order; edit drops the leading `company_id`. */
+export const JOB_CREATE_FIELD_ORDER = [
+  "company_id",
+  "title",
+  "location",
+  "salary_min",
+  "salary_max",
+  "short_description",
+  "description",
+  "requirements",
+  "tags",
+] as const;
+export const JOB_EDIT_FIELD_ORDER = JOB_CREATE_FIELD_ORDER.slice(1);
 
 // ── Company profile ─────────────────────────────────────────────────────────
 

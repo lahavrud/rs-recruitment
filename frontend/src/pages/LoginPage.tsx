@@ -6,7 +6,7 @@ import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { resendCandidateActivation } from "@/services/auth";
 import axios from "axios";
-import { EMAIL_RE } from "@/utils/validation";
+import { EMAIL_RE } from "@/utils/validators";
 
 export default function LoginPage() {
   const { t } = useTranslation();

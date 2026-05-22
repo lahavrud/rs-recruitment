@@ -50,7 +50,7 @@ import { inputCls } from "@/styles/forms";
 import { MIME_TO_EXT } from "@/utils/mime";
 import { formatDate } from "@/utils/formatDate";
 import { isDirtyByJSON } from "@/utils/isDirty";
-import { EMAIL_RE, MOBILE_RE } from "@/utils/validation";
+import { EMAIL_RE, MOBILE_RE } from "@/utils/validators";
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
   const slug = candidateName.trim().replace(/\s+/g, "-");

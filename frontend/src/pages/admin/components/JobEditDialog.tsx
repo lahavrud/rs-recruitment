@@ -12,7 +12,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { FormSection } from "@/components/admin/AnimatedAccordion";
 import { focusFirstError } from "@/utils/focusFirstError";
 import { isDirtyByJSON } from "@/utils/isDirty";
-import { validateJob } from "@/utils/validators";
+import { JOB_EDIT_FIELD_ORDER, validateJob } from "@/utils/validators";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { inputCls } from "@/styles/forms";
@@ -20,7 +20,6 @@ import {
   FeaturedConfirmDialog,
   FeaturedStarButton,
   Field,
-  JOB_EDIT_FIELD_ORDER,
   SalaryRangeField,
   StatusPills,
 } from "./JobFormHelpers";

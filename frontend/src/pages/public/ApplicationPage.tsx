@@ -9,7 +9,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
 import { trackEvent } from "@/utils/analytics";
-import { EMAIL_RE, MOBILE_RE } from "@/utils/validation";
+import { EMAIL_RE, MOBILE_RE } from "@/utils/validators";
 import { getMe as getCandidateMe } from "@/services/candidate";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";

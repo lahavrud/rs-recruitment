@@ -4,7 +4,7 @@ import axios from "axios";
 import { createJob } from "@/services/adminJobs";
 import { getActiveCompanies } from "@/services/adminCompanies";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
-import { validateJob } from "@/utils/validators";
+import { JOB_CREATE_FIELD_ORDER, validateJob } from "@/utils/validators";
 import {
   JOB_REQ_MIN_COUNT,
   JobStatus,
@@ -25,7 +25,6 @@ import {
   FeaturedConfirmDialog,
   FeaturedStarButton,
   Field,
-  JOB_CREATE_FIELD_ORDER,
   SalaryRangeField,
   StatusPills,
 } from "./JobFormHelpers";
