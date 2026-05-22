@@ -29,6 +29,7 @@ import {
   RESUME_MAX_FILE_SIZE_BYTES,
   RESUME_MAX_FILE_SIZE_MB,
 } from "@/utils/resume";
+import { checkPasswordComplexity } from "@/utils/passwordComplexity";
 
 const TEXT_FIELD_MAX = 2000;
 
