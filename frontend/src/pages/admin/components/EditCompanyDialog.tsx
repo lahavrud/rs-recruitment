@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/useToast";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { focusFirstError } from "@/utils/focusFirstError";
+import { isDirtyByJSON } from "@/utils/isDirty";
 import { validateCompanyProfile } from "@/utils/validators";
 import CompanyProfileFields from "./CompanyProfileFields";
 
@@ -67,7 +68,7 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
     }
   }
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const isDirty = isDirtyByJSON(form, initialForm);
   const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   async function handleSave() {

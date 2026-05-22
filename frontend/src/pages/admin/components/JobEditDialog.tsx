@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { FormSection } from "@/components/admin/AnimatedAccordion";
 import { focusFirstError } from "@/utils/focusFirstError";
+import { isDirtyByJSON } from "@/utils/isDirty";
 import { validateJob } from "@/utils/validators";
 import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
@@ -78,7 +79,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: "" }));
   }
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const isDirty = isDirtyByJSON(form, initialForm);
   const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   function validate(): boolean {

@@ -49,6 +49,7 @@ import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
 import { MIME_TO_EXT } from "@/utils/mime";
 import { formatDate } from "@/utils/formatDate";
+import { isDirtyByJSON } from "@/utils/isDirty";
 import { EMAIL_RE, MOBILE_RE } from "@/utils/validation";
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
@@ -889,7 +890,7 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
     if (errors[key as string]) setErrors((prev) => ({ ...prev, [key as string]: "" }));
   }
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const isDirty = isDirtyByJSON(form, initialForm);
   const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   function validate(): boolean {
