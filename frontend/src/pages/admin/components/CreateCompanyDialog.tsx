@@ -10,17 +10,9 @@ import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
 import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { focusFirstError } from "@/utils/focusFirstError";
 import { validateCompanyProfile } from "@/utils/validators";
-import CompanyProfileFields from "./CompanyProfileFields";
-
-const CREATE_COMPANY_FIELD_ORDER = [
-  "name",
-  "company_id",
-  "address",
-  "contact_email",
-  "contact_first_name",
-  "contact_last_name",
-  "contact_mobile_phone",
-] as const;
+import CompanyProfileFields, {
+  COMPANY_PROFILE_FIELD_ORDER,
+} from "./CompanyProfileFields";
 
 interface CreateProps {
   open: boolean;
@@ -67,7 +59,7 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
     const e = validateCompanyProfile(form, t);
     setErrors(e);
     if (Object.keys(e).length > 0) {
-      focusFirstError(e, CREATE_COMPANY_FIELD_ORDER);
+      focusFirstError(e, COMPANY_PROFILE_FIELD_ORDER);
       return false;
     }
     return true;

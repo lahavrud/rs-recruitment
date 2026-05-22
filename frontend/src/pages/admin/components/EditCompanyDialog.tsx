@@ -10,17 +10,9 @@ import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { focusFirstError } from "@/utils/focusFirstError";
 import { isDirtyByJSON } from "@/utils/isDirty";
 import { validateCompanyProfile } from "@/utils/validators";
-import CompanyProfileFields from "./CompanyProfileFields";
-
-const EDIT_COMPANY_FIELD_ORDER = [
-  "name",
-  "company_id",
-  "address",
-  "contact_email",
-  "contact_first_name",
-  "contact_last_name",
-  "contact_mobile_phone",
-] as const;
+import CompanyProfileFields, {
+  COMPANY_PROFILE_FIELD_ORDER,
+} from "./CompanyProfileFields";
 
 interface EditProps {
   profile: CompanyProfileRead | null;
@@ -76,7 +68,7 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
     const e = validateCompanyProfile(form, t);
     setErrors(e);
     if (Object.keys(e).length > 0) {
-      focusFirstError(e, EDIT_COMPANY_FIELD_ORDER);
+      focusFirstError(e, COMPANY_PROFILE_FIELD_ORDER);
       return;
     }
     setSaving(true);

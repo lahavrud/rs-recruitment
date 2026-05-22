@@ -25,22 +25,11 @@ import {
   FeaturedConfirmDialog,
   FeaturedStarButton,
   Field,
+  JOB_CREATE_FIELD_ORDER,
   SalaryRangeField,
   StatusPills,
 } from "./JobFormHelpers";
 import JobContentLists from "./JobContentLists";
-
-const JOB_CREATE_FIELD_ORDER = [
-  "company_id",
-  "title",
-  "location",
-  "salary_min",
-  "salary_max",
-  "short_description",
-  "description",
-  "requirements",
-  "tags",
-] as const;
 
 const emptyRequirements = (): JobRequirementItem[] =>
   Array.from({ length: JOB_REQ_MIN_COUNT }, () => ({ text: "" }));

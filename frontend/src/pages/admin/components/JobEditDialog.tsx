@@ -20,21 +20,11 @@ import {
   FeaturedConfirmDialog,
   FeaturedStarButton,
   Field,
+  JOB_EDIT_FIELD_ORDER,
   SalaryRangeField,
   StatusPills,
 } from "./JobFormHelpers";
 import JobContentLists from "./JobContentLists";
-
-const JOB_EDIT_FIELD_ORDER = [
-  "title",
-  "location",
-  "salary_min",
-  "salary_max",
-  "short_description",
-  "description",
-  "requirements",
-  "tags",
-] as const;
 
 interface EditProps {
   job: JobRead | null;

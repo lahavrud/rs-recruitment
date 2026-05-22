@@ -7,6 +7,21 @@ import { inputCls } from "@/styles/forms";
 import Eyebrow from "@/components/ui/Eyebrow";
 import Field from "@/components/ui/Field";
 
+/**
+ * Field order used by `focusFirstError` to scroll to the first invalid
+ * field. Matches the visual top-to-bottom order in this component, so
+ * both create and edit dialogs share the same constant.
+ */
+export const COMPANY_PROFILE_FIELD_ORDER = [
+  "name",
+  "company_id",
+  "address",
+  "contact_email",
+  "contact_first_name",
+  "contact_last_name",
+  "contact_mobile_phone",
+] as const;
+
 interface ProfileFieldsProps {
   form: CompanyProfileAdminUpdate | Partial<CompanyProfileAdminCreate>;
   setField: (key: string, value: string) => void;
