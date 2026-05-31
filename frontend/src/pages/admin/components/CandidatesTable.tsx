@@ -14,7 +14,7 @@ interface CandidatesTableProps {
   onView: (c: CandidateProfileRead) => void;
   onEdit: (c: CandidateProfileRead) => void;
   onDelete: (c: CandidateProfileRead) => void;
-  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  sentinelRef: (node: HTMLElement | null) => void;
   isFetchingMore: boolean;
 }
 
