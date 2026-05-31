@@ -279,6 +279,26 @@ import { EMAIL_RE, MOBILE_RE, COMPANY_ID_RE } from "@/utils/validators";
 
 ## Patterns & Conventions
 
+### Component size & co-location
+
+ESLint enforces a **600-line hard limit** (`max-lines`, blank lines and comments excluded). Files approaching that limit must be split before they trip the error.
+
+**Where to put extracted components:**
+
+| Parent page / file | Co-located components folder |
+|---|---|
+| `pages/admin/AdminXxxPage.tsx` | `pages/admin/components/` |
+| `pages/company/CompanyXxxPage.tsx` | `pages/company/components/` |
+| `pages/candidate/CandidateXxxPage.tsx` | `pages/candidate/components/` |
+| `pages/public/XxxPage.tsx` | `pages/public/components/` |
+| `pages/RegisterPage.tsx` / `pages/LoginPage.tsx` | `pages/components/` |
+| `components/dashboard/CandidateDashboard.tsx` | `components/dashboard/` (sibling files) |
+
+**Rules for extracted components:**
+- Extracted components receive state values + callbacks as typed props; the parent owns all state, data-fetching, and handlers.
+- Utility functions (non-React helpers) that are shared across sibling files go in a `*Utils.ts` file (e.g. `jobBoardUtils.ts`, `dashboardUtils.ts`). Do **not** export utility functions from component files — `react-refresh/only-export-components` will error.
+- Always use the global UI primitives instead of creating local copies: `@/components/ui/Field`, `@/components/ui/Button`, `@/components/ui/FilterPill`, `@/components/ui/AutoGrowTextarea`, `@/components/ui/InfiniteScrollFooter`, `@/components/ui/NoResults`, `@/components/ui/KebabButton`, `@/components/ui/StatusBadge`, `@/components/ui/Eyebrow`.
+
 ### Error handling
 - Never pass raw backend `detail` strings to the UI — they may be English
 - Map HTTP status codes to Hebrew `t()` keys:
@@ -449,3 +469,6 @@ Common pitfalls:
 - `ruff format` must also pass (not just `ruff check`) — run `uv run ruff format .` to auto-fix
 - ESLint `no-unused-expressions` — use `if/else` instead of ternary side-effects
 - ESLint `react-hooks/set-state-in-effect` — don't call `setState` synchronously in `useEffect` body; use lazy `useState` initializer or a callback instead
+- ESLint `max-lines` — error at 600 lines (blank/comment lines excluded). Extract JSX sections into co-located components per the "Component size & co-location" conventions above.
+- ESLint `no-magic-numbers` — warn on unexplained numeric literals. Extract to a named constant. HTTP status codes (200, 404, 429, …) and small integers (0, 1, 2, 3) are pre-allowed.
+- ESLint `react-refresh/only-export-components` — a file must not export both React components and plain values/functions. Move utility exports to a sibling `*Utils.ts` file.

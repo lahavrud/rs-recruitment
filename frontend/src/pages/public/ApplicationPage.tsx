@@ -5,11 +5,10 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJob, submitApplication } from "@/services/jobs";
 import { trackEvent } from "@/utils/analytics";
-import { EMAIL_RE, MOBILE_RE } from "@/utils/validators";
 import { getMe as getCandidateMe } from "@/services/candidate";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
 import type { CandidateApplicationForm, JobPublicRead } from "@/types/api";
@@ -17,21 +16,25 @@ import { UserRole } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import Stepper from "./components/Stepper";
-import Eyebrow from "@/components/ui/Eyebrow";
 import IdentityStep from "./components/IdentityStep";
 import ResumeStep from "./components/ResumeStep";
 import QuestionsStep from "./components/QuestionsStep";
 import ClaimAccountSection from "./components/ClaimAccountSection";
 import { PrivacyModal, TermsModal } from "./components/LegalModals";
 import StepNav from "./components/StepNav";
+import SuccessScreen from "./components/SuccessScreen";
+import ApplicationStatus from "./components/ApplicationStatus";
+import JobApplicationHeader from "./components/JobApplicationHeader";
+import {
+  validateField,
+  validateClaimPassword,
+  describeServerError,
+} from "./components/applicationUtils";
 import {
   RESUME_ALLOWED_EXTENSIONS,
   RESUME_MAX_FILE_SIZE_BYTES,
   RESUME_MAX_FILE_SIZE_MB,
 } from "@/utils/resume";
-import { checkPasswordComplexity } from "@/utils/passwordComplexity";
-
-const TEXT_FIELD_MAX = 2000;
 
 const TOTAL_STEPS = 3;
 type Step = 1 | 2 | 3;
@@ -110,64 +113,13 @@ export default function ApplicationPage() {
 
   // ── Validation ──────────────────────────────────────────────────────────
 
-  function validateClaimPassword(val: string): string | null {
-    const key = checkPasswordComplexity(val);
-    return key ? t(key) : null;
-  }
-
-  function validateField(name: string, value: string): string | null {
-    if (name === "full_name") {
-      if (!value.trim())
-        return t("publicJobs.application.validation.fullNameRequired");
-      if (value.trim().length < 2)
-        return t("publicJobs.application.validation.fullNameMin");
-      if (value.length > 100)
-        return t("publicJobs.application.validation.fullNameMax");
-    }
-    if (name === "email") {
-      if (!value.trim())
-        return t("publicJobs.application.validation.emailRequired");
-      if (value.length > 255)
-        return t("publicJobs.application.validation.emailMax");
-      if (!EMAIL_RE.test(value))
-        return t("publicJobs.application.validation.emailInvalid");
-    }
-    if (name === "phone") {
-      if (!value.trim())
-        return t("publicJobs.application.validation.phoneRequired");
-      if (!MOBILE_RE.test(value.replace(/\D/g, "")))
-        return t("publicJobs.application.validation.phoneFormat");
-    }
-    if (name === "linkedin_url" && value.trim()) {
-      let parsed: URL;
-      try {
-        parsed = new URL(value);
-      } catch {
-        return t("publicJobs.application.validation.urlInvalid");
-      }
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return t("publicJobs.application.validation.urlProtocol");
-      }
-      if (!parsed.hostname.endsWith("linkedin.com")) {
-        return t("publicJobs.application.validation.urlLinkedin");
-      }
-    }
-    if (
-      (STEP_3_FIELDS as readonly string[]).includes(name) &&
-      value.length > TEXT_FIELD_MAX
-    ) {
-      return t("publicJobs.application.validation.textMax");
-    }
-    return null;
-  }
-
   function validateStep(target: Step): boolean {
     const errors: Record<string, string> = { ...fieldErrors };
     let ok = true;
 
     if (target === 1) {
       for (const name of STEP_1_FIELDS) {
-        const err = validateField(name, form[name] ?? "");
+        const err = validateField(t, name, form[name] ?? "");
         if (err) {
           errors[name] = err;
           ok = false;
@@ -192,7 +144,7 @@ export default function ApplicationPage() {
 
     // Step 3 fields are optional — only validate maxlen + consent.
     for (const name of STEP_3_FIELDS) {
-      const err = validateField(name, form[name] ?? "");
+      const err = validateField(t, name, form[name] ?? "");
       if (err) {
         errors[name] = err;
         ok = false;
@@ -225,7 +177,7 @@ export default function ApplicationPage() {
 
   function handleBlur(e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
-    const error = validateField(name, value);
+    const error = validateField(t, name, value);
     setFieldErrors((prev) => ({ ...prev, [name]: error || "" }));
   }
 
@@ -403,47 +355,6 @@ export default function ApplicationPage() {
     void doFinalSubmit();
   }
 
-  /**
-   * Pull a useful message out of a FastAPI error. Returns a Hebrew message
-   * that mentions the offending field when we can identify one, so
-   * candidates aren't stuck on a generic "something went wrong" toast.
-   */
-  function describeServerError(err: unknown): string {
-    if (!axios.isAxiosError(err)) {
-      return t("publicJobs.application.errors.generic");
-    }
-    const httpStatus = err.response?.status;
-    const detail = err.response?.data?.detail;
-    if (httpStatus === 409) {
-      const code = typeof detail === "object" ? detail?.error_code : null;
-      // already_applied_editable is handled by the caller (redirect to edit
-      // page); only the locked + email-collision cases need a string here.
-      if (code === "already_applied_locked") {
-        return t("publicJobs.application.errors.alreadyApplied");
-      }
-      if (code === "email_already_registered") {
-        return t("publicJobs.application.errors.emailAlreadyRegistered");
-      }
-      return t("publicJobs.application.errors.alreadyApplied");
-    }
-    if (httpStatus === 404) {
-      return t("publicJobs.application.errors.jobUnavailable");
-    }
-    if (httpStatus === 400) {
-      if (detail === "privacy_consent_required") {
-        return t("publicJobs.application.validation.privacyRequired");
-      }
-      if (detail === "terms_consent_required") {
-        return t("publicJobs.application.validation.termsRequired");
-      }
-      if (detail === "passwords_do_not_match") {
-        return t("publicJobs.application.validation.passwordMismatch");
-      }
-      return t("publicJobs.application.errors.generic");
-    }
-    return t("publicJobs.application.errors.generic");
-  }
-
   async function doFinalSubmit() {
     if (!Number.isFinite(jobId)) return;
     // Hard guard — submitting from anywhere other than the final step is a
@@ -467,7 +378,7 @@ export default function ApplicationPage() {
         setClaimError(t("publicJobs.application.validation.passwordMismatch"));
         return;
       }
-      const claimPwError = validateClaimPassword(claimPassword);
+      const claimPwError = validateClaimPassword(t, claimPassword);
       if (claimPwError) {
         setClaimError(claimPwError);
         return;
@@ -505,7 +416,7 @@ export default function ApplicationPage() {
           return;
         }
       }
-      setSubmitError(describeServerError(err));
+      setSubmitError(describeServerError(t, err));
     } finally {
       setSubmitting(false);
     }
@@ -513,63 +424,12 @@ export default function ApplicationPage() {
 
   // ── Early returns ───────────────────────────────────────────────────────
 
-  if (jobLoading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="text-white/30">
-          {t("publicJobs.application.loading")}
-        </div>
-      </div>
-    );
-  }
-
-  if (jobError) {
-    return (
-      <div className="text-center">
-        <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-sm text-danger">
-          {jobError}
-        </div>
-        <Link
-          to="/jobs"
-          className="mt-6 inline-block text-sm text-white/40 transition hover:text-copper"
-        >
-          {t("publicJobs.application.backToJob")}
-        </Link>
-      </div>
-    );
+  if (jobLoading || jobError) {
+    return <ApplicationStatus loading={jobLoading} error={jobError} />;
   }
 
   if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-6 py-8">
-      <div className="w-full max-w-2xl">
-        <div className="rounded-xl border border-success/20 bg-success/8 p-10 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-success/30 bg-success/10 text-lg text-success">
-            ✓
-          </div>
-          <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("publicJobs.application.submitted")}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("publicJobs.application.submittedMessage")}{" "}
-            <span className="text-white/70">{job?.title}</span>.{" "}
-            {t("publicJobs.application.submittedDetail")}
-          </p>
-          {claimAccount && (
-            <p className="mt-4 rounded-lg border border-copper/20 bg-copper/5 px-4 py-3 text-sm leading-relaxed text-white/65">
-              {t("publicJobs.application.claim.accountCreated")}
-            </p>
-          )}
-          <Link
-            to="/jobs"
-            className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
-          >
-            {t("publicJobs.application.browseMore")}
-          </Link>
-        </div>
-      </div>
-      </div>
-    );
+    return <SuccessScreen job={job} claimAccount={claimAccount} />;
   }
 
   // ── Main render ─────────────────────────────────────────────────────────
@@ -597,56 +457,7 @@ export default function ApplicationPage() {
         noIndex
       />
 
-      <Link
-        to={`/jobs/${jobId}`}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/35 transition hover:text-copper"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className="size-4"
-          aria-hidden="true"
-        >
-          <path
-            fillRule="evenodd"
-            d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06L7.28 11.78a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z"
-            clipRule="evenodd"
-          />
-        </svg>
-        {t("publicJobs.application.backToJob")}
-      </Link>
-
-      {/* Compact job header */}
-      <div className="mb-8 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-5 sm:p-6">
-        <div className="min-w-0">
-          <Eyebrow>
-            {t("publicJobs.application.applyFor")}
-          </Eyebrow>
-          <h1 className="mt-1 truncate text-lg font-semibold text-white/90 sm:text-xl">
-            {job?.title}
-          </h1>
-          {job?.location && (
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/40">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="size-3 shrink-0"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 2.625 3.375 7.5 4.5 7.5S12.5 8.625 12.5 6A4.5 4.5 0 0 0 8 1.5ZM8 7.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {job.location}
-            </p>
-          )}
-        </div>
-
-      </div>
+      <JobApplicationHeader job={job} jobId={jobId} />
 
       <Stepper step={step} maxStep={maxStep} onJump={jumpTo} />
 

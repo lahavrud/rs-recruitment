@@ -1,141 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { apiErrorKey } from "@/utils/apiError";
 import { getActiveCompanies } from "@/services/adminCompanies";
 import { getJobs } from "@/services/adminJobs";
 import { getApplications } from "@/services/adminApplications";
-import {
-  deleteCandidate,
-  fetchResumeBlob,
-  getCandidate,
-  getCandidates,
-  updateCandidate,
-} from "@/services/adminCandidates";
-import type {
-  ApplicationWithDetails,
-  CandidateProfileRead,
-  CandidateProfileUpdate,
-} from "@/types/api";
+import { deleteCandidate, getCandidate, getCandidates } from "@/services/adminCandidates";
+import type { ApplicationWithDetails, CandidateProfileRead } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
-import Button from "@/components/ui/Button";
-import Eyebrow from "@/components/ui/Eyebrow";
-import Dialog from "@/components/ui/Dialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
-import MobileEntityCard from "@/components/admin/MobileEntityCard";
-import Field from "@/components/ui/Field";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import FunnelIcon from "@/components/admin/FunnelIcon";
-import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
-import DropdownMenu, {
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/DropdownMenu";
-import KebabButton from "@/components/ui/KebabButton";
 import NoResults from "@/components/ui/NoResults";
-import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
-import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
-import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
-import { inputCls } from "@/styles/forms";
-import { MIME_TO_EXT } from "@/utils/mime";
-import { formatDate } from "@/utils/formatDate";
-import { isDirtyByJSON } from "@/utils/isDirty";
-import { EMAIL_RE, MOBILE_RE } from "@/utils/validators";
-
-function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
-  const slug = candidateName.trim().replace(/\s+/g, "-");
-  const keyExt = fileKey.includes(".") ? fileKey.split(".").pop() : undefined;
-  const safeKeyExt = keyExt && /^[a-zA-Z0-9]{1,5}$/.test(keyExt) ? keyExt.toLowerCase() : undefined;
-  const ext = MIME_TO_EXT[mimeType] ?? safeKeyExt ?? "bin";
-  return `${slug}-resume.${ext}`;
-}
-
-function triggerDownload(url: string, filename: string) {
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function ResumeLink({
-  fileKey,
-  label,
-  candidateName,
-}: {
-  fileKey: string;
-  label: string;
-  candidateName: string;
-}) {
-  const [isLoading, setIsLoading] = useState(false);
-  async function open(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (isLoading) return;
-    setIsLoading(true);
-    try {
-      const blob = await fetchResumeBlob(fileKey);
-      const mimeType = blob.type || "application/octet-stream";
-      const filename = buildDownloadName(candidateName, fileKey, mimeType);
-      const isPdf = mimeType === "application/pdf" || fileKey.toLowerCase().endsWith(".pdf");
-
-      // iOS ignores <a download> on blob URLs — use Web Share API instead.
-      // Scoped to iOS only: other platforms (including Chrome on Linux) mishandle
-      // navigator.share with files and download the blob UUID instead of the filename.
-      const isIOS =
-        /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      if (isIOS && typeof navigator.canShare === "function") {
-        const file = new File([blob], filename, { type: mimeType });
-        if (navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({ files: [file] });
-            return;
-          } catch (err) {
-            if (err instanceof Error && err.name === "AbortError") return;
-          }
-        }
-      }
-
-      const url = URL.createObjectURL(blob);
-      if (isPdf || isIOS) {
-        // PDFs open inline in a new tab (browser PDF viewer / iOS Quick Look).
-        // iOS fallback when Web Share isn't available: open in new tab so Safari
-        // can offer Quick Look + share sheet from there.
-        const win = window.open(url, "_blank");
-        if (!win) triggerDownload(url, filename);
-      } else {
-        triggerDownload(url, filename);
-      }
-      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    } catch (err) {
-      console.error("Failed to fetch resume", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-  return (
-    <button
-      onClick={open}
-      disabled={isLoading}
-      className={`text-copper hover:text-gold transition-opacity ${isLoading ? "opacity-50 cursor-wait" : ""}`}
-    >
-      {isLoading ? "טוען..." : `${label} ↗`}
-    </button>
-  );
-}
-
-// ── Page ────────────────────────────────────────────────────────────────────
+import CandidateDetailDialog from "./components/CandidateDetailDialog";
+import CandidateEditDialog from "./components/CandidateEditDialog";
+import CandidatesFilterPanel from "./components/CandidatesFilterPanel";
+import CandidatesTable from "./components/CandidatesTable";
+import CandidatesMobileList from "./components/CandidatesMobileList";
 
 export default function AdminCandidatesPage() {
   const { t } = useTranslation();
@@ -177,10 +67,9 @@ export default function AdminCandidatesPage() {
   const [companyNameById, setCompanyNameById] = useState<Map<number, string>>(
     new Map(),
   );
-  const [jobTitleById, setJobTitleById] = useState<Map<number, string>>(
-    new Map(),
-  );
+  const [jobTitleById, setJobTitleById] = useState<Map<number, string>>(new Map());
   const [appCache, setAppCache] = useState<ApplicationWithDetails[]>([]);
+
   useEffect(() => {
     const ctrl = new AbortController();
     Promise.all([
@@ -258,10 +147,7 @@ export default function AdminCandidatesPage() {
   ]);
 
   const activeFilterCount =
-    (debouncedQuery.trim() ? 1 : 0) +
-    jobFilter.length +
-    companyFilter.length;
-
+    (debouncedQuery.trim() ? 1 : 0) + jobFilter.length + companyFilter.length;
 
   // Auto-open detail modal when navigated from another page via ?detail=<id>
   useEffect(() => {
@@ -360,62 +246,15 @@ export default function AdminCandidatesPage() {
         </div>
       )}
 
-      <div
-        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
-          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
-        <div className="overflow-hidden">
-          <div
-            className={`grid grid-cols-1 gap-3 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 sm:grid-cols-2 ${
-              filterOpen ? "opacity-100 delay-100" : "opacity-0"
-            }`}
-          >
-            {/* Company first → in RTL it lands on the visual right */}
-            <div>
-              <Eyebrow size="md" className="mb-1.5">
-                {t("admin.candidates.filterByCompany")}
-              </Eyebrow>
-              <SearchableMultiSelect<number>
-                values={companyFilter}
-                onChange={(next) => {
-                  setCompanyFilter(next);
-                  if (next.length > 0 && jobFilter.length > 0) {
-                    const allowed = new Set(
-                      allJobs
-                        .filter((j) => next.includes(j.company_id))
-                        .map((j) => j.id),
-                    );
-                    setJobFilter((prev) => prev.filter((id) => allowed.has(id)));
-                  }
-                }}
-                options={Array.from(companyNameById.entries()).map(([id, name]) => ({
-                  value: id,
-                  label: name,
-                }))}
-                placeholder={t("admin.candidates.allCompanies")}
-              />
-            </div>
-            <div>
-              <Eyebrow size="md" className="mb-1.5">
-                {t("admin.candidates.filterByJob")}
-              </Eyebrow>
-              <SearchableMultiSelect<number>
-                values={jobFilter}
-                onChange={setJobFilter}
-                options={allJobs
-                  .filter(
-                    (j) =>
-                      companyFilter.length === 0 ||
-                      companyFilter.includes(j.company_id),
-                  )
-                  .map((j) => ({ value: j.id, label: j.title }))}
-                placeholder={t("admin.candidates.allJobs")}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      <CandidatesFilterPanel
+        filterOpen={filterOpen}
+        companyFilter={companyFilter}
+        setCompanyFilter={setCompanyFilter}
+        jobFilter={jobFilter}
+        setJobFilter={setJobFilter}
+        allJobs={allJobs}
+        companyNameById={companyNameById}
+      />
 
       {isLoading ? (
         <>
@@ -437,156 +276,24 @@ export default function AdminCandidatesPage() {
         <NoResults />
       ) : (
         <>
-          {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
-          <div className="space-y-2 md:hidden">
-            {filteredCandidates.map((c) => {
-              const actions = (
-                <DropdownMenu
-                  ariaLabel={t("admin.candidates.rowActionsLabel")}
-                  trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
-                >
-                  <DropdownMenuItem onSelect={() => setEditing(c)}>
-                    {t("admin.candidates.editAction")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() =>
-                      window.open(
-                        `mailto:${c.email}?subject=${encodeURIComponent(
-                          t("admin.candidates.emailSubject", { name: c.full_name }),
-                        )}`,
-                        "_self",
-                      )
-                    }
-                  >
-                    {t("admin.candidates.emailAction")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant="danger"
-                    onSelect={() => setDeletePending(c)}
-                  >
-                    {t("admin.candidates.deleteAction")}
-                  </DropdownMenuItem>
-                </DropdownMenu>
-              );
-              return (
-                <MobileEntityCard
-                  key={c.id}
-                  title={<span className="truncate text-white/85">{c.full_name}</span>}
-                  badge={
-                    <span className="text-[11px] text-white/40">
-                      {formatDate(c.created_at)}
-                    </span>
-                  }
-                  actions={actions}
-                >
-                  <CandidateDetailBody candidate={c} />
-                </MobileEntityCard>
-              );
-            })}
-          </div>
+          <CandidatesMobileList
+            candidates={filteredCandidates}
+            onEdit={setEditing}
+            onDelete={setDeletePending}
+          />
 
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl border border-white/8 bg-card md:block">
-            <table className="min-w-full divide-y divide-white/6 text-sm">
-              <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
-                <tr>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.candidates.table.name")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.candidates.table.phone")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.candidates.table.resume")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.candidates.table.linkedin")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.candidates.table.date")}
-                  </th>
-                  <th className="px-4 py-3 text-end" aria-hidden />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/6">
-                {filteredCandidates.map((c) => (
-                  <tr
-                    key={c.id}
-                    onClick={() => setDetail(c)}
-                    className="cursor-pointer transition hover:bg-white/3"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-white/85">{c.full_name}</p>
-                      <p className="text-xs text-white/40">{c.email}</p>
-                    </td>
-                    <td className="px-4 py-3 text-white/60">
-                      {c.phone ?? <span className="text-white/20">—</span>}
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      {c.resume_path ? (
-                        <ResumeLink
-                          fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
-                          label={t("admin.candidates.table.resume")}
-                          candidateName={c.full_name}
-                        />
-                      ) : (
-                        <span className="text-white/20">
-                          {t("admin.candidates.noFile")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      {c.linkedin_url ? (
-                        <a
-                          href={c.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-copper hover:text-gold"
-                        >
-                          LinkedIn ↗
-                        </a>
-                      ) : (
-                        <span className="text-white/20">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-white/40">
-                      {formatDate(c.created_at)}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-end"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenu
-                        ariaLabel={t("admin.candidates.rowActionsLabel")}
-                        trigger={<KebabButton size="sm" />}
-                      >
-                        <DropdownMenuItem onSelect={() => setDetail(c)}>
-                          {t("admin.candidates.viewAction")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setEditing(c)}>
-                          {t("admin.candidates.editAction")}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="danger"
-                          onSelect={() => setDeletePending(c)}
-                        >
-                          {t("admin.candidates.deleteAction")}
-                        </DropdownMenuItem>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
+          <CandidatesTable
+            candidates={filteredCandidates}
+            onView={setDetail}
+            onEdit={setEditing}
+            onDelete={setDeletePending}
+            sentinelRef={sentinelRef}
+            isFetchingMore={isFetchingMore}
+          />
         </>
       )}
 
-      <DetailDialog
+      <CandidateDetailDialog
         candidate={detail}
         onClose={() => setDetail(null)}
         onEdit={() => {
@@ -599,7 +306,7 @@ export default function AdminCandidatesPage() {
         }}
       />
 
-      <EditDialog
+      <CandidateEditDialog
         candidate={editing}
         onClose={() => setEditing(null)}
         onSaved={(updated) => {
@@ -613,7 +320,9 @@ export default function AdminCandidatesPage() {
       <ConfirmDialog
         open={deletePending != null}
         onOpenChange={(o) => !o && setDeletePending(null)}
-        title={t("admin.candidates.deleteConfirmTitle", { name: deletePending?.full_name ?? "" })}
+        title={t("admin.candidates.deleteConfirmTitle", {
+          name: deletePending?.full_name ?? "",
+        })}
         message={t("admin.candidates.deleteConfirmMessage")}
         confirmLabel={t("admin.candidates.deleteConfirmYes")}
         variant="danger"
@@ -621,364 +330,5 @@ export default function AdminCandidatesPage() {
         onConfirm={handleDeleteConfirm}
       />
     </div>
-  );
-}
-
-// ── Detail dialog ──────────────────────────────────────────────────────────
-
-interface DetailProps {
-  candidate: CandidateProfileRead | null;
-  onClose: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
-  const { t } = useTranslation();
-  const [applications, setApplications] = useState<ApplicationWithDetails[] | null>(
-    null,
-  );
-  const [appsError, setAppsError] = useState(false);
-
-  useEffect(() => {
-    // Reset state when the target candidate changes — the only sane way to
-    // clear the previous candidate's applications before fetching the new
-    // one's. setState-in-effect is intentional here.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (!candidate) {
-      setApplications(null);
-      setAppsError(false);
-      return;
-    }
-    const ctrl = new AbortController();
-    setApplications(null);
-    setAppsError(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    getApplications({ candidate_id: candidate.id, limit: 100 }, ctrl.signal)
-      .then((page) => setApplications(page.items))
-      .catch((e) => {
-        if (axios.isCancel(e)) return;
-        setAppsError(true);
-      });
-    return () => ctrl.abort();
-  }, [candidate]);
-
-  if (!candidate) return null;
-  const c = candidate;
-
-  return (
-    <Dialog
-      open={candidate != null}
-      onOpenChange={(o) => !o && onClose()}
-      title={c.full_name}
-      description={c.email}
-      size="lg"
-      footer={
-        <>
-          <Button
-            variant="danger"
-            onClick={onDelete}
-          >
-            {t("admin.candidates.deleteAction")}
-          </Button>
-          <Button
-            onClick={onEdit}
-          >
-            {t("admin.candidates.editAction")}
-          </Button>
-        </>
-      }
-    >
-      <CandidateDetailBody
-        candidate={c}
-        applications={applications}
-        appsError={appsError}
-        onLeavePage={onClose}
-      />
-    </Dialog>
-  );
-}
-
-/** Detail body shared by the desktop dialog and the mobile inline expansion. */
-function CandidateDetailBody({
-  candidate,
-  applications: appsProp,
-  appsError: appsErrorProp,
-  onLeavePage,
-}: {
-  candidate: CandidateProfileRead;
-  applications?: ApplicationWithDetails[] | null;
-  appsError?: boolean;
-  onLeavePage?: () => void;
-}) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const c = candidate;
-
-  // Self-fetch the applications list when the parent didn't pass one (mobile).
-  const useLocal = appsProp === undefined;
-  const [localApps, setLocalApps] = useState<ApplicationWithDetails[] | null>(null);
-  const [localAppsError, setLocalAppsError] = useState(false);
-  useEffect(() => {
-    if (!useLocal) return;
-    const ctrl = new AbortController();
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setLocalApps(null);
-    setLocalAppsError(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    getApplications({ candidate_id: candidate.id, limit: 100 }, ctrl.signal)
-      .then((page) => setLocalApps(page.items))
-      .catch((e) => {
-        if (axios.isCancel(e)) return;
-        setLocalAppsError(true);
-      });
-    return () => ctrl.abort();
-  }, [candidate.id, useLocal]);
-  const applications = useLocal ? localApps : appsProp;
-  const appsError = useLocal ? localAppsError : (appsErrorProp ?? false);
-
-  return (
-    <div className="space-y-5 text-sm">
-      <div className="flex flex-wrap gap-x-6 gap-y-1">
-        <a
-          href={`mailto:${c.email}?subject=${encodeURIComponent(t("admin.candidates.emailSubject", { name: c.full_name }))}`}
-          className="text-copper/85 transition hover:text-copper hover:underline"
-        >
-          {c.email}
-        </a>
-        {c.phone && <span className="text-white/60">{c.phone}</span>}
-        {c.linkedin_url && (
-          <a
-            href={c.linkedin_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-copper hover:text-gold"
-          >
-            LinkedIn ↗
-          </a>
-        )}
-        {c.resume_path ? (
-          <ResumeLink
-            fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
-            label={t("admin.candidates.table.resume")}
-            candidateName={c.full_name}
-          />
-        ) : (
-          <span className="text-white/40">
-            {t("admin.candidates.table.resume")}: {t("admin.candidates.noFile")}
-          </span>
-        )}
-      </div>
-
-      <div className="border-t border-white/8 pt-4">
-        <Eyebrow>
-          {t("admin.candidates.applicationsSection")}
-        </Eyebrow>
-        {appsError ? (
-          <p className="mt-3 text-xs text-danger">
-            {t("admin.candidates.errors.applicationsLoadFailed")}
-          </p>
-        ) : applications == null ? (
-          <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
-        ) : applications.length === 0 ? (
-          <p className="mt-3 text-xs text-white/35">
-            {t("admin.candidates.noApplications")}
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-1.5">
-            {applications.map((a) => {
-              const hasAppAnswers =
-                a.service_concept ||
-                a.salary_expectations ||
-                a.strength ||
-                a.growth_area;
-              return (
-                <li key={a.id} className="rounded-sm border border-white/6 bg-card">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onLeavePage?.();
-                      navigate(`/admin/applications?candidate=${a.candidate_id}`, {
-                        state: { autoOpen: a },
-                      });
-                    }}
-                    className="flex w-full items-center justify-between px-3 py-2 transition hover:border-copper/25 hover:bg-card-raised"
-                  >
-                    <span className="text-white/80">{a.job.title}</span>
-                    <span className="text-xs text-white/40">
-                      {t(`admin.applications.statusLabels.${a.status}`)} ·{" "}
-                      {formatDate(a.created_at)}
-                    </span>
-                  </button>
-                  {hasAppAnswers && (
-                    <dl className="grid grid-cols-1 gap-x-8 gap-y-1 border-t border-white/6 px-3 py-2 text-xs sm:grid-cols-2">
-                      {a.service_concept && (
-                        <>
-                          <dt className="text-white/35">
-                            {t("admin.candidates.details.serviceConcept")}
-                          </dt>
-                          <dd className="text-white/60">{a.service_concept}</dd>
-                        </>
-                      )}
-                      {a.salary_expectations && (
-                        <>
-                          <dt className="text-white/35">
-                            {t("admin.candidates.details.salaryExpectations")}
-                          </dt>
-                          <dd className="text-white/60">{a.salary_expectations}</dd>
-                        </>
-                      )}
-                      {a.strength && (
-                        <>
-                          <dt className="text-white/35">
-                            {t("admin.candidates.details.strength")}
-                          </dt>
-                          <dd className="text-white/60">{a.strength}</dd>
-                        </>
-                      )}
-                      {a.growth_area && (
-                        <>
-                          <dt className="text-white/35">
-                            {t("admin.candidates.details.weakness")}
-                          </dt>
-                          <dd className="text-white/60">{a.growth_area}</dd>
-                        </>
-                      )}
-                    </dl>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Edit dialog ────────────────────────────────────────────────────────────
-
-interface EditProps {
-  candidate: CandidateProfileRead | null;
-  onClose: () => void;
-  onSaved: (next: CandidateProfileRead) => void;
-  onError: () => void;
-}
-
-function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
-  const { t } = useTranslation();
-  const [form, setForm] = useState<CandidateProfileUpdate>({});
-  const [initialForm, setInitialForm] = useState<CandidateProfileUpdate>({});
-  const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useResetOnTrigger(candidate, () => {
-    if (!candidate) return;
-    const seed: CandidateProfileUpdate = {
-      full_name: candidate.full_name,
-      email: candidate.email,
-      phone: candidate.phone ?? "",
-      linkedin_url: candidate.linkedin_url ?? "",
-    };
-    setForm(seed);
-    setInitialForm(seed);
-    setErrors({});
-  });
-
-  function set<K extends keyof CandidateProfileUpdate>(key: K, value: CandidateProfileUpdate[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    if (errors[key as string]) setErrors((prev) => ({ ...prev, [key as string]: "" }));
-  }
-
-  const isDirty = isDirtyByJSON(form, initialForm);
-  const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
-
-  function validate(): boolean {
-    const e: Record<string, string> = {};
-    if (!form.full_name?.trim()) e.full_name = t("common.validation.required");
-    else if (form.full_name.trim().length < 2) e.full_name = t("common.validation.tooShort", { min: 2 });
-    else if (form.full_name.length > 100) e.full_name = t("common.validation.tooLong", { max: 100 });
-    if (!form.email?.trim()) e.email = t("common.validation.required");
-    else if (!EMAIL_RE.test(form.email)) e.email = t("common.validation.emailInvalid");
-    if (!form.phone?.trim()) e.phone = t("common.validation.required");
-    else if (!MOBILE_RE.test(form.phone.trim())) {
-      e.phone = t("common.validation.phoneInvalid");
-    }
-    if (form.linkedin_url?.trim()) {
-      try {
-        const url = new URL(form.linkedin_url);
-        if (!url.hostname.endsWith("linkedin.com")) e.linkedin_url = t("common.validation.linkedinInvalid");
-      } catch {
-        e.linkedin_url = t("common.validation.linkedinInvalid");
-      }
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  }
-
-  async function handleSave() {
-    if (!candidate || !validate()) return;
-    setSaving(true);
-    const body: CandidateProfileUpdate = {
-      full_name: form.full_name,
-      email: form.email,
-      phone: form.phone,
-      linkedin_url: form.linkedin_url?.trim() ? form.linkedin_url : null,
-    };
-    try {
-      const updated = await updateCandidate(candidate.id, body);
-      onSaved(updated);
-    } catch {
-      onError();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (!candidate) return null;
-
-  return (
-    <>
-    <Dialog
-      open={candidate != null}
-      onOpenChange={(o) => !o && handleClose()}
-      title={t("admin.candidates.editModalTitle")}
-      description={candidate.email}
-      size="lg"
-      footer={
-        <>
-          <Button
-            variant="ghost"
-            onClick={handleClose}
-            disabled={saving}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? t("common.saving") : t("common.save")}
-          </Button>
-        </>
-      }
-    >
-      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <Field label={t("admin.candidates.fields.fullName")} error={errors.full_name}>
-          <input type="text" value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} className={inputCls} />
-        </Field>
-        <Field label={t("admin.candidates.fields.email")} error={errors.email}>
-          <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={inputCls} />
-        </Field>
-        <Field label={t("admin.candidates.fields.phone")} error={errors.phone}>
-          <input type="tel" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
-        </Field>
-        <Field label={t("admin.candidates.fields.linkedin")} error={errors.linkedin_url}>
-          <input type="url" value={form.linkedin_url ?? ""} onChange={(e) => set("linkedin_url", e.target.value)} className={inputCls} />
-        </Field>
-      </div>
-    </Dialog>
-    {discardConfirm}
-    </>
   );
 }
