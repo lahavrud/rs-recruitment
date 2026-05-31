@@ -9,8 +9,6 @@ import { ApplicationStatus } from "@/types/api";
 import type { ApplicationWithDetails } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import Eyebrow from "@/components/ui/Eyebrow";
-import FilterPill from "@/components/ui/FilterPill";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -18,9 +16,7 @@ import TableSkeleton from "@/components/ui/TableSkeleton";
 import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
 import FunnelIcon from "@/components/admin/FunnelIcon";
-import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import MobileEntityCard from "@/components/admin/MobileEntityCard";
-import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
 import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -35,15 +31,8 @@ import { useToast } from "@/hooks/useToast";
 import ApplicationDetailDialog, { ApplicationDetailBody } from "./components/ApplicationDetailDialog";
 import ApplicationStatusDialog from "./components/ApplicationStatusDialog";
 import ApplicationNotesDialog from "./components/ApplicationNotesDialog";
+import ApplicationsFilterPanel from "./components/ApplicationsFilterPanel";
 import { formatDate } from "@/utils/formatDate";
-
-const ALL_STATUSES = [
-  ApplicationStatus.NEW,
-  ApplicationStatus.APPROVED_BY_ADMIN,
-  ApplicationStatus.REJECTED,
-  ApplicationStatus.HIRED,
-];
-
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-copper/10 text-copper",
@@ -221,8 +210,6 @@ export default function AdminApplicationsPage() {
     }
   }
 
-  const filterTabs: FilterValue[] = [ALL_FILTER, ...ALL_STATUSES];
-
   return (
     <div>
       <h1 data-page-heading className="sr-only">
@@ -264,122 +251,24 @@ export default function AdminApplicationsPage() {
         </button>
       </div>
 
-      {/* Active filter chips */}
-      {activeFilterCount > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {filter !== ALL_FILTER && (
-            <ActiveFilterChip
-              label={`${t("admin.applications.table.status")}: ${STATUS_LABELS[filter]}`}
-              onRemove={() => setFilter(ALL_FILTER)}
-            />
-          )}
-          {query.trim() && (
-            <ActiveFilterChip
-              label={`${t("common.search")}: "${query.trim()}"`}
-              onRemove={() => setQuery("")}
-            />
-          )}
-          {jobFilter.map((id) => (
-            <ActiveFilterChip
-              key={`job-${id}`}
-              label={`${t("common.filteredByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
-              onRemove={() => setJobFilter((prev) => prev.filter((x) => x !== id))}
-            />
-          ))}
-          {filterCandidateId != null && (
-            <ActiveFilterChip
-              label={`${t("common.filteredByCandidate")} #${filterCandidateId}`}
-              onRemove={() => setFilterCandidateId(undefined)}
-            />
-          )}
-          {companyFilter.map((id) => (
-            <ActiveFilterChip
-              key={`co-${id}`}
-              label={`${t("admin.applications.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
-              onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Filter panel — animated open/close */}
-      <div
-        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
-          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
-        <div className="overflow-hidden">
-          <div
-            className={`space-y-4 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 ${
-              filterOpen ? "opacity-100 delay-100" : "opacity-0"
-            }`}
-          >
-            <div>
-              <Eyebrow size="md" className="mb-2">
-                {t("admin.applications.table.status")}
-              </Eyebrow>
-              <div className="flex flex-wrap gap-1.5">
-                {filterTabs.map((tab) => (
-                  <FilterPill
-                    key={tab}
-                    active={filter === tab}
-                    onClick={() => setFilter(tab)}
-                  >
-                    {tab === ALL_FILTER
-                      ? t("admin.applications.filterAll")
-                      : STATUS_LABELS[tab]}
-                  </FilterPill>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {/* Company first → in RTL it lands on the visual right */}
-              <div>
-                <Eyebrow size="md" className="mb-1.5">
-                  {t("admin.applications.filterByCompany")}
-                </Eyebrow>
-                <SearchableMultiSelect<number>
-                  values={companyFilter}
-                  onChange={(next) => {
-                    setCompanyFilter(next);
-                    // Drop any selected jobs that no longer match an active company.
-                    if (next.length > 0 && jobFilter.length > 0) {
-                      const allowed = new Set(
-                        allJobs
-                          .filter((j) => next.includes(j.company_id))
-                          .map((j) => j.id),
-                      );
-                      setJobFilter((prev) => prev.filter((id) => allowed.has(id)));
-                    }
-                  }}
-                  options={Array.from(companyNameById.entries()).map(([id, name]) => ({
-                    value: id,
-                    label: name,
-                  }))}
-                  placeholder={t("admin.applications.allCompanies")}
-                />
-              </div>
-              <div>
-                <Eyebrow size="md" className="mb-1.5">
-                  {t("admin.applications.filterByJob")}
-                </Eyebrow>
-                <SearchableMultiSelect<number>
-                  values={jobFilter}
-                  onChange={setJobFilter}
-                  options={allJobs
-                    .filter(
-                      (j) =>
-                        companyFilter.length === 0 ||
-                        companyFilter.includes(j.company_id),
-                    )
-                    .map((j) => ({ value: j.id, label: j.title }))}
-                  placeholder={t("admin.applications.allJobs")}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ApplicationsFilterPanel
+        filter={filter}
+        setFilter={setFilter}
+        query={query}
+        setQuery={setQuery}
+        jobFilter={jobFilter}
+        setJobFilter={setJobFilter}
+        filterCandidateId={filterCandidateId}
+        setFilterCandidateId={setFilterCandidateId}
+        companyFilter={companyFilter}
+        setCompanyFilter={setCompanyFilter}
+        allJobs={allJobs}
+        companyNameById={companyNameById}
+        jobTitleById={jobTitleById}
+        activeFilterCount={activeFilterCount}
+        filterOpen={filterOpen}
+        statusLabels={STATUS_LABELS}
+      />
 
       {isLoading ? (
         <>

@@ -15,43 +15,28 @@ import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
-import StatusBadge from "@/components/ui/StatusBadge";
-import Eyebrow from "@/components/ui/Eyebrow";
-import FilterPill from "@/components/ui/FilterPill";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
-import FunnelIcon from "@/components/admin/FunnelIcon";
-import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
-import SearchInput from "@/components/ui/SearchInput";
-import RangeSlider from "@/components/ui/RangeSlider";
-import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
-import DropdownMenu, {
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/DropdownMenu";
-import KebabButton from "@/components/ui/KebabButton";
 import NoResults from "@/components/ui/NoResults";
 import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
-import JobDetailDialog, {
-  FeaturedDesktopSash,
-  MobileJobCard,
-} from "./components/JobDetailDialog";
+import JobDetailDialog from "./components/JobDetailDialog";
 import JobEditDialog from "./components/JobEditDialog";
 import JobCreateDialog from "./components/JobCreateDialog";
-import { formatDate } from "@/utils/formatDate";
+import JobsFilterPanel from "./components/JobsFilterPanel";
+import JobsTable from "./components/JobsTable";
+import JobsList from "./components/JobsList";
 
 const ALL_STATUSES = [
   JobStatus.PENDING_APPROVAL,
   JobStatus.PUBLISHED,
   JobStatus.CLOSED,
 ];
-
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING_APPROVAL: "bg-warning/10 text-warning",
@@ -326,210 +311,37 @@ export default function AdminJobsPage() {
         eyebrow={t("admin.jobs.title")}
         subtitle={t("admin.jobs.subtitle")}
         action={
-          <Button
-            onClick={() => setCreating(true)}
-          >
+          <Button onClick={() => setCreating(true)}>
             {t("admin.jobs.newJob")}
           </Button>
         }
       />
 
-      {/* Search + filter trigger */}
-      <div className="mb-3 flex items-stretch gap-2">
-        <div className="flex-1">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder={t("admin.jobs.searchPlaceholder")}
-            clearable
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => setFilterOpen((o) => !o)}
-          aria-expanded={filterOpen}
-          aria-label={t("admin.jobs.openFilters")}
-          className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
-            filterOpen
-              ? "border-copper/50 bg-copper/10 text-white"
-              : "border-white/15 bg-card-raised/40 text-white/75 hover:border-copper/40 hover:text-white"
-          }`}
-        >
-          <FunnelIcon />
-          <span className="hidden sm:inline">{t("admin.jobs.filters")}</span>
-          {activeFilterCount > 0 && (
-            <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Active filter chips */}
-      {activeFilterCount > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {filter !== ALL_FILTER && (
-            <ActiveFilterChip
-              label={`${t("admin.jobs.fields.status")}: ${STATUS_LABELS[filter]}`}
-              onRemove={() => setFilter(ALL_FILTER)}
-            />
-          )}
-          {query.trim() && (
-            <ActiveFilterChip
-              label={`${t("common.search")}: "${query.trim()}"`}
-              onRemove={() => setQuery("")}
-            />
-          )}
-          {selectedLocations.map((loc) => (
-            <ActiveFilterChip
-              key={`loc-${loc}`}
-              label={`${t("publicJobs.board.locationLabel")}: ${loc}`}
-              onRemove={() =>
-                setSelectedLocations((prev) => prev.filter((x) => x !== loc))
-              }
-            />
-          ))}
-          {isSalaryActive && (
-            <ActiveFilterChip
-              label={`${t("publicJobs.board.salaryRange")}: ${effectiveSalaryRange[0].toLocaleString("he-IL")}–${effectiveSalaryRange[1].toLocaleString("he-IL")} ₪`}
-              onRemove={() => setSalaryRange(null)}
-            />
-          )}
-          {companyFilter.map((id) => (
-            <ActiveFilterChip
-              key={`co-${id}`}
-              label={`${t("admin.jobs.fields.company")}: ${companyNameById.get(id) ?? `#${id}`}`}
-              onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
-            />
-          ))}
-          {featuredOnly && (
-            <ActiveFilterChip
-              label={t("admin.jobs.featuredOnly")}
-              onRemove={() => setFeaturedOnly(false)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Filter panel — animated open/close via grid-rows 0fr→1fr */}
-      <div
-        className={`mb-4 grid transition-[grid-template-rows] duration-300 ease-out ${
-          filterOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
-        <div className="overflow-hidden">
-          <div
-            className={`space-y-4 rounded-md border border-white/8 bg-card/40 p-4 transition-opacity duration-200 ${
-              filterOpen ? "opacity-100 delay-100" : "opacity-0"
-            }`}
-          >
-          <div>
-            <Eyebrow size="md" className="mb-2">
-              {t("admin.jobs.fields.status")}
-            </Eyebrow>
-            <div className="flex flex-wrap gap-1.5">
-              {filterTabs.map((tab) => (
-                <FilterPill
-                  key={tab}
-                  active={filter === tab}
-                  onClick={() => setFilter(tab)}
-                >
-                  {tab === ALL_FILTER
-                    ? t("admin.jobs.filterAll")
-                    : STATUS_LABELS[tab]}
-                </FilterPill>
-              ))}
-            </div>
-          </div>
-          {uniqueLocations.length >= 2 && (
-            <div>
-              <Eyebrow size="md" className="mb-2">
-                {t("publicJobs.board.locationLabel")}
-              </Eyebrow>
-              <div className="flex flex-wrap gap-1.5">
-                <FilterPill
-                  compact
-                  active={selectedLocations.length === 0}
-                  onClick={() => setSelectedLocations([])}
-                >
-                  {t("publicJobs.board.allLocations")}
-                </FilterPill>
-                {uniqueLocations.map((loc) => {
-                  const active = selectedLocations.includes(loc);
-                  return (
-                    <FilterPill
-                      key={loc}
-                      compact
-                      active={active}
-                      onClick={() =>
-                        setSelectedLocations((prev) =>
-                          active
-                            ? prev.filter((x) => x !== loc)
-                            : [...prev, loc],
-                        )
-                      }
-                    >
-                      {loc}
-                    </FilterPill>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          <div>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <Eyebrow size="md">{t("publicJobs.board.salaryRange")}</Eyebrow>
-              {isSalaryActive && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSalaryRange([salaryBounds.min, salaryBounds.max])
-                  }
-                  className="text-[11px] text-copper/70 transition hover:text-copper"
-                >
-                  {t("publicJobs.board.resetSalary")}
-                </button>
-              )}
-            </div>
-            <RangeSlider
-              min={salaryBounds.min}
-              max={salaryBounds.max}
-              step={500}
-              value={effectiveSalaryRange}
-              onChange={(next) => setSalaryRange(next)}
-              formatValue={(n) => `${n.toLocaleString("he-IL")} ₪`}
-              ariaLabelMin={t("publicJobs.board.salaryMinAria")}
-              ariaLabelMax={t("publicJobs.board.salaryMaxAria")}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <Eyebrow size="md" className="mb-1.5">
-                {t("admin.jobs.fields.company")}
-              </Eyebrow>
-              <SearchableMultiSelect<number>
-                values={companyFilter}
-                onChange={setCompanyFilter}
-                options={uniqueCompanies.map((id) => ({
-                  value: id,
-                  label: companyNameById.get(id) ?? `#${id}`,
-                }))}
-                placeholder={t("admin.jobs.companyAll")}
-              />
-            </div>
-            <label className="mt-auto inline-flex items-center gap-2 text-sm text-white/80">
-              <input
-                type="checkbox"
-                checked={featuredOnly}
-                onChange={(e) => setFeaturedOnly(e.target.checked)}
-                className="size-4 rounded border-white/20 bg-well text-copper focus:ring-copper"
-              />
-              {t("admin.jobs.featuredOnly")}
-            </label>
-          </div>
-          </div>
-        </div>
-      </div>
+      <JobsFilterPanel
+        query={query}
+        setQuery={setQuery}
+        filter={filter}
+        setFilter={setFilter}
+        filterTabs={filterTabs}
+        statusLabels={STATUS_LABELS}
+        uniqueLocations={uniqueLocations}
+        selectedLocations={selectedLocations}
+        setSelectedLocations={setSelectedLocations}
+        salaryBounds={salaryBounds}
+        effectiveSalaryRange={effectiveSalaryRange}
+        isSalaryActive={isSalaryActive}
+        setSalaryRange={setSalaryRange}
+        uniqueCompanies={uniqueCompanies}
+        companyFilter={companyFilter}
+        setCompanyFilter={setCompanyFilter}
+        companyNameById={companyNameById}
+        featuredOnly={featuredOnly}
+        setFeaturedOnly={setFeaturedOnly}
+        activeFilterCount={activeFilterCount}
+        filterOpen={filterOpen}
+        setFilterOpen={setFilterOpen}
+        clearFilters={clearFilters}
+      />
 
       {isLoading ? (
         <>
@@ -556,146 +368,29 @@ export default function AdminJobsPage() {
         </NoResults>
       ) : (
         <>
-          {/* Mobile cards — tap row to expand inline; 3-dot menu for actions */}
-          <div className="space-y-2 md:hidden">
-            {filteredJobs.map((job) => (
-              <MobileJobCard
-                key={job.id}
-                job={job}
-                statusLabels={STATUS_LABELS}
-                statusColors={STATUS_COLORS}
-                companyName={companyNameById.get(job.company_id)}
-                actions={
-                  <DropdownMenu
-                    ariaLabel={t("admin.jobs.rowActionsLabel")}
-                    trigger={
-                      <KebabButton onClick={(e) => e.stopPropagation()} />
-                    }
-                  >
-                    <DropdownMenuItem onSelect={() => setEditing(job)}>
-                      {t("admin.jobs.editAction")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => openMailToCompany(job)}>
-                      {t("admin.jobs.email")}
-                    </DropdownMenuItem>
-                    {job.status === JobStatus.PENDING_APPROVAL && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => handleApprove(job)}>
-                          {t("admin.jobs.approve")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="danger"
-                          onSelect={() => setRejectPending(job)}
-                        >
-                          {t("admin.jobs.reject")}
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="danger"
-                      onSelect={() => setDeletePending(job)}
-                    >
-                      {t("admin.jobs.deleteAction")}
-                    </DropdownMenuItem>
-                  </DropdownMenu>
-                }
-              />
-            ))}
-          </div>
+          <JobsList
+            jobs={filteredJobs}
+            statusLabels={STATUS_LABELS}
+            statusColors={STATUS_COLORS}
+            companyNameById={companyNameById}
+            onEdit={setEditing}
+            onApprove={handleApprove}
+            onReject={setRejectPending}
+            onDelete={setDeletePending}
+            onMailto={openMailToCompany}
+          />
 
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl border border-white/8 bg-card md:block">
-            <table className="min-w-full divide-y divide-white/6 text-sm">
-              <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
-                <tr>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.jobs.fields.title")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.jobs.fields.location")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("common.salary")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.jobs.fields.status")}
-                  </th>
-                  <th className="px-4 py-3 text-start">
-                    {t("admin.jobs.submittedLabel")}
-                  </th>
-                  <th className="px-4 py-3 text-end" aria-hidden />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/6">
-                {filteredJobs.map((job) => (
-                  <tr
-                    key={job.id}
-                    onClick={() => setDetail(job)}
-                    className="cursor-pointer transition hover:bg-white/3"
-                  >
-                    <td className="relative px-4 py-3 font-medium text-white/85">
-                      {job.is_featured && <FeaturedDesktopSash />}
-                      <span>{job.title}</span>
-                    </td>
-                    <td className="px-4 py-3 text-white/60">{job.location}</td>
-                    <td className="px-4 py-3 text-sm text-copper/70">
-                      {job.salary_min != null && job.salary_max != null
-                        ? `${job.salary_min.toLocaleString("he-IL")}–${job.salary_max.toLocaleString("he-IL")} ₪`
-                        : <span className="text-white/20">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge label={STATUS_LABELS[job.status]} colorCls={STATUS_COLORS[job.status]} />
-                    </td>
-                    <td className="px-4 py-3 text-white/40">
-                      {formatDate(job.created_at)}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-end"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenu
-                        ariaLabel={t("admin.jobs.rowActionsLabel")}
-                        trigger={<KebabButton size="sm" />}
-                      >
-                        <DropdownMenuItem onSelect={() => setDetail(job)}>
-                          {t("admin.jobs.viewAction")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setEditing(job)}>
-                          {t("admin.jobs.editAction")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => openMailToCompany(job)}>
-                          {t("admin.jobs.email")}
-                        </DropdownMenuItem>
-                        {job.status === JobStatus.PENDING_APPROVAL && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => handleApprove(job)}>
-                              {t("admin.jobs.approve")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              variant="danger"
-                              onSelect={() => setRejectPending(job)}
-                            >
-                              {t("admin.jobs.reject")}
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="danger"
-                          onSelect={() => setDeletePending(job)}
-                        >
-                          {t("admin.jobs.deleteAction")}
-                        </DropdownMenuItem>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <JobsTable
+            jobs={filteredJobs}
+            statusLabels={STATUS_LABELS}
+            statusColors={STATUS_COLORS}
+            onOpenDetail={setDetail}
+            onEdit={setEditing}
+            onApprove={handleApprove}
+            onReject={setRejectPending}
+            onDelete={setDeletePending}
+            onMailto={openMailToCompany}
+          />
 
           <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
