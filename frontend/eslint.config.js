@@ -21,5 +21,22 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // File-length guardrails — warn at 400, error at 600.
+      // Extract to co-located components/ subfolder per CLAUDE.md conventions.
+      "max-lines": ["error", { max: 600, skipBlankLines: true, skipComments: true }],
+
+      // Bare magic numbers: warn to encourage named constants.
+      // HTTP status codes, small integers, and common boundary values are allowed.
+      "no-magic-numbers": [
+        "warn",
+        {
+          ignore: [-1, 0, 1, 2, 3, 100, 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500],
+          ignoreArrayIndexes: true,
+          ignoreDefaultValues: true,
+          ignoreClassFieldInitialValues: true,
+        },
+      ],
+    },
   },
 ]);

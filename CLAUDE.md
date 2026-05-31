@@ -234,6 +234,27 @@ Prefer `selectinload` at the call site over `lazy="selectin"` on the model unles
 
 ---
 
+## Component size & co-location
+
+**Hard limit: 600 lines per file** (ESLint `max-lines` error). Aim to keep files under 400 lines.
+
+When a page or component grows past ~400 lines, extract sub-components into a co-located `components/` subdirectory:
+
+| Source file | Extract target |
+|---|---|
+| `pages/admin/AdminJobsPage.tsx` | `pages/admin/components/` |
+| `pages/public/JobBoardPage.tsx` | `pages/public/components/` |
+| `pages/candidate/CandidateProfilePage.tsx` | `pages/candidate/components/` |
+| `components/dashboard/CandidateDashboard.tsx` | `components/dashboard/` (sibling files) |
+
+Rules for extracted components:
+- State and handlers stay in the parent — extracted components receive typed props
+- Each extracted file exports one default component (plus closely related helpers)
+- Non-component exports (utility functions, constants) go in a sibling `*Utils.ts` file so the component file stays fast-refresh-compatible
+- Extracted files use `@/` path aliases; the parent imports from `./components/X`
+
+---
+
 ## Adding a New Page
 
 1. Create the page in the appropriate `pages/` subdirectory
@@ -336,3 +357,6 @@ Common pitfalls:
 - `ruff format` must also pass (not just `ruff check`) — run `uv run ruff format .` to auto-fix
 - ESLint `no-unused-expressions` — use `if/else` instead of ternary side-effects
 - ESLint `react-hooks/set-state-in-effect` — don't call `setState` synchronously in `useEffect` body; use lazy `useState` initializer or a callback instead
+- ESLint `max-lines` error — file exceeds 600 lines; extract sub-components to `components/` subfolder (see [Component size & co-location](#component-size--co-location))
+- ESLint `no-magic-numbers` warning — replace bare numeric literals with named constants
+- ESLint `react-refresh/only-export-components` — don't mix component exports with utility function/constant exports in the same file; put utilities in a sibling `*Utils.ts` file

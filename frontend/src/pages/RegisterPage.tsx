@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { getInviteMetadata, register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
-import SignatureCanvas, { type SignatureCanvasRef } from "@/components/ui/SignatureCanvas";
-import { inputCls } from "@/styles/forms";
+import { type SignatureCanvasRef } from "@/components/ui/SignatureCanvas";
 import axios from "axios";
+import RegisterStep1Form from "./components/RegisterStep1Form";
+import RegisterStep2Form from "./components/RegisterStep2Form";
+import RegisterModals from "./components/RegisterModals";
 
 function useValidation() {
   const { t } = useTranslation();
@@ -104,24 +106,6 @@ const EMPTY: FormState = {
   contactMobilePhone: "",
   contactLandlinePhone: "",
 };
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs text-white/45">{label}</label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
-  );
-}
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -386,276 +370,41 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ── STEP 1: Details ── */}
         {step === 1 && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
-                {t("auth.register.companySection")}
-              </p>
-              <div className="space-y-3">
-                <Field label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
-                  <input
-                    name="companyName" type="text" required maxLength={100}
-                    value={form.companyName} onChange={handleChange} onBlur={handleBlur}
-                    className={inputCls} placeholder="Acme בע״מ"
-                    autoComplete="organization"
-                  />
-                </Field>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.companyIdLabel")} *`} error={fieldErrors.companyId}>
-                    <input
-                      name="companyId" type="text" required maxLength={9}
-                      value={form.companyId} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder="123456789" dir="ltr"
-                    />
-                  </Field>
-                  <Field label={`${t("auth.register.addressLabel")} *`} error={fieldErrors.address}>
-                    <input
-                      name="address" type="text" required maxLength={200}
-                      value={form.address} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder={t("auth.register.addressPlaceholder")}
-                      autoComplete="street-address"
-                    />
-                  </Field>
-                </div>
-
-                <Field label={`${t("auth.register.logoLabel")} *`} error={fieldErrors.logo}>
-                  <input
-                    ref={logoInputRef} type="file" accept="image/*"
-                    onChange={handleLogoChange}
-                    className="mt-0.5 block w-full cursor-pointer rounded-sm border border-white/10 bg-well px-3 py-2 text-xs text-white/50 file:ml-3 file:rounded-sm file:border-0 file:bg-copper/20 file:px-2.5 file:py-1 file:text-[11px] file:font-medium file:text-copper hover:file:bg-copper/30"
-                  />
-                </Field>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
-                {t("auth.register.contactSection", "איש קשר")}
-              </p>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.contactFirstName")} *`} error={fieldErrors.contactFirstName}>
-                    <input
-                      name="contactFirstName" type="text" required maxLength={100}
-                      value={form.contactFirstName} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder={t("auth.register.contactFirstNamePlaceholder")}
-                      autoComplete="given-name"
-                    />
-                  </Field>
-                  <Field label={`${t("auth.register.contactLastName")} *`} error={fieldErrors.contactLastName}>
-                    <input
-                      name="contactLastName" type="text" required maxLength={100}
-                      value={form.contactLastName} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder={t("auth.register.contactLastNamePlaceholder")}
-                      autoComplete="family-name"
-                    />
-                  </Field>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.contactMobilePhone")} *`} error={fieldErrors.contactMobilePhone}>
-                    <input
-                      name="contactMobilePhone" type="tel" required maxLength={15}
-                      value={form.contactMobilePhone} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder={t("auth.register.contactMobilePhonePlaceholder")}
-                      autoComplete="tel" dir="ltr"
-                    />
-                  </Field>
-                  <Field label={t("auth.register.contactLandlinePhone")}>
-                    <input
-                      name="contactLandlinePhone" type="tel" maxLength={15}
-                      value={form.contactLandlinePhone} onChange={handleChange}
-                      className={inputCls} placeholder={t("auth.register.contactLandlinePhonePlaceholder")}
-                      dir="ltr"
-                    />
-                  </Field>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
-                {t("auth.register.accountSection")}
-              </p>
-              <div className="space-y-3">
-                <Field label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
-                  <input
-                    name="email" type="email" required maxLength={255}
-                    value={form.email} onChange={handleChange} onBlur={handleBlur}
-                    readOnly={emailPreFilled}
-                    className={`${inputCls} ${emailPreFilled ? "cursor-not-allowed opacity-60" : ""}`}
-                    placeholder={t("auth.register.emailPlaceholder")}
-                    autoComplete="email" dir="ltr"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={`${t("auth.register.passwordLabel")} *`} error={fieldErrors.password}>
-                    <input
-                      name="password" type="password" required
-                      value={form.password} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder="••••••••"
-                      autoComplete="new-password"
-                    />
-                  </Field>
-                  <Field label={`${t("auth.register.confirmLabel")} *`} error={fieldErrors.confirm}>
-                    <input
-                      name="confirm" type="password" required
-                      value={form.confirm} onChange={handleChange} onBlur={handleBlur}
-                      className={inputCls} placeholder="••••••••"
-                      autoComplete="new-password"
-                    />
-                  </Field>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleNext}
-              className="w-full rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold"
-            >
-              {t("auth.register.nextStep")} ←
-            </button>
-          </div>
+          <RegisterStep1Form
+            form={form}
+            fieldErrors={fieldErrors}
+            emailPreFilled={emailPreFilled}
+            logoInputRef={logoInputRef}
+            handleChange={handleChange}
+            handleBlur={handleBlur}
+            handleLogoChange={handleLogoChange}
+            handleNext={handleNext}
+          />
         )}
 
-        {/* ── STEP 2: Legal ── */}
         {step === 2 && (
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="space-y-4">
-              <div className="rounded-xl border border-white/8 bg-card px-5 py-5 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-                  {t("auth.register.agreementSection")}
-                </p>
-
-                {/* Contract */}
-                <div className="rounded-lg border border-white/6 bg-card-raised px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-white/60">
-                      {t("auth.register.agreementSectionService")}
-                    </p>
-                    <button
-                      type="button" onClick={() => setContractOpen(true)}
-                      className="text-[11px] text-copper/70 transition hover:text-copper"
-                    >
-                      {t("auth.register.agreementReadFull")}
-                    </button>
-                  </div>
-                  <div className="mt-2 max-h-20 overflow-y-auto [scrollbar-width:thin]">
-                    <p className="text-xs leading-relaxed text-white/30">
-                      {t("auth.register.agreementTextService")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Site Terms of Service */}
-                <div className="rounded-lg border border-white/6 bg-card-raised px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-white/60">
-                      {t("auth.register.agreementSectionSiteTerms")}
-                    </p>
-                    <button
-                      type="button" onClick={() => setTermsOpen(true)}
-                      className="text-[11px] text-copper/70 transition hover:text-copper"
-                    >
-                      {t("auth.register.agreementReadFull")}
-                    </button>
-                  </div>
-                  <div className="mt-2 max-h-20 overflow-y-auto [scrollbar-width:thin]">
-                    <p className="text-xs leading-relaxed text-white/30">
-                      {t("auth.register.agreementTextSiteTermsPreview")}
-                    </p>
-                  </div>
-                  <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-sm text-white/60">
-                    <input
-                      type="checkbox"
-                      checked={termsAccepted}
-                      onChange={(e) => {
-                        setTermsAccepted(e.target.checked);
-                        if (e.target.checked)
-                          setFieldErrors((prev) => ({ ...prev, terms: "" }));
-                      }}
-                      className="accent-copper"
-                    />
-                    {t("auth.register.termsCheckboxLabel")}
-                  </label>
-                  {fieldErrors.terms && (
-                    <p className="mt-1 text-xs text-danger">{fieldErrors.terms}</p>
-                  )}
-                </div>
-
-                {/* Privacy */}
-                <div className="rounded-lg border border-white/6 bg-card-raised px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-white/60">
-                      {t("auth.register.agreementSectionPrivacy")}
-                    </p>
-                    <button
-                      type="button" onClick={() => setPrivacyOpen(true)}
-                      className="text-[11px] text-copper/70 transition hover:text-copper"
-                    >
-                      {t("auth.register.agreementReadFull")}
-                    </button>
-                  </div>
-                  <div className="mt-2 max-h-20 overflow-y-auto [scrollbar-width:thin]">
-                    <p className="text-xs leading-relaxed text-white/30">
-                      {t("auth.register.agreementTextPrivacyPreview")}
-                    </p>
-                  </div>
-                  <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-sm text-white/60">
-                    <input
-                      type="checkbox"
-                      checked={privacyAccepted}
-                      onChange={(e) => {
-                        setPrivacyAccepted(e.target.checked);
-                        if (e.target.checked)
-                          setFieldErrors((prev) => ({ ...prev, privacy: "" }));
-                      }}
-                      className="accent-copper"
-                    />
-                    {t("auth.register.privacyCheckboxLabel")}
-                  </label>
-                  {fieldErrors.privacy && (
-                    <p className="mt-1 text-xs text-danger">{fieldErrors.privacy}</p>
-                  )}
-                </div>
-
-                {/* Signature */}
-                <div>
-                  <p className="mb-2 text-xs text-white/45">
-                    {t("auth.register.signatureLabel")} <span className="text-copper/60">*</span>
-                  </p>
-                  <SignatureCanvas
-                    ref={sigCanvasRef}
-                    hasError={!!fieldErrors.signature}
-                    onBegin={() => setFieldErrors((prev) => ({ ...prev, signature: "" }))}
-                  />
-                  {fieldErrors.signature && (
-                    <p className="mt-1 text-xs text-danger">{fieldErrors.signature}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => { setStep(1); setSubmitError(null); }}
-                  className="flex-1 rounded-sm border border-white/15 px-4 py-2.5 text-sm text-white/55 transition hover:border-white/30 hover:text-white/80"
-                >
-                  → {t("auth.register.backStep")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-[2] rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {submitting ? t("auth.register.submittingText") : t("auth.register.submitText")}
-                </button>
-              </div>
-            </div>
-          </form>
+          <RegisterStep2Form
+            fieldErrors={fieldErrors}
+            termsAccepted={termsAccepted}
+            privacyAccepted={privacyAccepted}
+            submitting={submitting}
+            sigCanvasRef={sigCanvasRef}
+            onTermsChange={(checked) => {
+              setTermsAccepted(checked);
+              if (checked) setFieldErrors((prev) => ({ ...prev, terms: "" }));
+            }}
+            onPrivacyChange={(checked) => {
+              setPrivacyAccepted(checked);
+              if (checked) setFieldErrors((prev) => ({ ...prev, privacy: "" }));
+            }}
+            onOpenContract={() => setContractOpen(true)}
+            onOpenTerms={() => setTermsOpen(true)}
+            onOpenPrivacy={() => setPrivacyOpen(true)}
+            onSignatureBegin={() => setFieldErrors((prev) => ({ ...prev, signature: "" }))}
+            onBack={() => { setStep(1); setSubmitError(null); }}
+            onSubmit={handleSubmit}
+          />
         )}
 
         <p className="mt-6 text-center text-xs text-white/30">
@@ -666,123 +415,24 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      {/* Contract modal */}
-      {contractOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setContractOpen(false); }}
-        >
-          <div className="flex max-h-[88vh] w-full max-w-xl flex-col rounded-xl border border-white/10 bg-card shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/8 px-5 py-3.5">
-              <h2 className="text-sm font-medium text-white/80">
-                {t("auth.register.agreementSectionService")}
-              </h2>
-              <button
-                type="button" onClick={() => setContractOpen(false)}
-                className="text-white/40 transition hover:text-white/70"
-                aria-label={t("auth.register.agreementClose")}
-              >✕</button>
-            </div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 [scrollbar-width:thin]">
-              {t("auth.register.agreementTextService")
-                .split("\n\n")
-                .map((para, i) => (
-                  <p key={i} className="text-sm leading-7 text-white/55">{para}</p>
-                ))}
-            </div>
-            <div className="shrink-0 border-t border-white/8 px-5 py-3 text-left">
-              <button
-                type="button" onClick={() => setContractOpen(false)}
-                className="rounded-sm bg-copper px-5 py-2 text-sm font-medium text-white transition hover:bg-gold"
-              >
-                {t("auth.register.agreementClose")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Site Terms modal */}
-      {termsOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setTermsOpen(false); }}
-        >
-          <div className="flex max-h-[88vh] w-full max-w-xl flex-col rounded-xl border border-white/10 bg-card shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/8 px-5 py-3.5">
-              <h2 className="text-sm font-medium text-white/80">
-                {t("auth.register.agreementSectionSiteTerms")}
-              </h2>
-              <button
-                type="button" onClick={() => setTermsOpen(false)}
-                className="text-white/40 transition hover:text-white/70"
-                aria-label={t("auth.register.agreementClose")}
-              >✕</button>
-            </div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 [scrollbar-width:thin]">
-              {t("auth.register.agreementTextSiteTerms")
-                .split("\n\n")
-                .map((para, i) => (
-                  <p key={i} className="text-sm leading-7 text-white/55">{para}</p>
-                ))}
-            </div>
-            <div className="shrink-0 border-t border-white/8 px-5 py-3 text-left">
-              <button
-                type="button"
-                onClick={() => {
-                  setTermsAccepted(true);
-                  setFieldErrors((prev) => ({ ...prev, terms: "" }));
-                  setTermsOpen(false);
-                }}
-                className="rounded-sm bg-copper px-5 py-2 text-sm font-medium text-white transition hover:bg-gold"
-              >
-                {t("auth.register.termsAcceptButton")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Privacy modal */}
-      {privacyOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setPrivacyOpen(false); }}
-        >
-          <div className="flex max-h-[88vh] w-full max-w-xl flex-col rounded-xl border border-white/10 bg-card shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/8 px-5 py-3.5">
-              <h2 className="text-sm font-medium text-white/80">
-                {t("auth.register.agreementSectionPrivacy")}
-              </h2>
-              <button
-                type="button" onClick={() => setPrivacyOpen(false)}
-                className="text-white/40 transition hover:text-white/70"
-                aria-label={t("auth.register.agreementClose")}
-              >✕</button>
-            </div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 [scrollbar-width:thin]">
-              {t("auth.register.agreementTextPrivacy")
-                .split("\n\n")
-                .map((para, i) => (
-                  <p key={i} className="text-sm leading-7 text-white/55">{para}</p>
-                ))}
-            </div>
-            <div className="shrink-0 border-t border-white/8 px-5 py-3 text-left">
-              <button
-                type="button"
-                onClick={() => {
-                  setPrivacyAccepted(true);
-                  setFieldErrors((prev) => ({ ...prev, privacy: "" }));
-                  setPrivacyOpen(false);
-                }}
-                className="rounded-sm bg-copper px-5 py-2 text-sm font-medium text-white transition hover:bg-gold"
-              >
-                {t("auth.register.privacyAcceptButton")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RegisterModals
+        contractOpen={contractOpen}
+        termsOpen={termsOpen}
+        privacyOpen={privacyOpen}
+        onCloseContract={() => setContractOpen(false)}
+        onCloseTerms={() => setTermsOpen(false)}
+        onClosePrivacy={() => setPrivacyOpen(false)}
+        onAcceptTerms={() => {
+          setTermsAccepted(true);
+          setFieldErrors((prev) => ({ ...prev, terms: "" }));
+          setTermsOpen(false);
+        }}
+        onAcceptPrivacy={() => {
+          setPrivacyAccepted(true);
+          setFieldErrors((prev) => ({ ...prev, privacy: "" }));
+          setPrivacyOpen(false);
+        }}
+      />
     </div>
   );
 }
