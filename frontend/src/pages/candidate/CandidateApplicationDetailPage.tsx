@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
 import CompanyName from "@/components/ui/CompanyName";
 import {
   fetchApplicationResumeBlob,
@@ -168,16 +169,16 @@ export default function CandidateApplicationDetailPage() {
         {data.resume ? (
           <div className="mt-3 flex items-center justify-between gap-4">
             <p className="truncate text-sm text-white/80">{data.resume.filename}</p>
-            <button
-              type="button"
+            <Button
+              size="sm"
               onClick={downloadResume}
               disabled={downloading}
-              className="shrink-0 rounded-sm bg-copper px-3 py-1.5 text-sm text-white hover:bg-gold disabled:opacity-60"
+              className="shrink-0"
             >
               {downloading
                 ? t("candidate.applications.loading")
                 : t("candidate.applications.detail.resumeDownload")}
-            </button>
+            </Button>
           </div>
         ) : (
           <p className="mt-3 text-sm text-white/55">

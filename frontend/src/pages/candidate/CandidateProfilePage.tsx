@@ -2,6 +2,8 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import PageHeader from "@/components/ui/PageHeader";
+import Field from "@/components/ui/Field";
+import Button from "@/components/ui/Button";
 import { inputCls } from "@/styles/forms";
 import {
   changePassword,
@@ -233,15 +235,14 @@ function IdentitySection({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <button
+          <Button
             type="submit"
             disabled={submitting}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting
               ? t("candidate.profile.identity.saving")
               : t("candidate.profile.identity.save")}
-          </button>
+          </Button>
           <span
             aria-live="polite"
             className={`text-[11px] ${
@@ -387,15 +388,14 @@ function ApplyAutofillSection({
                 <span className="text-danger">{error}</span>
               )}
             </div>
-            <button
+            <Button
               type="submit"
               disabled={submitting}
-              className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? t("candidate.profile.autofill.saving")
                 : t("candidate.profile.autofill.save")}
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -899,23 +899,5 @@ function SettingsCard({
       </header>
       <div className="flex flex-1 flex-col">{children}</div>
     </section>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-xs text-white/55">{label}</span>
-      <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-[11px] text-white/35">{hint}</p>}
-    </label>
   );
 }

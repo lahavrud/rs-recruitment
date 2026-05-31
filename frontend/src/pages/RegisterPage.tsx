@@ -5,8 +5,10 @@ import { getInviteMetadata, register } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import SignatureCanvas, { type SignatureCanvasRef } from "@/components/ui/SignatureCanvas";
+import Field from "@/components/ui/Field";
 import { inputCls } from "@/styles/forms";
 import axios from "axios";
+import Eyebrow from "@/components/ui/Eyebrow";
 
 function useValidation() {
   const { t } = useTranslation();
@@ -104,24 +106,6 @@ const EMPTY: FormState = {
   contactMobilePhone: "",
   contactLandlinePhone: "",
 };
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs text-white/45">{label}</label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
-  );
-}
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -390,9 +374,9 @@ export default function RegisterPage() {
         {step === 1 && (
           <div className="space-y-4">
             <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-4">
                 {t("auth.register.companySection")}
-              </p>
+              </Eyebrow>
               <div className="space-y-3">
                 <Field label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
                   <input
@@ -432,9 +416,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-4">
                 {t("auth.register.contactSection", "איש קשר")}
-              </p>
+              </Eyebrow>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label={`${t("auth.register.contactFirstName")} *`} error={fieldErrors.contactFirstName}>
@@ -476,9 +460,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow className="mb-4">
                 {t("auth.register.accountSection")}
-              </p>
+              </Eyebrow>
               <div className="space-y-3">
                 <Field label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
                   <input
@@ -526,9 +510,9 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} noValidate>
             <div className="space-y-4">
               <div className="rounded-xl border border-white/8 bg-card px-5 py-5 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+                <Eyebrow>
                   {t("auth.register.agreementSection")}
-                </p>
+                </Eyebrow>
 
                 {/* Contract */}
                 <div className="rounded-lg border border-white/6 bg-card-raised px-4 py-3">

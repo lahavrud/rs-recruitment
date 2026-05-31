@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import Eyebrow from "@/components/ui/Eyebrow";
 import { UserRole } from "@/types/api";
 import AdminInbox from "@/components/admin/AdminInbox";
 import AdminStats from "@/components/admin/AdminStats";
@@ -56,9 +57,9 @@ export default function DashboardPage() {
           the dashboard data) instead of the email-prefix shim. */}
       {!isCandidate && (
         <header className="mb-8 border-b border-white/8 pb-6 sm:mb-10 sm:pb-8">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+          <Eyebrow>
             {today}
-          </p>
+          </Eyebrow>
           <h1 className="mt-3 text-2xl font-semibold text-white/90 sm:text-3xl">
             {greeting}
             {name && <span className="text-copper/85">{`, ${name}`}</span>}
@@ -147,9 +148,9 @@ function QuickActions() {
   ];
   return (
     <div>
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
+      <Eyebrow className="mb-3">
         {t("dashboard.quickActions.title")}
-      </p>
+      </Eyebrow>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {actions.map((a) => (
           <Link

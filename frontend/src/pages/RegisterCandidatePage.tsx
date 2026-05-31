@@ -6,6 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/ui/Logo";
 import { inputCls } from "@/styles/forms";
 import { registerCandidate } from "@/services/auth";
+import { EMAIL_RE } from "@/utils/validators";
+import Field from "@/components/ui/Field";
+import Eyebrow from "@/components/ui/Eyebrow";
+import Button from "@/components/ui/Button";
 
 type FieldName =
   | "fullName"
@@ -23,8 +27,6 @@ const PASSWORD_RE = {
   digit: /\d/,
   special: /[^A-Za-z0-9]/,
 };
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /**
  * Candidate self-registration form. Mirrors the company `RegisterPage`
  * shape: per-field inline errors validated on blur (cleared on next
@@ -285,9 +287,9 @@ export default function RegisterCandidatePage() {
 
           {/* ───────── Agreement section ───────── */}
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-copper">
+            <Eyebrow className="mb-2">
               {t("auth.register.agreementSection")}
-            </p>
+            </Eyebrow>
             <AgreementCard
               title={t("auth.register.agreementSectionSiteTerms")}
               readFullLabel={t("auth.register.agreementReadFull")}
@@ -366,25 +368,6 @@ export default function RegisterCandidatePage() {
           onClose={() => setPrivacyOpen(false)}
         />
       )}
-    </div>
-  );
-}
-
-/** Label + input + inline error. Matches the company `Field` helper. */
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs text-white/55">{label}</label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );
 }
@@ -492,13 +475,13 @@ function PolicyModal({
           ))}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-white/8 px-5 py-3">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="rounded-sm border border-white/20 px-3 py-1.5 text-sm text-white/65 transition hover:border-white/40 hover:text-white"
           >
             {closeLabel}
-          </button>
+          </Button>
           <button
             type="button"
             onClick={onAccept}

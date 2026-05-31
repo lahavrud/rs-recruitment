@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost" | "success";
+type Variant = "primary" | "ghost" | "danger" | "success";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -11,21 +11,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantCls: Record<Variant, string> = {
   primary:
-    "bg-copper text-white transition hover:brightness-110 focus:ring-2 focus:ring-copper/40 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
-  secondary:
-    "border border-line-2 text-ink-2 hover:bg-canvas disabled:opacity-50",
-  danger:
-    "border border-danger/30 text-danger hover:bg-danger/10 disabled:opacity-50",
+    "bg-copper font-medium text-white hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50",
   ghost:
-    "text-ink-2 hover:bg-subtle disabled:opacity-50",
+    "border border-white/20 text-white/60 hover:border-white/40 hover:text-white/90 disabled:cursor-not-allowed disabled:opacity-60",
+  danger:
+    "border border-danger/40 text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50",
   success:
-    "bg-success text-white hover:bg-success/90 disabled:opacity-50",
+    "bg-success/15 font-medium text-success hover:bg-success/25 disabled:cursor-not-allowed disabled:opacity-50",
 };
 
 const sizeCls: Record<Size, string> = {
   sm: "px-3 py-1.5 text-sm",
   md: "px-4 py-2 text-sm",
-  lg: "px-6 py-3 text-sm",
+  lg: "px-6 py-2.5 text-sm",
 };
 
 export default function Button({
@@ -37,7 +35,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-md font-medium transition ${variantCls[variant]} ${sizeCls[size]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-sm transition ${variantCls[variant]} ${sizeCls[size]} ${className}`}
       {...props}
     >
       {children}

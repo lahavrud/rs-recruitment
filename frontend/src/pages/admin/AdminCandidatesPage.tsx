@@ -19,6 +19,8 @@ import type {
   CandidateProfileUpdate,
 } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
+import Eyebrow from "@/components/ui/Eyebrow";
 import Dialog from "@/components/ui/Dialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
@@ -27,6 +29,7 @@ import TableSkeleton from "@/components/ui/TableSkeleton";
 import MobileListSkeleton from "@/components/admin/MobileListSkeleton";
 import SearchInput from "@/components/ui/SearchInput";
 import MobileEntityCard from "@/components/admin/MobileEntityCard";
+import Field from "@/components/ui/Field";
 import ActiveFilterChip from "@/components/admin/ActiveFilterChip";
 import FunnelIcon from "@/components/admin/FunnelIcon";
 import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
@@ -34,20 +37,20 @@ import DropdownMenu, {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
+import KebabButton from "@/components/ui/KebabButton";
+import NoResults from "@/components/ui/NoResults";
+import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
+import { useResetOnTrigger } from "@/hooks/useResetOnTrigger";
+import { useConfirmableClose } from "@/hooks/useConfirmableClose";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
 import { inputCls } from "@/styles/forms";
 import { MIME_TO_EXT } from "@/utils/mime";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/utils/formatDate";
+import { isDirtyByJSON } from "@/utils/isDirty";
+import { EMAIL_RE, MOBILE_RE } from "@/utils/validators";
 
 function buildDownloadName(candidateName: string, fileKey: string, mimeType: string): string {
   const slug = candidateName.trim().replace(/\s+/g, "-");
@@ -370,9 +373,9 @@ export default function AdminCandidatesPage() {
           >
             {/* Company first → in RTL it lands on the visual right */}
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-1.5">
                 {t("admin.candidates.filterByCompany")}
-              </p>
+              </Eyebrow>
               <SearchableMultiSelect<number>
                 values={companyFilter}
                 onChange={(next) => {
@@ -394,9 +397,9 @@ export default function AdminCandidatesPage() {
               />
             </div>
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
+              <Eyebrow size="md" className="mb-1.5">
                 {t("admin.candidates.filterByJob")}
-              </p>
+              </Eyebrow>
               <SearchableMultiSelect<number>
                 values={jobFilter}
                 onChange={setJobFilter}
@@ -431,11 +434,7 @@ export default function AdminCandidatesPage() {
           headline={t("admin.candidates.empty")}
         />
       ) : filteredCandidates.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
-          <p className="text-sm text-white/40">
-            {t("publicJobs.board.noResults")}
-          </p>
-        </div>
+        <NoResults />
       ) : (
         <>
           {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
@@ -444,15 +443,7 @@ export default function AdminCandidatesPage() {
               const actions = (
                 <DropdownMenu
                   ariaLabel={t("admin.candidates.rowActionsLabel")}
-                  trigger={
-                    <button
-                      type="button"
-                      className="inline-flex size-9 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span aria-hidden>⋮</span>
-                    </button>
-                  }
+                  trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
                   <DropdownMenuItem onSelect={() => setEditing(c)}>
                     {t("admin.candidates.editAction")}
@@ -568,14 +559,7 @@ export default function AdminCandidatesPage() {
                     >
                       <DropdownMenu
                         ariaLabel={t("admin.candidates.rowActionsLabel")}
-                        trigger={
-                          <button
-                            type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition hover:bg-white/8 hover:text-white/80"
-                          >
-                            <span aria-hidden>⋮</span>
-                          </button>
-                        }
+                        trigger={<KebabButton size="sm" />}
                       >
                         <DropdownMenuItem onSelect={() => setDetail(c)}>
                           {t("admin.candidates.viewAction")}
@@ -598,12 +582,7 @@ export default function AdminCandidatesPage() {
             </table>
           </div>
 
-          <div ref={sentinelRef} />
-          {isFetchingMore && (
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("common.loading")}
-            </p>
-          )}
+          <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
         </>
       )}
 
@@ -696,18 +675,17 @@ function DetailDialog({ candidate, onClose, onEdit, onDelete }: DetailProps) {
       size="lg"
       footer={
         <>
-          <button
+          <Button
+            variant="danger"
             onClick={onDelete}
-            className="rounded-sm border border-danger/40 px-4 py-2 text-sm text-danger hover:bg-danger/10"
           >
             {t("admin.candidates.deleteAction")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onEdit}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
             {t("admin.candidates.editAction")}
-          </button>
+          </Button>
         </>
       }
     >
@@ -793,9 +771,9 @@ function CandidateDetailBody({
       </div>
 
       <div className="border-t border-white/8 pt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
+        <Eyebrow>
           {t("admin.candidates.applicationsSection")}
-        </p>
+        </Eyebrow>
         {appsError ? (
           <p className="mt-3 text-xs text-danger">
             {t("admin.candidates.errors.applicationsLoadFailed")}
@@ -887,18 +865,14 @@ interface EditProps {
   onError: () => void;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[+\d\s().-]{5,20}$/;
-
 function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState<CandidateProfileUpdate>({});
   const [initialForm, setInitialForm] = useState<CandidateProfileUpdate>({});
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
-  useEffect(() => {
+  useResetOnTrigger(candidate, () => {
     if (!candidate) return;
     const seed: CandidateProfileUpdate = {
       full_name: candidate.full_name,
@@ -906,23 +880,18 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       phone: candidate.phone ?? "",
       linkedin_url: candidate.linkedin_url ?? "",
     };
-    /* eslint-disable react-hooks/set-state-in-effect */
     setForm(seed);
     setInitialForm(seed);
     setErrors({});
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [candidate]);
+  });
 
   function set<K extends keyof CandidateProfileUpdate>(key: K, value: CandidateProfileUpdate[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key as string]) setErrors((prev) => ({ ...prev, [key as string]: "" }));
   }
 
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-
-  function handleClose() {
-    if (isDirty) { setConfirmDiscard(true); } else { onClose(); }
-  }
+  const isDirty = isDirtyByJSON(form, initialForm);
+  const { handleClose, discardConfirm } = useConfirmableClose({ isDirty, onClose });
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -932,7 +901,7 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
     if (!form.email?.trim()) e.email = t("common.validation.required");
     else if (!EMAIL_RE.test(form.email)) e.email = t("common.validation.emailInvalid");
     if (!form.phone?.trim()) e.phone = t("common.validation.required");
-    else if (!PHONE_RE.test(form.phone.trim())) {
+    else if (!MOBILE_RE.test(form.phone.trim())) {
       e.phone = t("common.validation.phoneInvalid");
     }
     if (form.linkedin_url?.trim()) {
@@ -978,69 +947,38 @@ function EditDialog({ candidate, onClose, onSaved, onError }: EditProps) {
       size="lg"
       footer={
         <>
-          <button
+          <Button
+            variant="ghost"
             onClick={handleClose}
             disabled={saving}
-            className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/60 hover:border-white/40 hover:text-white/90 disabled:opacity-60"
           >
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold disabled:opacity-60"
           >
             {saving ? t("common.saving") : t("common.save")}
-          </button>
+          </Button>
         </>
       }
     >
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <Field label={t("admin.candidates.fields.fullName")}>
+        <Field label={t("admin.candidates.fields.fullName")} error={errors.full_name}>
           <input type="text" value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} className={inputCls} />
-          {errors.full_name && <p className="mt-1 text-xs text-danger">{errors.full_name}</p>}
         </Field>
-        <Field label={t("admin.candidates.fields.email")}>
+        <Field label={t("admin.candidates.fields.email")} error={errors.email}>
           <input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} className={inputCls} />
-          {errors.email && <p className="mt-1 text-xs text-danger">{errors.email}</p>}
         </Field>
-        <Field label={t("admin.candidates.fields.phone")}>
+        <Field label={t("admin.candidates.fields.phone")} error={errors.phone}>
           <input type="tel" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
-          {errors.phone && <p className="mt-1 text-xs text-danger">{errors.phone}</p>}
         </Field>
-        <Field label={t("admin.candidates.fields.linkedin")}>
+        <Field label={t("admin.candidates.fields.linkedin")} error={errors.linkedin_url}>
           <input type="url" value={form.linkedin_url ?? ""} onChange={(e) => set("linkedin_url", e.target.value)} className={inputCls} />
-          {errors.linkedin_url && <p className="mt-1 text-xs text-danger">{errors.linkedin_url}</p>}
         </Field>
       </div>
     </Dialog>
-    <ConfirmDialog
-      open={confirmDiscard}
-      onOpenChange={(o) => !o && setConfirmDiscard(false)}
-      title={t("common.discardTitle")}
-      message={t("common.discardMessage")}
-      cancelLabel={t("common.continueEditing")}
-        confirmLabel={t("common.discard")}
-      variant="danger"
-      onConfirm={() => { setConfirmDiscard(false); onClose(); }}
-    />
+    {discardConfirm}
     </>
-  );
-}
-
-function Field({
-  label,
-  children,
-  full,
-}: {
-  label: string;
-  children: React.ReactNode;
-  full?: boolean;
-}) {
-  return (
-    <label className={`block ${full ? "sm:col-span-2" : ""}`}>
-      <span className="block text-xs text-white/45">{label}</span>
-      <span className="mt-1 block">{children}</span>
-    </label>
   );
 }
