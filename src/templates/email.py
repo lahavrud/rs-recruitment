@@ -212,6 +212,16 @@ def build_rejection_html(company_name: str) -> str:
     )
 
 
+def build_application_rejection_html(candidate_name: str, job_title: str) -> str:
+    return _render(
+        "application_rejection.html",
+        subject=f"עדכון בנוגע למועמדותך למשרת {job_title} — RS Recruiting",
+        preheader=f"עדכון בנוגע למועמדותך למשרת {job_title}.",
+        candidate_name=candidate_name,
+        job_title=job_title,
+    )
+
+
 def build_new_registration_html(
     company_name: str,
     company_id: str,
