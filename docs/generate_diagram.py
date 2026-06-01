@@ -1,14 +1,13 @@
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import ECR
 from diagrams.aws.database import RDS
-from diagrams.aws.integration import SNS
+from diagrams.aws.integration import SNS, SQS
 from diagrams.aws.management import SSM, Cloudwatch
 from diagrams.aws.security import Inspector
 from diagrams.aws.storage import S3
 from diagrams.generic.network import Firewall
 from diagrams.onprem.ci import GithubActions
 from diagrams.onprem.client import Users
-from diagrams.onprem.inmemory import Redis
 from diagrams.onprem.network import Nginx
 
 graph_attr = {
@@ -45,17 +44,17 @@ with Diagram(
         s3 = S3("S3\nuploads · deploy · trail")
         cw = Cloudwatch("CloudWatch\n7 alarms · 6 log groups")
         sns = SNS("SNS\nops-alerts")
+        sqs = SQS("SQS\nrs-recruiting-tasks")
         inspector = Inspector("Inspector2\nvuln scanning")
 
         with Cluster("VPC  10.0.0.0/16\npublic + private subnets  (1a + 1b)"):
             nginx = Nginx("nginx\nSPA + /api proxy")
-            redis = Redis("Redis\ntask queue")
             rds = RDS("RDS PostgreSQL 16\ndb.t3.micro")
 
     # Request path
     users >> cloudflare >> nginx
     nginx >> rds
-    nginx >> redis
+    nginx >> sqs
     nginx >> s3
 
     # CI/CD
