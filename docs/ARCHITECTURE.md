@@ -36,23 +36,25 @@ These principles guide all architectural decisions:
 
 ## Authentication Model
 
-### Hybrid Auth Model
+### Three-Role Auth Model
 
-**Decision:** Implement a hybrid authentication model where authenticated Users (Admins and Companies) can log in, while Candidates remain unauthenticated leads.
-
-**Rationale:** This model reduces security risk and complexity while keeping the system flexible for future enhancements.
+**Decision:** All three user types authenticate with JWT — Admins, Companies, and Candidates each have their own registration/activation paths but share a single `User` table with a `role` discriminator.
 
 **Implementation:**
-- **Users** authenticate and log in
-  - Admins (role: `ADMIN`)
-  - Companies (role: `COMPANY`)
-- **Candidates** do NOT authenticate
-  - They are treated as leads / data entities
-  - Future authentication is optional and non-breaking
+- **Admins** (`role: ADMIN`) — seeded directly, no public registration
+- **Companies** (`role: COMPANY`) — self-register at `/register`; admin approves → activation email → `/activate?token=` (48h TTL)
+- **Candidates** (`role: CANDIDATE`) — self-register at `/register-candidate`; activation email (2h TTL) → `/activate?token=` → `CandidateProfile` created; consent IP/UA captured from the activation request
+
+**Auth mechanics:**
+- JWT access token in `localStorage`; HttpOnly refresh-token cookie set by backend
+- `AuthContext` resolves initial state synchronously from `localStorage`, then verifies via `/api/auth/me` on mount
+- Account lockout after repeated failed logins (`failed_login_attempts` + `locked_until` on `User`)
+- Password reset: `POST /api/auth/forgot-password` → email link → `POST /api/auth/reset-password`
 
 **Related Issues:**
 - [#25](https://github.com/lahavrud/rs-recruitment/issues/25) - feat: minimal auth system (registration + login)
 - [#23](https://github.com/lahavrud/rs-recruitment/issues/23) - feat: company onboarding (auth + db)
+- [#604](https://github.com/lahavrud/rs-recruitment/issues/604) - feat(candidate): candidate registration + activation (Sprint 11)
 
 **Status:** ✅ Implemented
 
@@ -103,31 +105,38 @@ These principles guide all architectural decisions:
 - **AWS SES** – Cost-effective at scale
 - **Postmark** – Developer-friendly, great deliverability
 
-**Chosen Solution:** Email abstraction layer with async task queue (Arq + Redis)
+**Chosen Solution:** Email abstraction layer with SQS-based async task queue
 - **Email Providers:** Abstract interface supporting SES and SMTP (`src/core/services/email.py`)
-- **Task Queue:** Arq with Redis for async email processing (`src/core/tasks.py`)
-- **Retry Logic:** Automatic retries for failed email sends
+- **Task Queue:** AWS SQS → `src/worker.py` worker process (`src/core/tasks.py`)
+- **Retry Logic:** SQS at-least-once delivery; tasks are idempotent; DLQ captures failures
 - Provider selection via `EMAIL_PROVIDER` environment variable (`ses` or `smtp`)
+- Local dev: tasks run inline when `SQS_QUEUE_URL` is not set (no queue needed)
 
 **Implementation:**
 - Abstract base class: `EmailProvider` in `src/core/services/email.py`
 - Implementations: `SESEmailProvider`, `SMTPEmailProvider`
-- Async task: `send_email_task()` in `src/core/tasks.py`
-- Redis integration: Redis service in `docker-compose.yml`
-- Configuration: `src/core/infrastructure/config.py` with email provider settings
+- Task producer: `enqueue_email_task()` in `src/core/tasks.py` — call sites unchanged from Arq era
+- Worker: `src/worker.py` — polls SQS, dispatches to `TASK_REGISTRY`
+- Configuration: `src/core/infrastructure/config.py`
 
-**Notification Triggers:**
-- New candidate application → Email admin
-- Company registration → Email admin (approval needed)
-- Job posted → Email admin (approval needed)
-- Application status changed → Email candidate/company
+**Notification Triggers (all implemented):**
+- Candidate applies → email admin + confirmation email to candidate
+- Company self-registers → email admin (approval needed)
+- Job posted by company → email admin (approval needed)
+- Job approved by admin → email company
+- Job rejected by admin → email company
+- Admin contacts company about a job → email company
+- Company approved by admin → email company (activation link)
+- Admin invite sent → email invite with registration URL
+- Candidate registers → activation email (2h TTL)
+- Password reset requested → reset-link email
+- GDPR data export ready → download-link email to candidate
 
 **Related Issues:**
-- [#44](https://github.com/lahavrud/rs-recruitment/issues/44) - feat(infra): Implement async task processing with Arq for guaranteed email delivery ✅ CLOSED
+- [#44](https://github.com/lahavrud/rs-recruitment/issues/44) - feat(infra): Implement async task processing ✅ CLOSED
 - [#30](https://github.com/lahavrud/rs-recruitment/issues/30) - infra: integrate AWS S3 and SES services ✅ CLOSED
-- [#90](https://github.com/lahavrud/rs-recruitment/issues/90) - feat8: Notifications Integration (pending)
 
-**Status:** ✅ Implemented (email service), 🔄 Pending (notification integration)
+**Status:** ✅ Fully implemented
 
 ---
 
@@ -135,17 +144,19 @@ These principles guide all architectural decisions:
 
 **Problem:** Standard HTTP requests must return quickly. Long-running tasks (like sending emails or processing files) will cause API timeouts and poor user experience.
 
-**Decision:** Implement an asynchronous background worker queue using Redis and Arq.
+**Decision:** Implement an asynchronous background worker using AWS SQS as the message broker and a long-polling Python worker.
 
 **Chosen Solution:**
-- **Broker:** Redis (In-memory data store, extremely fast for message queuing).
-- **Worker:** Arq (Python library specifically designed for asyncio and Redis).
+- **Broker:** AWS SQS (managed, durable, at-least-once delivery; visibility timeout = 300 s)
+- **Worker:** `src/worker.py` — asyncio long-poll loop; SIGTERM-graceful; dispatches by `TASK_REGISTRY` key
+- **Cron:** Nightly purge triggered by EventBridge Scheduler → SQS (not a cron inside the worker process)
 
 **Implementation:**
-- **Task Definition:** Tasks are defined as standard async Python functions in `src/core/tasks.py`.
-- **Worker Process:** A separate Docker container runs the Arq worker process to consume tasks off the Redis queue.
-- **API Integration:** The FastAPI endpoints push job payloads to Redis and immediately return `201 Created` or `200 OK` to the user.
-- **Resilience:** Built-in retry logic ensures transient failures (like AWS SES throttling) do not result in dropped tasks.
+- **Task Definition:** Async Python functions registered in `TASK_REGISTRY` in `src/core/tasks.py`.
+- **Worker Process:** Separate Docker container (`worker`) runs `python -m src.worker` to consume from SQS.
+- **API Integration:** Service layer calls `enqueue_*_task()` via `defer_after_commit()` — tasks enqueue after the DB transaction commits, preventing phantom messages on rollback. Endpoints return their normal status codes immediately.
+- **Local Dev:** `SQS_QUEUE_URL` unset → tasks run inline (no queue needed).
+- **Resilience:** SQS at-least-once delivery; tasks are written to be idempotent. Dead-letter queue captures repeated failures.
 
 **Status:** ✅ Implemented
 
@@ -159,9 +170,9 @@ These principles guide all architectural decisions:
 
 **Implementation:**
 - **Dockerfile:** Multi-stage build with Python 3.12 base image
-- **docker-compose.yml:** Includes API service, Redis service, and Arq worker
+- **docker-compose.yml:** Includes API service and PostgreSQL; worker is defined but commented out (runs inline for local dev when `SQS_QUEUE_URL` is unset)
 - **Health Checks:** Configured for all services
-- **Volume Mounts:** Persistent data storage for SQLite (dev) and local storage
+- **Volume Mounts:** Persistent data storage for PostgreSQL and local file storage
 
 **Related Issues:**
 - [#9](https://github.com/lahavrud/rs-recruitment/issues/9) - Containerize application with docker ✅ CLOSED
@@ -248,8 +259,11 @@ These principles guide all architectural decisions:
 | `/` | LandingPage | — | Public landing page |
 | `/login` | LoginPage | — | JWT login form |
 | `/register` | RegisterPage | — | Company self-registration (pending approval) |
-| `/activate` | ActivatePage | — | Invite-token activation (set password) |
-| `/jobs` | JobBoardPage | — | Published job listings |
+| `/register-candidate` | RegisterCandidatePage | — | Candidate self-registration |
+| `/activate` | ActivatePage | — | Activation-token handler (company + candidate) |
+| `/forgot-password` | ForgotPasswordPage | — | Request password reset email |
+| `/reset-password` | ResetPasswordPage | — | Set new password via reset token |
+| `/jobs` | JobBoardPage | — | Published job listings (always public shell) |
 | `/jobs/:id` | JobDetailPage | — | Single job detail |
 | `/jobs/:id/apply` | ApplicationPage | — | Candidate application form (multipart upload) |
 | `/dashboard` | DashboardPage | `ProtectedRoute` | Role-aware authenticated landing |
@@ -258,6 +272,9 @@ These principles guide all architectural decisions:
 | `/admin/applications` | AdminApplicationsPage | `AdminRoute` | Application management |
 | `/admin/candidates` | AdminCandidatesPage | `AdminRoute` | Candidate directory |
 | `/company/jobs` | CompanyJobsPage | `CompanyRoute` | Company's own jobs |
+| `/candidate/profile` | CandidateProfilePage | `CandidateRoute` | Edit profile + resume upload |
+| `/candidate/applications` | CandidateApplicationsPage | `CandidateRoute` | Submitted applications list |
+| `/candidate/applications/:id` | CandidateApplicationDetailPage | `CandidateRoute` | Single application detail |
 
 **Project Structure:**
 ```
@@ -292,7 +309,7 @@ frontend/
 └── package.json
 ```
 
-**Design system conventions** are documented in `CLAUDE.md` (Design System section). Key rules: use `<Button>` for all action buttons, `<Eyebrow>` for section labels, `FormField`/`AdminField` instead of local Field components, and import `formatDate`/validation from `utils/`.
+**Design system conventions** are documented in `CLAUDE.md` (Design System section). Key rules: use `<Button>` for all action buttons, `<Eyebrow>` for section labels, `<Field>` from `@/components/ui/Field` for form fields, and import `formatDate`/validation from `@/utils/`.
 
 **Related Issues:**
 - [#91](https://github.com/lahavrud/rs-recruitment/issues/91) - frontend1: Frontend Structure & Setup ✅ CLOSED
@@ -535,9 +552,9 @@ erDiagram
 
 **Related Issues:**
 
-* [#94](https://github.com/lahavrud/rs-recruitment/issues/94) - devops1: Database Backup Strategy 🔄 OPEN
+* [#94](https://github.com/lahavrud/rs-recruitment/issues/94) - devops1: Database Backup Strategy ✅ CLOSED
 
-**Status:** 🔄 Decision made, implementation pending
+**Status:** ✅ Implemented — RDS automated backups active (production)
 
 ---
 
@@ -673,8 +690,9 @@ This section tracks when decisions were made and implemented:
 | Database Models | [#42](https://github.com/lahavrud/rs-recruitment/issues/42) | ✅ Implemented | - |
 | Error Handling | [#47](https://github.com/lahavrud/rs-recruitment/issues/47), [#48](https://github.com/lahavrud/rs-recruitment/issues/48) | ✅ Implemented | - |
 | Production Infrastructure | [#97](https://github.com/lahavrud/rs-recruitment/issues/97) | ✅ Live | 2026-04-23 |
-| Database Backup Strategy | [#94](https://github.com/lahavrud/rs-recruitment/issues/94) | 🔄 Pending | - |
-| Staging Environment | [#95](https://github.com/lahavrud/rs-recruitment/issues/95), [#96](https://github.com/lahavrud/rs-recruitment/issues/96) | 🔄 Pending | - |
+| Database Backup Strategy | [#94](https://github.com/lahavrud/rs-recruitment/issues/94) | ✅ Implemented (RDS automated backups) | - |
+| Candidate Authentication | [#604](https://github.com/lahavrud/rs-recruitment/issues/604) | ✅ Implemented | 2026-05 |
+| Staging Environment | [#95](https://github.com/lahavrud/rs-recruitment/issues/95), [#96](https://github.com/lahavrud/rs-recruitment/issues/96) | 🧊 Icebox | - |
 | Pre-commit Hooks | [#75](https://github.com/lahavrud/rs-recruitment/issues/75) | ✅ Implemented | - |
 | Code Validation | [#80](https://github.com/lahavrud/rs-recruitment/issues/80) | ✅ Implemented | - |
 
@@ -682,19 +700,20 @@ This section tracks when decisions were made and implemented:
 
 ## Future Considerations
 
-These are potential future architecture decisions that may need to be made:
+Potential future architectural decisions:
 
-1. **Candidate Authentication** – Currently candidates are unauthenticated leads. Future authentication would be optional and non-breaking.
-2. **Microservices** – Currently a monolith. Future microservices would require careful planning.
-3. **Advanced Monitoring** – Basic monitoring is planned. Advanced observability (tracing, metrics) may be needed.
-4. **Caching Strategy** – No caching layer currently. Redis could be used for caching in addition to task queue.
-5. **API Versioning** – No versioning strategy currently. May be needed for future API changes.
+1. **Candidate Application Editing & Withdrawal** – Allow candidates to edit or retract submitted applications (#610).
+2. **GDPR Right-to-Erasure** – Candidate-initiated account deletion flow (#615).
+3. **Advanced Matching / Notifications** – Candidate job-match alerts, company candidate-match suggestions.
+4. **Microservices** – Currently a monolith. Only warranted if separate scaling or team boundaries emerge.
+5. **Caching Strategy** – No cache layer; Redis was removed when the task queue moved to SQS. Add back only if hot-path latency becomes an issue.
+6. **API Versioning** – No versioning today; add if a breaking public API is needed.
 
 ---
 
 ## References
 
 * [GitHub Issues](https://github.com/lahavrud/rs-recruitment/issues) - All architecture-related issues
-* [Roadmap](https://www.google.com/search?q=ROADMAP.md) - Development timeline and dependencies
-* [Context](CONTEXT.md) - Project context and standards
-* [GitHub Organization](docs/GITHUB_ORGANIZATION.md) - Issue templates and project management
+* [CLAUDE.md](../CLAUDE.md) - Developer guide, design system, conventions, and running locally
+* [GitHub Organization](GITHUB_ORGANIZATION.md) - Issue templates and project management
+* [Retention Purge Runbook](RETENTION_PURGE.md) - Candidate data retention background job
