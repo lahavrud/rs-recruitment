@@ -106,10 +106,11 @@ These principles guide all architectural decisions:
 - **Postmark** – Developer-friendly, great deliverability
 
 **Chosen Solution:** Email abstraction layer with SQS-based async task queue
-- **Email Providers:** Abstract interface supporting SES and SMTP (`src/core/services/email.py`)
+- **Development:** SMTP to Mailpit (`docker-compose` service on port 1025; web UI at http://localhost:8025) — no provider account needed
+- **Production:** Resend via SMTP relay (`EMAIL_PROVIDER=smtp`; `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` loaded from SSM). AWS SES was considered but sandbox migration to production was blocked.
+- **Code abstractions:** `SESEmailProvider` and `SMTPEmailProvider` in `src/core/services/email.py`; selection via `EMAIL_PROVIDER` env var
 - **Task Queue:** AWS SQS → `src/worker.py` worker process (`src/core/tasks.py`)
 - **Retry Logic:** SQS at-least-once delivery; tasks are idempotent; DLQ captures failures
-- Provider selection via `EMAIL_PROVIDER` environment variable (`ses` or `smtp`)
 - Local dev: tasks run inline when `SQS_QUEUE_URL` is not set (no queue needed)
 
 **Implementation:**
@@ -170,7 +171,7 @@ These principles guide all architectural decisions:
 
 **Implementation:**
 - **Dockerfile:** Multi-stage build with Python 3.12 base image
-- **docker-compose.yml:** Includes API service and PostgreSQL; worker is defined but commented out (runs inline for local dev when `SQS_QUEUE_URL` is unset)
+- **docker-compose.yml:** Includes API service, PostgreSQL 16, and Mailpit (local SMTP on port 1025, web UI at :8025); worker is defined but commented out (runs inline in API process for local dev when `SQS_QUEUE_URL` is unset)
 - **Health Checks:** Configured for all services
 - **Volume Mounts:** Persistent data storage for PostgreSQL and local file storage
 
@@ -263,6 +264,10 @@ These principles guide all architectural decisions:
 | `/activate` | ActivatePage | — | Activation-token handler (company + candidate) |
 | `/forgot-password` | ForgotPasswordPage | — | Request password reset email |
 | `/reset-password` | ResetPasswordPage | — | Set new password via reset token |
+| `/about` | AboutPage | — | About the platform |
+| `/contact` | ContactPage | — | Contact form |
+| `/articles` | ArticlesIndexPage | — | Blog / articles listing |
+| `/articles/:slug` | ArticlePage | — | Single article |
 | `/jobs` | JobBoardPage | — | Published job listings (always public shell) |
 | `/jobs/:id` | JobDetailPage | — | Single job detail |
 | `/jobs/:id/apply` | ApplicationPage | — | Candidate application form (multipart upload) |
@@ -365,12 +370,17 @@ frontend/
 
 ```
 src/
-├── api/              # Thin routers (FastAPI endpoints)
-│   ├── auth.py
-│   └── admin.py
-└── services/         # Business logic
-    ├── auth.py
-    └── admin.py
+├── api/              # Thin routers (FastAPI endpoints) — one package per domain
+│   ├── auth/         # login, registration, activation, password_reset, candidate_registration
+│   ├── admin/        # companies, jobs, applications, candidates, invites, audit
+│   ├── candidate/    # me, applications, data_export
+│   ├── company/      # jobs, profile, resumes
+│   └── public/       # job board, apply flow
+└── services/         # Business logic — mirrors api/ layout
+    ├── auth/
+    ├── admin/
+    ├── candidate/
+    └── public/
 ```
 
 **Related Issues:**
@@ -572,12 +582,12 @@ Cloudflare  ←── TLS termination, DDoS protection, CDN caching
 EC2 t3.micro (Amazon Linux 2023, us-east-1)
   ├── nginx:alpine       ← serves React SPA + proxies /api /auth /health → api:8000
   ├── api container      ← FastAPI (pulled from ECR on each deploy)
-  ├── worker container   ← Arq background worker (same ECR image, different CMD)
-  └── redis:7-alpine     ← in-memory job queue for Arq
+  └── worker container   ← SQS worker (same ECR image, different CMD: python -m src.worker)
         │
 RDS PostgreSQL db.t3.micro  ← private subnets, encrypted at rest
 S3 rs-recruitment-*         ← file uploads + CI deploy artifacts
 ECR rs-recruitment/api      ← Docker image registry
+AWS SQS rs-recruiting-tasks ← async task queue (email sends, data exports, retention purge)
 ```
 
 **AWS Resources:**
@@ -588,7 +598,8 @@ ECR rs-recruitment/api      ← Docker image registry
 | RDS | `rs-recruitment-prod-db` | PostgreSQL 16, private subnets |
 | S3 | `<APP_BUCKET>` | Uploads + deploy artifacts |
 | ECR | `rs-recruitment/api` | Docker images |
-| IAM Role (EC2) | `rs-recruitment-app-role` | SSM, ECR pull, S3, SSM params |
+| SQS | `rs-recruiting-tasks` | Async task queue for worker |
+| IAM Role (EC2) | `rs-recruitment-app-role` | SSM, ECR pull, S3, SQS receive/delete, CloudWatch metrics |
 | IAM Role (CI) | `github-actions-rs-recruitment` | OIDC, ECR push, S3 deploy, SSM send |
 
 **Domain:** `rs-recruiting.com` managed in Cloudflare (DNS, TLS via Cloudflare Flexible, CDN)
