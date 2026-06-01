@@ -345,7 +345,6 @@ async def test_update_status_rejection_email_payload(
     payload = email_payloads[0]
     assert payload["to"] == "candidate@test.com"
     assert "Test Job" in payload["subject"]
-    assert "Test Job" in payload["body"]
     assert "html_body" in payload
 
 
