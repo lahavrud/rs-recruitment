@@ -100,16 +100,16 @@ These principles guide all architectural decisions:
 **Decision:** Integrate email service early (Infrastructure phase) with async task processing for guaranteed delivery.
 
 **Options Considered:**
-- **SMTP (Gmail/SendGrid)** – Simple, reliable, works with any provider
-- **SendGrid API** – Transactional email service, better deliverability
-- **AWS SES** – Cost-effective at scale
+- **SMTP relay (Resend)** – Generous free tier, excellent deliverability, simple SMTP credentials
+- **SendGrid API** – Transactional email service, good deliverability
+- **AWS SES** – Cost-effective at scale, but production access requires approval and sandbox lifting
 - **Postmark** – Developer-friendly, great deliverability
 
 **Chosen Solution:** Email abstraction layer with SQS-based async task queue
-- **Email Providers:** Abstract interface supporting SES and SMTP (`src/core/services/email.py`)
+- **Email Provider in production:** Resend via SMTP relay (`EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp.resend.com`)
+- **Code abstractions:** `SESEmailProvider` and `SMTPEmailProvider` both exist; production uses `SMTPEmailProvider`
 - **Task Queue:** AWS SQS → `src/worker.py` worker process (`src/core/tasks.py`)
 - **Retry Logic:** SQS at-least-once delivery; tasks are idempotent; DLQ captures failures
-- Provider selection via `EMAIL_PROVIDER` environment variable (`ses` or `smtp`)
 - Local dev: tasks run inline when `SQS_QUEUE_URL` is not set (no queue needed)
 
 **Implementation:**
