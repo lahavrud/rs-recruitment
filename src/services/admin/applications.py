@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.core.infrastructure.config import settings
 from src.core.infrastructure.pagination import (
     CursorPage,
     apply_cursor,
@@ -17,6 +18,7 @@ from src.models import Application
 from src.schemas import ApplicationRead, ApplicationWithDetails
 from src.services.exceptions import ApplicationNotFoundError
 from src.services.utils.audit import record_audit_event
+from src.templates.email import build_application_rejection_html
 
 
 async def list_applications(
@@ -112,13 +114,18 @@ async def update_application_status(
 
     Returns:
         Tuple of (updated ApplicationRead, list of email payload dicts).
-        Each payload dict has keys: ``to``, ``subject``, ``body``.
+        Each payload dict has keys: ``to``, ``subject``, ``body``, ``html_body``.
 
     Raises:
         ApplicationNotFoundError: If application not found
     """
     result = await session.execute(
-        select(Application).where(Application.id == application_id)  # pyright: ignore[reportArgumentType]
+        select(Application)  # pyright: ignore[reportArgumentType]
+        .options(
+            selectinload(Application.candidate),  # pyright: ignore[reportArgumentType]
+            selectinload(Application.job),  # pyright: ignore[reportArgumentType]
+        )
+        .where(Application.id == application_id)  # pyright: ignore[reportArgumentType]
     )
     application = result.scalar_one_or_none()
     if not application:
@@ -147,7 +154,41 @@ async def update_application_status(
             ip_address=ip_address,
         )
 
-    return ApplicationRead.model_validate(application), []
+    email_payloads: list[dict[str, str]] = []
+    newly_rejected = (
+        new_status == ApplicationStatus.REJECTED
+        and old_status != ApplicationStatus.REJECTED
+    )
+    if newly_rejected:
+        candidate = application.candidate
+        job = application.job
+        plain = (
+            f"{candidate.full_name} שלום,\n\n"
+            "ראשית, אנו רוצים להודות לך על הזמן שהשקעת בהגשת המועמדות ועל העניין "
+            "שגילית בתפקיד.\n\n"
+            "לאחר בחינה מעמיקה של קורות החיים מול צרכי הלקוח, הרינו לעדכנך כי בשלב "
+            "זה הוחלט לבחון מועמדים שרקעם התעסוקתי תואם באופן מדויק יותר את הפרופיל "
+            "המבוקש.\n\n"
+            "יחד עם זאת, התרשמנו מהפרופיל המקצועי ונשמח לשמור את קורות החיים אצלנו. "
+            "במידה ותעמוד על הפרק משרה שתהלם את הכישורים והניסיון הרלוונטיים, "
+            "נשמח מאוד ליצור קשר.\n\n"
+            "שוב תודה, והרבה הצלחה בהמשך הדרך המקצועית.\n\n"
+            "בברכה,\nצוות RS Recruiting\n\n"
+            f"סבורים שחלה טעות? ניתן לפנות אלינו: {settings.support_email}"
+        )
+        email_payloads = [
+            {
+                "to": candidate.email,
+                "subject": f"עדכון בנוגע למועמדותך למשרת {job.title} — RS Recruiting",
+                "body": plain,
+                "html_body": build_application_rejection_html(
+                    candidate_name=candidate.full_name,
+                    job_title=job.title,
+                ),
+            }
+        ]
+
+    return ApplicationRead.model_validate(application), email_payloads
 
 
 async def update_application_notes(

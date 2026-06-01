@@ -329,6 +329,43 @@ async def test_update_status_not_found(session: AsyncSession):
         )
 
 
+@pytest.mark.asyncio
+async def test_update_status_rejection_email_payload(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Rejecting an application produces one email payload to the candidate."""
+    candidate = await _make_candidate(session, email="candidate@test.com")
+    app = await _make_application(session, company_with_user, candidate)
+
+    _, email_payloads = await update_application_status(
+        app.id, ApplicationStatus.REJECTED, session
+    )
+
+    assert len(email_payloads) == 1
+    payload = email_payloads[0]
+    assert payload["to"] == "candidate@test.com"
+    assert "Test Job" in payload["subject"]
+    assert "Test Job" in payload["body"]
+    assert "html_body" in payload
+
+
+@pytest.mark.asyncio
+async def test_update_status_rereject_no_email(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Re-rejecting an already-rejected application sends no email."""
+    candidate = await _make_candidate(session)
+    app = await _make_application(
+        session, company_with_user, candidate, status=ApplicationStatus.REJECTED
+    )
+
+    _, email_payloads = await update_application_status(
+        app.id, ApplicationStatus.REJECTED, session
+    )
+
+    assert email_payloads == []
+
+
 # ==================== update_application_notes ====================
 
 
