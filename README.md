@@ -23,7 +23,7 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 **Admin**
 - Invite-based company onboarding (token → registration → approval → activation)
 - Job approval queue (review, approve, or reject postings)
-- Application management with status tracking (New → Approved → Hired/Rejected)
+- Application management with status tracking (New → Approved → Hired/Rejected/Withdrawn)
 - Candidate directory with profile and resume access
 - Append-only audit log: every admin action is recorded with actor, target, IP, and timestamp
 
@@ -31,11 +31,18 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 - Job posting and management dashboard
 - View applications per job
 
+**Candidate**
+- Self-registration with email verification (2-hour activation window)
+- Profile management (name, phone, LinkedIn URL, resume upload)
+- View submitted applications and their status
+- GDPR data export (profile + per-application resumes as ZIP)
+- Password reset (forgot-password → email link → reset flow)
+
 **Auth**
-- JWT access token (30 min) + HttpOnly refresh cookie (7 days)
-- Role-based route guards (ADMIN / COMPANY / public)
-- Account lockout after 5 failed attempts (15-min Redis-backed cooldown)
-- JWT blacklisting on logout via JTI stored in Redis
+- JWT access token (10 min) + HttpOnly refresh cookie (7 days)
+- Role-based route guards (ADMIN / COMPANY / CANDIDATE / public)
+- Account lockout after 5 failed attempts (15-min cooldown, database-backed)
+- Refresh token rotation: single-use tokens deleted on use, logout, or password reset
 
 ---
 
@@ -46,12 +53,12 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7 |
 | Backend | FastAPI, SQLModel (SQLAlchemy + Pydantic), Alembic, Python 3.12 |
 | Database | PostgreSQL 16, asyncpg (connection pool + pre-ping) |
-| Background Jobs | Arq + Redis (async task queue, retry logic) |
+| Background Jobs | AWS SQS + custom Python worker, EventBridge Scheduler (nightly purge) |
 | File Storage | AWS S3 (production), local filesystem (dev) — provider abstraction |
-| Email | AWS SES / SMTP — same abstraction pattern as storage; 10+ HTML templates |
-| Auth | JWT (python-jose), bcrypt, HttpOnly refresh cookie, slowapi rate limiting |
+| Email | Resend via SMTP relay (production) — provider abstraction; 10+ HTML templates |
+| Auth | JWT (PyJWT), bcrypt, HttpOnly refresh cookie, slowapi rate limiting |
 | Observability | Sentry (backend + frontend with source maps), Google Tag Manager, CloudWatch |
-| Infrastructure | EC2 + RDS + S3 + ECR + SSM, Cloudflare (TLS + CDN) |
+| Infrastructure | EC2 + RDS + S3 + SQS + ECR + SSM, Cloudflare (TLS + CDN) |
 | CI/CD | GitHub Actions — OIDC auth, change detection, Pytest against PostgreSQL, SSM deploy |
 | Code Quality | Ruff, ESLint, TypeScript strict, 5 custom validation scripts, weekly pip-audit |
 
@@ -61,13 +68,14 @@ A full-stack recruitment CRM built for a boutique agency. Manages the full pipel
 
 <img src="docs/screenshots/aws-architecture.png" width="750" alt="AWS architecture diagram" />
 
-<p><em>Request path: Users → Cloudflare → nginx → RDS / Redis / S3. CI/CD path: GitHub Actions → ECR (Docker images) + SSM Run Command → EC2. Observability: CloudWatch alarms → SNS ops-alerts; Inspector2 scanning ECR images. All secrets live in SSM Parameter Store as SecureStrings.</em></p>
+<p><em>Request path: Users → Cloudflare → nginx → API container → RDS / S3. Background jobs: SQS → worker container. CI/CD path: GitHub Actions → ECR (Docker images) + SSM Run Command → EC2. Observability: CloudWatch alarms → SNS ops-alerts; Inspector2 scanning ECR images. All secrets live in SSM Parameter Store as SecureStrings.</em></p>
 
 ### Data model
 
 ```mermaid
 erDiagram
     User ||--o| CompanyProfile : owns
+    User ||--o| CandidateProfile : "linked (optional)"
     CompanyProfile ||--o{ Job : posts
     Job ||--o{ Application : receives
     CandidateProfile ||--o{ Application : submits
@@ -93,6 +101,7 @@ erDiagram
     }
     CandidateProfile {
         int id
+        int user_id "nullable — anonymous leads have no linked User"
         string full_name
         string email
         string resume_path
@@ -111,15 +120,13 @@ erDiagram
 
 ## Design Decisions
 
-**Hybrid authentication** — Admins and companies are authenticated users; candidates are anonymous leads. This reduces auth surface area and keeps the apply flow frictionless. The schema leaves `user_id` nullable on `CandidateProfile` so a future "claim your application" flow is non-breaking.
+**Three-tier authentication** — Admins, companies, and candidates are all full authenticated roles (ADMIN, COMPANY, CANDIDATE). Admins approve company invites; companies post jobs; candidates self-register, activate via email, and claim their applications. The schema distinguishes authenticated candidates (`user_id` linked) from anonymous leads (applications submitted before registration), enabling a seamless "register and claim" flow without breaking legacy data.
 
-**Redis failure policy: fail-closed vs. fail-open** — Different operations have different risk profiles. JWT blacklist reads/writes and invite-token validation are fail-closed (return HTTP 503 if Redis is down) because allowing a revoked token through is a security breach. Brute-force lockout checks are fail-open (log the error, allow the request) because blocking all logins during a Redis blip is worse than a missed lockout. The health endpoint returns `200 degraded` when Redis is unreachable so uptime monitors can distinguish "down" from "degraded."
+**Stateless JWT with short-lived access tokens** — Access tokens have a 10-minute TTL; refresh tokens are single-use and deleted from the database on logout or refresh. There is no blacklist — the short TTL serves as the post-logout tolerance window. Refresh token rotation (delete consumed token, issue new pair) prevents replays. Failed login attempts and account lockout are tracked on the `User` row with a `locked_until` timestamp.
 
-**JWT blacklisting on logout** — Stateless JWTs can't be revoked, so each token embeds a `jti` claim. On logout, the JTI is written to Redis with a TTL matching the token's remaining lifetime. Every authenticated request checks the blacklist. Refresh tokens are also hashed and stored in the DB with an `is_revoked` flag for single-use rotation.
+**Storage and email abstraction** — Both file storage and email are behind provider interfaces. A single env var switches between local/S3 for storage with no code changes. Email providers can be SES or SMTP; production uses Resend via SMTP relay. This made local development cheap and production deployment straightforward.
 
-**Storage and email abstraction** — Both file storage and email are behind provider interfaces. A single env var switches between local/S3 and SMTP/SES with no code changes. This made local development cheap and production deployment straightforward.
-
-**Async task queue for email** — Sending email from inside a request handler risks timeouts and drops on provider throttling. All outbound email is pushed to an Arq/Redis queue and processed by a separate worker container with retry logic. Ten transactional templates cover the full company and candidate lifecycle, all matching the dark luxury frontend design.
+**Async task queue with AWS SQS** — Sending email from inside a request handler risks timeouts and drops on provider throttling. All outbound email is pushed to an SQS queue and processed by a separate worker container (`src/worker.py`) with retry logic. Ten transactional email templates cover the full company and candidate lifecycle. The `defer_after_commit` pattern ensures tasks are enqueued only after the originating transaction commits, preventing phantom messages on rollback.
 
 **OIDC-based CI/CD with change detection** — GitHub Actions authenticates to AWS via OIDC (no stored credentials). A `detect-changes` job skips irrelevant work — a docs-only PR never runs backend tests or builds Docker. The deploy workflow supports manual re-deploy by SHA, checks if an ECR image already exists before rebuilding, and polls SSM run-command status rather than fire-and-forget. Deployments are never cancelled mid-flight.
 
@@ -135,18 +142,20 @@ erDiagram
 
 ## Testing
 
-30+ test files, ~14k lines, parallel execution via `pytest-xdist` (each worker gets a dedicated database).
+70+ test files, ~18k lines, parallel execution via `pytest-xdist` (each worker gets a dedicated database).
 
 ```
 tests/
-├── models/       # ORM model validation
-├── services/     # Business logic (auth, admin, company, public flows)
-├── api/          # Endpoint tests (SEO, Sentry tunnel)
-├── templates/    # Email template rendering
-└── core/         # Task queue, Redis fail-closed behavior
+├── models/           # ORM model validation
+├── services/         # Business logic (auth, admin, company, public, candidate flows)
+├── api/              # Endpoint tests (SEO, rate limiting, request handling)
+├── templates/        # Email template rendering
+└── core/
+    ├── services/     # Email, storage, file validation
+    └── infrastructure/  # Database, config, security, transactions, rate limiting
 ```
 
-Notable coverage: full auth lifecycle (invite → registration → approval → activation → login → lockout → logout), SEO output (sitemap, JSON-LD, OG prerender), Redis failure scenarios (fail-closed vs. fail-open paths tested independently).
+Notable coverage: full auth lifecycle (invite → registration → approval → activation → login → lockout → logout), candidate registration and activation, SEO output (sitemap, JSON-LD, OG prerender), SQS task enqueue/handling (email, data export, candidate purge), storage abstraction, database transactions and rollback guarantees.
 
 ```bash
 uv run pytest -n auto
@@ -164,7 +173,7 @@ git clone https://github.com/lahavrud/rs-recruitment.git
 cd rs-recruitment
 uv sync
 
-# 2. Start services (PostgreSQL + Redis)
+# 2. Start services (PostgreSQL + Mailpit local SMTP)
 docker-compose up -d
 
 # 3. Run migrations
@@ -179,7 +188,7 @@ npm install
 npm run dev
 ```
 
-The frontend proxies `/api/*` to `http://localhost:8000`.
+The frontend proxies `/api/*` to `http://localhost:8000`. Outbound email goes to [Mailpit](http://localhost:8025) — no provider account needed in development. Tasks (email, exports) run inline in the API process when `SQS_QUEUE_URL` is unset.
 
 ### Environment
 
@@ -188,7 +197,7 @@ The frontend proxies `/api/*` to `http://localhost:8000`.
 export JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 ```
 
-See `.env.example` for the full list of optional variables (email provider, S3 config, etc.).
+Production env vars (AWS credentials, Sentry DSN, Resend SMTP credentials, S3 bucket) are only needed outside local dev — the defaults in `docker-compose.yml` cover everything for local work.
 
 ### Linting
 
@@ -206,21 +215,22 @@ rs-recruitment/
 ├── src/
 │   ├── api/          # Thin FastAPI routers (auth, admin, company, public, seo)
 │   ├── services/     # Business logic, decoupled from routers
-│   │   ├── auth/     # session, registration, activation, password_reset
+│   │   ├── auth/     # session, registration, activation, password_reset, candidate_registration, password_change
 │   │   ├── admin/    # companies, jobs, applications, candidates, invites, audit
 │   │   ├── company/  # jobs, profile, candidates
 │   │   └── utils/    # audit logging, contract PDF, legal text
-│   ├── core/         # storage, email, task queue, Redis pool
+│   ├── core/         # Infrastructure abstractions: storage, email, task queue definitions
 │   ├── models.py     # SQLModel ORM models
-│   └── templates/    # Transactional email templates (HTML)
+│   ├── templates/    # Transactional email templates (HTML)
+│   └── worker.py     # SQS worker — polls queue and dispatches to task registry
 ├── frontend/src/
-│   ├── pages/        # public/, admin/, company/ + auth pages
-│   ├── components/   # layout/, guards/, ui/
+│   ├── pages/        # public/, admin/, company/, candidate/ + auth pages
+│   ├── components/   # layout/, guards/, ui/ — shared React components
 │   ├── hooks/        # useAuth, useInfiniteList, useDebounce, usePageTitle…
 │   └── locales/      # he.json (all UI strings)
-├── tests/            # 30+ test files, pytest-xdist parallel execution
+├── tests/            # 70+ test files, pytest-xdist parallel execution
 ├── scripts/          # 5 CI validation scripts
-├── docs/             # Architecture decisions, infrastructure, roadmap
+├── docs/             # Architecture decisions, API design, infrastructure, runbooks
 └── .github/workflows/
     ├── ci.yml        # Lint, test, docker-build (change-aware)
     ├── deploy.yml    # Build + deploy to production (OIDC + SSM)
