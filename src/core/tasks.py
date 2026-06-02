@@ -9,6 +9,7 @@ Public API (unchanged from Arq era — all 10+ call sites still work):
   enqueue_data_export_task(user_id)           → MessageId | "inline"
 """
 
+import asyncio
 import base64
 import json
 import logging
@@ -20,6 +21,7 @@ from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import async_session
 from src.core.infrastructure.transactions import transactional
 from src.core.services.email import get_email_provider
+from src.core.services.email_quota import increment_and_alert
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,11 @@ async def send_email_task(
         )
         if success:
             logger.info("email_sent", extra={"to": _mask_email(to)})
+            async with async_session() as session:
+                async with transactional(session):
+                    await increment_and_alert(session)
+            if settings.email_send_delay_seconds > 0:
+                await asyncio.sleep(settings.email_send_delay_seconds)
         else:
             logger.warning("email_send_failed", extra={"to": _mask_email(to)})
             raise RuntimeError(f"Email provider returned False for {_mask_email(to)}")
