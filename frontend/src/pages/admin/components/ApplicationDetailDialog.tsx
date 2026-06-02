@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import type { ApplicationWithDetails } from "@/types/api";
+import { ApplicationStatus, type ApplicationWithDetails } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
@@ -25,6 +25,7 @@ export default function ApplicationDetailDialog({
   const { t } = useTranslation();
   if (!app) return null;
   const c = app.candidate;
+  const isWithdrawn = app.status === ApplicationStatus.WITHDRAWN;
   return (
     <Dialog
       open={app != null}
@@ -46,11 +47,11 @@ export default function ApplicationDetailDialog({
           >
             {t("admin.applications.editNotesAction")}
           </Button>
-          <Button
-            onClick={onUpdateStatus}
-          >
-            {t("admin.applications.updateStatusAction")}
-          </Button>
+          {!isWithdrawn && (
+            <Button onClick={onUpdateStatus}>
+              {t("admin.applications.updateStatusAction")}
+            </Button>
+          )}
         </>
       }
     >

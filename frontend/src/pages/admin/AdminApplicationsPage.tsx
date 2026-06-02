@@ -42,6 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
   APPROVED_BY_ADMIN: "bg-success/10 text-success",
   REJECTED: "bg-danger/10 text-danger",
   HIRED: "bg-hired/10 text-hired",
+  WITHDRAWN: "bg-white/5 text-white/40",
 };
 
 const ALL_FILTER = "ALL";
@@ -308,9 +309,11 @@ export default function AdminApplicationsPage() {
                   ariaLabel={t("admin.applications.rowActionsLabel")}
                   trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
-                  <DropdownMenuItem onSelect={() => setStatusModal(app)}>
-                    {t("admin.applications.updateStatusAction")}
-                  </DropdownMenuItem>
+                  {app.status !== ApplicationStatus.WITHDRAWN && (
+                    <DropdownMenuItem onSelect={() => setStatusModal(app)}>
+                      {t("admin.applications.updateStatusAction")}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onSelect={() => setNotesModal(app)}>
                     {t("admin.applications.editNotesAction")}
                   </DropdownMenuItem>
@@ -401,9 +404,11 @@ export default function AdminApplicationsPage() {
                         <DropdownMenuItem onSelect={() => setDetail(app)}>
                           {t("admin.applications.viewAction")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setStatusModal(app)}>
-                          {t("admin.applications.updateStatusAction")}
-                        </DropdownMenuItem>
+                        {app.status !== ApplicationStatus.WITHDRAWN && (
+                          <DropdownMenuItem onSelect={() => setStatusModal(app)}>
+                            {t("admin.applications.updateStatusAction")}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onSelect={() => setNotesModal(app)}>
                           {t("admin.applications.editNotesAction")}
                         </DropdownMenuItem>

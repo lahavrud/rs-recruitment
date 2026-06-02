@@ -1240,7 +1240,8 @@
         "NEW": "חדש",
         "APPROVED_BY_ADMIN": "אושר",
         "REJECTED": "נדחה",
-        "HIRED": "גויס"
+        "HIRED": "גויס",
+        "WITHDRAWN": "נמשכה"
       },
       "modal": {
         "title": "עדכון סטטוס מועמדות",
@@ -1282,7 +1283,8 @@
       "errors": {
         "updateFailed": "עדכון הסטטוס נכשל. נסה שוב.",
         "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב.",
-        "notesFailed": "שמירת ההערות נכשלה. נסה שוב."
+        "notesFailed": "שמירת ההערות נכשלה. נסה שוב.",
+        "withdrawnApplication": "לא ניתן לשנות סטטוס של מועמדות שנמשכה."
       },
       "triage": {
         "entryButton": "סקירה מהירה",
