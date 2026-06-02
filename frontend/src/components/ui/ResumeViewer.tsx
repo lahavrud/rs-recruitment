@@ -7,6 +7,7 @@ import {
   buildResumeDownloadName,
   downloadOrShareBlob,
   isInlinePreviewable,
+  isIOS,
 } from "@/utils/resume";
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
@@ -17,10 +18,15 @@ type LoadState = "loading" | "ready" | "notFound" | "error";
  *
  * Flow:
  *   1. Fetch the blob on mount (admin endpoint streams the file)
- *   2. PDFs → render inline via `<iframe>` (browsers handle PDF natively)
- *   3. DOC/DOCX/other → friendly "no preview" panel with a download button
- *   4. Header always exposes download + open-in-new-tab for inline PDFs so
- *      users can save / pop out without leaving the viewer
+ *   2. PDFs → render inline via `<iframe>` (browsers handle PDF natively).
+ *      iOS WebKit is the exception — Mobile Safari and all iOS browsers
+ *      (which all use WebKit) refuse to render PDFs from blob: URLs in
+ *      iframes, so iOS users go through the same fallback path as DOCs.
+ *   3. DOC/DOCX/other AND any file on iOS → friendly "no preview" panel
+ *      with a download button. The download path on iOS uses Web Share,
+ *      which surfaces Quick Look (≈ a preview) + Save to Files + Open in…
+ *   4. Header exposes download + open-in-new-tab whenever inline preview
+ *      is active so users can save / pop out without leaving the viewer
  *   5. 404 → distinct "file not available" state (no download/open offered)
  *
  * Not built on the shared `<Dialog>` because Dialog caps at max-w-2xl and is
@@ -44,7 +50,11 @@ export function ResumeViewer({
   // wants only the basename — split it once here.
   const fileKey = resumePath.split("/").pop() ?? resumePath;
   const mimeType = blob?.type || "application/octet-stream";
-  const previewable = blob ? isInlinePreviewable(mimeType, fileKey) : false;
+  // Inline preview requires both a previewable MIME type AND a browser that
+  // can actually render it. iOS WebKit can't render PDFs in blob: iframes —
+  // treat iOS as never-previewable so users get the Web Share fallback.
+  const previewable =
+    blob != null && isInlinePreviewable(mimeType, fileKey) && !isIOS();
   const downloadName = blob
     ? buildResumeDownloadName(candidateName, fileKey, mimeType)
     : "";
