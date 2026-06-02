@@ -76,12 +76,14 @@ frontend/src/
 │       ├── LogoBanner.tsx
 │       ├── NoResults.tsx          # Dashed-border filtered-empty placeholder
 │       ├── PageHeader.tsx         # Copper eyebrow + gold rule + subtitle (reusable)
+│       ├── ResumeViewer.tsx       # Fullscreen viewer + <ResumeButton> trigger — see "Resume viewer" below
 │       ├── StatusBadge.tsx        # Generic rounded-full badge — <StatusBadge label colorCls>
 │       └── TableSkeleton.tsx
 ├── pages/
 │   ├── admin/
 │   │   ├── components/            # Co-located sub-components (dialogs, tabs, helpers)
 │   │   ├── AdminApplicationsPage.tsx
+│   │   ├── AdminApplicationsTriagePage.tsx  # Fullscreen one-at-a-time reviewer (see "Triage mode")
 │   │   ├── AdminCandidatesPage.tsx
 │   │   ├── AdminCompaniesPage.tsx
 │   │   └── AdminJobsPage.tsx
@@ -115,9 +117,11 @@ frontend/src/
 
 | Condition | Shell |
 |---|---|
-| `/`, `/login`, `/register`, `/register-candidate`, `/activate` | Bare — page owns its own layout |
+| `/`, `/login`, `/register`, `/register-candidate`, `/activate`, `/admin/applications/triage` | Bare — page owns its own layout |
 | Authenticated (any role) | Header + Sidebar + `bg-page` main area |
 | Unauthenticated (public) | `PublicHeader` + `bg-page` main area |
+
+Note: `/admin/applications/triage` is in the bare list because it renders a `fixed inset-0` overlay; the authenticated shell's `page-enter` animation has a `transform` that would otherwise create a containing block and clip the overlay.
 
 Note: `/jobs` and its sub-paths always render the public shell regardless of auth state — an authenticated candidate browsing jobs sees the same layout as an anonymous visitor (`PublicHeader` switches its CTA based on `isAuthenticated`).
 
@@ -130,6 +134,7 @@ Note: `/jobs` and its sub-paths always render the public shell regardless of aut
 | `/jobs` `/jobs/:id` `/jobs/:id/apply` | — | Public job board + apply |
 | `/dashboard` | `ProtectedRoute` | Role-aware `DashboardPage` |
 | `/admin/companies` `/admin/jobs` `/admin/applications` `/admin/candidates` | `AdminRoute` | Admin pages |
+| `/admin/applications/triage` | `AdminRoute` | `AdminApplicationsTriagePage` — fullscreen one-at-a-time reviewer |
 | `/company/jobs` | `CompanyRoute` | `CompanyJobsPage` |
 | `/candidate/profile` | `CandidateRoute` | `CandidateProfilePage` |
 | `/candidate/applications` | `CandidateRoute` | `CandidateApplicationsPage` |
@@ -250,6 +255,29 @@ import StatusBadge from "@/components/ui/StatusBadge";
 
 Color maps (`STATUS_COLORS`) stay domain-specific in the page or component that knows the domain. `StatusBadge` only handles the rendering.
 
+### Resume viewer
+
+Always use the shared viewer for any place a candidate resume needs to be opened — don't build a separate download / preview flow.
+
+```tsx
+import ResumeButton from "@/components/ui/ResumeViewer";
+
+<ResumeButton
+  resumePath={candidate.resume_path}    // full path like "resumes/<uuid>.pdf"
+  candidateName={candidate.full_name}
+  label={t("admin.candidates.table.resume")}  // optional — defaults to t("resume.triggerLabel")
+/>
+```
+
+Behavior, in one place:
+- PDFs render inline via `<iframe>` with download + open-in-new-tab in the header
+- DOC/DOCX show a friendly "no preview" panel with a download button only (opening DOCs in a new tab just downloads them anyway)
+- 404s show a distinct "file not available" state — no download offered
+- iOS uses `navigator.share()` instead of `<a download>` since iOS Safari ignores the latter on blob URLs
+- Portals to `document.body` to escape transformed ancestors (Dialog `translate`, page-enter animations) that would otherwise clip the fullscreen overlay
+
+All copy lives under the top-level `resume.*` i18n namespace (`he.json`).
+
 ### Field
 
 Canonical form field wrapper. Tag switches between `<div>` (when `id` is
@@ -315,7 +343,7 @@ ESLint enforces a **600-line hard limit** (`max-lines`, blank lines and comments
 **Rules for extracted components:**
 - Extracted components receive state values + callbacks as typed props; the parent owns all state, data-fetching, and handlers.
 - Utility functions (non-React helpers) that are shared across sibling files go in a `*Utils.ts` file (e.g. `jobBoardUtils.ts`, `dashboardUtils.ts`). Do **not** export utility functions from component files — `react-refresh/only-export-components` will error.
-- Always use the global UI primitives instead of creating local copies: `@/components/ui/Field`, `@/components/ui/Button`, `@/components/ui/FilterPill`, `@/components/ui/AutoGrowTextarea`, `@/components/ui/InfiniteScrollFooter`, `@/components/ui/NoResults`, `@/components/ui/KebabButton`, `@/components/ui/StatusBadge`, `@/components/ui/Eyebrow`.
+- Always use the global UI primitives instead of creating local copies: `@/components/ui/Field`, `@/components/ui/Button`, `@/components/ui/FilterPill`, `@/components/ui/AutoGrowTextarea`, `@/components/ui/InfiniteScrollFooter`, `@/components/ui/NoResults`, `@/components/ui/KebabButton`, `@/components/ui/StatusBadge`, `@/components/ui/Eyebrow`, `@/components/ui/ResumeViewer` (and its default `<ResumeButton>` trigger).
 
 ### Error handling
 - Never pass raw backend `detail` strings to the UI — they may be English
