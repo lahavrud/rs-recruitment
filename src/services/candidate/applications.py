@@ -1,4 +1,4 @@
-"""Candidate-facing application listing and detail (Sprint 11 / #609).
+"""Candidate-facing application listing, detail, edit, and withdraw (Sprint 11).
 
 The candidate-facing API deliberately never exposes raw ``Application.status``
 or ``admin_notes``. WITHDRAWN applications are filtered out entirely (the
@@ -7,6 +7,8 @@ a withdrawn row would be misleading — and the spec treats withdrawn rows as
 if they don't exist for this candidate). Only the derived ``editable`` flag
 (true iff ``status == NEW``) leaks across the boundary.
 """
+
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -18,6 +20,7 @@ from src.core.infrastructure.pagination import (
     build_cursor_page,
     clamp_limit,
 )
+from src.core.services.storage import StorageProvider
 from src.enums import ApplicationStatus, JobStatus
 from src.models import Application, Job
 from src.schemas.candidates import (
@@ -29,7 +32,13 @@ from src.schemas.candidates import (
     CandidateApplicationMyAnswers,
     CandidateApplicationResumeMeta,
 )
-from src.services.exceptions import ApplicationNotFoundError
+from src.services.exceptions import (
+    ApplicationNotEditableError,
+    ApplicationNotFoundError,
+)
+from src.services.public._application_helpers import validate_and_upload_resume
+
+logger = logging.getLogger(__name__)
 
 
 def _job_summary(job: Job) -> CandidateApplicationJobSummary:
@@ -122,28 +131,7 @@ async def get_my_application(
     app = (await session.execute(query)).scalar_one_or_none()
     if app is None:
         raise ApplicationNotFoundError("Application not found")
-
-    resume: CandidateApplicationResumeMeta | None = None
-    if app.resume_path:
-        resume = CandidateApplicationResumeMeta(
-            filename=app.resume_filename or app.resume_path.rsplit("/", 1)[-1],
-            snapshot_present=True,
-        )
-
-    return CandidateApplicationDetail(
-        id=app.id,  # type: ignore[arg-type]
-        submitted_at=app.created_at,
-        editable=app.status == ApplicationStatus.NEW,
-        job=_job_detail(app.job),
-        company=_company(app.job),
-        my_answers=CandidateApplicationMyAnswers(
-            service_concept=app.service_concept,
-            salary_expectations=app.salary_expectations,
-            strength=app.strength,
-            growth_area=app.growth_area,
-        ),
-        resume=resume,
-    )
+    return _build_detail(app)
 
 
 async def get_application_resume_key(
@@ -167,3 +155,130 @@ async def get_application_resume_key(
     if app is None or not app.resume_path:
         raise ApplicationNotFoundError("Resume not found")
     return app.resume_path
+
+
+def _build_detail(app: Application) -> CandidateApplicationDetail:
+    """Build a CandidateApplicationDetail from a loaded Application row.
+
+    Requires app.job and app.job.company to be eagerly loaded.
+    """
+    resume: CandidateApplicationResumeMeta | None = None
+    if app.resume_path:
+        resume = CandidateApplicationResumeMeta(
+            filename=app.resume_filename or app.resume_path.rsplit("/", 1)[-1],
+            snapshot_present=True,
+        )
+    return CandidateApplicationDetail(
+        id=app.id,  # type: ignore[arg-type]
+        submitted_at=app.created_at,
+        editable=app.status == ApplicationStatus.NEW,
+        job=_job_detail(app.job),
+        company=_company(app.job),
+        my_answers=CandidateApplicationMyAnswers(
+            service_concept=app.service_concept,
+            salary_expectations=app.salary_expectations,
+            strength=app.strength,
+            growth_area=app.growth_area,
+        ),
+        resume=resume,
+    )
+
+
+async def edit_my_application(
+    session: AsyncSession,
+    *,
+    candidate_id: int,
+    application_id: int,
+    service_concept: str | None,
+    salary_expectations: str | None,
+    strength: str | None,
+    growth_area: str | None,
+    resume_bytes: bytes | None,
+    resume_filename: str | None,
+    storage: StorageProvider,
+) -> CandidateApplicationDetail:
+    """Partially update text answers and/or replace the resume snapshot.
+
+    Gates: foreign/non-existent → 404, WITHDRAWN → 404, non-NEW → 409.
+    Empty-body (no text fields, no resume) → ValueError so the router can
+    return 400 without special-casing service exceptions.
+    """
+    query = (
+        select(Application)
+        .options(selectinload(Application.job).selectinload(Job.company))
+        .where(
+            Application.id == application_id,  # pyright: ignore[reportArgumentType]
+            Application.candidate_id == candidate_id,  # pyright: ignore[reportArgumentType]
+        )
+    )
+    app = (await session.execute(query)).scalar_one_or_none()
+    if app is None:
+        raise ApplicationNotFoundError("Application not found")
+    if app.status == ApplicationStatus.WITHDRAWN:
+        raise ApplicationNotFoundError("Application not found")
+    if app.status != ApplicationStatus.NEW:
+        raise ApplicationNotEditableError("Application is no longer editable")
+
+    has_text = any(
+        f is not None
+        for f in (service_concept, salary_expectations, strength, growth_area)
+    )
+    if not has_text and resume_bytes is None:
+        raise ValueError("empty_body")
+
+    if service_concept is not None:
+        app.service_concept = service_concept
+    if salary_expectations is not None:
+        app.salary_expectations = salary_expectations
+    if strength is not None:
+        app.strength = strength
+    if growth_area is not None:
+        app.growth_area = growth_area
+
+    old_resume_key: str | None = None
+    if resume_bytes is not None and resume_filename is not None:
+        new_key, new_hash = await validate_and_upload_resume(
+            resume_bytes, resume_filename, storage
+        )
+        old_resume_key = app.resume_path
+        app.resume_path = new_key
+        app.resume_filename = resume_filename
+        app.resume_hash = new_hash
+
+    await session.commit()
+
+    if old_resume_key and old_resume_key != app.resume_path:
+        try:
+            await storage.delete_file(old_resume_key)
+        except Exception:
+            logger.exception("Failed to delete old resume snapshot %s", old_resume_key)
+
+    return _build_detail(app)
+
+
+async def withdraw_my_application(
+    session: AsyncSession,
+    *,
+    candidate_id: int,
+    application_id: int,
+) -> None:
+    """Set the application status to WITHDRAWN.
+
+    Gates: foreign/non-existent → 404, already WITHDRAWN → 404, non-NEW → 409.
+    The row is preserved for admin visibility; only the candidate's list
+    filters it out (per #609).
+    """
+    query = select(Application).where(
+        Application.id == application_id,  # pyright: ignore[reportArgumentType]
+        Application.candidate_id == candidate_id,  # pyright: ignore[reportArgumentType]
+    )
+    app = (await session.execute(query)).scalar_one_or_none()
+    if app is None:
+        raise ApplicationNotFoundError("Application not found")
+    if app.status == ApplicationStatus.WITHDRAWN:
+        raise ApplicationNotFoundError("Application not found")
+    if app.status != ApplicationStatus.NEW:
+        raise ApplicationNotEditableError("Application is no longer editable")
+
+    app.status = ApplicationStatus.WITHDRAWN
+    await session.commit()

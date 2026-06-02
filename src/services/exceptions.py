@@ -192,3 +192,10 @@ class CandidateNotFoundError(Exception):
     """Raised when a candidate profile is not found."""
 
     pass
+
+
+class ApplicationNotEditableError(Exception):
+    """Raised when a candidate tries to edit or withdraw an application that is
+    no longer NEW. WITHDRAWN applications map to 404 (invisible) instead."""
+
+    pass

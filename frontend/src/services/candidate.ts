@@ -168,3 +168,19 @@ export async function fetchApplicationResumeBlob(
   );
   return res.data;
 }
+
+export async function patchMyApplication(
+  applicationId: number,
+  form: FormData,
+): Promise<CandidateApplicationDetail> {
+  const res = await api.patch<CandidateApplicationDetail>(
+    `/api/candidate/me/applications/${applicationId}`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}
+
+export async function withdrawApplication(applicationId: number): Promise<void> {
+  await api.post(`/api/candidate/me/applications/${applicationId}/withdraw`);
+}
