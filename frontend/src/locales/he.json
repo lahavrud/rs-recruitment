@@ -1241,7 +1241,7 @@
         "APPROVED_BY_ADMIN": "אושר",
         "REJECTED": "נדחה",
         "HIRED": "גויס",
-        "WITHDRAWN": "נמשכה"
+        "WITHDRAWN": "בוטלה"
       },
       "modal": {
         "title": "עדכון סטטוס מועמדות",

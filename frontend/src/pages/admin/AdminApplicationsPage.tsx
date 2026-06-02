@@ -62,7 +62,8 @@ export default function AdminApplicationsPage() {
       s === ApplicationStatus.NEW ||
       s === ApplicationStatus.APPROVED_BY_ADMIN ||
       s === ApplicationStatus.REJECTED ||
-      s === ApplicationStatus.HIRED
+      s === ApplicationStatus.HIRED ||
+      s === ApplicationStatus.WITHDRAWN
     ) {
       return s;
     }
