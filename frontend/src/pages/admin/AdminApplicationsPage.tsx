@@ -47,7 +47,7 @@ const STATUS_COLORS: Record<string, string> = {
   WITHDRAWN: "bg-white/3 text-white/25",
 };
 
-const CLOSED_STATUSES = new Set([ApplicationStatus.JOB_CLOSED, ApplicationStatus.WITHDRAWN]);
+const CLOSED_STATUSES = new Set<ApplicationStatus>([ApplicationStatus.JOB_CLOSED, ApplicationStatus.WITHDRAWN]);
 
 const ALL_FILTER = "ALL";
 type FilterValue = string;
