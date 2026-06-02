@@ -224,7 +224,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                   className={inputCls}
                 />
               </Field>
-              <Field label={t("admin.jobs.fields.status")}>
+              <Field label={t("admin.jobs.fields.status")} id="create-job-status">
                 <StatusPills
                   value={(form.status ?? JobStatus.PUBLISHED) as JobStatus}
                   onChange={(s) => set("status", s)}

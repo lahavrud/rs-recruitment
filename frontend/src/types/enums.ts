@@ -24,6 +24,7 @@ export const ApplicationStatus = {
   REJECTED: "REJECTED",
   HIRED: "HIRED",
   WITHDRAWN: "WITHDRAWN",
+  JOB_CLOSED: "JOB_CLOSED",
 } as const;
 export type ApplicationStatus =
   (typeof ApplicationStatus)[keyof typeof ApplicationStatus];

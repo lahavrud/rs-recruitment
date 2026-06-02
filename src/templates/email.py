@@ -222,6 +222,16 @@ def build_application_rejection_html(candidate_name: str, job_title: str) -> str
     )
 
 
+def build_job_closed_candidate_html(candidate_name: str, job_title: str) -> str:
+    return _render(
+        "job_closed_candidate.html",
+        subject=f"עדכון בנוגע למועמדותך למשרת {job_title} — RS Recruiting",
+        preheader=f"המשרה {job_title} נסגרה.",
+        candidate_name=candidate_name,
+        job_title=job_title,
+    )
+
+
 def build_new_registration_html(
     company_name: str,
     company_id: str,
@@ -366,6 +376,21 @@ def build_job_admin_edited_html(
         changed_fields=changed_fields,
         dashboard_url=dashboard_url,
         former_title=former_title,
+    )
+
+
+def build_job_closed_company_html(
+    job_title: str,
+    company_name: str,
+    dashboard_url: str,
+) -> str:
+    return _render(
+        "job_closed_company.html",
+        subject=f"משרה נסגרה על-ידי המנהל — {job_title}",
+        preheader=f'המשרה {job_title} נסגרה ע"י מנהל המערכת.',
+        job_title=job_title,
+        company_name=company_name,
+        dashboard_url=dashboard_url,
     )
 
 

@@ -100,7 +100,9 @@ async def update_job_endpoint(
     """Partially update any field on a job at any status."""
     try:
         async with transactional(session):
-            return await update_job(job_id, data, session)
+            return await update_job(
+                job_id, data, session, actor_user_id=current_admin.id
+            )
     except JobNotFoundError as e:
         raise service_exception_to_http(e) from e
 

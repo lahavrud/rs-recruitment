@@ -31,6 +31,7 @@ class ApplicationStatus(str, Enum):
     REJECTED = "REJECTED"
     HIRED = "HIRED"
     WITHDRAWN = "WITHDRAWN"
+    JOB_CLOSED = "JOB_CLOSED"
 
 
 class InviteTokenStatus(str, Enum):
