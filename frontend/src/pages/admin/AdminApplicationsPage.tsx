@@ -42,7 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
   APPROVED_BY_ADMIN: "bg-success/10 text-success",
   REJECTED: "bg-danger/10 text-danger",
   HIRED: "bg-hired/10 text-hired",
-  WITHDRAWN: "bg-white/5 text-white/40",
+  WITHDRAWN: "bg-white/3 text-white/25",
 };
 
 const ALL_FILTER = "ALL";
