@@ -7,7 +7,7 @@ import type { ApplicationWithDetails, CandidateProfileRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
-import ResumeLink from "./ResumeLink";
+import ResumeButton from "@/components/ui/ResumeViewer";
 import { formatDate } from "@/utils/formatDate";
 
 interface DetailProps {
@@ -142,10 +142,10 @@ export function CandidateDetailBody({
           </a>
         )}
         {c.resume_path ? (
-          <ResumeLink
-            fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
-            label={t("admin.candidates.table.resume")}
+          <ResumeButton
+            resumePath={c.resume_path}
             candidateName={c.full_name}
+            label={t("admin.candidates.table.resume")}
           />
         ) : (
           <span className="text-white/40">

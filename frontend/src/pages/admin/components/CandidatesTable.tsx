@@ -6,7 +6,7 @@ import DropdownMenu, {
 } from "@/components/ui/DropdownMenu";
 import KebabButton from "@/components/ui/KebabButton";
 import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
-import ResumeLink from "./ResumeLink";
+import ResumeButton from "@/components/ui/ResumeViewer";
 import { formatDate } from "@/utils/formatDate";
 
 interface CandidatesTableProps {
@@ -68,10 +68,10 @@ export default function CandidatesTable({
                 </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   {c.resume_path ? (
-                    <ResumeLink
-                      fileKey={c.resume_path.split("/").pop() ?? c.resume_path}
-                      label={t("admin.candidates.table.resume")}
+                    <ResumeButton
+                      resumePath={c.resume_path}
                       candidateName={c.full_name}
+                      label={t("admin.candidates.table.resume")}
                     />
                   ) : (
                     <span className="text-white/20">

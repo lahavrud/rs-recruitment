@@ -374,3 +374,19 @@ html {
   border: none;
   border-top: 1px solid rgb(255 255 255 / 0.08);
 }
+
+/* ── Triage page (admin applications reviewer) ─────────────────────────────── */
+
+/* Pill that appears + fades out (swipe hint). Used by SwipeHint. */
+@keyframes triage-hint-fade {
+  0%   { opacity: 0; transform: translateY(8px); }
+  12%  { opacity: 1; transform: translateY(0); }
+  85%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(8px); }
+}
+
+/* Toast slides up into view. Used by UndoToast. */
+@keyframes triage-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
