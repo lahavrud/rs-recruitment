@@ -197,6 +197,7 @@ export default function AdminApplicationsPage() {
     APPROVED_BY_ADMIN: t("admin.applications.statusLabels.APPROVED_BY_ADMIN"),
     REJECTED: t("admin.applications.statusLabels.REJECTED"),
     HIRED: t("admin.applications.statusLabels.HIRED"),
+    WITHDRAWN: t("admin.applications.statusLabels.WITHDRAWN"),
   };
 
   async function handleDeleteConfirm() {
