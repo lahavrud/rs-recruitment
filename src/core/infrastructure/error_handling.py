@@ -16,6 +16,7 @@ from src.services.exceptions import (
     ApplicationAlreadyEditableError,
     ApplicationAlreadyExistsError,
     ApplicationAlreadyLockedError,
+    ApplicationNotEditableError,
     ApplicationNotFoundError,
     CandidateNotFoundError,
     CompanyNotFoundError,
@@ -51,6 +52,7 @@ EXCEPTION_STATUS_MAP: dict[type[Exception], int] = {
     ApplicationAlreadyExistsError: status.HTTP_409_CONFLICT,
     ApplicationAlreadyEditableError: status.HTTP_409_CONFLICT,
     ApplicationAlreadyLockedError: status.HTTP_409_CONFLICT,
+    ApplicationNotEditableError: status.HTTP_409_CONFLICT,
     InvitePendingForEmailError: status.HTTP_409_CONFLICT,
     EmailAlreadyExistsError: status.HTTP_409_CONFLICT,
     # Forbidden errors (403)
@@ -95,6 +97,7 @@ EXCEPTION_CODE_MAP: dict[type[Exception], str] = {
     ApplicationAlreadyExistsError: "already_applied",
     ApplicationAlreadyEditableError: "already_applied_editable",
     ApplicationAlreadyLockedError: "already_applied_locked",
+    ApplicationNotEditableError: "application_not_editable",
     InvitePendingForEmailError: "invite_pending",
     EmailAlreadyExistsError: "email_already_exists",
     # Forbidden

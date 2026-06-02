@@ -381,3 +381,64 @@ async def test_delete_application_requires_admin(
     """Unauthenticated clients cannot delete applications."""
     response = await public_client.delete(f"/api/admin/applications/{application.id}")
     assert response.status_code == 401
+
+
+# ==================== WITHDRAWN guard ====================
+
+
+@pytest.mark.asyncio
+async def test_update_status_on_withdrawn_returns_409(
+    admin_client: AsyncClient,
+    published_job: Job,
+    candidate_profile: CandidateProfile,
+):
+    """Admin cannot change the status of a WITHDRAWN application."""
+    async with TestSessionLocal() as session:
+        withdrawn_app = Application(
+            job_id=published_job.id,
+            candidate_id=candidate_profile.id,
+            status=ApplicationStatus.WITHDRAWN,
+        )
+        session.add(withdrawn_app)
+        await session.commit()
+        await session.refresh(withdrawn_app)
+
+    response = await admin_client.put(
+        f"/api/admin/applications/{withdrawn_app.id}/status",
+        json={"status": "APPROVED_BY_ADMIN"},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "application_not_editable"
+
+
+@pytest.mark.asyncio
+async def test_update_status_on_withdrawn_does_not_change_db(
+    admin_client: AsyncClient,
+    published_job: Job,
+    candidate_profile: CandidateProfile,
+):
+    """A rejected 409 must not mutate the application row."""
+    async with TestSessionLocal() as session:
+        withdrawn_app = Application(
+            job_id=published_job.id,
+            candidate_id=candidate_profile.id,
+            status=ApplicationStatus.WITHDRAWN,
+        )
+        session.add(withdrawn_app)
+        await session.commit()
+        await session.refresh(withdrawn_app)
+
+    await admin_client.put(
+        f"/api/admin/applications/{withdrawn_app.id}/status",
+        json={"status": "NEW"},
+    )
+
+    async with TestSessionLocal() as session:
+        from sqlalchemy import select as sa_select
+
+        refreshed = (
+            await session.execute(
+                sa_select(Application).where(Application.id == withdrawn_app.id)
+            )
+        ).scalar_one()
+    assert refreshed.status == ApplicationStatus.WITHDRAWN

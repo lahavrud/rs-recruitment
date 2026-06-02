@@ -1,6 +1,6 @@
-"""API tests for /api/candidate/me/applications endpoints (Sprint 11 / #609)."""
+"""API tests for /api/candidate/me/applications endpoints (Sprint 11 / #609, #610)."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -447,3 +447,346 @@ async def test_endpoints_reject_non_candidate_roles(test_db):
         resume_resp = await client.get(f"/api/candidate/me/applications/{a.id}/resume")
     for resp in (list_resp, detail_resp, resume_resp):
         assert resp.status_code == 403
+
+
+# --------------------------------------------------------------------------
+# PATCH /api/candidate/me/applications/:id — edit
+# --------------------------------------------------------------------------
+
+_MIN_PDF = (
+    b"%PDF-1.4 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj "
+    b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj "
+    b"3 0 obj<</Type/Page/MediaBox[0 0 3 3]>>endobj\n"
+    b"xref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n"
+    b"0000000058 00000 n\n0000000115 00000 n\ntrailer<</Size 4/Root 1 0 R>>\n"
+    b"startxref\n190\n%%EOF"
+)
+
+
+@pytest.mark.asyncio
+async def test_patch_text_fields_on_new_application(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "pe1@test.com")
+        a = await _make_app(
+            session,
+            candidate_id=profile.id,
+            job_id=job.id,
+            service_concept="old concept",
+            strength="old strength",
+        )
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.patch(
+            f"/api/candidate/me/applications/{a.id}",
+            data={"service_concept": "new concept", "strength": "new strength"},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["my_answers"]["service_concept"] == "new concept"
+    assert body["my_answers"]["strength"] == "new strength"
+    assert "status" not in body
+    assert "admin_notes" not in body
+
+
+@pytest.mark.asyncio
+async def test_patch_with_resume_replaces_snapshot(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "pe2@test.com")
+        a = await _make_app(
+            session,
+            candidate_id=profile.id,
+            job_id=job.id,
+            resume_path="resumes/old.pdf",
+        )
+        old_profile_resume = profile.resume_path
+    _override_user(user.id, user.email)
+
+    deleted_keys: list[str] = []
+
+    async def _fake_delete(key: str) -> bool:
+        deleted_keys.append(key)
+        return True
+
+    mock_storage = MagicMock()
+    mock_storage.delete_file = AsyncMock(side_effect=_fake_delete)
+
+    with (
+        patch(
+            "src.services.candidate.applications.validate_and_upload_resume",
+            return_value=("resumes/new.pdf", "abc123"),
+        ),
+        patch(
+            "src.api.candidate.applications.get_storage_provider",
+            return_value=mock_storage,
+        ),
+    ):
+        async with await _client() as client:
+            resp = await client.patch(
+                f"/api/candidate/me/applications/{a.id}",
+                files={"resume": ("new_cv.pdf", _MIN_PDF, "application/pdf")},
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["resume"]["filename"] == "new_cv.pdf"
+    assert deleted_keys == ["resumes/old.pdf"]
+
+    async with TestSessionLocal() as session:
+        refreshed_app = (
+            await session.execute(select(Application).where(Application.id == a.id))
+        ).scalar_one()
+        assert refreshed_app.resume_path == "resumes/new.pdf"
+        refreshed_profile = (
+            await session.execute(
+                select(CandidateProfile).where(CandidateProfile.id == profile.id)
+            )
+        ).scalar_one()
+        assert refreshed_profile.resume_path == old_profile_resume
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "status",
+    [
+        ApplicationStatus.APPROVED_BY_ADMIN,
+        ApplicationStatus.REJECTED,
+        ApplicationStatus.HIRED,
+    ],
+)
+async def test_patch_on_non_new_status_returns_409(test_db, status):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session, company_name=f"co-{status.value}")
+        await session.commit()
+        user, profile = await _seed_candidate(session, f"pe3-{status.value}@test.com")
+        a = await _make_app(
+            session, candidate_id=profile.id, job_id=job.id, status=status
+        )
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.patch(
+            f"/api/candidate/me/applications/{a.id}",
+            data={"service_concept": "irrelevant"},
+        )
+    assert resp.status_code == 409
+    body = resp.json()
+    assert body["detail"] == "application_not_editable"
+    assert "status" not in str(body)
+
+
+@pytest.mark.asyncio
+async def test_patch_on_withdrawn_returns_404(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "pe4@test.com")
+        a = await _make_app(
+            session,
+            candidate_id=profile.id,
+            job_id=job.id,
+            status=ApplicationStatus.WITHDRAWN,
+        )
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.patch(
+            f"/api/candidate/me/applications/{a.id}",
+            data={"service_concept": "x"},
+        )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_patch_on_foreign_application_returns_404(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        mine_user, _ = await _seed_candidate(session, "pe5m@test.com")
+        _, other_profile = await _seed_candidate(session, "pe5o@test.com")
+        other_app = await _make_app(
+            session, candidate_id=other_profile.id, job_id=job.id
+        )
+    _override_user(mine_user.id, mine_user.email)
+
+    async with await _client() as client:
+        resp = await client.patch(
+            f"/api/candidate/me/applications/{other_app.id}",
+            data={"service_concept": "x"},
+        )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_patch_empty_body_returns_400(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "pe6@test.com")
+        a = await _make_app(session, candidate_id=profile.id, job_id=job.id)
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.patch(
+            f"/api/candidate/me/applications/{a.id}",
+            data={},
+        )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "empty_body"
+
+
+@pytest.mark.asyncio
+async def test_patch_invalid_resume_mime_returns_400(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "pe7@test.com")
+        a = await _make_app(
+            session,
+            candidate_id=profile.id,
+            job_id=job.id,
+            resume_path="resumes/orig.pdf",
+        )
+    _override_user(user.id, user.email)
+
+    with patch(
+        "src.core.services.file_validation.validate_document_magic_bytes",
+        return_value=False,
+    ):
+        async with await _client() as client:
+            resp = await client.patch(
+                f"/api/candidate/me/applications/{a.id}",
+                files={"resume": ("bad.pdf", b"not a real pdf", "application/pdf")},
+            )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "invalid_resume"
+
+    async with TestSessionLocal() as session:
+        unchanged = (
+            await session.execute(select(Application).where(Application.id == a.id))
+        ).scalar_one()
+        assert unchanged.resume_path == "resumes/orig.pdf"
+
+
+# --------------------------------------------------------------------------
+# POST /api/candidate/me/applications/:id/withdraw
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_withdraw_on_new_sets_status_and_hides_from_list(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "wd1@test.com")
+        a = await _make_app(session, candidate_id=profile.id, job_id=job.id)
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.post(f"/api/candidate/me/applications/{a.id}/withdraw")
+        assert resp.status_code == 204
+
+        list_resp = await client.get("/api/candidate/me/applications")
+    assert list_resp.json()["items"] == []
+
+    async with TestSessionLocal() as session:
+        refreshed = (
+            await session.execute(select(Application).where(Application.id == a.id))
+        ).scalar_one()
+        assert refreshed.status == ApplicationStatus.WITHDRAWN
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "status",
+    [
+        ApplicationStatus.APPROVED_BY_ADMIN,
+        ApplicationStatus.REJECTED,
+        ApplicationStatus.HIRED,
+    ],
+)
+async def test_withdraw_on_non_new_returns_409(test_db, status):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(
+            session, company_name=f"wco-{status.value}"
+        )
+        await session.commit()
+        user, profile = await _seed_candidate(session, f"wd2-{status.value}@test.com")
+        a = await _make_app(
+            session, candidate_id=profile.id, job_id=job.id, status=status
+        )
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.post(f"/api/candidate/me/applications/{a.id}/withdraw")
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "application_not_editable"
+
+
+@pytest.mark.asyncio
+async def test_withdraw_on_already_withdrawn_returns_404(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "wd3@test.com")
+        a = await _make_app(
+            session,
+            candidate_id=profile.id,
+            job_id=job.id,
+            status=ApplicationStatus.WITHDRAWN,
+        )
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.post(f"/api/candidate/me/applications/{a.id}/withdraw")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_withdraw_on_foreign_returns_404(test_db):
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        mine_user, _ = await _seed_candidate(session, "wd4m@test.com")
+        _, other_profile = await _seed_candidate(session, "wd4o@test.com")
+        other_app = await _make_app(
+            session, candidate_id=other_profile.id, job_id=job.id
+        )
+    _override_user(mine_user.id, mine_user.email)
+
+    async with await _client() as client:
+        resp = await client.post(
+            f"/api/candidate/me/applications/{other_app.id}/withdraw"
+        )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_withdraw_allows_reapply_via_partial_unique_index(test_db):
+    """After withdrawing, the candidate can submit a new application to the same job."""
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, "wd5@test.com")
+        a = await _make_app(session, candidate_id=profile.id, job_id=job.id)
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        withdraw = await client.post(f"/api/candidate/me/applications/{a.id}/withdraw")
+        assert withdraw.status_code == 204
+
+    async with TestSessionLocal() as session:
+        second = Application(
+            job_id=job.id,
+            candidate_id=profile.id,
+            status=ApplicationStatus.NEW,
+        )
+        session.add(second)
+        await session.commit()
+        await session.refresh(second)
+
+    assert second.id != a.id

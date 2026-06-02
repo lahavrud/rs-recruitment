@@ -1,50 +1,41 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import CompanyName from "@/components/ui/CompanyName";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { textareaCls } from "@/styles/forms";
 import {
   fetchApplicationResumeBlob,
   getMyApplication,
+  patchMyApplication,
+  withdrawApplication,
   type CandidateApplicationDetail,
+  type CandidateApplicationMyAnswers,
 } from "@/services/candidate";
 
-/**
- * Read-only view of a single application (Sprint 11 / #609).
- *
- * Shows job snapshot + my submitted answers + the resume snapshot. No
- * raw status, no admin notes, no Edit/Withdraw — those buttons are
- * gated by ``editable`` in the follow-up issue.
- */
 export default function CandidateApplicationDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<CandidateApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
-  async function downloadResume() {
-    if (!data?.resume || downloading) return;
-    setDownloading(true);
-    try {
-      const blob = await fetchApplicationResumeBlob(data.id);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.resume.filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      setError(t("candidate.applications.errors.generic"));
-    } finally {
-      setDownloading(false);
-    }
-  }
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<CandidateApplicationMyAnswers | null>(null);
+  const [stagedResume, setStagedResume] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Withdraw
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -76,6 +67,108 @@ export default function CandidateApplicationDetailPage() {
     };
   }, [id, t]);
 
+  async function downloadResume() {
+    if (!data?.resume || downloading) return;
+    setDownloading(true);
+    try {
+      const blob = await fetchApplicationResumeBlob(data.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.resume.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(t("candidate.applications.errors.generic"));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  function startEditing() {
+    if (!data) return;
+    setEditForm({ ...data.my_answers });
+    setStagedResume(null);
+    setSaveError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+    setEditForm(null);
+    setStagedResume(null);
+    setSaveError(null);
+  }
+
+  async function handleSave() {
+    if (!data || !editForm) return;
+    const form = new FormData();
+    const orig = data.my_answers;
+    if (editForm.service_concept !== orig.service_concept)
+      form.append("service_concept", editForm.service_concept ?? "");
+    if (editForm.salary_expectations !== orig.salary_expectations)
+      form.append("salary_expectations", editForm.salary_expectations ?? "");
+    if (editForm.strength !== orig.strength)
+      form.append("strength", editForm.strength ?? "");
+    if (editForm.growth_area !== orig.growth_area)
+      form.append("growth_area", editForm.growth_area ?? "");
+    if (stagedResume) form.append("resume", stagedResume, stagedResume.name);
+
+    if ([...form.entries()].length === 0) {
+      cancelEditing();
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await patchMyApplication(data.id, form);
+      setData(updated);
+      setIsEditing(false);
+      setEditForm(null);
+      setStagedResume(null);
+    } catch (err) {
+      if (
+        axios.isAxiosError(err) &&
+        err.response?.status === 409 &&
+        err.response.data?.detail === "application_not_editable"
+      ) {
+        setSaveError(t("candidate.applications.edit.notEditable"));
+        window.location.reload();
+      } else {
+        setSaveError(t("candidate.applications.errors.saveFailed"));
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!data) return;
+    setWithdrawing(true);
+    try {
+      await withdrawApplication(data.id);
+      navigate("/candidate/applications", { state: { withdrawn: true } });
+    } catch (err) {
+      if (
+        axios.isAxiosError(err) &&
+        err.response?.status === 409 &&
+        err.response.data?.detail === "application_not_editable"
+      ) {
+        setWithdrawOpen(false);
+        setError(t("candidate.applications.errors.notEditable"));
+        window.location.reload();
+      } else {
+        setWithdrawOpen(false);
+        setError(t("candidate.applications.errors.generic"));
+      }
+    } finally {
+      setWithdrawing(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
@@ -98,7 +191,7 @@ export default function CandidateApplicationDetailPage() {
     );
   }
 
-  const answers = data.my_answers;
+  const answers = isEditing && editForm ? editForm : data.my_answers;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -107,13 +200,24 @@ export default function CandidateApplicationDetailPage() {
         subtitle={data.job.title}
       />
 
-      <div className="mt-4">
+      <div className="mt-4 flex items-center justify-between">
         <Link
           to="/candidate/applications"
           className="text-xs text-white/50 hover:text-white/80"
         >
           ← {t("candidate.applications.detail.back")}
         </Link>
+
+        {data.editable && !isEditing && (
+          <div className="flex gap-3">
+            <Button variant="primary" size="sm" onClick={startEditing}>
+              {t("candidate.applications.edit.button")}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setWithdrawOpen(true)}>
+              {t("candidate.applications.withdraw.button")}
+            </Button>
+          </div>
+        )}
       </div>
 
       <section className="mt-6 rounded-xl border border-white/8 bg-card p-6">
@@ -138,35 +242,94 @@ export default function CandidateApplicationDetailPage() {
         <h2 className="text-[10px] font-semibold uppercase tracking-widest text-copper">
           {t("candidate.applications.detail.myAnswers")}
         </h2>
-        <dl className="mt-4 space-y-4">
-          <AnswerRow
-            label={t("candidate.applications.detail.answers.serviceConcept")}
-            value={answers.service_concept}
-            emptyLabel={t("candidate.applications.detail.answersEmpty")}
-          />
-          <AnswerRow
-            label={t("candidate.applications.detail.answers.salaryExpectations")}
-            value={answers.salary_expectations}
-            emptyLabel={t("candidate.applications.detail.answersEmpty")}
-          />
-          <AnswerRow
-            label={t("candidate.applications.detail.answers.strength")}
-            value={answers.strength}
-            emptyLabel={t("candidate.applications.detail.answersEmpty")}
-          />
-          <AnswerRow
-            label={t("candidate.applications.detail.answers.growthArea")}
-            value={answers.growth_area}
-            emptyLabel={t("candidate.applications.detail.answersEmpty")}
-          />
-        </dl>
+
+        {isEditing && editForm ? (
+          <div className="mt-4 space-y-4">
+            <EditField
+              label={t("candidate.applications.detail.answers.serviceConcept")}
+              value={editForm.service_concept ?? ""}
+              onChange={(v) => setEditForm({ ...editForm, service_concept: v || null })}
+            />
+            <EditField
+              label={t("candidate.applications.detail.answers.salaryExpectations")}
+              value={editForm.salary_expectations ?? ""}
+              onChange={(v) =>
+                setEditForm({ ...editForm, salary_expectations: v || null })
+              }
+            />
+            <EditField
+              label={t("candidate.applications.detail.answers.strength")}
+              value={editForm.strength ?? ""}
+              onChange={(v) => setEditForm({ ...editForm, strength: v || null })}
+            />
+            <EditField
+              label={t("candidate.applications.detail.answers.growthArea")}
+              value={editForm.growth_area ?? ""}
+              onChange={(v) => setEditForm({ ...editForm, growth_area: v || null })}
+            />
+          </div>
+        ) : (
+          <dl className="mt-4 space-y-4">
+            <AnswerRow
+              label={t("candidate.applications.detail.answers.serviceConcept")}
+              value={answers.service_concept}
+              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+            />
+            <AnswerRow
+              label={t("candidate.applications.detail.answers.salaryExpectations")}
+              value={answers.salary_expectations}
+              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+            />
+            <AnswerRow
+              label={t("candidate.applications.detail.answers.strength")}
+              value={answers.strength}
+              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+            />
+            <AnswerRow
+              label={t("candidate.applications.detail.answers.growthArea")}
+              value={answers.growth_area}
+              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+            />
+          </dl>
+        )}
       </section>
 
       <section className="mt-6 rounded-xl border border-white/8 bg-card p-6">
         <h2 className="text-[10px] font-semibold uppercase tracking-widest text-copper">
           {t("candidate.applications.detail.resume")}
         </h2>
-        {data.resume ? (
+
+        {isEditing ? (
+          <div className="mt-3 space-y-2">
+            {stagedResume ? (
+              <p className="text-sm text-white/70">
+                {t("candidate.applications.edit.resumeStaged", {
+                  filename: stagedResume.name,
+                })}
+              </p>
+            ) : data.resume ? (
+              <p className="truncate text-sm text-white/60">{data.resume.filename}</p>
+            ) : (
+              <p className="text-sm text-white/40">
+                {t("candidate.applications.detail.resumeNone")}
+              </p>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={(e) => setStagedResume(e.target.files?.[0] ?? null)}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t("candidate.applications.edit.resumeReplace")}
+            </Button>
+          </div>
+        ) : data.resume ? (
           <div className="mt-3 flex items-center justify-between gap-4">
             <p className="truncate text-sm text-white/80">{data.resume.filename}</p>
             <Button
@@ -186,6 +349,33 @@ export default function CandidateApplicationDetailPage() {
           </p>
         )}
       </section>
+
+      {isEditing && (
+        <div className="mt-4 flex flex-col gap-3">
+          {saveError && <p className="text-sm text-danger">{saveError}</p>}
+          <div className="flex gap-3">
+            <Button variant="primary" onClick={handleSave} disabled={saving}>
+              {saving
+                ? t("candidate.applications.loading")
+                : t("candidate.applications.edit.save")}
+            </Button>
+            <Button variant="ghost" onClick={cancelEditing} disabled={saving}>
+              {t("candidate.applications.edit.cancel")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={withdrawOpen}
+        onOpenChange={(o) => !withdrawing && setWithdrawOpen(o)}
+        title={t("candidate.applications.withdraw.title")}
+        message={t("candidate.applications.withdraw.message")}
+        confirmLabel={t("candidate.applications.withdraw.confirm")}
+        variant="primary"
+        isPending={withdrawing}
+        onConfirm={handleWithdraw}
+      />
     </div>
   );
 }
@@ -205,6 +395,28 @@ function AnswerRow({
       <dd className="mt-1 whitespace-pre-wrap text-sm text-white/85">
         {value && value.trim() ? value : <span className="text-white/40">{emptyLabel}</span>}
       </dd>
+    </div>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs uppercase tracking-wide text-white/50">{label}</label>
+      <textarea
+        className={`${textareaCls} mt-1`}
+        rows={3}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }
