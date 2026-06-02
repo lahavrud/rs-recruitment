@@ -435,6 +435,7 @@ async def test_update_status_on_withdrawn_does_not_change_db(
 
     async with TestSessionLocal() as session:
         from sqlalchemy import select as sa_select
+
         refreshed = (
             await session.execute(
                 sa_select(Application).where(Application.id == withdrawn_app.id)
