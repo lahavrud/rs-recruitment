@@ -19,6 +19,17 @@
     "contact": "צרו קשר",
     "articles": "מאמרים"
   },
+  "resume": {
+    "header": "קובץ קורות חיים",
+    "error": "שגיאה בטעינת קובץ קורות החיים",
+    "notFound": "קובץ קורות החיים אינו זמין",
+    "notFoundDetail": "ייתכן שהקובץ נמחק או שלא הועלה כראוי.",
+    "download": "הורדה",
+    "openNewTab": "פתח בכרטיסייה חדשה",
+    "unsupportedTitle": "אין תצוגה מקדימה לקובץ זה",
+    "unsupportedSubtitle": "סוג הקובץ אינו נתמך לתצוגה בדפדפן. ניתן להוריד אותו ולפתוח במחשב.",
+    "triggerLabel": "קורות חיים"
+  },
   "common": {
     "loading": "טוען…",
     "saving": "שומר…",
@@ -1255,6 +1266,56 @@
         "updateFailed": "עדכון הסטטוס נכשל. נסה שוב.",
         "deleteFailed": "מחיקת המועמדות נכשלה. נסה שוב.",
         "notesFailed": "שמירת ההערות נכשלה. נסה שוב."
+      },
+      "triage": {
+        "entryButton": "סקירה מהירה",
+        "loading": "טוען מועמדים…",
+        "errorTitle": "אירעה שגיאה בטעינת המועמדים",
+        "back": "חזרה",
+        "retry": "נסה שוב",
+        "emptyTitle": "אין כרגע מועמדים חדשים לסקירה",
+        "emptySubtitle": "כל המועמדים החדשים כבר טופלו.",
+        "backToList": "חזרה לרשימת המועמדים",
+        "exit": "יציאה",
+        "exitAria": "יציאה ממסך הסקירה",
+        "progress": "מועמד {{current}} מתוך {{total}}",
+        "decidedCount": "{{count}} מתוכם טופלו",
+        "prevCandidate": "מועמד קודם",
+        "nextCandidate": "מועמד הבא",
+        "candidateAria": "מועמד {{num}}",
+        "candidateAriaWithStatus": "מועמד {{num}} · {{status}}",
+        "keyboardShortcutsAria": "קיצורי מקלדת",
+        "noteLabel": "הערה (לא חובה)",
+        "notePlaceholder": "כתוב הערה — תישמר עם ההחלטה",
+        "openResume": "פתח קורות חיים",
+        "swipeHint": "החלק שמאלה או ימינה כדי לעבור בין מועמדים",
+        "undoButton": "בטל",
+        "undoBannerButton": "בטל החלטה",
+        "bannerApproved": "אישרת את המועמד",
+        "bannerRejected": "דחית את המועמד",
+        "decisionApproveButton": "אישור",
+        "decisionRejectButton": "דחייה",
+        "summaryEyebrow": "הסקירה הושלמה",
+        "summaryTitle": "סיימת לעבור על כל המועמדים",
+        "summarySubtitle": "כל ההחלטות נשמרו.",
+        "summaryApprovedLabel": "מאושרים",
+        "summaryRejectedLabel": "נדחו",
+        "startNewReview": "התחל סקירה חדשה",
+        "errors": {
+          "saveDecision": "לא הצלחנו לשמור את ההחלטה, נסה שוב",
+          "undoDecision": "לא הצלחנו לבטל את ההחלטה, נסה שוב"
+        },
+        "help": {
+          "title": "קיצורי מקלדת",
+          "approveAction": "אישור המועמד",
+          "rejectAction": "דחיית המועמד",
+          "nextAction": "מועמד הבא",
+          "prevAction": "מועמד קודם",
+          "undoLastAction": "ביטול ההחלטה האחרונה",
+          "exitAction": "יציאה מהמסך",
+          "toggleHelpAction": "הצגה או הסתרה של עזרה זו",
+          "closeButton": "סגור"
+        }
       }
     },
     "candidates": {

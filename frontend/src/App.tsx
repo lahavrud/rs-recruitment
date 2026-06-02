@@ -40,6 +40,9 @@ const NotFoundPage = lazyWithRetry(() => import("@/pages/NotFoundPage"));
 const AdminCompaniesPage = lazyWithRetry(() => import("@/pages/admin/AdminCompaniesPage"));
 const AdminJobsPage = lazyWithRetry(() => import("@/pages/admin/AdminJobsPage"));
 const AdminApplicationsPage = lazyWithRetry(() => import("@/pages/admin/AdminApplicationsPage"));
+const AdminApplicationsTriagePage = lazyWithRetry(
+  () => import("@/pages/admin/AdminApplicationsTriagePage"),
+);
 const AdminCandidatesPage = lazyWithRetry(() => import("@/pages/admin/AdminCandidatesPage"));
 const CompanyJobsPage = lazyWithRetry(() => import("@/pages/company/CompanyJobsPage"));
 const CandidateProfilePage = lazyWithRetry(
@@ -157,6 +160,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminApplicationsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/applications/triage"
+                element={
+                  <AdminRoute>
+                    <AdminApplicationsTriagePage />
                   </AdminRoute>
                 }
               />

@@ -28,6 +28,9 @@ import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { useAutoOpenFromRouteState } from "@/hooks/useAutoOpenFromRouteState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
+import Button from "@/components/ui/Button";
+import { useNavigate } from "react-router-dom";
+import { IconSparkle } from "./components/triageIcons";
 import ApplicationDetailDialog, { ApplicationDetailBody } from "./components/ApplicationDetailDialog";
 import ApplicationStatusDialog from "./components/ApplicationStatusDialog";
 import ApplicationNotesDialog from "./components/ApplicationNotesDialog";
@@ -50,6 +53,7 @@ export default function AdminApplicationsPage() {
   const { t } = useTranslation();
   usePageTitle(t("admin.applications.title"));
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [filter, setFilter] = useState<FilterValue>(() => {
     const s = new URLSearchParams(window.location.search).get("status");
@@ -218,6 +222,12 @@ export default function AdminApplicationsPage() {
       <PageHeader
         eyebrow={t("admin.applications.title")}
         subtitle={t("admin.applications.subtitle")}
+        action={
+          <Button onClick={() => navigate("/admin/applications/triage")}>
+            <IconSparkle className="ms-0 me-1.5 size-3.5" />
+            {t("admin.applications.triage.entryButton")}
+          </Button>
+        }
       />
 
       {/* Search + filter trigger */}

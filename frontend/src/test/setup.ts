@@ -20,3 +20,10 @@ Object.defineProperty(globalThis, "localStorage", {
   writable: true,
   configurable: true,
 });
+
+// JSDOM doesn't implement Element.scrollIntoView — components that call it
+// (e.g. the triage status strip auto-scrolling the active chip) would throw
+// on mount. Provide a noop so tests don't have to mock per-file.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () {};
+}

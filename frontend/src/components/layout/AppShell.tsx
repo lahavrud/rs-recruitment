@@ -219,13 +219,17 @@ function ShellContent({ children }: Props) {
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Auth pages manage their own full-screen layout
+  // Auth pages and the triage reviewer manage their own full-screen layout.
+  // Triage uses `fixed inset-0` which would otherwise be contained by the
+  // transformed AppShell main element (page-enter animation creates a
+  // containing block, so the fixed overlay can't escape it).
   if (
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/register-candidate" ||
     pathname === "/forgot-password" ||
-    pathname === "/reset-password"
+    pathname === "/reset-password" ||
+    pathname === "/admin/applications/triage"
   ) {
     return <>{children}</>;
   }
