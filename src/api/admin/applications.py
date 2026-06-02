@@ -24,7 +24,11 @@ from src.services.admin.applications import (
     update_application_notes,
     update_application_status,
 )
-from src.services.exceptions import ApplicationNotFoundError, InvalidCursorError
+from src.services.exceptions import (
+    ApplicationNotEditableError,
+    ApplicationNotFoundError,
+    InvalidCursorError,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -92,6 +96,8 @@ async def update_application_status_endpoint(
             for payload in email_payloads:
                 defer_after_commit(lambda p=payload: enqueue_email_task(**p))
     except ApplicationNotFoundError as e:
+        raise service_exception_to_http(e) from e
+    except ApplicationNotEditableError as e:
         raise service_exception_to_http(e) from e
 
     return result

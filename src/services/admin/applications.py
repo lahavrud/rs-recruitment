@@ -16,7 +16,10 @@ from src.core.infrastructure.pagination import (
 from src.enums import ApplicationStatus
 from src.models import Application
 from src.schemas import ApplicationRead, ApplicationWithDetails
-from src.services.exceptions import ApplicationNotFoundError
+from src.services.exceptions import (
+    ApplicationNotEditableError,
+    ApplicationNotFoundError,
+)
 from src.services.utils.audit import record_audit_event
 from src.templates.email import build_application_rejection_html
 
@@ -135,8 +138,11 @@ async def update_application_status(
 
     old_status = application.status
 
-    # Admin can move to any status — including reverting from terminal states
-    # for mis-click recovery.
+    if old_status == ApplicationStatus.WITHDRAWN:
+        raise ApplicationNotEditableError(
+            "Cannot change status of a withdrawn application"
+        )
+
     application.status = new_status
     if admin_notes is not None:
         application.admin_notes = admin_notes

@@ -1,13 +1,21 @@
-"""Authenticated candidate read-only application endpoints (Sprint 11 / #609).
+"""Authenticated candidate application endpoints (Sprint 11 / #609, #610).
 
-Lists, detail, and resume-snapshot streaming for the authenticated candidate's
-own applications. Status and admin_notes are intentionally not exposed; the
-only state signal sent back is the derived ``editable`` flag, used by the UI
-to decide whether to render Edit / Withdraw buttons (those actions land in a
-separate PR).
+Lists, detail, resume-snapshot streaming, edit, and withdraw for the
+authenticated candidate's own applications. Status and admin_notes are
+intentionally not exposed; the only state signal sent back is the derived
+``editable`` flag (true iff status == NEW).
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,17 +28,21 @@ from src.core.infrastructure.pagination import (
     MAX_LIMIT,
     CursorPage,
 )
+from src.core.services.storage import get_storage_provider
 from src.models import CandidateProfile, User
 from src.schemas import (
     CandidateApplicationDetail,
     CandidateApplicationListItem,
 )
 from src.services.candidate.applications import (
+    edit_my_application,
     get_application_resume_key,
     get_my_application,
     list_my_applications,
+    withdraw_my_application,
 )
 from src.services.exceptions import (
+    ApplicationNotEditableError,
     ApplicationNotFoundError,
     InvalidCursorError,
 )
@@ -77,6 +89,80 @@ async def get_application(
         )
     except ApplicationNotFoundError as exc:
         raise service_exception_to_http(exc) from exc
+
+
+@router.patch("/{application_id}", response_model=CandidateApplicationDetail)
+async def edit_application(
+    application_id: int,
+    service_concept: str | None = Form(None),
+    salary_expectations: str | None = Form(None),
+    strength: str | None = Form(None),
+    growth_area: str | None = Form(None),
+    resume: UploadFile | None = File(None),
+    current: tuple[User, CandidateProfile] = Depends(get_current_candidate),
+    session: AsyncSession = Depends(get_session),
+) -> CandidateApplicationDetail:
+    """Partially update text answers and/or replace the resume snapshot.
+
+    Only allowed when ``status == NEW``. Returns the updated detail.
+    """
+    if (
+        all(
+            f is None
+            for f in (service_concept, salary_expectations, strength, growth_area)
+        )
+        and resume is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="empty_body"
+        )
+
+    resume_bytes = await resume.read() if resume else None
+    resume_filename = resume.filename if resume else None
+
+    _, profile = current
+    try:
+        return await edit_my_application(
+            session,
+            candidate_id=profile.id,  # type: ignore[arg-type]
+            application_id=application_id,
+            service_concept=service_concept,
+            salary_expectations=salary_expectations,
+            strength=strength,
+            growth_area=growth_area,
+            resume_bytes=resume_bytes,
+            resume_filename=resume_filename,
+            storage=get_storage_provider(),
+        )
+    except ApplicationNotFoundError as exc:
+        raise service_exception_to_http(exc) from exc
+    except ApplicationNotEditableError as exc:
+        raise service_exception_to_http(exc) from exc
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_resume"
+        )
+
+
+@router.post("/{application_id}/withdraw", status_code=204)
+async def withdraw_application(
+    application_id: int,
+    current: tuple[User, CandidateProfile] = Depends(get_current_candidate),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Withdraw the application — only allowed when ``status == NEW``."""
+    _, profile = current
+    try:
+        await withdraw_my_application(
+            session,
+            candidate_id=profile.id,  # type: ignore[arg-type]
+            application_id=application_id,
+        )
+    except ApplicationNotFoundError as exc:
+        raise service_exception_to_http(exc) from exc
+    except ApplicationNotEditableError as exc:
+        raise service_exception_to_http(exc) from exc
+    return Response(status_code=204)
 
 
 @router.get("/{application_id}/resume")
