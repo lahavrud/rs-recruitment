@@ -166,7 +166,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
                     className={inputCls}
                   />
                 </Field>
-                <Field label={t("admin.jobs.fields.status")}>
+                <Field label={t("admin.jobs.fields.status")} id="edit-job-status">
                   <StatusPills
                     value={(form.status ?? job.status) as JobStatus}
                     onChange={(s) => {
@@ -217,7 +217,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
         open={pendingStatus !== null}
         onOpenChange={(o) => !o && setPendingStatus(null)}
         title={t("admin.jobs.statusChangeConfirmTitle")}
-        message={t("admin.jobs.statusChangeConfirmMessage")}
+        message={pendingStatus ? t(`admin.jobs.statusChangeConfirm.${pendingStatus}`) : ""}
         confirmLabel={t("common.confirm")}
         onConfirm={() => {
           if (pendingStatus) set("status", pendingStatus);

@@ -1,0 +1,56 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<h2 class="thi"
+    style="margin:0 0 20px;font-size:22px;font-weight:300;line-height:1.3;
+           color:{{ c_text }};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  משרה נסגרה על-ידי המנהל
+</h2>
+
+<p class="thi"
+   style="margin:0 0 8px;font-size:14px;line-height:1.7;color:{{ c_text }};
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  שלום <span style="color:{{ c_copper }};font-weight:500;">{{ company_name }}</span>,
+</p>
+
+<p class="thi"
+   style="margin:0 0 28px;font-size:14px;line-height:1.7;color:{{ c_text }};
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  מנהל המערכת סגר את המשרה
+  <strong>{{ job_title }}</strong>.
+  המשרה הוסרה מלוח המשרות הציבורי, והגשת מועמדויות חדשות חסומה.
+</p>
+
+<div class="hr" style="border:0;border-top:1px solid {{ c_border }};margin:0 0 24px;"></div>
+
+<p class="tmi"
+   style="margin:0 0 20px;font-size:14px;line-height:1.7;color:{{ c_muted }};
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  המועמדים הפעילים למשרה קיבלו הודעה על סגירתה.
+  ניתן לפנות לצוות RS Recruiting לכל שאלה.
+</p>
+
+<table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+  <tr>
+    <td align="center">
+      <a href="{{ dashboard_url }}" target="_blank"
+         style="display:inline-block;background:{{ c_copper }};color:{{ c_copper_text }};
+                text-decoration:none;font-family:Arial,sans-serif;
+                font-size:13px;font-weight:700;letter-spacing:1px;
+                padding:16px 36px;border-radius:4px;">
+        מעבר למשרות שלי
+      </a>
+    </td>
+  </tr>
+</table>
+
+<div class="hr" style="border:0;border-top:1px solid {{ c_border }};margin:28px 0 16px;"></div>
+
+<p class="tlo"
+   style="margin:0;font-size:12px;line-height:1.6;color:{{ c_low }};
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  לשאלות נוספות, ניתן לפנות אלינו ישירות:
+  <a href="mailto:{{ footer_support_email }}"
+     style="color:{{ c_copper }};text-decoration:none;">{{ footer_support_email }}</a>
+</p>
+{% endblock %}
