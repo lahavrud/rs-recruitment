@@ -130,6 +130,7 @@ export function ResumeViewer({
   // AppShell's page-enter animation, etc. — all create containing blocks).
   return createPortal(
     <div
+      data-resume-viewer=""
       className="fixed inset-0 z-[70] flex flex-col bg-black/80 backdrop-blur"
       dir="rtl"
       onClick={onClose}
