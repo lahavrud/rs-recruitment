@@ -100,15 +100,15 @@ export default function LandingHero({
       {/* ── Audience panels — image is shared with hero (above); just paint
             the gradient overlay that fades into the next dark section. ─── */}
       <section className="relative py-10 sm:py-14">
-        {/* Front-loaded fade: void/55 → nearly dark by 35% → locked card-raised after that */}
+        {/* Seamless continuation of the hero: start at solid void (matching hero bottom),
+            fade to card-raised so there is no lighter stripe at the section boundary. */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background: `linear-gradient(to bottom,
-              color-mix(in srgb, var(--color-void) 55%, transparent) 0%,
-              color-mix(in srgb, var(--color-void) 75%, transparent) 15%,
-              color-mix(in srgb, var(--color-void) 92%, transparent) 28%,
-              var(--color-card-raised) 38%
+              var(--color-void) 0%,
+              color-mix(in srgb, var(--color-void) 80%, transparent) 20%,
+              var(--color-card-raised) 42%
             )`,
           }}
         />
