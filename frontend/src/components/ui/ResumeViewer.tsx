@@ -130,7 +130,6 @@ export function ResumeViewer({
   // AppShell's page-enter animation, etc. — all create containing blocks).
   return createPortal(
     <div
-      data-resume-viewer=""
       className="fixed inset-0 z-[70] flex flex-col bg-black/80 backdrop-blur"
       dir="rtl"
       onClick={onClose}
@@ -271,23 +270,33 @@ export default function ResumeButton({
   candidateName,
   label,
   className,
+  onOpenChange,
 }: {
   resumePath: string;
   candidateName: string;
   /** Override the default trigger label (defaults to `t('resume.triggerLabel')`). */
   label?: string;
   className?: string;
+  /** Called whenever the viewer opens or closes — lets a parent Dialog lock
+   *  its preventOutsideClose while the viewer is visible. */
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const text = label ?? t("resume.triggerLabel");
+
+  function handleSetOpen(v: boolean) {
+    setOpen(v);
+    onOpenChange?.(v);
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setOpen(true);
+          handleSetOpen(true);
         }}
         className={
           className ??
@@ -300,7 +309,7 @@ export default function ResumeButton({
         <ResumeViewer
           candidateName={candidateName}
           resumePath={resumePath}
-          onClose={() => setOpen(false)}
+          onClose={() => handleSetOpen(false)}
         />
       )}
     </>

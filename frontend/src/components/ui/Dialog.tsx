@@ -60,26 +60,12 @@ export default function Dialog({
           // node; tell Radix that's intentional so it stops warning about a
           // missing `aria-describedby`.
           {...(description ? {} : { "aria-describedby": undefined })}
-          onPointerDownOutside={(e) => {
-            // Prevent dismissal when the click lands inside a ResumeViewer portal.
-            // The viewer portals to document.body, placing it outside this dialog's
-            // DOM subtree — Radix would otherwise treat it as an outside click.
-            const target = e.detail.originalEvent.target as Element | null;
-            if (target?.closest("[data-resume-viewer]")) {
-              e.preventDefault();
-              return;
-            }
-            if (preventOutsideClose) e.preventDefault();
-          }}
-          onInteractOutside={(e) => {
-            const target = (e as CustomEvent<{ originalEvent: Event }>).detail
-              ?.originalEvent?.target as Element | null;
-            if (target?.closest("[data-resume-viewer]")) {
-              e.preventDefault();
-              return;
-            }
-            if (preventOutsideClose) e.preventDefault();
-          }}
+          onPointerDownOutside={
+            preventOutsideClose ? (e) => e.preventDefault() : undefined
+          }
+          onInteractOutside={
+            preventOutsideClose ? (e) => e.preventDefault() : undefined
+          }
           className={[
             "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-1.5rem)] -translate-x-1/2 -translate-y-1/2 sm:w-[calc(100vw-2rem)]",
             "rounded-xl border border-white/8 bg-card-raised p-4 text-white/85 shadow-2xl shadow-black/60 sm:p-6",
