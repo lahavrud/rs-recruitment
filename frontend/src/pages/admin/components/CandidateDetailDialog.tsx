@@ -28,6 +28,7 @@ export default function CandidateDetailDialog({
     null,
   );
   const [appsError, setAppsError] = useState(false);
+  const [resumeViewerOpen, setResumeViewerOpen] = useState(false);
 
   useEffect(() => {
     // Reset state when the target candidate changes — the only sane way to
@@ -62,6 +63,7 @@ export default function CandidateDetailDialog({
       title={c.full_name}
       description={c.email}
       size="lg"
+      preventOutsideClose={resumeViewerOpen}
       footer={
         <>
           <Button variant="danger" onClick={onDelete}>
@@ -78,6 +80,7 @@ export default function CandidateDetailDialog({
         applications={applications}
         appsError={appsError}
         onLeavePage={onClose}
+        onResumeViewerChange={setResumeViewerOpen}
       />
     </Dialog>
   );
@@ -89,11 +92,13 @@ export function CandidateDetailBody({
   applications: appsProp,
   appsError: appsErrorProp,
   onLeavePage,
+  onResumeViewerChange,
 }: {
   candidate: CandidateProfileRead;
   applications?: ApplicationWithDetails[] | null;
   appsError?: boolean;
   onLeavePage?: () => void;
+  onResumeViewerChange?: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -146,6 +151,7 @@ export function CandidateDetailBody({
             resumePath={c.resume_path}
             candidateName={c.full_name}
             label={t("admin.candidates.table.resume")}
+            onOpenChange={onResumeViewerChange}
           />
         ) : (
           <span className="text-white/40">
