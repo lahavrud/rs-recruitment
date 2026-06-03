@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.infrastructure.transactions import transactional
 from src.enums import JobStatus
 from src.models import CompanyProfile, Job
-from src.services.admin.jobs_workflow import approve_job, list_pending_jobs, reject_job
+from src.services.admin.jobs_workflow import (
+    approve_job,
+    contact_job,
+    list_pending_jobs,
+    reject_job,
+)
 from src.services.exceptions import JobNotFoundError, JobNotPendingError
 
 
@@ -211,3 +216,70 @@ async def test_reject_job_already_published(
 
     with pytest.raises(JobNotPendingError, match="not pending"):
         await reject_job(job.id, session)
+
+
+# ── contact_job ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+@patch("src.services.admin.jobs_workflow.enqueue_email_task")
+async def test_contact_job_success(
+    mock_enqueue: AsyncMock,
+    session: AsyncSession,
+    pending_job: Job,
+):
+    """contact_job completes without error and dispatches one email."""
+    assert pending_job.id is not None
+    await contact_job(pending_job.id, "Please review the requirements.", session)
+    mock_enqueue.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_contact_job_not_found(session: AsyncSession):
+    """contact_job raises JobNotFoundError for a non-existent job_id."""
+    with pytest.raises(JobNotFoundError):
+        await contact_job(99999, "any note", session)
+
+
+@pytest.mark.asyncio
+@patch("src.services.admin.jobs_workflow.enqueue_email_task")
+async def test_contact_job_enqueues_email(
+    mock_enqueue: AsyncMock,
+    session: AsyncSession,
+    pending_job: Job,
+):
+    """contact_job sends email to the company user with the admin note in the body."""
+    admin_note = "Please add three more requirements."
+    await contact_job(pending_job.id, admin_note, session)
+    mock_enqueue.assert_awaited_once()
+    call_kwargs = mock_enqueue.call_args.kwargs
+    assert call_kwargs["to"] == "company@test.com"
+    assert admin_note in call_kwargs["body"]
+
+
+@pytest.mark.asyncio
+@patch("src.services.admin.jobs_workflow.enqueue_email_task")
+async def test_contact_job_works_on_published_job(
+    mock_enqueue: AsyncMock,
+    session: AsyncSession,
+    company_with_user: CompanyProfile,
+):
+    """contact_job accepts any job status — no status guard like approve/reject."""
+    job = Job(
+        company_id=company_with_user.id,
+        title="Published Job",
+        short_description="Short blurb for testing.",
+        description="Description.",
+        requirements=[{"text": "Req 1"}, {"text": "Req 2"}, {"text": "Req 3"}],
+        location="Tel Aviv",
+        status=JobStatus.PUBLISHED,
+        salary_min=10000,
+        salary_max=20000,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    assert job.id is not None
+
+    await contact_job(job.id, "Following up on this published role.", session)
+    mock_enqueue.assert_awaited_once()
