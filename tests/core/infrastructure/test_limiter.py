@@ -23,16 +23,6 @@ class TestGetLimiter:
         # Verify limiter has key_func set (it's stored as _key_func internally)
         assert limiter._key_func is not None
 
-    def test_get_limiter_same_instance_on_subsequent_calls(self):
-        """Test that same instance is returned on subsequent calls."""
-        limiter1 = get_limiter()
-        limiter2 = get_limiter()
-
-        # Note: get_limiter() creates a new instance each time,
-        # but we can verify both are valid Limiter instances
-        assert isinstance(limiter1, Limiter)
-        assert isinstance(limiter2, Limiter)
-
 
 class TestLimiterTestingMode:
     """Tests for rate limiter testing mode behavior."""

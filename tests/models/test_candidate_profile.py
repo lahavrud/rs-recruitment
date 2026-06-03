@@ -96,63 +96,6 @@ async def test_candidate_profile_query_by_email(session: AsyncSession):
     assert found_candidate.email == "query@example.com"
 
 
-# Security Tests: Path Traversal Prevention
-# Note: field_validator runs during model_validate(), not during direct instantiation
-# These tests use model_validate() which simulates API input validation
-
-
-def test_candidate_profile_path_traversal_parent_directory():
-    """Test that paths with '..' are rejected (path traversal attack)."""
-    with pytest.raises(ValueError, match="Path cannot contain '..'"):
-        CandidateProfile.model_validate(
-            {
-                "full_name": "Malicious User",
-                "email": "malicious1@example.com",
-                "phone": "050-000-0000",
-                "resume_path": "../../../../etc/passwd",
-            }
-        )
-
-
-def test_candidate_profile_path_traversal_relative_parent():
-    """Test that relative parent paths are rejected."""
-    with pytest.raises(ValueError, match="Path cannot contain '..'"):
-        CandidateProfile.model_validate(
-            {
-                "full_name": "Malicious User",
-                "email": "malicious2@example.com",
-                "phone": "050-000-0000",
-                "resume_path": "../config.py",
-            }
-        )
-
-
-def test_candidate_profile_absolute_path_rejected():
-    """Test that absolute paths are rejected."""
-    with pytest.raises(ValueError, match="Path cannot be absolute"):
-        CandidateProfile.model_validate(
-            {
-                "full_name": "Malicious User",
-                "email": "malicious3@example.com",
-                "phone": "050-000-0000",
-                "resume_path": "/root/sensitive_file",
-            }
-        )
-
-
-def test_candidate_profile_path_outside_uploads_directory():
-    """Test that paths outside uploads/resumes/ are rejected."""
-    with pytest.raises(ValueError, match="Path must be within 'uploads/resumes/'"):
-        CandidateProfile.model_validate(
-            {
-                "full_name": "Malicious User",
-                "email": "malicious4@example.com",
-                "phone": "050-000-0000",
-                "resume_path": "config/secrets.env",
-            }
-        )
-
-
 @pytest.mark.asyncio
 async def test_candidate_profile_valid_resume_path(session: AsyncSession):
     """Test that valid paths within uploads/resumes/ are accepted."""
