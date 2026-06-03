@@ -20,7 +20,19 @@ from src.core.tasks import (
 
 @pytest.mark.asyncio
 async def test_send_email_task_success():
-    with patch("src.core.tasks.get_email_provider") as mock_get_provider:
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=MagicMock())
+    session_cm.__aexit__ = AsyncMock(return_value=None)
+    txn_cm = MagicMock()
+    txn_cm.__aenter__ = AsyncMock(return_value=None)
+    txn_cm.__aexit__ = AsyncMock(return_value=None)
+
+    with (
+        patch("src.core.tasks.get_email_provider") as mock_get_provider,
+        patch("src.core.tasks.async_session", return_value=session_cm),
+        patch("src.core.tasks.transactional", return_value=txn_cm),
+        patch("src.core.tasks.increment_and_alert", new_callable=AsyncMock),
+    ):
         mock_provider = AsyncMock()
         mock_provider.send_email.return_value = True
         mock_get_provider.return_value = mock_provider

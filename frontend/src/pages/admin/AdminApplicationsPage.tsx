@@ -35,6 +35,7 @@ import ApplicationDetailDialog, { ApplicationDetailBody } from "./components/App
 import ApplicationStatusDialog from "./components/ApplicationStatusDialog";
 import ApplicationNotesDialog from "./components/ApplicationNotesDialog";
 import ApplicationsFilterPanel from "./components/ApplicationsFilterPanel";
+import ClosedApplicationsSection from "./components/ClosedApplicationsSection";
 import { formatDate } from "@/utils/formatDate";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -42,7 +43,11 @@ const STATUS_COLORS: Record<string, string> = {
   APPROVED_BY_ADMIN: "bg-success/10 text-success",
   REJECTED: "bg-danger/10 text-danger",
   HIRED: "bg-hired/10 text-hired",
+  JOB_CLOSED: "bg-white/8 text-white/45",
+  WITHDRAWN: "bg-white/3 text-white/25",
 };
+
+const CLOSED_STATUSES = new Set<ApplicationStatus>([ApplicationStatus.JOB_CLOSED, ApplicationStatus.WITHDRAWN]);
 
 const ALL_FILTER = "ALL";
 type FilterValue = string;
@@ -61,7 +66,8 @@ export default function AdminApplicationsPage() {
       s === ApplicationStatus.NEW ||
       s === ApplicationStatus.APPROVED_BY_ADMIN ||
       s === ApplicationStatus.REJECTED ||
-      s === ApplicationStatus.HIRED
+      s === ApplicationStatus.HIRED ||
+      s === ApplicationStatus.WITHDRAWN
     ) {
       return s;
     }
@@ -196,7 +202,19 @@ export default function AdminApplicationsPage() {
     APPROVED_BY_ADMIN: t("admin.applications.statusLabels.APPROVED_BY_ADMIN"),
     REJECTED: t("admin.applications.statusLabels.REJECTED"),
     HIRED: t("admin.applications.statusLabels.HIRED"),
+    JOB_CLOSED: t("admin.applications.statusLabels.JOB_CLOSED"),
+    WITHDRAWN: t("admin.applications.statusLabels.WITHDRAWN"),
   };
+
+  const [activeFiltered, closedFiltered] = useMemo(() => {
+    const active: ApplicationWithDetails[] = [];
+    const closed: ApplicationWithDetails[] = [];
+    for (const a of filteredApplications) {
+      if (CLOSED_STATUSES.has(a.status as ApplicationStatus)) closed.push(a);
+      else active.push(a);
+    }
+    return [active, closed];
+  }, [filteredApplications]);
 
   async function handleDeleteConfirm() {
     if (!deleteCandidate) return;
@@ -302,15 +320,17 @@ export default function AdminApplicationsPage() {
         <>
           {/* Mobile cards — tap to expand inline; 3-dot menu for actions */}
           <div className="space-y-2 md:hidden">
-            {filteredApplications.map((app) => {
+            {activeFiltered.map((app) => {
               const actions = (
                 <DropdownMenu
                   ariaLabel={t("admin.applications.rowActionsLabel")}
                   trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
-                  <DropdownMenuItem onSelect={() => setStatusModal(app)}>
-                    {t("admin.applications.updateStatusAction")}
-                  </DropdownMenuItem>
+                  {app.status !== ApplicationStatus.WITHDRAWN && (
+                    <DropdownMenuItem onSelect={() => setStatusModal(app)}>
+                      {t("admin.applications.updateStatusAction")}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onSelect={() => setNotesModal(app)}>
                     {t("admin.applications.editNotesAction")}
                   </DropdownMenuItem>
@@ -368,7 +388,7 @@ export default function AdminApplicationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/6">
-                {filteredApplications.map((app) => (
+                {activeFiltered.map((app) => (
                   <tr
                     key={app.id}
                     onClick={() => setDetail(app)}
@@ -401,9 +421,11 @@ export default function AdminApplicationsPage() {
                         <DropdownMenuItem onSelect={() => setDetail(app)}>
                           {t("admin.applications.viewAction")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setStatusModal(app)}>
-                          {t("admin.applications.updateStatusAction")}
-                        </DropdownMenuItem>
+                        {app.status !== ApplicationStatus.WITHDRAWN && (
+                          <DropdownMenuItem onSelect={() => setStatusModal(app)}>
+                            {t("admin.applications.updateStatusAction")}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onSelect={() => setNotesModal(app)}>
                           {t("admin.applications.editNotesAction")}
                         </DropdownMenuItem>
@@ -424,6 +446,16 @@ export default function AdminApplicationsPage() {
 
           {/* Sentinel for IntersectionObserver */}
           <InfiniteScrollFooter sentinelRef={sentinelRef} isFetchingMore={isFetchingMore} />
+
+          <ClosedApplicationsSection
+            apps={closedFiltered}
+            statusLabels={STATUS_LABELS}
+            statusColors={STATUS_COLORS}
+            onView={setDetail}
+            onUpdateStatus={setStatusModal}
+            onEditNotes={setNotesModal}
+            onDelete={setDeleteCandidate}
+          />
         </>
       )}
 

@@ -422,6 +422,37 @@ Stream the snapshotted resume from `Application.resume_path`.
   snapshot. Reuses the storage-streaming helper at
   `src/api/_resume_streaming.py` shared with the admin endpoint.
 
+### `PATCH /api/candidate/me/applications/{id}`
+Partially update text answers and/or replace the resume snapshot. Sprint 11 / #610.
+* **Auth Required:** Yes (CANDIDATE role).
+* **Content-Type:** `multipart/form-data`.
+* **Form fields (all optional, but at least one required):**
+  * `service_concept`, `salary_expectations`, `strength`, `growth_area` — text,
+    partial update (only sent fields are written; omitted fields are untouched).
+  * `resume` — file (PDF, DOC, DOCX ≤ 10 MB); replaces `Application.resume_path`
+    and deletes the previous snapshot from storage (best-effort). Does **not**
+    touch `CandidateProfile.resume_path`.
+* **Gate:** Only allowed when `status == NEW`.
+* **Responses:**
+  * `200` — updated `CandidateApplicationDetail`.
+  * `400 empty_body` — no fields and no file were provided.
+  * `400 invalid_resume` — file fails extension / size / magic-byte checks.
+  * `404 application_not_found` — foreign, non-existent, or `WITHDRAWN`.
+  * `409 application_not_editable` — status is not NEW. The response body does
+    **not** include the actual status value to prevent information leakage.
+
+### `POST /api/candidate/me/applications/{id}/withdraw`
+Withdraw the application. Sprint 11 / #610.
+* **Auth Required:** Yes (CANDIDATE role).
+* **Gate:** Only allowed when `status == NEW`. Once admin has engaged (any
+  non-NEW status), withdrawal is rejected.
+* **Responses:**
+  * `204` — withdrawn; the row is preserved for admin visibility but disappears
+    from `GET /api/candidate/me/applications` (per the WITHDRAWN filter). The
+    candidate can re-apply to the same job (partial unique index allows it).
+  * `404 application_not_found` — foreign, non-existent, or already `WITHDRAWN`.
+  * `409 application_not_editable` — status is not NEW.
+
 ---
 
 ## Candidate Endpoints

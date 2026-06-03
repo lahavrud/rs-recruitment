@@ -14,6 +14,7 @@ const ALL_STATUSES = [
   ApplicationStatus.APPROVED_BY_ADMIN,
   ApplicationStatus.REJECTED,
   ApplicationStatus.HIRED,
+  ApplicationStatus.WITHDRAWN,
 ];
 
 export interface ApplicationsFilterPanelProps {

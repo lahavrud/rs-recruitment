@@ -205,6 +205,203 @@ async def test_delete_job_not_found(session: AsyncSession):
         await delete_job(99999, session)
 
 
+# ── close published job ───────────────────────────────────────────────────────
+
+
+async def _make_application(
+    session: AsyncSession,
+    job_id: int,
+    email: str,
+    status: ApplicationStatus = ApplicationStatus.NEW,
+) -> Application:
+    candidate = CandidateProfile(full_name="מועמד", email=email, phone="050-0000000")
+    session.add(candidate)
+    await session.flush()
+    app = Application(job_id=job_id, candidate_id=candidate.id, status=status)
+    session.add(app)
+    await session.flush()
+    return app
+
+
+@pytest.mark.asyncio
+async def test_close_published_job_sends_company_closure_email(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    created = await admin_create_job(_payload(company_with_user.id), session)
+    await session.commit()
+
+    with patch(_PATCH_EMAIL) as mock_email:
+        with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+            await update_job(
+                created.id,
+                JobAdminUpdate(status=JobStatus.CLOSED),
+                session,
+                actor_user_id=1,
+            )
+            await session.commit()
+
+    assert mock_email.call_count == 1
+    kwargs = mock_email.call_args.kwargs
+    assert kwargs["to"] == company_with_user.contact_email
+    assert "נסגרה" in kwargs["subject"]
+    assert "עודכן" not in kwargs["subject"]
+
+
+@pytest.mark.asyncio
+async def test_close_published_job_with_other_changes_sends_two_emails(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Closing AND editing other fields → closure email + generic fields email."""
+    created = await admin_create_job(_payload(company_with_user.id), session)
+    await session.commit()
+
+    with patch(_PATCH_EMAIL) as mock_email:
+        with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+            await update_job(
+                created.id,
+                JobAdminUpdate(status=JobStatus.CLOSED, title="New Title"),
+                session,
+            )
+            await session.commit()
+
+    subjects = [c.kwargs["subject"] for c in mock_email.call_args_list]
+    assert any("נסגרה" in s for s in subjects)
+    assert any("עודכן" in s for s in subjects)
+
+
+@pytest.mark.asyncio
+async def test_close_published_job_transitions_active_applications(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    job_id = (await admin_create_job(_payload(company_with_user.id), session)).id
+    await session.flush()
+
+    app_new = await _make_application(
+        session, job_id, "new@test.com", ApplicationStatus.NEW
+    )
+    app_approved = await _make_application(
+        session, job_id, "approved@test.com", ApplicationStatus.APPROVED_BY_ADMIN
+    )
+    app_rejected = await _make_application(
+        session, job_id, "rejected@test.com", ApplicationStatus.REJECTED
+    )
+    await session.commit()
+
+    with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+        await update_job(
+            job_id,
+            JobAdminUpdate(status=JobStatus.CLOSED),
+            session,
+        )
+        await session.commit()
+
+    await session.refresh(app_new)
+    await session.refresh(app_approved)
+    await session.refresh(app_rejected)
+
+    assert app_new.status == ApplicationStatus.JOB_CLOSED
+    assert app_approved.status == ApplicationStatus.JOB_CLOSED
+    assert app_rejected.status == ApplicationStatus.REJECTED  # untouched
+
+
+@pytest.mark.asyncio
+async def test_close_published_job_sends_candidate_emails(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    job_id = (await admin_create_job(_payload(company_with_user.id), session)).id
+    await session.flush()
+
+    await _make_application(session, job_id, "c1@test.com")
+    await _make_application(session, job_id, "c2@test.com")
+    await session.commit()
+
+    with patch(_PATCH_EMAIL) as mock_email:
+        with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+            await update_job(
+                job_id,
+                JobAdminUpdate(status=JobStatus.CLOSED),
+                session,
+            )
+            await session.commit()
+
+    recipients = {c.kwargs["to"] for c in mock_email.call_args_list}
+    assert "c1@test.com" in recipients
+    assert "c2@test.com" in recipients
+
+
+@pytest.mark.asyncio
+async def test_close_published_job_records_audit_events(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    from src.models import AuditLog
+
+    job_id = (await admin_create_job(_payload(company_with_user.id), session)).id
+    await session.flush()
+
+    app1 = await _make_application(session, job_id, "audit1@test.com")
+    app2 = await _make_application(session, job_id, "audit2@test.com")
+    await session.commit()
+
+    with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+        await update_job(
+            job_id,
+            JobAdminUpdate(status=JobStatus.CLOSED),
+            session,
+            actor_user_id=42,
+        )
+        await session.commit()
+
+    rows = list(
+        (
+            await session.execute(
+                select(AuditLog).where(
+                    AuditLog.target_type == "Application",  # pyright: ignore[reportArgumentType]
+                    AuditLog.action == "application.status_change",  # pyright: ignore[reportArgumentType]
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(rows) == 2
+    target_ids = {r.target_id for r in rows}
+    assert app1.id in target_ids
+    assert app2.id in target_ids
+    assert all(r.actor_user_id == 42 for r in rows)
+    assert all("JOB_CLOSED" in r.detail for r in rows)
+
+
+@pytest.mark.asyncio
+async def test_non_published_to_closed_skips_cascade(
+    session: AsyncSession, company_with_user: CompanyProfile
+):
+    """Closing a PENDING_APPROVAL job does not cascade to applications."""
+    job = Job(
+        company_id=company_with_user.id,
+        title="Pending Role",
+        short_description="x",
+        description="x",
+        requirements=[{"text": "x"}, {"text": "y"}, {"text": "z"}],
+        location="x",
+        status=JobStatus.PENDING_APPROVAL,
+        salary_min=10000,
+        salary_max=20000,
+    )
+    session.add(job)
+    await session.flush()
+    app = await _make_application(session, job.id, "p@test.com")
+    await session.commit()
+
+    with patch(_PATCH_DEFER, side_effect=lambda fn: fn()):
+        await update_job(job.id, JobAdminUpdate(status=JobStatus.CLOSED), session)
+        await session.commit()
+
+    await session.refresh(app)
+    assert (
+        app.status == ApplicationStatus.NEW
+    )  # cascade only fires on PUBLISHED → CLOSED
+
+
 # ── list_jobs ─────────────────────────────────────────────────────────────────
 
 

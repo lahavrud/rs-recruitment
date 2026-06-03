@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import PageHeader from "@/components/ui/PageHeader";
 import CompanyName from "@/components/ui/CompanyName";
@@ -8,20 +8,31 @@ import {
   type CandidateApplicationListItem,
 } from "@/services/candidate";
 
-/**
- * Read-only list of the candidate's own applications (Sprint 11 / #609).
- *
- * The backend already excludes WITHDRAWN rows; the UI never exposes raw
- * application status. The `editable` flag is reserved for the follow-up
- * issue that adds Edit / Withdraw buttons on the detail page.
- */
+const BANNER_DISMISS_MS = 4000;
+
 export default function CandidateApplicationsPage() {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [items, setItems] = useState<CandidateApplicationListItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [withdrawnBanner, setWithdrawnBanner] = useState(
+    () => !!(location.state as Record<string, unknown> | null)?.withdrawn,
+  );
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (withdrawnBanner) {
+      navigate(".", { replace: true, state: {} });
+      bannerTimerRef.current = setTimeout(() => setWithdrawnBanner(false), BANNER_DISMISS_MS);
+    }
+    return () => {
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let alive = true;
@@ -62,6 +73,12 @@ export default function CandidateApplicationsPage() {
         eyebrow={t("candidate.applications.eyebrow")}
         subtitle={t("candidate.applications.subtitle")}
       />
+
+      {withdrawnBanner && (
+        <div className="mt-4 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+          {t("candidate.applications.withdraw.withdrawn")}
+        </div>
+      )}
 
       {loading && (
         <p className="mt-6 text-white/60">{t("candidate.applications.loading")}</p>

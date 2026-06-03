@@ -1,4 +1,15 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+
+function calcProgress(el: HTMLDivElement): number {
+  // Map the full teleportation cycle [start, end] → [0%, 100%].
+  // start = post-teleport landing (oneSet - clientWidth/2)
+  // end   = right-teleport trigger (2*oneSet - clientWidth/2)
+  // distance between them = oneSet (one full content set)
+  const oneSet = el.scrollWidth / 3;
+  const start  = oneSet - el.clientWidth / 2;
+  if (oneSet <= 0) return 0;
+  return Math.min(100, Math.max(0, (el.scrollLeft - start) / oneSet * 100));
+}
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPublicJobs } from "@/services/jobs";
@@ -7,6 +18,7 @@ import FeaturedRibbon from "@/components/ui/FeaturedRibbon";
 import { formatDate } from "@/utils/formatDate";
 
 const LONG_PRESS_MS = 140;
+const AUTO_SCROLL_PX = 0.5;
 
 function useReveal(threshold = 0.05) {
   const ref = useRef<HTMLDivElement>(null);
@@ -41,14 +53,16 @@ export default function LandingFeaturedJobs() {
   const [jobsRef, jobsVisible] = useReveal(0.15);
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
   const scrollRef   = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
   const isDragging  = useRef(false);
   const hasDragged  = useRef(false);
   const velocityRef = useRef(0);
   const longTimer   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const rafId       = useRef(0);
+  const isHovered   = useRef(false);
+  const autoRafId   = useRef(0);
 
   // Only featured jobs appear in the landing "משרות נבחרות" carousel.
   const featuredJobs = useMemo(() => jobs.filter((j) => j.is_featured), [jobs]);
@@ -163,8 +177,8 @@ export default function LandingFeaturedJobs() {
 
     const onScroll = () => {
       if (teleporting) return;
-      const total     = el.scrollWidth;
-      const oneSet    = total / 3;
+      const total  = el.scrollWidth;
+      const oneSet = total / 3;
 
       if (el.scrollLeft < oneSet * 0.5) {
         teleporting = true;
@@ -175,10 +189,6 @@ export default function LandingFeaturedJobs() {
         el.scrollLeft -= oneSet;
         teleporting = false;
       }
-
-      const pos   = ((el.scrollLeft - oneSet) % oneSet + oneSet) % oneSet;
-      const range = oneSet - el.clientWidth;
-      setScrollProgress(range > 0 ? Math.min(100, Math.max(0, (pos / range) * 100)) : 0);
     };
 
     el.style.cursor = "grab";
@@ -194,6 +204,42 @@ export default function LandingFeaturedJobs() {
       document.removeEventListener("mouseup", onMouseUp);
       el.removeEventListener("mousemove", onMouseMove);
       el.removeEventListener("scroll", onScroll);
+    };
+  }, [loading, featuredJobs.length]);
+
+  // ── Auto-scroll: pauses while hovered or user is dragging/coasting ───
+  useEffect(() => {
+    if (loading || !featuredJobs.length) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const tick = () => {
+      if (!isHovered.current && !hasDragged.current) {
+        el.scrollLeft += AUTO_SCROLL_PX;
+      }
+      if (progressRef.current) {
+        progressRef.current.style.width = `${calcProgress(el)}%`;
+      }
+      autoRafId.current = requestAnimationFrame(tick);
+    };
+    autoRafId.current = requestAnimationFrame(tick);
+
+    const onEnter     = () => { isHovered.current = true; };
+    const onLeave     = () => { isHovered.current = false; };
+    const onTouchStart = () => { isHovered.current = true; };
+    const onTouchEnd   = () => { isHovered.current = false; };
+
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(autoRafId.current);
+      el.removeEventListener("mouseenter", onEnter);
+      el.removeEventListener("mouseleave", onLeave);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
     };
   }, [loading, featuredJobs.length]);
 
@@ -231,28 +277,28 @@ export default function LandingFeaturedJobs() {
             Each card gets dir="rtl" so Hebrew text renders correctly.
             onClickCapture prevents Link navigation when the user was dragging.
           */}
-          <div
-            ref={scrollRef}
-            dir="ltr"
-            className="scrollbar-none mt-8 flex gap-4 overflow-x-scroll pb-2"
-            style={{
-              ...cardRise(jobsVisible, "0.22s"),
-              WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
-            }}
-            onClickCapture={(e) => {
-              if (hasDragged.current) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-          >
+          <div className="relative mt-8" style={cardRise(jobsVisible, "0.22s")}>
+            <div
+              ref={scrollRef}
+              dir="ltr"
+              className="scrollbar-none flex gap-4 overflow-x-scroll pb-2"
+              style={{
+                WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
+              }}
+              onClickCapture={(e) => {
+                if (hasDragged.current) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+            >
             {loopedJobs.map((job, i) => (
               <Link
                 key={`${job.id}-${i}`}
                 to={`/jobs/${job.id}`}
                 dir="rtl"
                 draggable={false}
-                className="group relative flex min-h-[210px] w-[75vw] shrink-0 flex-col rounded-xl border border-gold/40 bg-card p-5 transition-colors hover:border-gold/60 sm:w-72"
+                className="group relative flex min-h-[210px] w-[65vw] shrink-0 flex-col rounded-xl border border-gold/40 bg-card p-5 transition-colors hover:border-gold/60 sm:w-72"
               >
                 <FeaturedRibbon label={t("publicJobs.board.featured")} />
                 <h3 className="font-medium text-white/90">{job.title}</h3>
@@ -277,13 +323,17 @@ export default function LandingFeaturedJobs() {
                 </p>
               </Link>
             ))}
+            </div>
+            {/* trailing-edge fade — suggests more cards exist beyond the right edge */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-void to-transparent" />
           </div>
 
-          {/* Progress bar */}
-          <div className="mt-5 h-px overflow-hidden rounded-full bg-white/8">
+          {/* Progress bar — dir="ltr" so fill grows left-to-right regardless of page RTL */}
+          <div dir="ltr" className="mt-5 h-0.5 overflow-hidden rounded-full bg-white/12">
             <div
-              className="h-full rounded-full bg-copper/50 transition-all duration-100"
-              style={{ width: `${scrollProgress}%` }}
+              ref={progressRef}
+              className="h-full rounded-full bg-copper/70"
+              style={{ width: 0 }}
             />
           </div>
         </div>

@@ -114,6 +114,13 @@ class Settings(BaseSettings):
     # admin notifications go to this address only; when unset, every active
     # admin receives the notification (legacy fallback).
     admin_notification_email: Optional[str] = None
+    # Email quota — free-tier defaults (100/day, 3 000/month).
+    # Override via SSM/env when on a paid Resend plan.
+    email_daily_limit: int = 100
+    email_monthly_limit: int = 3000
+    # Minimum seconds between consecutive email sends in the worker.
+    # 0.25 s ≈ 4/s — safely under Resend SMTP's implied 5 req/s ceiling.
+    email_send_delay_seconds: float = 0.25
 
     # Frontend
     frontend_base_url: str = "http://localhost:3000"
