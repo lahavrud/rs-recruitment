@@ -10,7 +10,7 @@ import { inputCls } from "@/styles/forms";
 type TokenState = "checking" | "valid" | "invalid";
 
 export default function ResetPasswordPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('auth');
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -43,19 +43,19 @@ export default function ResetPasswordPage() {
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   function validatePassword(v: string): string {
-    if (!v) return t("auth.resetPassword.validation.passwordRequired");
-    if (v.length < 8) return t("auth.resetPassword.validation.passwordMin");
-    if (!/[A-Z]/.test(v)) return t("auth.resetPassword.validation.passwordUppercase");
-    if (!/[a-z]/.test(v)) return t("auth.resetPassword.validation.passwordLowercase");
-    if (!/\d/.test(v)) return t("auth.resetPassword.validation.passwordDigit");
+    if (!v) return t("auth:resetPassword.validation.passwordRequired");
+    if (v.length < 8) return t("auth:resetPassword.validation.passwordMin");
+    if (!/[A-Z]/.test(v)) return t("auth:resetPassword.validation.passwordUppercase");
+    if (!/[a-z]/.test(v)) return t("auth:resetPassword.validation.passwordLowercase");
+    if (!/\d/.test(v)) return t("auth:resetPassword.validation.passwordDigit");
     if (!/[^A-Za-z0-9]/.test(v))
-      return t("auth.resetPassword.validation.passwordSpecial");
+      return t("auth:resetPassword.validation.passwordSpecial");
     return "";
   }
 
   function validateConfirm(v: string, pw: string): string {
-    if (!v) return t("auth.resetPassword.validation.confirmRequired");
-    if (v !== pw) return t("auth.resetPassword.validation.confirmMismatch");
+    if (!v) return t("auth:resetPassword.validation.confirmRequired");
+    if (v !== pw) return t("auth:resetPassword.validation.confirmMismatch");
     return "";
   }
 
@@ -91,7 +91,7 @@ export default function ResetPasswordPage() {
         // 400 here means the token was valid at page-load but expired or got
         // used between then and submit — same UX as a stale link on arrival.
         if (status === 400) setTokenState("invalid");
-        else if (status === 429) setError(t("auth.resetPassword.errors.tooManyAttempts"));
+        else if (status === 429) setError(t("auth:resetPassword.errors.tooManyAttempts"));
         else if (status === 422) {
           const detail = err.response?.data?.detail;
           const errs = Array.isArray(detail) ? detail : [];
@@ -100,10 +100,10 @@ export default function ResetPasswordPage() {
           );
           if (pwErr)
             setFieldErrors((prev) => ({ ...prev, password: pwErr.msg }));
-          else setError(t("auth.resetPassword.errors.failed"));
-        } else setError(t("auth.resetPassword.errors.failed"));
+          else setError(t("auth:resetPassword.errors.failed"));
+        } else setError(t("auth:resetPassword.errors.failed"));
       } else {
-        setError(t("auth.resetPassword.errors.unexpected"));
+        setError(t("auth:resetPassword.errors.unexpected"));
       }
     } finally {
       setSubmitting(false);
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
   if (tokenState === "checking") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-void">
-        <p className="text-sm text-white/30">{t("auth.resetPassword.checking")}</p>
+        <p className="text-sm text-white/30">{t("auth:resetPassword.checking")}</p>
       </div>
     );
   }
@@ -126,16 +126,16 @@ export default function ResetPasswordPage() {
             ✕
           </div>
           <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("auth.resetPassword.invalidToken.title")}
+            {t("auth:resetPassword.invalidToken.title")}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("auth.resetPassword.invalidToken.message")}
+            {t("auth:resetPassword.invalidToken.message")}
           </p>
           <Link
             to="/forgot-password"
             className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
           >
-            {t("auth.resetPassword.invalidToken.requestNew")}
+            {t("auth:resetPassword.invalidToken.requestNew")}
           </Link>
         </div>
       </div>
@@ -153,16 +153,16 @@ export default function ResetPasswordPage() {
             ✓
           </div>
           <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("auth.resetPassword.success.title")}
+            {t("auth:resetPassword.success.title")}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("auth.resetPassword.success.message")}
+            {t("auth:resetPassword.success.message")}
           </p>
           <Link
             to="/login"
             className="mt-7 inline-block rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold"
           >
-            {t("auth.resetPassword.success.loginButton")}
+            {t("auth:resetPassword.success.loginButton")}
           </Link>
         </div>
       </div>
@@ -177,10 +177,10 @@ export default function ResetPasswordPage() {
             <Logo size={36} />
           </div>
           <h1 className="mt-4 text-lg font-semibold text-white/85">
-            {t("auth.resetPassword.title")}
+            {t("auth:resetPassword.title")}
           </h1>
           <p className="mt-2 text-sm text-white/45">
-            {t("auth.resetPassword.subtitle")}
+            {t("auth:resetPassword.subtitle")}
           </p>
         </div>
 
@@ -193,7 +193,7 @@ export default function ResetPasswordPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm text-white/50">
-              {t("auth.resetPassword.passwordLabel")}
+              {t("auth:resetPassword.passwordLabel")}
             </label>
             <input
               id="password"
@@ -218,7 +218,7 @@ export default function ResetPasswordPage() {
 
           <div>
             <label htmlFor="confirm" className="block text-sm text-white/50">
-              {t("auth.resetPassword.confirmLabel")}
+              {t("auth:resetPassword.confirmLabel")}
             </label>
             <input
               id="confirm"
@@ -247,14 +247,14 @@ export default function ResetPasswordPage() {
             className="w-full rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting
-              ? t("auth.resetPassword.submittingText")
-              : t("auth.resetPassword.submitText")}
+              ? t("auth:resetPassword.submittingText")
+              : t("auth:resetPassword.submitText")}
           </button>
         </form>
 
         <p className="px-6 pb-8 text-center text-sm text-white/35 sm:px-8">
           <Link to="/login" className="text-copper transition hover:text-gold">
-            {t("auth.resetPassword.backToLogin")}
+            {t("auth:resetPassword.backToLogin")}
           </Link>
         </p>
       </div>

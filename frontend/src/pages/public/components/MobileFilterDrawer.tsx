@@ -15,7 +15,7 @@ export default function MobileFilterDrawer({
   filteredCount,
   ...filterPanelProps
 }: MobileFilterDrawerProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'ltr', 'publicJobs']);
 
   return createPortal(
     <div
@@ -30,16 +30,16 @@ export default function MobileFilterDrawer({
         className={`absolute inset-y-0 start-0 flex w-[88%] max-w-sm flex-col bg-card-raised shadow-2xl shadow-black/50 transition-transform duration-200 ease-out ${open ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"}`}
         role="dialog"
         aria-modal="true"
-        aria-label={t("publicJobs.board.filters")}
+        aria-label={t("publicJobs:board.filters")}
       >
         <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
           <p className="text-sm font-semibold text-white/90">
-            {t("publicJobs.board.filters")}
+            {t("publicJobs:board.filters")}
           </p>
           <button
             type="button"
             onClick={onClose}
-            aria-label={t("common.close")}
+            aria-label={t("common:close")}
             className="rounded-sm p-1 text-white/55 transition hover:text-white"
           >
             <svg
@@ -62,7 +62,7 @@ export default function MobileFilterDrawer({
             onClick={onClose}
             className="w-full rounded-sm bg-copper py-2.5 text-sm font-medium text-white transition hover:bg-gold"
           >
-            {t("publicJobs.board.showResults", { count: filteredCount })}
+            {t("publicJobs:board.showResults", { count: filteredCount })}
           </button>
         </div>
       </div>

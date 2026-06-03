@@ -29,7 +29,7 @@ export default function SearchableMultiSelect<T extends string | number>({
   placeholder,
   searchPlaceholder,
 }: Props<T>) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common', 'http']);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -101,7 +101,7 @@ export default function SearchableMultiSelect<T extends string | number>({
       ? placeholder
       : values.length === 1
         ? (options.find((o) => o.value === values[0])?.label ?? placeholder)
-        : t("admin.filters.selectedCount", { count: values.length });
+        : t("admin:filters.selectedCount", { count: values.length });
 
   return (
     <>
@@ -158,7 +158,7 @@ export default function SearchableMultiSelect<T extends string | number>({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder ?? t("common.searchPlaceholder")}
+              placeholder={searchPlaceholder ?? t("common:searchPlaceholder")}
               className={inputCls}
             />
           </div>
@@ -169,12 +169,12 @@ export default function SearchableMultiSelect<T extends string | number>({
                 onClick={() => onChange([])}
                 className="block w-full px-3 py-1.5 text-start text-xs text-white/40 transition hover:bg-white/5"
               >
-                {t("admin.filters.clearSelection")}
+                {t("admin:filters.clearSelection")}
               </button>
             )}
             {filtered.length === 0 ? (
               <p className="px-3 py-2 text-xs text-white/30">
-                {t("common.noResultsHeadline")}
+                {t("common:noResultsHeadline")}
               </p>
             ) : (
               filtered.map((o) => {

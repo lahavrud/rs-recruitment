@@ -8,7 +8,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'nav', 'ui']);
   const { user, logout } = useAuth();
 
   return (
@@ -18,7 +18,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           type="button"
           onClick={onMenuToggle}
           className="rounded-sm p-1.5 text-white/30 transition hover:bg-white/5 hover:text-white/60 md:hidden"
-          aria-label={t("nav.toggleNavigation")}
+          aria-label={t("nav:toggleNavigation")}
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -26,7 +26,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </button>
         <Link to="/" className="flex items-center gap-2.5 transition hover:opacity-80">
           <Logo size={26} />
-          <span className="text-sm font-medium text-white/55">{t("auth.appName")}</span>
+          <span className="text-sm font-medium text-white/55">{t("auth:appName")}</span>
         </Link>
       </div>
 
@@ -41,7 +41,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           onClick={logout}
           className="rounded-sm border border-white/15 px-3 py-1.5 text-sm text-white/40 transition hover:border-white/30 hover:text-white/70"
         >
-          {t("header.logout")}
+          {t("ui:header.logout")}
         </button>
       </div>
     </header>

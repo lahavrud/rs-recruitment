@@ -41,7 +41,7 @@ export function ResumeViewer({
   resumePath: string;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'resume']);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -112,7 +112,7 @@ export function ResumeViewer({
         onClick={handleDownload}
         className="inline-flex items-center gap-1.5 rounded-sm border border-white/10 px-3 py-1.5 text-xs text-white/65 hover:border-copper/40 hover:text-white"
       >
-        {t("resume.download")}
+        {t("resume:download")}
       </button>
       <a
         href={objectUrl}
@@ -120,7 +120,7 @@ export function ResumeViewer({
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1.5 rounded-sm border border-white/10 px-3 py-1.5 text-xs text-white/65 hover:border-copper/40 hover:text-white"
       >
-        {t("resume.openNewTab")} ↗
+        {t("resume:openNewTab")} ↗
       </a>
     </div>
   );
@@ -139,7 +139,7 @@ export function ResumeViewer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="min-w-0">
-          <p className="text-[11px] text-white/40">{t("resume.header")}</p>
+          <p className="text-[11px] text-white/40">{t("resume:header")}</p>
           <p className="truncate text-sm text-white/85">{candidateName}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -148,10 +148,10 @@ export function ResumeViewer({
             type="button"
             onClick={onClose}
             className="inline-flex items-center gap-2 rounded-sm border border-white/10 px-3 py-1.5 text-xs text-white/60 hover:border-white/30 hover:text-white"
-            aria-label={t("common.close")}
+            aria-label={t("common:close")}
           >
             <IconClose />
-            <span>{t("common.close")}</span>
+            <span>{t("common:close")}</span>
           </button>
         </div>
       </div>
@@ -162,29 +162,29 @@ export function ResumeViewer({
       >
         {loadState === "loading" && (
           <div className="flex h-full items-center justify-center text-sm text-white/50">
-            {t("common.loading")}
+            {t("common:loading")}
           </div>
         )}
         {loadState === "notFound" && (
           <div className="flex h-full items-center justify-center px-6 text-center">
             <div className="max-w-md text-white/75">
               <h2 className="text-lg font-light text-white/90">
-                {t("resume.notFound")}
+                {t("resume:notFound")}
               </h2>
-              <p className="mt-2 text-sm text-white/55">{t("resume.notFoundDetail")}</p>
+              <p className="mt-2 text-sm text-white/55">{t("resume:notFoundDetail")}</p>
             </div>
           </div>
         )}
         {loadState === "error" && (
           <div className="flex h-full items-center justify-center text-sm text-white/60">
-            {t("resume.error")}
+            {t("resume:error")}
           </div>
         )}
         {loadState === "ready" && objectUrl && (
           previewable ? (
             <iframe
               src={objectUrl}
-              title={`${t("resume.header")} — ${candidateName}`}
+              title={`${t("resume:header")} — ${candidateName}`}
               className="h-full w-full border-0"
             />
           ) : (
@@ -199,7 +199,7 @@ export function ResumeViewer({
 
 /** Body shown when the file can't render inline (DOC/DOCX). */
 function UnsupportedPreview({ onDownload }: { onDownload: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'resume']);
   return (
     <div className="flex h-full items-center justify-center px-6">
       <div className="max-w-md text-center text-white/75">
@@ -207,16 +207,16 @@ function UnsupportedPreview({ onDownload }: { onDownload: () => void }) {
           <IconDocument className="size-5" />
         </div>
         <h2 className="mt-4 text-lg font-light text-white/90">
-          {t("resume.unsupportedTitle")}
+          {t("resume:unsupportedTitle")}
         </h2>
-        <p className="mt-2 text-sm text-white/55">{t("resume.unsupportedSubtitle")}</p>
+        <p className="mt-2 text-sm text-white/55">{t("resume:unsupportedSubtitle")}</p>
         <div className="mt-6 flex justify-center">
           <button
             type="button"
             onClick={onDownload}
             className="inline-flex items-center gap-2 rounded-sm bg-copper px-5 py-2 text-sm font-medium text-white transition hover:bg-gold"
           >
-            {t("resume.download")}
+            {t("resume:download")}
           </button>
         </div>
       </div>
@@ -281,9 +281,9 @@ export default function ResumeButton({
    *  its preventOutsideClose while the viewer is visible. */
   onOpenChange?: (open: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'resume']);
   const [open, setOpen] = useState(false);
-  const text = label ?? t("resume.triggerLabel");
+  const text = label ?? t("resume:triggerLabel");
 
   function handleSetOpen(v: boolean) {
     setOpen(v);

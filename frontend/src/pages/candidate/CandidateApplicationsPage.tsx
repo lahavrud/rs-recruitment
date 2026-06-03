@@ -11,7 +11,7 @@ import {
 const BANNER_DISMISS_MS = 4000;
 
 export default function CandidateApplicationsPage() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation('candidate');
   const location = useLocation();
   const navigate = useNavigate();
   const [items, setItems] = useState<CandidateApplicationListItem[]>([]);
@@ -43,7 +43,7 @@ export default function CandidateApplicationsPage() {
         setItems(page.items);
         setCursor(page.next_cursor);
       } catch {
-        if (alive) setError(t("candidate.applications.errors.loadFailed"));
+        if (alive) setError(t("candidate:applications.errors.loadFailed"));
       } finally {
         if (alive) setLoading(false);
       }
@@ -61,7 +61,7 @@ export default function CandidateApplicationsPage() {
       setItems((prev) => [...prev, ...page.items]);
       setCursor(page.next_cursor);
     } catch {
-      setError(t("candidate.applications.errors.loadFailed"));
+      setError(t("candidate:applications.errors.loadFailed"));
     } finally {
       setLoadingMore(false);
     }
@@ -70,18 +70,18 @@ export default function CandidateApplicationsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader
-        eyebrow={t("candidate.applications.eyebrow")}
-        subtitle={t("candidate.applications.subtitle")}
+        eyebrow={t("candidate:applications.eyebrow")}
+        subtitle={t("candidate:applications.subtitle")}
       />
 
       {withdrawnBanner && (
         <div className="mt-4 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
-          {t("candidate.applications.withdraw.withdrawn")}
+          {t("candidate:applications.withdraw.withdrawn")}
         </div>
       )}
 
       {loading && (
-        <p className="mt-6 text-white/60">{t("candidate.applications.loading")}</p>
+        <p className="mt-6 text-white/60">{t("candidate:applications.loading")}</p>
       )}
 
       {error && !loading && (
@@ -91,13 +91,13 @@ export default function CandidateApplicationsPage() {
       {!loading && !error && items.length === 0 && (
         <div className="mt-8 rounded-xl border border-white/8 bg-card p-8 text-center">
           <p className="text-white/70">
-            {t("candidate.applications.empty")}
+            {t("candidate:applications.empty")}
           </p>
           <Link
             to="/jobs"
             className="mt-4 inline-block rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold"
           >
-            {t("candidate.applications.browseLink")}
+            {t("candidate:applications.browseLink")}
           </Link>
         </div>
       )}
@@ -119,7 +119,7 @@ export default function CandidateApplicationsPage() {
                 <p className="mt-2 text-base text-white/85">{row.job.title}</p>
                 {row.job.closed && (
                   <span className="mt-3 inline-block rounded-sm border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/50">
-                    {t("candidate.applications.closedPill")}
+                    {t("candidate:applications.closedPill")}
                   </span>
                 )}
               </Link>
@@ -137,8 +137,8 @@ export default function CandidateApplicationsPage() {
             className="rounded-sm border border-white/20 px-4 py-2 text-sm text-white/70 hover:border-white/40 hover:text-white/90 disabled:opacity-50"
           >
             {loadingMore
-              ? t("candidate.applications.loading")
-              : t("candidate.applications.loadMore")}
+              ? t("candidate:applications.loading")
+              : t("candidate:applications.loadMore")}
           </button>
         </div>
       )}
@@ -159,18 +159,18 @@ function formatRelative(
   const submitted = new Date(iso).getTime();
   const now = Date.now();
   const days = Math.max(0, Math.floor((now - submitted) / 86_400_000));
-  if (days === 0) return t("candidate.applications.relative.today");
-  if (days === 1) return t("candidate.applications.relative.yesterday");
-  if (days < 7) return t("candidate.applications.relative.daysAgo", { count: days });
+  if (days === 0) return t("candidate:applications.relative.today");
+  if (days === 1) return t("candidate:applications.relative.yesterday");
+  if (days < 7) return t("candidate:applications.relative.daysAgo", { count: days });
   if (days < 30)
-    return t("candidate.applications.relative.weeksAgo", {
+    return t("candidate:applications.relative.weeksAgo", {
       count: Math.floor(days / 7),
     });
   if (days < 365)
-    return t("candidate.applications.relative.monthsAgo", {
+    return t("candidate:applications.relative.monthsAgo", {
       count: Math.floor(days / 30),
     });
-  return t("candidate.applications.relative.yearsAgo", {
+  return t("candidate:applications.relative.yearsAgo", {
     count: Math.floor(days / 365),
   });
 }

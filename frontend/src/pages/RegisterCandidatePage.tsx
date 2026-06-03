@@ -35,7 +35,7 @@ const PASSWORD_RE = {
  * no logo, no company details) so the layout stays tight.
  */
 export default function RegisterCandidatePage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'common', 'http']);
   const { isAuthenticated } = useAuth();
   const [form, setForm] = useState({
     fullName: "",
@@ -67,34 +67,34 @@ export default function RegisterCandidatePage() {
   function validateField(name: FieldName, value: string): string {
     if (name === "fullName") {
       if (!value.trim())
-        return t("auth.registerCandidate.validation.fullNameRequired");
+        return t("auth:registerCandidate.validation.fullNameRequired");
       if (value.trim().length < 2)
-        return t("auth.registerCandidate.validation.fullNameMin");
+        return t("auth:registerCandidate.validation.fullNameMin");
     }
     if (name === "email") {
       if (!value.trim())
-        return t("auth.register.validation.emailRequired");
+        return t("auth:register.validation.emailRequired");
       if (!EMAIL_RE.test(value))
-        return t("auth.register.validation.emailInvalid");
+        return t("auth:register.validation.emailInvalid");
     }
     if (name === "password") {
       if (!value)
-        return t("auth.register.validation.passwordRequired");
+        return t("auth:register.validation.passwordRequired");
       if (value.length < 8)
-        return t("auth.register.validation.passwordMin");
+        return t("auth:register.validation.passwordMin");
       if (
         !PASSWORD_RE.upper.test(value) ||
         !PASSWORD_RE.lower.test(value) ||
         !PASSWORD_RE.digit.test(value) ||
         !PASSWORD_RE.special.test(value)
       )
-        return t("auth.registerCandidate.validation.passwordComplexity");
+        return t("auth:registerCandidate.validation.passwordComplexity");
     }
     if (name === "passwordConfirm") {
       if (!value)
-        return t("auth.register.validation.confirmRequired");
+        return t("auth:register.validation.confirmRequired");
       if (value !== form.password)
-        return t("auth.register.validation.confirmMismatch");
+        return t("auth:register.validation.confirmMismatch");
     }
     return "";
   }
@@ -121,10 +121,10 @@ export default function RegisterCandidatePage() {
       passwordConfirm: validateField("passwordConfirm", form.passwordConfirm),
       privacy: privacyAccepted
         ? ""
-        : t("auth.register.validation.privacyRequired"),
+        : t("auth:register.validation.privacyRequired"),
       terms: termsAccepted
         ? ""
-        : t("auth.register.validation.termsRequired"),
+        : t("auth:register.validation.termsRequired"),
     };
     setFieldErrors(errs);
     return Object.values(errs).every((v) => !v);
@@ -148,14 +148,14 @@ export default function RegisterCandidatePage() {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         if (status === 409)
-          setFormError(t("auth.registerCandidate.errors.emailExists"));
+          setFormError(t("auth:registerCandidate.errors.emailExists"));
         else if (status === 429)
-          setFormError(t("auth.registerCandidate.errors.tooManyAttempts"));
+          setFormError(t("auth:registerCandidate.errors.tooManyAttempts"));
         else if (status === 422)
-          setFormError(t("auth.registerCandidate.errors.validation"));
-        else setFormError(t("auth.registerCandidate.errors.generic"));
+          setFormError(t("auth:registerCandidate.errors.validation"));
+        else setFormError(t("auth:registerCandidate.errors.generic"));
       } else {
-        setFormError(t("auth.registerCandidate.errors.generic"));
+        setFormError(t("auth:registerCandidate.errors.generic"));
       }
     } finally {
       setSubmitting(false);
@@ -170,16 +170,16 @@ export default function RegisterCandidatePage() {
             <Logo size={36} />
           </div>
           <h1 className="text-lg font-semibold text-white/85">
-            {t("auth.registerCandidate.success.title")}
+            {t("auth:registerCandidate.success.title")}
           </h1>
           <p className="text-sm text-white/60">
-            {t("auth.registerCandidate.success.body")}
+            {t("auth:registerCandidate.success.body")}
           </p>
           <Link
             to="/login"
             className="inline-block rounded-sm border border-white/20 px-4 py-2 text-sm text-white/70 transition hover:border-white/40 hover:text-white"
           >
-            {t("auth.register.success.backToLogin")}
+            {t("auth:register.success.backToLogin")}
           </Link>
         </div>
       </div>
@@ -194,10 +194,10 @@ export default function RegisterCandidatePage() {
             <Logo size={36} />
           </div>
           <h1 className="mt-4 text-lg font-semibold text-white/85">
-            {t("auth.registerCandidate.subtitle")}
+            {t("auth:registerCandidate.subtitle")}
           </h1>
           <p className="mt-1 text-xs text-white/40">
-            {t("auth.registerCandidate.description")}
+            {t("auth:registerCandidate.description")}
           </p>
         </div>
 
@@ -213,7 +213,7 @@ export default function RegisterCandidatePage() {
           )}
 
           <Field
-            label={t("auth.registerCandidate.fullNameLabel")}
+            label={t("auth:registerCandidate.fullNameLabel")}
             error={fieldErrors.fullName}
           >
             <input
@@ -226,12 +226,12 @@ export default function RegisterCandidatePage() {
               onChange={handleChange}
               onBlur={handleBlur}
               className={inputCls}
-              placeholder={t("auth.registerCandidate.fullNamePlaceholder")}
+              placeholder={t("auth:registerCandidate.fullNamePlaceholder")}
             />
           </Field>
 
           <Field
-            label={t("auth.register.emailLabel")}
+            label={t("auth:register.emailLabel")}
             error={fieldErrors.email}
           >
             <input
@@ -245,12 +245,12 @@ export default function RegisterCandidatePage() {
               onBlur={handleBlur}
               dir="ltr"
               className={inputCls}
-              placeholder={t("auth.registerCandidate.emailPlaceholder")}
+              placeholder={t("auth:registerCandidate.emailPlaceholder")}
             />
           </Field>
 
           <Field
-            label={t("auth.register.passwordLabel")}
+            label={t("auth:register.passwordLabel")}
             error={fieldErrors.password}
           >
             <input
@@ -263,12 +263,12 @@ export default function RegisterCandidatePage() {
               onChange={handleChange}
               onBlur={handleBlur}
               className={inputCls}
-              placeholder={t("auth.register.passwordPlaceholder")}
+              placeholder={t("auth:register.passwordPlaceholder")}
             />
           </Field>
 
           <Field
-            label={t("auth.register.confirmLabel")}
+            label={t("auth:register.confirmLabel")}
             error={fieldErrors.passwordConfirm}
           >
             <input
@@ -281,20 +281,20 @@ export default function RegisterCandidatePage() {
               onChange={handleChange}
               onBlur={handleBlur}
               className={inputCls}
-              placeholder={t("auth.register.confirmPlaceholder")}
+              placeholder={t("auth:register.confirmPlaceholder")}
             />
           </Field>
 
           {/* ───────── Agreement section ───────── */}
           <div>
             <Eyebrow className="mb-2">
-              {t("auth.register.agreementSection")}
+              {t("auth:register.agreementSection")}
             </Eyebrow>
             <AgreementCard
-              title={t("auth.register.agreementSectionSiteTerms")}
-              readFullLabel={t("auth.register.agreementReadFull")}
+              title={t("auth:register.agreementSectionSiteTerms")}
+              readFullLabel={t("auth:register.agreementReadFull")}
               onOpen={() => setTermsOpen(true)}
-              checkboxLabel={t("auth.register.termsCheckboxLabel")}
+              checkboxLabel={t("auth:register.termsCheckboxLabel")}
               checked={termsAccepted}
               onChange={(v) => {
                 setTermsAccepted(v);
@@ -304,10 +304,10 @@ export default function RegisterCandidatePage() {
             />
             <div className="mt-2">
               <AgreementCard
-                title={t("auth.register.agreementSectionPrivacy")}
-                readFullLabel={t("auth.register.agreementReadFull")}
+                title={t("auth:register.agreementSectionPrivacy")}
+                readFullLabel={t("auth:register.agreementReadFull")}
                 onOpen={() => setPrivacyOpen(true)}
-                checkboxLabel={t("auth.register.privacyCheckboxLabel")}
+                checkboxLabel={t("auth:register.privacyCheckboxLabel")}
                 checked={privacyAccepted}
                 onChange={(v) => {
                   setPrivacyAccepted(v);
@@ -324,14 +324,14 @@ export default function RegisterCandidatePage() {
             className="w-full rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting
-              ? t("auth.register.submittingText")
-              : t("auth.register.submitText")}
+              ? t("auth:register.submittingText")
+              : t("auth:register.submitText")}
           </button>
         </form>
 
         <p className="px-6 pb-8 text-center text-sm text-white/35 sm:px-8">
           <Link to="/login" className="text-copper transition hover:text-gold">
-            {t("auth.registerCandidate.backToLoginLink")}
+            {t("auth:registerCandidate.backToLoginLink")}
           </Link>
         </p>
       </div>
@@ -340,10 +340,10 @@ export default function RegisterCandidatePage() {
           the text stays in one place. */}
       {termsOpen && (
         <PolicyModal
-          title={t("auth.register.agreementSectionSiteTerms")}
-          body={t("auth.register.agreementTextSiteTerms")}
-          acceptLabel={t("common.confirm")}
-          closeLabel={t("common.close")}
+          title={t("auth:register.agreementSectionSiteTerms")}
+          body={t("auth:register.agreementTextSiteTerms")}
+          acceptLabel={t("common:confirm")}
+          closeLabel={t("common:close")}
           checked={termsAccepted}
           onAccept={() => {
             setTermsAccepted(true);
@@ -355,10 +355,10 @@ export default function RegisterCandidatePage() {
       )}
       {privacyOpen && (
         <PolicyModal
-          title={t("auth.register.agreementSectionPrivacy")}
-          body={t("auth.register.agreementTextPrivacy")}
-          acceptLabel={t("common.confirm")}
-          closeLabel={t("common.close")}
+          title={t("auth:register.agreementSectionPrivacy")}
+          body={t("auth:register.agreementTextPrivacy")}
+          acceptLabel={t("common:confirm")}
+          closeLabel={t("common:close")}
           checked={privacyAccepted}
           onAccept={() => {
             setPrivacyAccepted(true);

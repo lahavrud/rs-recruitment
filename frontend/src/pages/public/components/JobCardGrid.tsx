@@ -31,7 +31,7 @@ export default function JobCardGrid({
   onClearFilters,
   sentinelRef,
 }: JobCardGridProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'publicJobs']);
 
   if (loading) {
     return (
@@ -48,8 +48,8 @@ export default function JobCardGrid({
       <div className="rounded-xl border border-dashed border-white/10 py-16 text-center sm:py-20">
         <p className="text-sm text-white/30">
           {hasActiveFilter
-            ? t("publicJobs.board.noResults")
-            : t("publicJobs.board.noPositions")}
+            ? t("publicJobs:board.noResults")
+            : t("publicJobs:board.noPositions")}
         </p>
         {hasActiveFilter && (
           <button
@@ -57,7 +57,7 @@ export default function JobCardGrid({
             onClick={onClearFilters}
             className="mt-4 text-xs text-copper/70 transition hover:text-copper"
           >
-            {t("publicJobs.board.clearFilters")}
+            {t("publicJobs:board.clearFilters")}
           </button>
         )}
       </div>
@@ -80,7 +80,7 @@ export default function JobCardGrid({
               : "border-white/8 hover:border-copper/25 hover:bg-card-raised",
           ].join(" ")}
         >
-          {job.is_featured && <FeaturedRibbon label={t("publicJobs.board.featured")} />}
+          {job.is_featured && <FeaturedRibbon label={t("publicJobs:board.featured")} />}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="truncate font-medium text-white/85 transition duration-200 group-hover:text-white/95">
@@ -120,14 +120,14 @@ export default function JobCardGrid({
             </div>
           )}
           <div className="mt-4 flex items-center gap-1.5 text-xs">
-            <span className="text-white/35">{t("common.salary")}:</span>
+            <span className="text-white/35">{t("common:salary")}:</span>
             <span className="font-medium text-copper/85">
               {formatCardSalary(job.salary_min, job.salary_max) ??
-                t("common.salaryNotSpecified")}
+                t("common:salaryNotSpecified")}
             </span>
           </div>
           <p className="mt-2 text-xs text-white/25">
-            {t("publicJobs.board.posted")} {formatDate(job.created_at)}
+            {t("publicJobs:board.posted")} {formatDate(job.created_at)}
           </p>
         </Link>
       ))}

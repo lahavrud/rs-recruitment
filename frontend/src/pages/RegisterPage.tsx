@@ -11,71 +11,71 @@ import RegisterStep2Form from "./components/RegisterStep2Form";
 import RegisterModals from "./components/RegisterModals";
 
 function useValidation() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'common']);
   return {
     validateEmail(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.emailRequired");
+      if (!v.trim()) return t("auth:register.validation.emailRequired");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
-        return t("auth.register.validation.emailInvalid");
+        return t("auth:register.validation.emailInvalid");
       return "";
     },
     validatePassword(v: string): string {
-      if (!v) return t("auth.register.validation.passwordRequired");
-      if (v.length < 8) return t("auth.register.validation.passwordMin");
-      if (!/[A-Z]/.test(v)) return t("auth.register.validation.passwordUppercase");
-      if (!/[a-z]/.test(v)) return t("auth.register.validation.passwordLowercase");
-      if (!/\d/.test(v)) return t("auth.register.validation.passwordDigit");
-      if (!/[^A-Za-z0-9]/.test(v)) return t("auth.register.validation.passwordSpecial");
+      if (!v) return t("auth:register.validation.passwordRequired");
+      if (v.length < 8) return t("auth:register.validation.passwordMin");
+      if (!/[A-Z]/.test(v)) return t("auth:register.validation.passwordUppercase");
+      if (!/[a-z]/.test(v)) return t("auth:register.validation.passwordLowercase");
+      if (!/\d/.test(v)) return t("auth:register.validation.passwordDigit");
+      if (!/[^A-Za-z0-9]/.test(v)) return t("auth:register.validation.passwordSpecial");
       return "";
     },
     validateConfirm(v: string, pw: string): string {
-      if (!v) return t("auth.register.validation.confirmRequired");
-      if (v !== pw) return t("auth.register.validation.confirmMismatch");
+      if (!v) return t("auth:register.validation.confirmRequired");
+      if (v !== pw) return t("auth:register.validation.confirmMismatch");
       return "";
     },
     validateCompanyName(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.companyNameRequired");
-      if (v.length > 100) return t("auth.register.validation.companyNameMax");
+      if (!v.trim()) return t("auth:register.validation.companyNameRequired");
+      if (v.length > 100) return t("auth:register.validation.companyNameMax");
       return "";
     },
     validateCompanyId(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.companyIdRequired");
-      if (!/^\d{9}$/.test(v)) return t("auth.register.validation.companyIdInvalid");
+      if (!v.trim()) return t("auth:register.validation.companyIdRequired");
+      if (!/^\d{9}$/.test(v)) return t("auth:register.validation.companyIdInvalid");
       return "";
     },
     validateContactFirstName(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.contactFirstNameRequired");
+      if (!v.trim()) return t("auth:register.validation.contactFirstNameRequired");
       return "";
     },
     validateContactLastName(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.contactLastNameRequired");
+      if (!v.trim()) return t("auth:register.validation.contactLastNameRequired");
       return "";
     },
     validateMobilePhone(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.mobilePhoneRequired");
+      if (!v.trim()) return t("auth:register.validation.mobilePhoneRequired");
       if (!/^05[0-9]\d{7}$/.test(v.replace(/[-\s]/g, "")))
-        return t("auth.register.validation.mobilePhoneInvalid");
+        return t("auth:register.validation.mobilePhoneInvalid");
       return "";
     },
     validateLogo(f: File | null): string {
-      if (!f) return t("auth.register.validation.logoRequired");
+      if (!f) return t("auth:register.validation.logoRequired");
       return "";
     },
     validateSignature(isEmpty: boolean): string {
-      if (isEmpty) return t("auth.register.validation.signatureRequired");
+      if (isEmpty) return t("auth:register.validation.signatureRequired");
       return "";
     },
     validateAddress(v: string): string {
-      if (!v.trim()) return t("auth.register.validation.addressRequired");
-      if (v.length > 200) return t("auth.register.validation.addressMax");
+      if (!v.trim()) return t("auth:register.validation.addressRequired");
+      if (v.length > 200) return t("auth:register.validation.addressMax");
       return "";
     },
     validatePrivacy(accepted: boolean): string {
-      if (!accepted) return t("auth.register.validation.privacyRequired");
+      if (!accepted) return t("auth:register.validation.privacyRequired");
       return "";
     },
     validateTerms(accepted: boolean): string {
-      if (!accepted) return t("auth.register.validation.termsRequired");
+      if (!accepted) return t("auth:register.validation.termsRequired");
       return "";
     },
   };
@@ -108,7 +108,7 @@ const EMPTY: FormState = {
 };
 
 export default function RegisterPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'common']);
   const val = useValidation();
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
@@ -164,16 +164,16 @@ export default function RegisterPage() {
             ✕
           </div>
           <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("auth.register.noToken.title")}
+            {t("auth:register.noToken.title")}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("auth.register.noToken.message")}
+            {t("auth:register.noToken.message")}
           </p>
           <Link
             to="/login"
             className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
           >
-            {t("auth.register.noToken.backToLogin")}
+            {t("auth:register.noToken.backToLogin")}
           </Link>
         </div>
       </div>
@@ -183,7 +183,7 @@ export default function RegisterPage() {
   if (metadataLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-void">
-        <p className="text-sm text-white/30">{t("common.loading")}</p>
+        <p className="text-sm text-white/30">{t("common:loading")}</p>
       </div>
     );
   }
@@ -291,18 +291,18 @@ export default function RegisterPage() {
           const errors = Array.isArray(detail) ? detail : [];
           const pwErr = errors.find((e: { loc?: string[] }) => e.loc?.includes("password"));
           if (pwErr) setFieldErrors((prev) => ({ ...prev, password: pwErr.msg }));
-          else setSubmitError(t("auth.register.errors.failed"));
+          else setSubmitError(t("auth:register.errors.failed"));
         } else if (status === 429) {
-          setSubmitError(t("auth.register.errors.tooManyAttempts"));
+          setSubmitError(t("auth:register.errors.tooManyAttempts"));
         } else if (status === 400) {
-          setSubmitError(t("auth.register.errors.invalidToken"));
+          setSubmitError(t("auth:register.errors.invalidToken"));
         } else if (status === 409) {
-          setSubmitError(t("auth.register.errors.emailExists"));
+          setSubmitError(t("auth:register.errors.emailExists"));
         } else {
-          setSubmitError(t("auth.register.errors.failed"));
+          setSubmitError(t("auth:register.errors.failed"));
         }
       } else {
-        setSubmitError(t("auth.register.errors.unexpected"));
+        setSubmitError(t("auth:register.errors.unexpected"));
       }
     } finally {
       setSubmitting(false);
@@ -317,16 +317,16 @@ export default function RegisterPage() {
             ✓
           </div>
           <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("auth.register.success.title")}
+            {t("auth:register.success.title")}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("auth.register.success.message")}
+            {t("auth:register.success.message")}
           </p>
           <Link
             to="/login"
             className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
           >
-            {t("auth.register.success.backToLogin")}
+            {t("auth:register.success.backToLogin")}
           </Link>
         </div>
       </div>
@@ -340,8 +340,8 @@ export default function RegisterPage() {
         <div className="mb-6 flex items-center gap-3">
           <Logo size={28} />
           <div>
-            <h1 className="text-lg font-semibold text-white/85">{t("auth.register.title")}</h1>
-            <p className="text-xs text-white/35">{t("auth.register.subtitle")}</p>
+            <h1 className="text-lg font-semibold text-white/85">{t("auth:register.title")}</h1>
+            <p className="text-xs text-white/35">{t("auth:register.subtitle")}</p>
           </div>
         </div>
 
@@ -404,9 +404,9 @@ export default function RegisterPage() {
         )}
 
         <p className="mt-6 text-center text-xs text-white/30">
-          {t("auth.register.haveAccount")}{" "}
+          {t("auth:register.haveAccount")}{" "}
           <Link to="/login" className="text-copper transition hover:text-gold">
-            {t("auth.register.loginLink")}
+            {t("auth:register.loginLink")}
           </Link>
         </p>
       </div>

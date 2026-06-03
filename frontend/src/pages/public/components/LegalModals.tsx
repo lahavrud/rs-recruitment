@@ -10,7 +10,7 @@ function LegalModal({
   bodyKey: string;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'common', 'publicJobs']);
   return createPortal(
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
@@ -23,7 +23,7 @@ function LegalModal({
             type="button"
             onClick={onClose}
             className="text-white/40 transition hover:text-white/70"
-            aria-label={t("common.close")}
+            aria-label={t("common:close")}
           >
             ✕
           </button>
@@ -43,7 +43,7 @@ function LegalModal({
             onClick={onClose}
             className="rounded-sm bg-copper px-5 py-2 text-sm font-medium text-white transition hover:bg-gold"
           >
-            {t("common.close")}
+            {t("common:close")}
           </button>
         </div>
       </div>
@@ -55,8 +55,8 @@ function LegalModal({
 export function PrivacyModal({ onClose }: { onClose: () => void }) {
   return (
     <LegalModal
-      titleKey="publicJobs.application.privacyConsentTitle"
-      bodyKey="auth.register.agreementTextPrivacy"
+      titleKey="publicJobs:application.privacyConsentTitle"
+      bodyKey="auth:register.agreementTextPrivacy"
       onClose={onClose}
     />
   );
@@ -65,8 +65,8 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
 export function TermsModal({ onClose }: { onClose: () => void }) {
   return (
     <LegalModal
-      titleKey="publicJobs.application.termsConsentTitle"
-      bodyKey="auth.register.agreementTextSiteTerms"
+      titleKey="publicJobs:application.termsConsentTitle"
+      bodyKey="auth:register.agreementTextSiteTerms"
       onClose={onClose}
     />
   );

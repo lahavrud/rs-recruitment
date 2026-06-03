@@ -54,7 +54,7 @@ export default function ApplicationsFilterPanel({
   filterOpen,
   statusLabels,
 }: ApplicationsFilterPanelProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const filterTabs: FilterValue[] = [ALL_FILTER, ...ALL_STATUSES];
 
   return (
@@ -64,33 +64,33 @@ export default function ApplicationsFilterPanel({
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {filter !== ALL_FILTER && (
             <ActiveFilterChip
-              label={`${t("admin.applications.table.status")}: ${statusLabels[filter]}`}
+              label={`${t("admin:applications.table.status")}: ${statusLabels[filter]}`}
               onRemove={() => setFilter(ALL_FILTER)}
             />
           )}
           {query.trim() && (
             <ActiveFilterChip
-              label={`${t("common.search")}: "${query.trim()}"`}
+              label={`${t("common:search")}: "${query.trim()}"`}
               onRemove={() => setQuery("")}
             />
           )}
           {jobFilter.map((id) => (
             <ActiveFilterChip
               key={`job-${id}`}
-              label={`${t("common.filteredByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
+              label={`${t("common:filteredByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
               onRemove={() => setJobFilter((prev) => prev.filter((x) => x !== id))}
             />
           ))}
           {filterCandidateId != null && (
             <ActiveFilterChip
-              label={`${t("common.filteredByCandidate")} #${filterCandidateId}`}
+              label={`${t("common:filteredByCandidate")} #${filterCandidateId}`}
               onRemove={() => setFilterCandidateId(undefined)}
             />
           )}
           {companyFilter.map((id) => (
             <ActiveFilterChip
               key={`co-${id}`}
-              label={`${t("admin.applications.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
+              label={`${t("admin:applications.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
               onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
             />
           ))}
@@ -111,7 +111,7 @@ export default function ApplicationsFilterPanel({
           >
             <div>
               <Eyebrow size="md" className="mb-2">
-                {t("admin.applications.table.status")}
+                {t("admin:applications.table.status")}
               </Eyebrow>
               <div className="flex flex-wrap gap-1.5">
                 {filterTabs.map((tab) => (
@@ -121,7 +121,7 @@ export default function ApplicationsFilterPanel({
                     onClick={() => setFilter(tab)}
                   >
                     {tab === ALL_FILTER
-                      ? t("admin.applications.filterAll")
+                      ? t("admin:applications.filterAll")
                       : statusLabels[tab]}
                   </FilterPill>
                 ))}
@@ -131,7 +131,7 @@ export default function ApplicationsFilterPanel({
               {/* Company first → in RTL it lands on the visual right */}
               <div>
                 <Eyebrow size="md" className="mb-1.5">
-                  {t("admin.applications.filterByCompany")}
+                  {t("admin:applications.filterByCompany")}
                 </Eyebrow>
                 <SearchableMultiSelect<number>
                   values={companyFilter}
@@ -151,12 +151,12 @@ export default function ApplicationsFilterPanel({
                     value: id,
                     label: name,
                   }))}
-                  placeholder={t("admin.applications.allCompanies")}
+                  placeholder={t("admin:applications.allCompanies")}
                 />
               </div>
               <div>
                 <Eyebrow size="md" className="mb-1.5">
-                  {t("admin.applications.filterByJob")}
+                  {t("admin:applications.filterByJob")}
                 </Eyebrow>
                 <SearchableMultiSelect<number>
                   values={jobFilter}
@@ -168,7 +168,7 @@ export default function ApplicationsFilterPanel({
                         companyFilter.includes(j.company_id),
                     )
                     .map((j) => ({ value: j.id, label: j.title }))}
-                  placeholder={t("admin.applications.allJobs")}
+                  placeholder={t("admin:applications.allJobs")}
                 />
               </div>
             </div>

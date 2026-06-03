@@ -15,13 +15,13 @@ interface ApplicationStatusProps {
  * the main form unaffected.
  */
 export default function ApplicationStatus({ loading, error }: ApplicationStatusProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
 
   if (loading) {
     return (
       <div className="flex justify-center py-24">
         <div className="text-white/30">
-          {t("publicJobs.application.loading")}
+          {t("publicJobs:application.loading")}
         </div>
       </div>
     );
@@ -37,7 +37,7 @@ export default function ApplicationStatus({ loading, error }: ApplicationStatusP
           to="/jobs"
           className="mt-6 inline-block text-sm text-white/40 transition hover:text-copper"
         >
-          {t("publicJobs.application.backToJob")}
+          {t("publicJobs:application.backToJob")}
         </Link>
       </div>
     );

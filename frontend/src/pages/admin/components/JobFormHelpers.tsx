@@ -24,14 +24,14 @@ export function FeaturedStarButton({
   active: boolean;
   onToggleRequest: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   return (
     <button
       type="button"
       onClick={onToggleRequest}
       aria-pressed={active}
-      aria-label={t("admin.jobs.fields.featuredToggleAria")}
-      title={t(active ? "admin.jobs.featuredOnHint" : "admin.jobs.featuredOffHint")}
+      aria-label={t("admin:jobs.fields.featuredToggleAria")}
+      title={t(active ? "admin:jobs.featuredOnHint" : "admin:jobs.featuredOffHint")}
       className={`inline-flex size-10 shrink-0 items-center justify-center rounded-sm border transition duration-200 active:scale-90 ${
         active
           ? "border-gold/60 bg-gold/15 text-gold hover:bg-gold/25"
@@ -61,12 +61,12 @@ export function StatusPills({
   value: JobStatus;
   onChange: (s: JobStatus) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   return (
     <div className="mt-1 flex flex-wrap gap-1.5">
       {ALL_STATUSES.map((s) => (
         <FilterPill key={s} active={value === s} onClick={() => onChange(s)}>
-          {t(`admin.jobs.statusLabels.${s}`)}
+          {t(`admin:jobs.statusLabels.${s}`)}
         </FilterPill>
       ))}
     </div>
@@ -88,22 +88,22 @@ export function FeaturedConfirmDialog({
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   return (
     <ConfirmDialog
       open={open}
       onOpenChange={(o) => !o && onClose()}
       title={
         active
-          ? t("admin.jobs.featuredUnsetTitle")
-          : t("admin.jobs.featuredSetTitle")
+          ? t("admin:jobs.featuredUnsetTitle")
+          : t("admin:jobs.featuredSetTitle")
       }
       message={
         active
-          ? t("admin.jobs.featuredUnsetMessage")
-          : t("admin.jobs.featuredSetMessage")
+          ? t("admin:jobs.featuredUnsetMessage")
+          : t("admin:jobs.featuredSetMessage")
       }
-      confirmLabel={t("common.confirm")}
+      confirmLabel={t("common:confirm")}
       onConfirm={onConfirm}
     />
   );
@@ -121,7 +121,7 @@ export function SalaryRangeField({
   onChange: (lo: number, hi: number) => void;
   error?: string;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const lo = Math.max(SALARY_FORM_MIN, Math.min(min ?? SALARY_FORM_MIN, SALARY_FORM_MAX));
   const hi = Math.max(
     Math.min(SALARY_FORM_MAX, Math.max(max ?? SALARY_FORM_MAX, SALARY_FORM_MIN)),
@@ -139,8 +139,8 @@ export function SalaryRangeField({
         value={[lo, hi]}
         onChange={([newLo, newHi]) => onChange(newLo, newHi)}
         formatValue={(n) => `${n.toLocaleString("he-IL")} ₪`}
-        ariaLabelMin={t("common.salaryMin")}
-        ariaLabelMax={t("common.salaryMax")}
+        ariaLabelMin={t("common:salaryMin")}
+        ariaLabelMax={t("common:salaryMax")}
       />
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>

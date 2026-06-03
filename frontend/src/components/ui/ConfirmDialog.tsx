@@ -30,9 +30,9 @@ export default function ConfirmDialog({
   onConfirm,
   isPending = false,
 }: ConfirmDialogProps) {
-  const { t } = useTranslation();
-  const confirmText = confirmLabel ?? t("common.confirm");
-  const cancelText = cancelLabel ?? t("common.cancel");
+  const { t } = useTranslation('common');
+  const confirmText = confirmLabel ?? t("common:confirm");
+  const cancelText = cancelLabel ?? t("common:cancel");
 
   return (
     <Dialog
@@ -57,7 +57,7 @@ export default function ConfirmDialog({
             onClick={() => void onConfirm()}
             disabled={isPending}
           >
-            {isPending ? t("common.loading") : confirmText}
+            {isPending ? t("common:loading") : confirmText}
           </Button>
         </>
       }

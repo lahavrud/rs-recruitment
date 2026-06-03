@@ -37,7 +37,7 @@ export default function ApplicationStatusDialog({
   onSaved,
   onError,
 }: StatusDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [newStatus, setNewStatus] = useState<string>(
     app?.status ?? ApplicationStatus.NEW,
   );
@@ -83,7 +83,7 @@ export default function ApplicationStatusDialog({
     <Dialog
       open={app != null}
       onOpenChange={(o) => !o && onClose()}
-      title={t("admin.applications.modal.title")}
+      title={t("admin:applications.modal.title")}
       size="md"
       footer={
         <>
@@ -92,13 +92,13 @@ export default function ApplicationStatusDialog({
             onClick={onClose}
             disabled={saving}
           >
-            {t("common.cancel")}
+            {t("common:cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? t("common.saving") : t("common.save")}
+            {saving ? t("common:saving") : t("common:save")}
           </Button>
         </>
       }
@@ -106,19 +106,19 @@ export default function ApplicationStatusDialog({
       <div className="space-y-3 text-sm text-white/70">
         <p>
           <span className="text-white/40">
-            {t("admin.applications.modal.candidateLabel")}:
+            {t("admin:applications.modal.candidateLabel")}:
           </span>{" "}
           {app.candidate.full_name}
         </p>
         <p>
           <span className="text-white/40">
-            {t("admin.applications.modal.jobLabel")}:
+            {t("admin:applications.modal.jobLabel")}:
           </span>{" "}
           {app.job.title}
         </p>
         <div>
           <label className="block text-white/50">
-            {t("admin.applications.modal.newStatusLabel")}
+            {t("admin:applications.modal.newStatusLabel")}
           </label>
           <select
             value={newStatus}
@@ -127,27 +127,27 @@ export default function ApplicationStatusDialog({
           >
             {ALL_STATUSES.map((s) => (
               <option key={s} value={s} className="bg-well">
-                {t(`admin.applications.statusLabels.${s}`)}
+                {t(`admin:applications.statusLabels.${s}`)}
               </option>
             ))}
           </select>
           {isRevert && (
             <p className="mt-2 text-xs text-warning">
-              {t("admin.applications.revertConfirm")}
+              {t("admin:applications.revertConfirm")}
             </p>
           )}
         </div>
         <div>
           <label className="block text-white/50">
-            {t("admin.applications.modal.adminNotes")}{" "}
-            <span className="text-white/25">({t("common.optional")})</span>
+            {t("admin:applications.modal.adminNotes")}{" "}
+            <span className="text-white/25">({t("common:optional")})</span>
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             className={`mt-1 ${textareaCls}`}
-            placeholder={t("admin.applications.modal.notesPlaceholder")}
+            placeholder={t("admin:applications.modal.notesPlaceholder")}
           />
         </div>
       </div>

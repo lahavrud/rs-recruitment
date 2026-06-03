@@ -25,7 +25,7 @@ export function InlineEditor({
   onSaved: (next: CandidateMeRead) => void;
   onCancel: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'dashboard', 'https']);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function InlineEditor({
     try {
       const trimmed = value.trim();
       if (!trimmed) {
-        setError(t("dashboard.candidate.profileCompletion.inline.required"));
+        setError(t("dashboard:candidate.profileCompletion.inline.required"));
         setSubmitting(false);
         return;
       }
@@ -46,7 +46,7 @@ export function InlineEditor({
       const next = await patchMe(patch);
       onSaved(next);
     } catch {
-      setError(t("dashboard.candidate.profileCompletion.inline.error"));
+      setError(t("dashboard:candidate.profileCompletion.inline.error"));
     } finally {
       setSubmitting(false);
     }
@@ -61,7 +61,7 @@ export function InlineEditor({
       const next = await uploadResume(file);
       onSaved(next);
     } catch {
-      setError(t("dashboard.candidate.profileCompletion.inline.resumeError"));
+      setError(t("dashboard:candidate.profileCompletion.inline.resumeError"));
     } finally {
       setSubmitting(false);
     }
@@ -73,7 +73,7 @@ export function InlineEditor({
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-white/55">
-          {t("dashboard.candidate.profileCompletion.inline.resumeHint")}
+          {t("dashboard:candidate.profileCompletion.inline.resumeHint")}
         </span>
         <button
           type="button"
@@ -82,15 +82,15 @@ export function InlineEditor({
           className="rounded-sm bg-copper px-3 py-1 text-xs font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
-            ? t("common.submitting")
-            : t("dashboard.candidate.profileCompletion.inline.resumePick")}
+            ? t("common:submitting")
+            : t("dashboard:candidate.profileCompletion.inline.resumePick")}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="text-[11px] text-white/45 transition hover:text-white/70"
         >
-          {t("common.cancel")}
+          {t("common:cancel")}
         </button>
         <input
           ref={fileInputRef}
@@ -134,14 +134,14 @@ export function InlineEditor({
         disabled={submitting || !value.trim()}
         className="rounded-sm bg-copper px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {submitting ? t("common.submitting") : t("common.save")}
+        {submitting ? t("common:submitting") : t("common:save")}
       </button>
       <button
         type="button"
         onClick={onCancel}
         className="text-[11px] text-white/45 transition hover:text-white/70"
       >
-        {t("common.cancel")}
+        {t("common:cancel")}
       </button>
       {error && <p className="basis-full text-[11px] text-danger">{error}</p>}
       {/* When the user is touching the linkedin field we suppress the
@@ -149,7 +149,7 @@ export function InlineEditor({
           previously typed one in. */}
       {field === "linkedin" && me.linkedin_url === null && !value && (
         <p className="basis-full text-[11px] text-white/40">
-          {t("dashboard.candidate.profileCompletion.inline.linkedinHint")}
+          {t("dashboard:candidate.profileCompletion.inline.linkedinHint")}
         </p>
       )}
     </div>

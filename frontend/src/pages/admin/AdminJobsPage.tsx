@@ -50,8 +50,8 @@ type FilterValue = string;
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminJobsPage() {
-  const { t } = useTranslation();
-  usePageTitle(t("admin.jobs.title"));
+  const { t } = useTranslation(['admin', 'md', 'publicJobs']);
+  usePageTitle(t("admin:jobs.title"));
   const toast = useToast();
 
   const [filter, setFilter] = useState<FilterValue>(() => {
@@ -225,11 +225,11 @@ export default function AdminJobsPage() {
   function openMailToCompany(job: JobRead) {
     const email = companyEmailById.get(job.company_id);
     if (!email) {
-      toast.error(t("admin.jobs.emailNoAddress"));
+      toast.error(t("admin:jobs.emailNoAddress"));
       return;
     }
     const subject = encodeURIComponent(
-      t("admin.jobs.emailSubjectPrefix", { title: job.title }),
+      t("admin:jobs.emailSubjectPrefix", { title: job.title }),
     );
     window.open(`mailto:${email}?subject=${subject}`, "_self");
   }
@@ -250,18 +250,18 @@ export default function AdminJobsPage() {
   }, [t, toast]);
 
   const STATUS_LABELS: Record<string, string> = {
-    PENDING_APPROVAL: t("admin.jobs.statusLabels.PENDING_APPROVAL"),
-    PUBLISHED: t("admin.jobs.statusLabels.PUBLISHED"),
-    CLOSED: t("admin.jobs.statusLabels.CLOSED"),
+    PENDING_APPROVAL: t("admin:jobs.statusLabels.PENDING_APPROVAL"),
+    PUBLISHED: t("admin:jobs.statusLabels.PUBLISHED"),
+    CLOSED: t("admin:jobs.statusLabels.CLOSED"),
   };
 
   async function handleApprove(job: JobRead) {
     try {
       const updated = await approveJob(job.id);
       updateItem((j) => j.id === job.id, updated);
-      toast.success(t("admin.jobs.approvedToast"));
+      toast.success(t("admin:jobs.approvedToast"));
     } catch {
-      toast.error(t("admin.jobs.approveError"));
+      toast.error(t("admin:jobs.approveError"));
     }
   }
 
@@ -275,10 +275,10 @@ export default function AdminJobsPage() {
         ...rejectPending,
         status: JobStatus.CLOSED,
       });
-      toast.success(t("admin.jobs.rejectedToast"));
+      toast.success(t("admin:jobs.rejectedToast"));
       setRejectPending(null);
     } catch {
-      toast.error(t("admin.jobs.rejectError"));
+      toast.error(t("admin:jobs.rejectError"));
     } finally {
       setPendingMutation(false);
     }
@@ -290,11 +290,11 @@ export default function AdminJobsPage() {
     try {
       await deleteJob(deletePending.id);
       removeItem((j) => j.id === deletePending.id);
-      toast.success(t("admin.jobs.deletedToast"));
+      toast.success(t("admin:jobs.deletedToast"));
       setDeletePending(null);
       setDetail(null);
     } catch {
-      toast.error(t("admin.jobs.errors.deleteFailed"));
+      toast.error(t("admin:jobs.errors.deleteFailed"));
     } finally {
       setPendingMutation(false);
     }
@@ -305,14 +305,14 @@ export default function AdminJobsPage() {
   return (
     <div>
       <h1 data-page-heading className="sr-only">
-        {t("admin.jobs.title")}
+        {t("admin:jobs.title")}
       </h1>
       <PageHeader
-        eyebrow={t("admin.jobs.title")}
-        subtitle={t("admin.jobs.subtitle")}
+        eyebrow={t("admin:jobs.title")}
+        subtitle={t("admin:jobs.subtitle")}
         action={
           <Button onClick={() => setCreating(true)}>
-            {t("admin.jobs.newJob")}
+            {t("admin:jobs.newJob")}
           </Button>
         }
       />
@@ -353,9 +353,9 @@ export default function AdminJobsPage() {
           </div>
         </>
       ) : error ? (
-        <ErrorState message={t("admin.jobs.loadError")} onRetry={reload} />
+        <ErrorState message={t("admin:jobs.loadError")} onRetry={reload} />
       ) : jobs.length === 0 ? (
-        <EmptyState eyebrow={t("admin.jobs.title")} headline={t("admin.jobs.empty")} />
+        <EmptyState eyebrow={t("admin:jobs.title")} headline={t("admin:jobs.empty")} />
       ) : filteredJobs.length === 0 ? (
         <NoResults>
           <button
@@ -363,7 +363,7 @@ export default function AdminJobsPage() {
             onClick={clearFilters}
             className="mt-3 text-xs text-copper/70 transition hover:text-copper"
           >
-            {t("publicJobs.board.clearFilters")}
+            {t("publicJobs:board.clearFilters")}
           </button>
         </NoResults>
       ) : (
@@ -425,10 +425,10 @@ export default function AdminJobsPage() {
         onClose={() => setEditing(null)}
         onSaved={(updated) => {
           updateItem((j) => j.id === updated.id, updated);
-          toast.success(t("admin.jobs.savedToast"));
+          toast.success(t("admin:jobs.savedToast"));
           setEditing(null);
         }}
-        onError={() => toast.error(t("admin.jobs.errors.saveFailed"))}
+        onError={() => toast.error(t("admin:jobs.errors.saveFailed"))}
       />
 
       <JobCreateDialog
@@ -436,18 +436,18 @@ export default function AdminJobsPage() {
         onClose={() => setCreating(false)}
         onCreated={(created) => {
           prependItem(created);
-          toast.success(t("admin.jobs.createdToast"));
+          toast.success(t("admin:jobs.createdToast"));
           setCreating(false);
         }}
-        onError={() => toast.error(t("admin.jobs.errors.createFailed"))}
+        onError={() => toast.error(t("admin:jobs.errors.createFailed"))}
       />
 
       <ConfirmDialog
         open={rejectPending != null}
         onOpenChange={(o) => !o && setRejectPending(null)}
-        title={t("admin.jobs.rejectConfirmTitle")}
-        message={t("admin.jobs.rejectConfirm")}
-        confirmLabel={t("admin.jobs.reject")}
+        title={t("admin:jobs.rejectConfirmTitle")}
+        message={t("admin:jobs.rejectConfirm")}
+        confirmLabel={t("admin:jobs.reject")}
         variant="danger"
         isPending={pendingMutation}
         onConfirm={handleRejectConfirm}
@@ -456,9 +456,9 @@ export default function AdminJobsPage() {
       <ConfirmDialog
         open={deletePending != null}
         onOpenChange={(o) => !o && setDeletePending(null)}
-        title={t("admin.jobs.deleteConfirmTitle")}
-        message={t("admin.jobs.deleteConfirmMessage")}
-        confirmLabel={t("admin.jobs.deleteConfirmYes")}
+        title={t("admin:jobs.deleteConfirmTitle")}
+        message={t("admin:jobs.deleteConfirmMessage")}
+        confirmLabel={t("admin:jobs.deleteConfirmYes")}
         variant="danger"
         isPending={pendingMutation}
         onConfirm={handleDeleteConfirm}

@@ -55,8 +55,8 @@ type FilterValue = string;
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminApplicationsPage() {
-  const { t } = useTranslation();
-  usePageTitle(t("admin.applications.title"));
+  const { t } = useTranslation(['admin', 'md']);
+  usePageTitle(t("admin:applications.title"));
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -198,12 +198,12 @@ export default function AdminApplicationsPage() {
   useAutoOpenFromRouteState<ApplicationWithDetails>("autoOpen", setDetail);
 
   const STATUS_LABELS: Record<string, string> = {
-    NEW: t("admin.applications.statusLabels.NEW"),
-    APPROVED_BY_ADMIN: t("admin.applications.statusLabels.APPROVED_BY_ADMIN"),
-    REJECTED: t("admin.applications.statusLabels.REJECTED"),
-    HIRED: t("admin.applications.statusLabels.HIRED"),
-    JOB_CLOSED: t("admin.applications.statusLabels.JOB_CLOSED"),
-    WITHDRAWN: t("admin.applications.statusLabels.WITHDRAWN"),
+    NEW: t("admin:applications.statusLabels.NEW"),
+    APPROVED_BY_ADMIN: t("admin:applications.statusLabels.APPROVED_BY_ADMIN"),
+    REJECTED: t("admin:applications.statusLabels.REJECTED"),
+    HIRED: t("admin:applications.statusLabels.HIRED"),
+    JOB_CLOSED: t("admin:applications.statusLabels.JOB_CLOSED"),
+    WITHDRAWN: t("admin:applications.statusLabels.WITHDRAWN"),
   };
 
   const [activeFiltered, closedFiltered] = useMemo(() => {
@@ -222,11 +222,11 @@ export default function AdminApplicationsPage() {
     try {
       await deleteApplication(deleteCandidate.id);
       removeItem((a) => a.id === deleteCandidate.id);
-      toast.success(t("admin.applications.deletedToast"));
+      toast.success(t("admin:applications.deletedToast"));
       setDeleteCandidate(null);
       setDetail(null);
     } catch {
-      toast.error(t("admin.applications.errors.deleteFailed"));
+      toast.error(t("admin:applications.errors.deleteFailed"));
     } finally {
       setPendingDelete(false);
     }
@@ -235,15 +235,15 @@ export default function AdminApplicationsPage() {
   return (
     <div>
       <h1 data-page-heading className="sr-only">
-        {t("admin.applications.title")}
+        {t("admin:applications.title")}
       </h1>
       <PageHeader
-        eyebrow={t("admin.applications.title")}
-        subtitle={t("admin.applications.subtitle")}
+        eyebrow={t("admin:applications.title")}
+        subtitle={t("admin:applications.subtitle")}
         action={
           <Button onClick={() => navigate("/admin/applications/triage")}>
             <IconSparkle className="ms-0 me-1.5 size-3.5" />
-            {t("admin.applications.triage.entryButton")}
+            {t("admin:applications.triage.entryButton")}
           </Button>
         }
       />
@@ -254,7 +254,7 @@ export default function AdminApplicationsPage() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder={t("admin.applications.searchPlaceholder")}
+            placeholder={t("admin:applications.searchPlaceholder")}
             clearable
           />
         </div>
@@ -262,7 +262,7 @@ export default function AdminApplicationsPage() {
           type="button"
           onClick={() => setFilterOpen((o) => !o)}
           aria-expanded={filterOpen}
-          aria-label={t("admin.applications.openFilters")}
+          aria-label={t("admin:applications.openFilters")}
           className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
             filterOpen
               ? "border-copper/50 bg-copper/10 text-white"
@@ -270,7 +270,7 @@ export default function AdminApplicationsPage() {
           }`}
         >
           <FunnelIcon />
-          <span className="hidden sm:inline">{t("admin.applications.filters")}</span>
+          <span className="hidden sm:inline">{t("admin:applications.filters")}</span>
           {activeFilterCount > 0 && (
             <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
               {activeFilterCount}
@@ -308,11 +308,11 @@ export default function AdminApplicationsPage() {
           </div>
         </>
       ) : error ? (
-        <ErrorState message={t("admin.applications.loadError")} onRetry={reload} />
+        <ErrorState message={t("admin:applications.loadError")} onRetry={reload} />
       ) : applications.length === 0 ? (
         <EmptyState
-          eyebrow={t("admin.applications.title")}
-          headline={t("admin.applications.empty")}
+          eyebrow={t("admin:applications.title")}
+          headline={t("admin:applications.empty")}
         />
       ) : filteredApplications.length === 0 ? (
         <NoResults />
@@ -323,23 +323,23 @@ export default function AdminApplicationsPage() {
             {activeFiltered.map((app) => {
               const actions = (
                 <DropdownMenu
-                  ariaLabel={t("admin.applications.rowActionsLabel")}
+                  ariaLabel={t("admin:applications.rowActionsLabel")}
                   trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
                   {app.status !== ApplicationStatus.WITHDRAWN && (
                     <DropdownMenuItem onSelect={() => setStatusModal(app)}>
-                      {t("admin.applications.updateStatusAction")}
+                      {t("admin:applications.updateStatusAction")}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onSelect={() => setNotesModal(app)}>
-                    {t("admin.applications.editNotesAction")}
+                    {t("admin:applications.editNotesAction")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     variant="danger"
                     onSelect={() => setDeleteCandidate(app)}
                   >
-                    {t("admin.applications.deleteAction")}
+                    {t("admin:applications.deleteAction")}
                   </DropdownMenuItem>
                 </DropdownMenu>
               );
@@ -373,16 +373,16 @@ export default function AdminApplicationsPage() {
               <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
                 <tr>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.applications.table.candidate")}
+                    {t("admin:applications.table.candidate")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.applications.table.job")}
+                    {t("admin:applications.table.job")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.applications.table.status")}
+                    {t("admin:applications.table.status")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.applications.table.date")}
+                    {t("admin:applications.table.date")}
                   </th>
                   <th className="px-4 py-3 text-end" aria-hidden />
                 </tr>
@@ -415,26 +415,26 @@ export default function AdminApplicationsPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu
-                        ariaLabel={t("admin.applications.rowActionsLabel")}
+                        ariaLabel={t("admin:applications.rowActionsLabel")}
                         trigger={<KebabButton size="sm" />}
                       >
                         <DropdownMenuItem onSelect={() => setDetail(app)}>
-                          {t("admin.applications.viewAction")}
+                          {t("admin:applications.viewAction")}
                         </DropdownMenuItem>
                         {app.status !== ApplicationStatus.WITHDRAWN && (
                           <DropdownMenuItem onSelect={() => setStatusModal(app)}>
-                            {t("admin.applications.updateStatusAction")}
+                            {t("admin:applications.updateStatusAction")}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onSelect={() => setNotesModal(app)}>
-                          {t("admin.applications.editNotesAction")}
+                          {t("admin:applications.editNotesAction")}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="danger"
                           onSelect={() => setDeleteCandidate(app)}
                         >
-                          {t("admin.applications.deleteAction")}
+                          {t("admin:applications.deleteAction")}
                         </DropdownMenuItem>
                       </DropdownMenu>
                     </td>
@@ -491,10 +491,10 @@ export default function AdminApplicationsPage() {
               updated_at: updated.updated_at,
             }),
           );
-          toast.success(t("admin.applications.savedToast"));
+          toast.success(t("admin:applications.savedToast"));
           setStatusModal(null);
         }}
-        onError={() => toast.error(t("admin.applications.errors.updateFailed"))}
+        onError={() => toast.error(t("admin:applications.errors.updateFailed"))}
       />
 
       {/* Notes-only modal */}
@@ -510,19 +510,19 @@ export default function AdminApplicationsPage() {
               updated_at: updated.updated_at,
             }),
           );
-          toast.success(t("admin.applications.notesSavedToast"));
+          toast.success(t("admin:applications.notesSavedToast"));
           setNotesModal(null);
         }}
-        onError={() => toast.error(t("admin.applications.errors.notesFailed"))}
+        onError={() => toast.error(t("admin:applications.errors.notesFailed"))}
       />
 
       {/* Delete confirm */}
       <ConfirmDialog
         open={deleteCandidate != null}
         onOpenChange={(o) => !o && setDeleteCandidate(null)}
-        title={t("admin.applications.deleteConfirmTitle")}
-        message={t("admin.applications.deleteConfirm")}
-        confirmLabel={t("admin.applications.deleteConfirmYes")}
+        title={t("admin:applications.deleteConfirmTitle")}
+        message={t("admin:applications.deleteConfirm")}
+        confirmLabel={t("admin:applications.deleteConfirmYes")}
         variant="danger"
         isPending={pendingDelete}
         onConfirm={handleDeleteConfirm}

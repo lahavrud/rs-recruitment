@@ -30,7 +30,7 @@ export default function ClosedApplicationsSection({
   onEditNotes,
   onDelete,
 }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const [open, setOpen] = useState(false);
 
   if (apps.length === 0) return null;
@@ -52,7 +52,7 @@ export default function ClosedApplicationsSection({
           <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span className="font-medium">
-          {t("admin.applications.closedSection")}
+          {t("admin:applications.closedSection")}
         </span>
         <span className="ms-auto rounded-full bg-white/8 px-2 py-0.5 text-xs">
           {apps.length}
@@ -71,18 +71,18 @@ export default function ClosedApplicationsSection({
               {apps.map((app) => {
                 const actions = (
                   <DropdownMenu
-                    ariaLabel={t("admin.applications.rowActionsLabel")}
+                    ariaLabel={t("admin:applications.rowActionsLabel")}
                     trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                   >
                     <DropdownMenuItem onSelect={() => onUpdateStatus(app)}>
-                      {t("admin.applications.updateStatusAction")}
+                      {t("admin:applications.updateStatusAction")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => onEditNotes(app)}>
-                      {t("admin.applications.editNotesAction")}
+                      {t("admin:applications.editNotesAction")}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="danger" onSelect={() => onDelete(app)}>
-                      {t("admin.applications.deleteAction")}
+                      {t("admin:applications.deleteAction")}
                     </DropdownMenuItem>
                   </DropdownMenu>
                 );
@@ -143,21 +143,21 @@ export default function ClosedApplicationsSection({
                         onClick={(e) => e.stopPropagation()}
                       >
                         <DropdownMenu
-                          ariaLabel={t("admin.applications.rowActionsLabel")}
+                          ariaLabel={t("admin:applications.rowActionsLabel")}
                           trigger={<KebabButton size="sm" />}
                         >
                           <DropdownMenuItem onSelect={() => onView(app)}>
-                            {t("admin.applications.viewAction")}
+                            {t("admin:applications.viewAction")}
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => onUpdateStatus(app)}>
-                            {t("admin.applications.updateStatusAction")}
+                            {t("admin:applications.updateStatusAction")}
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => onEditNotes(app)}>
-                            {t("admin.applications.editNotesAction")}
+                            {t("admin:applications.editNotesAction")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem variant="danger" onSelect={() => onDelete(app)}>
-                            {t("admin.applications.deleteAction")}
+                            {t("admin:applications.deleteAction")}
                           </DropdownMenuItem>
                         </DropdownMenu>
                       </td>

@@ -43,7 +43,7 @@ export default function Field({
   className,
   children,
 }: FieldProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'sm']);
   const dataField = name ?? id;
   const colSpanCls = full ? "sm:col-span-2" : "";
 
@@ -52,7 +52,7 @@ export default function Field({
       <span>{label}</span>
       {required && <span className="text-copper/80">*</span>}
       {optional && (
-        <span className="text-[10px] text-white/30">({t("common.optional")})</span>
+        <span className="text-[10px] text-white/30">({t("common:optional")})</span>
       )}
     </>
   );

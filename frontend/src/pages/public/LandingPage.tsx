@@ -52,7 +52,7 @@ const SITE_SCHEMA = {
 };
 
 export default function LandingPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['https', 'landing']);
   useAuth(); // keeps auth context initialised for child components
   const navigate = useNavigate();
 
@@ -81,8 +81,8 @@ export default function LandingPage() {
   return (
     <div className="bg-page">
       <SeoHead
-        title={t("landing.seo.title")}
-        description={t("landing.seo.description")}
+        title={t("landing:seo.title")}
+        description={t("landing:seo.description")}
         canonical={SITE_URL}
         ogImage={`${SITE_URL}/og/home.svg`}
         structuredData={SITE_SCHEMA}

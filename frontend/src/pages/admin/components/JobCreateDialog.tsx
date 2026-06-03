@@ -41,7 +41,7 @@ interface CreateProps {
 }
 
 export default function JobCreateDialog({ open, onClose, onCreated, onError }: CreateProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [companies, setCompanies] = useState<ActiveCompanyRead[] | null>(null);
   const [companiesError, setCompaniesError] = useState(false);
   const [form, setForm] = useState<Partial<JobAdminCreate>>({
@@ -152,7 +152,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
     <Dialog
       open={open}
       onOpenChange={(o) => !o && onClose()}
-      title={t("admin.jobs.newJobModalTitle")}
+      title={t("admin:jobs.newJobModalTitle")}
       size="lg"
       preventOutsideClose
       footer={
@@ -162,27 +162,27 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
             onClick={onClose}
             disabled={saving}
           >
-            {t("common.cancel")}
+            {t("common:cancel")}
           </Button>
           <Button
             onClick={requestSave}
             disabled={saving}
           >
-            {saving ? t("common.saving") : t("common.save")}
+            {saving ? t("common:saving") : t("common:save")}
           </Button>
         </>
       }
     >
       <div className="space-y-2 text-sm">
-        <FormSection title={t("admin.jobs.formSections.basics")} defaultOpen>
+        <FormSection title={t("admin:jobs.formSections.basics")} defaultOpen>
           <div className="space-y-3">
-            <Field label={t("admin.jobs.fields.company")} full name="company_id">
+            <Field label={t("admin:jobs.fields.company")} full name="company_id">
               {companiesError ? (
                 <p className="text-xs text-danger">
-                  {t("admin.jobs.errors.companiesLoadFailed")}
+                  {t("admin:jobs.errors.companiesLoadFailed")}
                 </p>
               ) : companies == null ? (
-                <p className="text-xs text-white/35">{t("common.loading")}</p>
+                <p className="text-xs text-white/35">{t("common:loading")}</p>
               ) : (
                 <select
                   value={form.company_id ?? ""}
@@ -201,7 +201,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                 </select>
               )}
             </Field>
-            <Field label={t("admin.jobs.fields.title")} full name="title" error={errors.title}>
+            <Field label={t("admin:jobs.fields.title")} full name="title" error={errors.title}>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -216,7 +216,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
               </div>
             </Field>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label={t("admin.jobs.fields.location")} name="location" error={errors.location}>
+              <Field label={t("admin:jobs.fields.location")} name="location" error={errors.location}>
                 <input
                   type="text"
                   value={form.location ?? ""}
@@ -224,7 +224,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                   className={inputCls}
                 />
               </Field>
-              <Field label={t("admin.jobs.fields.status")} id="create-job-status">
+              <Field label={t("admin:jobs.fields.status")} id="create-job-status">
                 <StatusPills
                   value={(form.status ?? JobStatus.PUBLISHED) as JobStatus}
                   onChange={(s) => set("status", s)}
@@ -232,7 +232,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
               </Field>
             </div>
             <Field
-              label={t("admin.jobs.fields.salaryRange")}
+              label={t("admin:jobs.fields.salaryRange")}
               full
               name="salary_min"
             >
@@ -269,9 +269,9 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
     <ConfirmDialog
       open={confirmSaveOpen}
       onOpenChange={(o) => !o && setConfirmSaveOpen(false)}
-      title={t("admin.jobs.saveConfirmTitle")}
-      message={t("admin.jobs.saveConfirmMessage")}
-      confirmLabel={t("common.save")}
+      title={t("admin:jobs.saveConfirmTitle")}
+      message={t("admin:jobs.saveConfirmMessage")}
+      confirmLabel={t("common:save")}
       onConfirm={executeSave}
     />
     </>

@@ -23,7 +23,7 @@ export default function CandidateDetailDialog({
   onEdit,
   onDelete,
 }: DetailProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [applications, setApplications] = useState<ApplicationWithDetails[] | null>(
     null,
   );
@@ -67,10 +67,10 @@ export default function CandidateDetailDialog({
       footer={
         <>
           <Button variant="danger" onClick={onDelete}>
-            {t("admin.candidates.deleteAction")}
+            {t("admin:candidates.deleteAction")}
           </Button>
           <Button onClick={onEdit}>
-            {t("admin.candidates.editAction")}
+            {t("admin:candidates.editAction")}
           </Button>
         </>
       }
@@ -100,7 +100,7 @@ export function CandidateDetailBody({
   onLeavePage?: () => void;
   onResumeViewerChange?: (open: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const navigate = useNavigate();
   const c = candidate;
 
@@ -130,7 +130,7 @@ export function CandidateDetailBody({
     <div className="space-y-5 text-sm">
       <div className="flex flex-wrap gap-x-6 gap-y-1">
         <a
-          href={`mailto:${c.email}?subject=${encodeURIComponent(t("admin.candidates.emailSubject", { name: c.full_name }))}`}
+          href={`mailto:${c.email}?subject=${encodeURIComponent(t("admin:candidates.emailSubject", { name: c.full_name }))}`}
           className="text-copper/85 transition hover:text-copper hover:underline"
         >
           {c.email}
@@ -150,27 +150,27 @@ export function CandidateDetailBody({
           <ResumeButton
             resumePath={c.resume_path}
             candidateName={c.full_name}
-            label={t("admin.candidates.table.resume")}
+            label={t("admin:candidates.table.resume")}
             onOpenChange={onResumeViewerChange}
           />
         ) : (
           <span className="text-white/40">
-            {t("admin.candidates.table.resume")}: {t("admin.candidates.noFile")}
+            {t("admin:candidates.table.resume")}: {t("admin:candidates.noFile")}
           </span>
         )}
       </div>
 
       <div className="border-t border-white/8 pt-4">
-        <Eyebrow>{t("admin.candidates.applicationsSection")}</Eyebrow>
+        <Eyebrow>{t("admin:candidates.applicationsSection")}</Eyebrow>
         {appsError ? (
           <p className="mt-3 text-xs text-danger">
-            {t("admin.candidates.errors.applicationsLoadFailed")}
+            {t("admin:candidates.errors.applicationsLoadFailed")}
           </p>
         ) : applications == null ? (
-          <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
+          <p className="mt-3 text-xs text-white/35">{t("common:loading")}</p>
         ) : applications.length === 0 ? (
           <p className="mt-3 text-xs text-white/35">
-            {t("admin.candidates.noApplications")}
+            {t("admin:candidates.noApplications")}
           </p>
         ) : (
           <ul className="mt-3 space-y-1.5">
@@ -194,7 +194,7 @@ export function CandidateDetailBody({
                   >
                     <span className="text-white/80">{a.job.title}</span>
                     <span className="text-xs text-white/40">
-                      {t(`admin.applications.statusLabels.${a.status}`)} ·{" "}
+                      {t(`admin:applications.statusLabels.${a.status}`)} ·{" "}
                       {formatDate(a.created_at)}
                     </span>
                   </button>
@@ -203,7 +203,7 @@ export function CandidateDetailBody({
                       {a.service_concept && (
                         <>
                           <dt className="text-white/35">
-                            {t("admin.candidates.details.serviceConcept")}
+                            {t("admin:candidates.details.serviceConcept")}
                           </dt>
                           <dd className="text-white/60">{a.service_concept}</dd>
                         </>
@@ -211,7 +211,7 @@ export function CandidateDetailBody({
                       {a.salary_expectations && (
                         <>
                           <dt className="text-white/35">
-                            {t("admin.candidates.details.salaryExpectations")}
+                            {t("admin:candidates.details.salaryExpectations")}
                           </dt>
                           <dd className="text-white/60">{a.salary_expectations}</dd>
                         </>
@@ -219,7 +219,7 @@ export function CandidateDetailBody({
                       {a.strength && (
                         <>
                           <dt className="text-white/35">
-                            {t("admin.candidates.details.strength")}
+                            {t("admin:candidates.details.strength")}
                           </dt>
                           <dd className="text-white/60">{a.strength}</dd>
                         </>
@@ -227,7 +227,7 @@ export function CandidateDetailBody({
                       {a.growth_area && (
                         <>
                           <dt className="text-white/35">
-                            {t("admin.candidates.details.weakness")}
+                            {t("admin:candidates.details.weakness")}
                           </dt>
                           <dd className="text-white/60">{a.growth_area}</dd>
                         </>

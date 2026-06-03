@@ -11,19 +11,19 @@ function formatRelative(
   const submitted = new Date(iso).getTime();
   const now = Date.now();
   const days = Math.max(0, Math.floor((now - submitted) / 86_400_000));
-  if (days === 0) return t("candidate.applications.relative.today");
-  if (days === 1) return t("candidate.applications.relative.yesterday");
+  if (days === 0) return t("candidate:applications.relative.today");
+  if (days === 1) return t("candidate:applications.relative.yesterday");
   if (days < 7)
-    return t("candidate.applications.relative.daysAgo", { count: days });
+    return t("candidate:applications.relative.daysAgo", { count: days });
   if (days < 30)
-    return t("candidate.applications.relative.weeksAgo", {
+    return t("candidate:applications.relative.weeksAgo", {
       count: Math.floor(days / 7),
     });
   if (days < 365)
-    return t("candidate.applications.relative.monthsAgo", {
+    return t("candidate:applications.relative.monthsAgo", {
       count: Math.floor(days / 30),
     });
-  return t("candidate.applications.relative.yearsAgo", {
+  return t("candidate:applications.relative.yearsAgo", {
     count: Math.floor(days / 365),
   });
 }
@@ -33,13 +33,13 @@ export function RecentApplications({
 }: {
   items: CandidateApplicationListItem[] | null;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation(['candidate', 'dashboard']);
 
   if (items === null) {
     return (
       <section>
         <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {t("dashboard.candidate.recentApplications.title")}
+          {t("dashboard:candidate.recentApplications.title")}
         </p>
         <ul className="space-y-2">
           {[0, 1, 2].map((i) => (
@@ -57,14 +57,14 @@ export function RecentApplications({
     <section>
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {t("dashboard.candidate.recentApplications.title")}
+          {t("dashboard:candidate.recentApplications.title")}
         </p>
         {items.length > 0 && (
           <Link
             to="/candidate/applications"
             className="text-xs text-white/50 transition hover:text-white/85"
           >
-            {t("dashboard.candidate.recentApplications.viewAll")}
+            {t("dashboard:candidate.recentApplications.viewAll")}
           </Link>
         )}
       </div>
@@ -88,13 +88,13 @@ export function RecentApplications({
             </svg>
           </span>
           <p className="max-w-xs text-sm text-white/65">
-            {t("dashboard.candidate.recentApplications.empty")}
+            {t("dashboard:candidate.recentApplications.empty")}
           </p>
           <Link
             to="/jobs"
             className="mt-1 inline-flex items-center gap-2 rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition hover:bg-gold"
           >
-            {t("dashboard.candidate.recentApplications.browseCta")}
+            {t("dashboard:candidate.recentApplications.browseCta")}
             <IconArrow />
           </Link>
         </div>
@@ -117,7 +117,7 @@ export function RecentApplications({
                 </p>
                 {row.job.closed && (
                   <span className="mt-2 inline-block rounded-sm border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/45">
-                    {t("candidate.applications.closedPill")}
+                    {t("candidate:applications.closedPill")}
                   </span>
                 )}
               </Link>

@@ -39,7 +39,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 export default function JobRequirementsInput({ value, onChange, error }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http']);
   const canAdd = value.length < JOB_REQ_MAX_COUNT;
   const canRemove = value.length > 1;
   // Stable per-mount placeholder order so each row gets a distinct example.
@@ -74,7 +74,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
               type="button"
               onClick={() => remove(i)}
               disabled={!canRemove}
-              aria-label={t("common.removeRequirement")}
+              aria-label={t("common:removeRequirement")}
               className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm border border-white/15 text-white/55 transition hover:border-danger/40 hover:text-danger disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/15 disabled:hover:text-white/55"
             >
               <svg
@@ -106,10 +106,10 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
           >
             <path d="M8 2.75a.75.75 0 0 1 .75.75v3.75h3.75a.75.75 0 0 1 0 1.5H8.75v3.75a.75.75 0 0 1-1.5 0V8.75H3.5a.75.75 0 0 1 0-1.5h3.75V3.5A.75.75 0 0 1 8 2.75Z" />
           </svg>
-          {t("common.addRequirement")}
+          {t("common:addRequirement")}
         </button>
         <span className="text-[11px] text-white/35">
-          {t("common.requirementCount", {
+          {t("common:requirementCount", {
             count: value.length,
             min: JOB_REQ_MIN_COUNT,
             max: JOB_REQ_MAX_COUNT,

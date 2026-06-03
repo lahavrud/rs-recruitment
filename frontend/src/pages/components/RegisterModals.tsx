@@ -23,7 +23,7 @@ function ModalShell({
   children: React.ReactNode;
   footer: React.ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('auth');
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -38,7 +38,7 @@ function ModalShell({
             type="button"
             onClick={onClose}
             className="text-white/40 transition hover:text-white/70"
-            aria-label={t("auth.register.agreementClose")}
+            aria-label={t("auth:register.agreementClose")}
           >
             ✕
           </button>
@@ -62,21 +62,21 @@ export default function RegisterModals({
   onAcceptTerms,
   onAcceptPrivacy,
 }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('auth');
 
   return (
     <>
       {contractOpen && (
         <ModalShell
-          title={t("auth.register.agreementSectionService")}
+          title={t("auth:register.agreementSectionService")}
           onClose={onCloseContract}
           footer={
             <Button type="button" size="lg" onClick={onCloseContract}>
-              {t("auth.register.agreementClose")}
+              {t("auth:register.agreementClose")}
             </Button>
           }
         >
-          {t("auth.register.agreementTextService")
+          {t("auth:register.agreementTextService")
             .split("\n\n")
             .map((para, i) => (
               <p key={i} className="text-sm leading-7 text-white/55">
@@ -88,15 +88,15 @@ export default function RegisterModals({
 
       {termsOpen && (
         <ModalShell
-          title={t("auth.register.agreementSectionSiteTerms")}
+          title={t("auth:register.agreementSectionSiteTerms")}
           onClose={onCloseTerms}
           footer={
             <Button type="button" size="lg" onClick={onAcceptTerms}>
-              {t("auth.register.termsAcceptButton")}
+              {t("auth:register.termsAcceptButton")}
             </Button>
           }
         >
-          {t("auth.register.agreementTextSiteTerms")
+          {t("auth:register.agreementTextSiteTerms")
             .split("\n\n")
             .map((para, i) => (
               <p key={i} className="text-sm leading-7 text-white/55">
@@ -108,15 +108,15 @@ export default function RegisterModals({
 
       {privacyOpen && (
         <ModalShell
-          title={t("auth.register.agreementSectionPrivacy")}
+          title={t("auth:register.agreementSectionPrivacy")}
           onClose={onClosePrivacy}
           footer={
             <Button type="button" size="lg" onClick={onAcceptPrivacy}>
-              {t("auth.register.privacyAcceptButton")}
+              {t("auth:register.privacyAcceptButton")}
             </Button>
           }
         >
-          {t("auth.register.agreementTextPrivacy")
+          {t("auth:register.agreementTextPrivacy")
             .split("\n\n")
             .map((para, i) => (
               <p key={i} className="text-sm leading-7 text-white/55">

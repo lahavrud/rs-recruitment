@@ -78,7 +78,7 @@ export default function JobsFilterPanel({
   filterOpen,
   setFilterOpen,
 }: JobsFilterPanelProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common', 'publicJobs']);
 
   return (
     <>
@@ -88,7 +88,7 @@ export default function JobsFilterPanel({
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder={t("admin.jobs.searchPlaceholder")}
+            placeholder={t("admin:jobs.searchPlaceholder")}
             clearable
           />
         </div>
@@ -96,7 +96,7 @@ export default function JobsFilterPanel({
           type="button"
           onClick={() => setFilterOpen((o) => !o)}
           aria-expanded={filterOpen}
-          aria-label={t("admin.jobs.openFilters")}
+          aria-label={t("admin:jobs.openFilters")}
           className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
             filterOpen
               ? "border-copper/50 bg-copper/10 text-white"
@@ -104,7 +104,7 @@ export default function JobsFilterPanel({
           }`}
         >
           <FunnelIcon />
-          <span className="hidden sm:inline">{t("admin.jobs.filters")}</span>
+          <span className="hidden sm:inline">{t("admin:jobs.filters")}</span>
           {activeFilterCount > 0 && (
             <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
               {activeFilterCount}
@@ -118,20 +118,20 @@ export default function JobsFilterPanel({
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {filter !== ALL_FILTER && (
             <ActiveFilterChip
-              label={`${t("admin.jobs.fields.status")}: ${statusLabels[filter]}`}
+              label={`${t("admin:jobs.fields.status")}: ${statusLabels[filter]}`}
               onRemove={() => setFilter(ALL_FILTER)}
             />
           )}
           {query.trim() && (
             <ActiveFilterChip
-              label={`${t("common.search")}: "${query.trim()}"`}
+              label={`${t("common:search")}: "${query.trim()}"`}
               onRemove={() => setQuery("")}
             />
           )}
           {selectedLocations.map((loc) => (
             <ActiveFilterChip
               key={`loc-${loc}`}
-              label={`${t("publicJobs.board.locationLabel")}: ${loc}`}
+              label={`${t("publicJobs:board.locationLabel")}: ${loc}`}
               onRemove={() =>
                 setSelectedLocations((prev) => prev.filter((x) => x !== loc))
               }
@@ -139,14 +139,14 @@ export default function JobsFilterPanel({
           ))}
           {isSalaryActive && (
             <ActiveFilterChip
-              label={`${t("publicJobs.board.salaryRange")}: ${effectiveSalaryRange[0].toLocaleString("he-IL")}–${effectiveSalaryRange[1].toLocaleString("he-IL")} ₪`}
+              label={`${t("publicJobs:board.salaryRange")}: ${effectiveSalaryRange[0].toLocaleString("he-IL")}–${effectiveSalaryRange[1].toLocaleString("he-IL")} ₪`}
               onRemove={() => setSalaryRange(null)}
             />
           )}
           {companyFilter.map((id) => (
             <ActiveFilterChip
               key={`co-${id}`}
-              label={`${t("admin.jobs.fields.company")}: ${companyNameById.get(id) ?? `#${id}`}`}
+              label={`${t("admin:jobs.fields.company")}: ${companyNameById.get(id) ?? `#${id}`}`}
               onRemove={() =>
                 setCompanyFilter((prev) => prev.filter((x) => x !== id))
               }
@@ -154,7 +154,7 @@ export default function JobsFilterPanel({
           ))}
           {featuredOnly && (
             <ActiveFilterChip
-              label={t("admin.jobs.featuredOnly")}
+              label={t("admin:jobs.featuredOnly")}
               onRemove={() => setFeaturedOnly(false)}
             />
           )}
@@ -175,7 +175,7 @@ export default function JobsFilterPanel({
           >
             <div>
               <Eyebrow size="md" className="mb-2">
-                {t("admin.jobs.fields.status")}
+                {t("admin:jobs.fields.status")}
               </Eyebrow>
               <div className="flex flex-wrap gap-1.5">
                 {filterTabs.map((tab) => (
@@ -185,7 +185,7 @@ export default function JobsFilterPanel({
                     onClick={() => setFilter(tab)}
                   >
                     {tab === ALL_FILTER
-                      ? t("admin.jobs.filterAll")
+                      ? t("admin:jobs.filterAll")
                       : statusLabels[tab]}
                   </FilterPill>
                 ))}
@@ -194,7 +194,7 @@ export default function JobsFilterPanel({
             {uniqueLocations.length >= 2 && (
               <div>
                 <Eyebrow size="md" className="mb-2">
-                  {t("publicJobs.board.locationLabel")}
+                  {t("publicJobs:board.locationLabel")}
                 </Eyebrow>
                 <div className="flex flex-wrap gap-1.5">
                   <FilterPill
@@ -202,7 +202,7 @@ export default function JobsFilterPanel({
                     active={selectedLocations.length === 0}
                     onClick={() => setSelectedLocations([])}
                   >
-                    {t("publicJobs.board.allLocations")}
+                    {t("publicJobs:board.allLocations")}
                   </FilterPill>
                   {uniqueLocations.map((loc) => {
                     const active = selectedLocations.includes(loc);
@@ -228,7 +228,7 @@ export default function JobsFilterPanel({
             )}
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <Eyebrow size="md">{t("publicJobs.board.salaryRange")}</Eyebrow>
+                <Eyebrow size="md">{t("publicJobs:board.salaryRange")}</Eyebrow>
                 {isSalaryActive && (
                   <button
                     type="button"
@@ -237,7 +237,7 @@ export default function JobsFilterPanel({
                     }
                     className="text-[11px] text-copper/70 transition hover:text-copper"
                   >
-                    {t("publicJobs.board.resetSalary")}
+                    {t("publicJobs:board.resetSalary")}
                   </button>
                 )}
               </div>
@@ -248,14 +248,14 @@ export default function JobsFilterPanel({
                 value={effectiveSalaryRange}
                 onChange={(next) => setSalaryRange(next)}
                 formatValue={(n) => `${n.toLocaleString("he-IL")} ₪`}
-                ariaLabelMin={t("publicJobs.board.salaryMinAria")}
-                ariaLabelMax={t("publicJobs.board.salaryMaxAria")}
+                ariaLabelMin={t("publicJobs:board.salaryMinAria")}
+                ariaLabelMax={t("publicJobs:board.salaryMaxAria")}
               />
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Eyebrow size="md" className="mb-1.5">
-                  {t("admin.jobs.fields.company")}
+                  {t("admin:jobs.fields.company")}
                 </Eyebrow>
                 <SearchableMultiSelect<number>
                   values={companyFilter}
@@ -264,7 +264,7 @@ export default function JobsFilterPanel({
                     value: id,
                     label: companyNameById.get(id) ?? `#${id}`,
                   }))}
-                  placeholder={t("admin.jobs.companyAll")}
+                  placeholder={t("admin:jobs.companyAll")}
                 />
               </div>
               <label className="mt-auto inline-flex items-center gap-2 text-sm text-white/80">
@@ -274,7 +274,7 @@ export default function JobsFilterPanel({
                   onChange={(e) => setFeaturedOnly(e.target.checked)}
                   className="size-4 rounded border-white/20 bg-well text-copper focus:ring-copper"
                 />
-                {t("admin.jobs.featuredOnly")}
+                {t("admin:jobs.featuredOnly")}
               </label>
             </div>
           </div>

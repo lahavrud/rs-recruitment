@@ -34,7 +34,7 @@ interface InvitesTabProps {
 }
 
 export default function CompanyInvitesTab({ query, externalOpen, onExternalClose }: InvitesTabProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'md']);
   const toast = useToast();
 
   const fetcher = useCallback(
@@ -84,10 +84,10 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
         ...revokePending,
         status: InviteTokenStatus.REVOKED,
       });
-      toast.success(t("admin.companies.revokedToast"));
+      toast.success(t("admin:companies.revokedToast"));
       setRevokePending(null);
     } catch {
-      toast.error(t("admin.companies.inviteList.revokeError"));
+      toast.error(t("admin:companies.inviteList.revokeError"));
     } finally {
       setPendingMutation(false);
     }
@@ -99,10 +99,10 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
     try {
       await deleteInvite(deletePending.id);
       removeItem((i) => i.id === deletePending.id);
-      toast.success(t("admin.companies.inviteDeletedToast"));
+      toast.success(t("admin:companies.inviteDeletedToast"));
       setDeletePending(null);
     } catch {
-      toast.error(t("admin.companies.inviteList.deleteError"));
+      toast.error(t("admin:companies.inviteList.deleteError"));
     } finally {
       setPendingMutation(false);
     }
@@ -119,12 +119,12 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
       // had drifted to EXPIRED or REVOKED.
       toast.success(
         wasPending
-          ? t("admin.companies.resentToast")
-          : t("admin.companies.reactivatedToast"),
+          ? t("admin:companies.resentToast")
+          : t("admin:companies.reactivatedToast"),
       );
       reload();
     } catch {
-      toast.error(t("admin.companies.inviteList.resendError"));
+      toast.error(t("admin:companies.inviteList.resendError"));
     } finally {
       setResendingId(null);
     }
@@ -140,7 +140,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
     const canResend = !isUsed;
     return (
       <DropdownMenu
-        ariaLabel={t("admin.companies.rowActionsLabel")}
+        ariaLabel={t("admin:companies.rowActionsLabel")}
         trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
       >
         {canResend && (
@@ -149,8 +149,8 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
             disabled={resendingId !== null}
           >
             {isPending
-              ? t("admin.companies.resendAction")
-              : t("admin.companies.reactivateAction")}
+              ? t("admin:companies.resendAction")
+              : t("admin:companies.reactivateAction")}
           </DropdownMenuItem>
         )}
         {isPending && (
@@ -158,7 +158,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
             variant="danger"
             onSelect={() => setRevokePending(invite)}
           >
-            {t("admin.companies.revokeAction")}
+            {t("admin:companies.revokeAction")}
           </DropdownMenuItem>
         )}
         {(canResend || isPending) && <DropdownMenuSeparator />}
@@ -166,7 +166,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
           variant="danger"
           onSelect={() => setDeletePending(invite)}
         >
-          {t("admin.companies.deleteInviteAction")}
+          {t("admin:companies.deleteInviteAction")}
         </DropdownMenuItem>
       </DropdownMenu>
     );
@@ -185,13 +185,13 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
         </>
       ) : error ? (
         <ErrorState
-          message={t("admin.companies.inviteList.loadError")}
+          message={t("admin:companies.inviteList.loadError")}
           onRetry={reload}
         />
       ) : invites.length === 0 ? (
         <EmptyState
-          eyebrow={t("admin.companies.tabs.invites")}
-          headline={t("admin.companies.inviteList.empty")}
+          eyebrow={t("admin:companies.tabs.invites")}
+          headline={t("admin:companies.inviteList.empty")}
         />
       ) : filtered.length === 0 ? (
         <NoResults />
@@ -221,16 +221,16 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
               <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
                 <tr>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.inviteList.columnEmail")}
+                    {t("admin:companies.inviteList.columnEmail")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.inviteList.columnStatus")}
+                    {t("admin:companies.inviteList.columnStatus")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.inviteList.columnCreated")}
+                    {t("admin:companies.inviteList.columnCreated")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.inviteList.columnExpires")}
+                    {t("admin:companies.inviteList.columnExpires")}
                   </th>
                   <th className="px-4 py-3 text-end" aria-hidden />
                 </tr>
@@ -270,9 +270,9 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
       <ConfirmDialog
         open={revokePending != null}
         onOpenChange={(o) => !o && setRevokePending(null)}
-        title={t("admin.companies.revokeConfirmTitle")}
-        message={t("admin.companies.inviteList.revokeConfirm")}
-        confirmLabel={t("admin.companies.revokeAction")}
+        title={t("admin:companies.revokeConfirmTitle")}
+        message={t("admin:companies.inviteList.revokeConfirm")}
+        confirmLabel={t("admin:companies.revokeAction")}
         variant="danger"
         isPending={pendingMutation}
         onConfirm={handleRevokeConfirm}
@@ -281,9 +281,9 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
       <ConfirmDialog
         open={deletePending != null}
         onOpenChange={(o) => !o && setDeletePending(null)}
-        title={t("admin.companies.deleteInviteConfirmTitle")}
-        message={t("admin.companies.inviteList.deleteConfirm")}
-        confirmLabel={t("admin.companies.deleteInviteAction")}
+        title={t("admin:companies.deleteInviteConfirmTitle")}
+        message={t("admin:companies.inviteList.deleteConfirm")}
+        confirmLabel={t("admin:companies.deleteInviteAction")}
         variant="danger"
         isPending={pendingMutation}
         onConfirm={handleDeleteConfirm}
@@ -293,21 +293,21 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
 }
 
 function InviteDetailBody({ invite }: { invite: InviteTokenRead }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'md']);
   return (
     <dl className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
       <dt className="text-white/35">
-        {t("admin.companies.inviteList.columnStatus")}
+        {t("admin:companies.inviteList.columnStatus")}
       </dt>
       <dd>
         <InviteStatusBadge status={invite.status} />
       </dd>
       <dt className="text-white/35">
-        {t("admin.companies.inviteList.columnCreated")}
+        {t("admin:companies.inviteList.columnCreated")}
       </dt>
       <dd className="text-white/70">{formatDate(invite.created_at)}</dd>
       <dt className="text-white/35">
-        {t("admin.companies.inviteList.columnExpires")}
+        {t("admin:companies.inviteList.columnExpires")}
       </dt>
       <dd className="text-white/70">{formatDate(invite.expires_at)}</dd>
     </dl>
@@ -315,7 +315,7 @@ function InviteDetailBody({ invite }: { invite: InviteTokenRead }) {
 }
 
 function InviteStatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'md']);
   const cls =
     status === InviteTokenStatus.PENDING
       ? "bg-warning/10 text-warning"
@@ -325,6 +325,6 @@ function InviteStatusBadge({ status }: { status: string }) {
           ? "bg-white/8 text-white/40"
           : "bg-danger/10 text-danger";
   return (
-    <StatusBadge label={t(`admin.companies.inviteStatusLabels.${status}`)} colorCls={cls} />
+    <StatusBadge label={t(`admin:companies.inviteStatusLabels.${status}`)} colorCls={cls} />
   );
 }

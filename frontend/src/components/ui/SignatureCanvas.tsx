@@ -15,7 +15,7 @@ interface Props {
 
 const SignatureCanvas = forwardRef<SignatureCanvasRef, Props>(
   ({ hasError, onBegin }, ref) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('common');
     const innerRef = useRef<ReactSignatureCanvas>(null);
 
     // Resolve copper token at mount so the pen color follows theme tokens.
@@ -57,7 +57,7 @@ const SignatureCanvas = forwardRef<SignatureCanvasRef, Props>(
           onClick={() => innerRef.current?.clear()}
           className="rounded-sm border border-white/20 px-3 py-1 text-xs text-white/50 transition hover:border-white/40 hover:text-white/80"
         >
-          {t("common.clear")}
+          {t("common:clear")}
         </button>
       </div>
     );

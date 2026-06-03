@@ -45,7 +45,7 @@ interface JobFormProps {
 }
 
 function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'company', 'sm']);
   const [form, setForm] = useState<JobCreate>(initial);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -58,7 +58,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
     e.preventDefault();
     const filledReqs = form.requirements.filter((r) => r.text.trim().length > 0);
     if (filledReqs.length < JOB_REQ_MIN_COUNT) {
-      setErr(t("common.validation.requirementsMin", { min: JOB_REQ_MIN_COUNT }));
+      setErr(t("common:validation.requirementsMin", { min: JOB_REQ_MIN_COUNT }));
       return;
     }
     setSaving(true);
@@ -69,7 +69,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
         requirements: filledReqs.map((r) => ({ text: r.text.trim() })),
       });
     } catch {
-      setErr(t("company.jobs.errors.saveFailed"));
+      setErr(t("company:jobs.errors.saveFailed"));
       setSaving(false);
     }
   }
@@ -79,7 +79,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
-            {t("company.jobs.form.jobTitle")} <span className="text-copper/80">*</span>
+            {t("company:jobs.form.jobTitle")} <span className="text-copper/80">*</span>
           </label>
           <input
             type="text"
@@ -88,12 +88,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             className={`mt-1 ${inputCls}`}
-            placeholder={t("company.jobs.placeholders.jobTitle")}
+            placeholder={t("company:jobs.placeholders.jobTitle")}
           />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
-            {t("company.jobs.form.location")} <span className="text-copper/80">*</span>
+            {t("company:jobs.form.location")} <span className="text-copper/80">*</span>
           </label>
           <input
             type="text"
@@ -102,12 +102,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.location}
             onChange={(e) => set("location", e.target.value)}
             className={`mt-1 ${inputCls}`}
-            placeholder={t("company.jobs.placeholders.location")}
+            placeholder={t("company:jobs.placeholders.location")}
           />
         </div>
         <div>
           <label className="block text-sm text-white/50">
-            {t("common.salaryMin")} (₪/חודש) <span className="text-copper/80">*</span>
+            {t("common:salaryMin")} (₪/חודש) <span className="text-copper/80">*</span>
           </label>
           <input
             type="number"
@@ -120,7 +120,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
         </div>
         <div>
           <label className="block text-sm text-white/50">
-            {t("common.salaryMax")} (₪/חודש) <span className="text-copper/80">*</span>
+            {t("common:salaryMax")} (₪/חודש) <span className="text-copper/80">*</span>
           </label>
           <input
             type="number"
@@ -133,7 +133,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
-            {t("company.jobs.form.shortDescription")} <span className="text-copper/80">*</span>
+            {t("company:jobs.form.shortDescription")} <span className="text-copper/80">*</span>
           </label>
           <input
             type="text"
@@ -142,17 +142,17 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.short_description}
             onChange={(e) => set("short_description", e.target.value)}
             className={`mt-1 ${inputCls}`}
-            placeholder={t("company.jobs.placeholders.shortDescription")}
+            placeholder={t("company:jobs.placeholders.shortDescription")}
           />
           <p className="mt-1 text-[11px] text-white/35">
-            {t("common.charsRemaining", {
+            {t("common:charsRemaining", {
               count: JOB_SHORT_DESC_MAX - form.short_description.length,
             })}
           </p>
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
-            {t("company.jobs.form.description")} <span className="text-copper/80">*</span>
+            {t("company:jobs.form.description")} <span className="text-copper/80">*</span>
           </label>
           <textarea
             required
@@ -161,12 +161,12 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
             className={`mt-1 ${textareaCls}`}
-            placeholder={t("company.jobs.placeholders.description")}
+            placeholder={t("company:jobs.placeholders.description")}
           />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
-            {t("company.jobs.form.requirements")} <span className="text-copper/80">*</span>
+            {t("company:jobs.form.requirements")} <span className="text-copper/80">*</span>
           </label>
           <div className="mt-1">
             <JobRequirementsInput
@@ -177,7 +177,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm text-white/50">
-            {t("company.jobs.form.tags")}
+            {t("company:jobs.form.tags")}
           </label>
           <div className="mt-1">
             <JobTagsInput value={form.tags} onChange={(tags) => set("tags", tags)} />
@@ -194,14 +194,14 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
           disabled={saving}
           className="rounded-sm px-4 py-2 text-sm text-white/40 transition hover:bg-white/5 hover:text-white/70 disabled:opacity-40"
         >
-          {t("company.jobs.cancel")}
+          {t("company:jobs.cancel")}
         </button>
         <button
           type="submit"
           disabled={saving}
           className="rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white transition hover:bg-gold disabled:opacity-40"
         >
-          {saving ? t("company.jobs.saving") : submitLabel}
+          {saving ? t("company:jobs.saving") : submitLabel}
         </button>
       </div>
     </form>
@@ -211,7 +211,7 @@ function JobForm({ initial, onSubmit, onCancel, submitLabel }: JobFormProps) {
 type Mode = "idle" | "create" | { type: "edit"; job: JobRead };
 
 export default function CompanyJobsPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'company', 'sm']);
   const [mode, setMode] = useState<Mode>("idle");
   const [deleting, setDeleting] = useState<number | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -229,12 +229,12 @@ export default function CompanyJobsPage() {
     removeItem,
   } = useInfiniteList<JobRead>(fetcher);
 
-  const error = loadError ? t("company.jobs.errors.loadFailed") : mutationError;
+  const error = loadError ? t("company:jobs.errors.loadFailed") : mutationError;
 
   const STATUS_LABEL: Record<string, string> = {
-    PENDING_APPROVAL: t("company.jobs.statusLabels.PENDING_APPROVAL"),
-    PUBLISHED: t("company.jobs.statusLabels.PUBLISHED"),
-    CLOSED: t("company.jobs.statusLabels.CLOSED"),
+    PENDING_APPROVAL: t("company:jobs.statusLabels.PENDING_APPROVAL"),
+    PUBLISHED: t("company:jobs.statusLabels.PUBLISHED"),
+    CLOSED: t("company:jobs.statusLabels.CLOSED"),
   };
 
   const STATUS_COLOR: Record<string, string> = {
@@ -257,13 +257,13 @@ export default function CompanyJobsPage() {
   }
 
   async function handleDelete(jobId: number) {
-    if (!confirm(t("company.jobs.deleteConfirm"))) return;
+    if (!confirm(t("company:jobs.deleteConfirm"))) return;
     setDeleting(jobId);
     try {
       await deleteJob(jobId);
       removeItem((j) => j.id === jobId);
     } catch {
-      setMutationError(t("company.jobs.errors.deleteFailed"));
+      setMutationError(t("company:jobs.errors.deleteFailed"));
     } finally {
       setDeleting(null);
     }
@@ -274,14 +274,14 @@ export default function CompanyJobsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow={t("company.jobs.title")}
-        subtitle={t("company.jobs.subtitle")}
+        eyebrow={t("company:jobs.title")}
+        subtitle={t("company:jobs.subtitle")}
         action={
           !showForm ? (
             <Button
               onClick={() => setMode("create")}
             >
-              {t("company.jobs.postJob")}
+              {t("company:jobs.postJob")}
             </Button>
           ) : undefined
         }
@@ -294,7 +294,7 @@ export default function CompanyJobsPage() {
       {showForm && (
         <div className="mb-6 rounded-xl border border-copper/20 bg-card p-6">
           <Eyebrow className="mb-4">
-            {mode === "create" ? t("company.jobs.createTitle") : t("company.jobs.editTitle")}
+            {mode === "create" ? t("company:jobs.createTitle") : t("company:jobs.editTitle")}
           </Eyebrow>
           <JobForm
             initial={
@@ -320,16 +320,16 @@ export default function CompanyJobsPage() {
                 : handleCreate
             }
             onCancel={() => setMode("idle")}
-            submitLabel={mode === "create" ? t("company.jobs.submitForReview") : t("company.jobs.saveChanges")}
+            submitLabel={mode === "create" ? t("company:jobs.submitForReview") : t("company:jobs.saveChanges")}
           />
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16 text-white/25">{t("company.jobs.loading")}</div>
+        <div className="flex justify-center py-16 text-white/25">{t("company:jobs.loading")}</div>
       ) : jobs.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/10 py-20 text-center text-sm text-white/25">
-          {t("company.jobs.empty")}
+          {t("company:jobs.empty")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -352,7 +352,7 @@ export default function CompanyJobsPage() {
                   </div>
                   <p className="mt-0.5 text-sm text-white/45">{job.location}</p>
                   <p className="mt-1 text-xs text-white/25">
-                    {t("company.jobs.postedLabel")} {formatDate(job.created_at)}
+                    {t("company:jobs.postedLabel")} {formatDate(job.created_at)}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm text-white/50">{job.short_description || job.description}</p>
                   {job.tags.length > 0 && (
@@ -376,7 +376,7 @@ export default function CompanyJobsPage() {
                       disabled={showForm}
                       className="rounded-sm border border-white/15 px-3 py-1.5 text-sm text-white/50 transition hover:border-white/30 hover:text-white/80 disabled:opacity-30"
                     >
-                      {t("company.jobs.edit")}
+                      {t("company:jobs.edit")}
                     </button>
                   )}
                   {canDelete && (
@@ -385,7 +385,7 @@ export default function CompanyJobsPage() {
                       disabled={busyDel || showForm}
                       className="rounded-sm border border-danger/20 px-3 py-1.5 text-sm text-danger transition hover:bg-danger/10 disabled:opacity-30"
                     >
-                      {busyDel ? "…" : t("company.jobs.delete")}
+                      {busyDel ? "…" : t("company:jobs.delete")}
                     </button>
                   )}
                 </div>
@@ -394,7 +394,7 @@ export default function CompanyJobsPage() {
           })}
           {(hasMore || isFetchingMore) && (
             <div ref={sentinelRef} className="py-4 text-center text-xs text-white/25">
-              {isFetchingMore ? t("common.loading") : ""}
+              {isFetchingMore ? t("common:loading") : ""}
             </div>
           )}
         </div>
