@@ -272,7 +272,13 @@ async def test_refresh_user_tokens_expired_token(
     mock_delete: AsyncMock,
     session: AsyncSession,
 ):
-    """refresh_user_tokens rejects an expired token and triggers its deletion."""
+    """refresh_user_tokens rejects an expired token and triggers its deletion.
+
+    _delete_refresh_token is patched for the same reason as _mock_lockout_db_writes
+    in conftest: it opens its own async_session which is bound to the base DATABASE_URL
+    at import time, so in -n auto parallel runs it would write to the wrong worker DB.
+    We verify the correct deletion call instead of querying the row absence.
+    """
     user = _active_user("expired@example.com")
     session.add(user)
     await session.commit()

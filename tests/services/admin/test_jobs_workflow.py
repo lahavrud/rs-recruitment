@@ -3,11 +3,12 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.transactions import transactional
 from src.enums import JobStatus
-from src.models import CompanyProfile, Job
+from src.models import CompanyProfile, Job, User
 from src.services.admin.jobs_workflow import (
     approve_job,
     contact_job,
@@ -222,19 +223,6 @@ async def test_reject_job_already_published(
 
 
 @pytest.mark.asyncio
-@patch("src.services.admin.jobs_workflow.enqueue_email_task")
-async def test_contact_job_success(
-    mock_enqueue: AsyncMock,
-    session: AsyncSession,
-    pending_job: Job,
-):
-    """contact_job completes without error and dispatches one email."""
-    assert pending_job.id is not None
-    await contact_job(pending_job.id, "Please review the requirements.", session)
-    mock_enqueue.assert_awaited_once()
-
-
-@pytest.mark.asyncio
 async def test_contact_job_not_found(session: AsyncSession):
     """contact_job raises JobNotFoundError for a non-existent job_id."""
     with pytest.raises(JobNotFoundError):
@@ -247,13 +235,17 @@ async def test_contact_job_enqueues_email(
     mock_enqueue: AsyncMock,
     session: AsyncSession,
     pending_job: Job,
+    company_with_user: CompanyProfile,
 ):
-    """contact_job sends email to the company user with the admin note in the body."""
+    """contact_job routes the email to the job owner and includes the admin note."""
     admin_note = "Please add three more requirements."
     await contact_job(pending_job.id, admin_note, session)
     mock_enqueue.assert_awaited_once()
+    owner = (
+        await session.execute(select(User).where(User.id == company_with_user.user_id))
+    ).scalar_one()
     call_kwargs = mock_enqueue.call_args.kwargs
-    assert call_kwargs["to"] == "company@test.com"
+    assert call_kwargs["to"] == owner.email
     assert admin_note in call_kwargs["body"]
 
 
