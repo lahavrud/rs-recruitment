@@ -1,6 +1,5 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import he from "./locales/he.json";
 import aboutHe from "./locales/he/about.json";
 import adminHe from "./locales/he/admin.json";
 import authHe from "./locales/he/auth.json";
@@ -18,7 +17,6 @@ import uiHe from "./locales/he/ui.json";
 i18n.use(initReactI18next).init({
   resources: {
     he: {
-      translation: he,
       about: aboutHe,
       admin: adminHe,
       auth: authHe,
@@ -35,9 +33,8 @@ i18n.use(initReactI18next).init({
     },
   },
   lng: "he",
-  defaultNS: "translation",
+  defaultNS: "common",
   ns: [
-    "translation",
     "about",
     "admin",
     "auth",
