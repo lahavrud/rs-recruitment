@@ -20,13 +20,13 @@ function ruleDraw(delay = "0s"): CSSProperties {
 }
 
 export default function ContactPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('ui');
 
   return (
     <>
       <SeoHead
-        title={t("contact.seo.title")}
-        description={t("contact.seo.description")}
+        title={t("ui:contact.seo.title")}
+        description={t("ui:contact.seo.description")}
         canonical={`${SITE_URL}/contact`}
         ogImage={`${SITE_URL}/og/contact.svg`}
       />
@@ -54,7 +54,7 @@ export default function ContactPage() {
                 className="text-xs font-semibold uppercase tracking-widest text-copper/75"
                 style={rise("0.4s", "0.6s")}
               >
-                {t("contact.eyebrow")}
+                {t("ui:contact.eyebrow")}
               </p>
             </div>
           </div>
@@ -65,7 +65,7 @@ export default function ContactPage() {
               className="text-[clamp(2.8rem,8vw,5.5rem)] font-light leading-tight text-white/88"
               style={rise("0.55s", "0.9s")}
             >
-              {t("contact.headline")}
+              {t("ui:contact.headline")}
             </h1>
           </div>
 
@@ -74,7 +74,7 @@ export default function ContactPage() {
             className="mx-auto mt-6 max-w-sm text-base leading-relaxed text-white/40"
             style={revealUp("0.9s")}
           >
-            {t("contact.subtitle")}
+            {t("ui:contact.subtitle")}
           </p>
 
           {/* Email */}

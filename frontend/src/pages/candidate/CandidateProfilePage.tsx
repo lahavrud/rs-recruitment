@@ -24,7 +24,7 @@ import DataExportSection from "./components/DataExportSection";
  *  5. Your data        — request GDPR export (emailed download link)
  */
 export default function CandidateProfilePage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('candidate');
   const [me, setMe] = useState<CandidateMeRead | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ export default function CandidateProfilePage() {
         const data = await getMe();
         if (alive) setMe(data);
       } catch {
-        if (alive) setLoadError(t("candidate.profile.errors.loadFailed"));
+        if (alive) setLoadError(t("candidate:profile.errors.loadFailed"));
       } finally {
         if (alive) setLoading(false);
       }
@@ -52,7 +52,7 @@ export default function CandidateProfilePage() {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="text-white/40">{t("candidate.profile.loading")}</div>
+        <div className="text-white/40">{t("candidate:profile.loading")}</div>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function CandidateProfilePage() {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-sm text-danger">
-          {loadError ?? t("candidate.profile.errors.loadFailed")}
+          {loadError ?? t("candidate:profile.errors.loadFailed")}
         </div>
       </div>
     );
@@ -69,8 +69,8 @@ export default function CandidateProfilePage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        eyebrow={t("candidate.profile.eyebrow")}
-        subtitle={t("candidate.profile.subtitle")}
+        eyebrow={t("candidate:profile.eyebrow")}
+        subtitle={t("candidate:profile.subtitle")}
       />
 
       {/* ── Profile group ─────────────────────────────────────────────
@@ -98,7 +98,7 @@ export default function CandidateProfilePage() {
           className="group flex w-full items-center justify-between gap-2 border-b border-white/8 pb-2 transition-colors hover:border-white/15"
         >
           <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40 transition-colors group-hover:text-white/60">
-            {t("candidate.profile.settings.title")}
+            {t("candidate:profile.settings.title")}
           </span>
           <svg
             viewBox="0 0 24 24"

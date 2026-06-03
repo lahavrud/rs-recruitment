@@ -35,7 +35,7 @@ function seedFromProfile(p: CompanyProfileRead): CompanyProfileAdminUpdate {
 }
 
 export default function EditCompanyDialog({ profile, onClose, onSaved }: EditProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const toast = useToast();
   const [form, setForm] = useState<CompanyProfileAdminUpdate>({});
   const [initialForm, setInitialForm] = useState<CompanyProfileAdminUpdate>({});
@@ -80,7 +80,7 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
       });
       onSaved(updated);
     } catch {
-      toast.error(t("admin.companies.errors.saveFailed"));
+      toast.error(t("admin:companies.errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -93,7 +93,7 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
       <Dialog
         open={profile != null}
         onOpenChange={(o) => !o && handleClose()}
-        title={t("admin.companies.editModalTitle")}
+        title={t("admin:companies.editModalTitle")}
         description={profile.name}
         size="lg"
         footer={
@@ -103,13 +103,13 @@ export default function EditCompanyDialog({ profile, onClose, onSaved }: EditPro
               onClick={handleClose}
               disabled={saving}
             >
-              {t("common.cancel")}
+              {t("common:cancel")}
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
             >
-              {saving ? t("common.saving") : t("common.save")}
+              {saving ? t("common:saving") : t("common:save")}
             </Button>
           </>
         }

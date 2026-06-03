@@ -107,7 +107,20 @@ frontend/src/
 ├── styles/
 │   └── forms.ts                   # inputCls, textareaCls, selectCls
 ├── locales/
-│   └── he.json                    # All UI strings in Hebrew
+│   └── he/                        # Per-namespace translation files (Hebrew)
+│       ├── common.json            # Shared UI strings (defaultNS)
+│       ├── auth.json              # Auth pages
+│       ├── admin.json             # Admin section
+│       ├── publicJobs.json        # Public job board + apply flow
+│       ├── candidate.json         # Candidate pages
+│       ├── company.json           # Company pages
+│       ├── dashboard.json         # Dashboard
+│       ├── landing.json           # Landing page
+│       ├── about.json             # About page
+│       ├── nav.json               # Sidebar navigation labels
+│       ├── cookies.json           # Cookie consent
+│       ├── resume.json            # ResumeViewer component
+│       └── ui.json                # Shared UI primitives (header, notFound, articles, contact)
 └── index.css                      # Tailwind @theme tokens + global utilities
 ```
 
@@ -276,7 +289,7 @@ Behavior, in one place:
 - iOS uses `navigator.share()` instead of `<a download>` since iOS Safari ignores the latter on blob URLs
 - Portals to `document.body` to escape transformed ancestors (Dialog `translate`, page-enter animations) that would otherwise clip the fullscreen overlay
 
-All copy lives under the top-level `resume.*` i18n namespace (`he.json`).
+All copy lives in `locales/he/resume.json` (namespace `resume`). Use `t("resume:triggerLabel")` etc.
 
 ### Field
 
@@ -355,10 +368,28 @@ ESLint enforces a **600-line hard limit** (`max-lines`, blank lines and comments
   - default → generic Hebrew error key
 
 ### Translations
-All strings live in `frontend/src/locales/he.json`. Keys are namespaced by feature:
-- `auth.login.*`, `auth.register.*`
-- `landing.*`, `publicJobs.*`
-- `admin.*`, `company.*`, `dashboard.*`
+All strings live in `frontend/src/locales/he/<namespace>.json`. Each file owns one feature area:
+
+| File | Namespace | Used in |
+|---|---|---|
+| `common.json` | `common` | Shared UI strings — defaultNS |
+| `auth.json` | `auth` | Auth pages |
+| `admin.json` | `admin` | Admin section |
+| `publicJobs.json` | `publicJobs` | Public job board + apply flow |
+| `candidate.json` | `candidate` | Candidate pages |
+| `company.json` | `company` | Company pages |
+| `dashboard.json` | `dashboard` | Dashboard |
+| `landing.json` | `landing` | Landing page |
+| `about.json` | `about` | About page |
+| `nav.json` | `nav` | Sidebar navigation |
+| `cookies.json` | `cookies` | Cookie consent |
+| `resume.json` | `resume` | ResumeViewer component |
+| `ui.json` | `ui` | header, notFound, articles, contact |
+
+**Call-site conventions:**
+- Single namespace: `useTranslation('admin')` + `t("admin:companies.title")`
+- Multiple namespaces: `useTranslation(['admin', 'common'])` + explicit `t("ns:key")` prefix at every call
+- Never use `useTranslation()` without a namespace argument
 
 Write production-quality Hebrew — not literal translations. Prefer warm, direct phrasing.
 
@@ -404,7 +435,7 @@ Prefer `selectinload` at the call site over `lazy="selectin"` on the model unles
 6. Use `Field` from `@/components/ui/Field` — pass `id` for explicit `htmlFor` mode, or omit for `<label>`-wrap mode
 7. Use `formatDate` / `formatDateLong` from `@/utils/formatDate` — never define locally
 8. Use only token-based Tailwind classes — no `bg-[#hex]` or inline style colors
-9. Map all error states to `t()` keys in `he.json`
+9. Map all error states to `t()` keys in the appropriate `locales/he/<namespace>.json`
 10. Register the route in `App.tsx` with the appropriate route guard
 
 ### Co-locating sub-components

@@ -28,8 +28,8 @@ import CandidatesTable from "./components/CandidatesTable";
 import CandidatesMobileList from "./components/CandidatesMobileList";
 
 export default function AdminCandidatesPage() {
-  const { t } = useTranslation();
-  usePageTitle(t("admin.candidates.title"));
+  const { t } = useTranslation(['admin', 'common', 'md']);
+  usePageTitle(t("admin:candidates.title"));
   const toast = useToast();
 
   const fetcher = useCallback(
@@ -170,11 +170,11 @@ export default function AdminCandidatesPage() {
     try {
       await deleteCandidate(deletePending.id);
       removeItem((c) => c.id === deletePending.id);
-      toast.success(t("admin.candidates.deletedToast"));
+      toast.success(t("admin:candidates.deletedToast"));
       setDeletePending(null);
       setDetail(null);
     } catch {
-      toast.error(t("admin.candidates.errors.deleteFailed"));
+      toast.error(t("admin:candidates.errors.deleteFailed"));
     } finally {
       setPendingDelete(false);
     }
@@ -183,11 +183,11 @@ export default function AdminCandidatesPage() {
   return (
     <div>
       <h1 data-page-heading className="sr-only">
-        {t("admin.candidates.title")}
+        {t("admin:candidates.title")}
       </h1>
       <PageHeader
-        eyebrow={t("admin.candidates.title")}
-        subtitle={t("admin.candidates.subtitle")}
+        eyebrow={t("admin:candidates.title")}
+        subtitle={t("admin:candidates.subtitle")}
       />
 
       {/* Search + filter trigger */}
@@ -196,7 +196,7 @@ export default function AdminCandidatesPage() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder={t("admin.candidates.searchPlaceholder")}
+            placeholder={t("admin:candidates.searchPlaceholder")}
             clearable
           />
         </div>
@@ -204,7 +204,7 @@ export default function AdminCandidatesPage() {
           type="button"
           onClick={() => setFilterOpen((o) => !o)}
           aria-expanded={filterOpen}
-          aria-label={t("admin.candidates.openFilters")}
+          aria-label={t("admin:candidates.openFilters")}
           className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors duration-200 active:scale-95 ${
             filterOpen
               ? "border-copper/50 bg-copper/10 text-white"
@@ -212,7 +212,7 @@ export default function AdminCandidatesPage() {
           }`}
         >
           <FunnelIcon />
-          <span className="hidden sm:inline">{t("admin.candidates.filters")}</span>
+          <span className="hidden sm:inline">{t("admin:candidates.filters")}</span>
           {activeFilterCount > 0 && (
             <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
               {activeFilterCount}
@@ -225,21 +225,21 @@ export default function AdminCandidatesPage() {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {query.trim() && (
             <ActiveFilterChip
-              label={`${t("common.search")}: "${query.trim()}"`}
+              label={`${t("common:search")}: "${query.trim()}"`}
               onRemove={() => setQuery("")}
             />
           )}
           {jobFilter.map((id) => (
             <ActiveFilterChip
               key={`job-${id}`}
-              label={`${t("admin.candidates.filterByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
+              label={`${t("admin:candidates.filterByJob")}: ${jobTitleById.get(id) ?? `#${id}`}`}
               onRemove={() => setJobFilter((prev) => prev.filter((x) => x !== id))}
             />
           ))}
           {companyFilter.map((id) => (
             <ActiveFilterChip
               key={`co-${id}`}
-              label={`${t("admin.candidates.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
+              label={`${t("admin:candidates.filterByCompany")}: ${companyNameById.get(id) ?? `#${id}`}`}
               onRemove={() => setCompanyFilter((prev) => prev.filter((x) => x !== id))}
             />
           ))}
@@ -266,11 +266,11 @@ export default function AdminCandidatesPage() {
           </div>
         </>
       ) : error ? (
-        <ErrorState message={t("admin.candidates.loadError")} onRetry={reload} />
+        <ErrorState message={t("admin:candidates.loadError")} onRetry={reload} />
       ) : candidates.length === 0 ? (
         <EmptyState
-          eyebrow={t("admin.candidates.title")}
-          headline={t("admin.candidates.empty")}
+          eyebrow={t("admin:candidates.title")}
+          headline={t("admin:candidates.empty")}
         />
       ) : filteredCandidates.length === 0 ? (
         <NoResults />
@@ -311,20 +311,20 @@ export default function AdminCandidatesPage() {
         onClose={() => setEditing(null)}
         onSaved={(updated) => {
           updateItem((c) => c.id === updated.id, updated);
-          toast.success(t("admin.candidates.savedToast"));
+          toast.success(t("admin:candidates.savedToast"));
           setEditing(null);
         }}
-        onError={() => toast.error(t("admin.candidates.errors.saveFailed"))}
+        onError={() => toast.error(t("admin:candidates.errors.saveFailed"))}
       />
 
       <ConfirmDialog
         open={deletePending != null}
         onOpenChange={(o) => !o && setDeletePending(null)}
-        title={t("admin.candidates.deleteConfirmTitle", {
+        title={t("admin:candidates.deleteConfirmTitle", {
           name: deletePending?.full_name ?? "",
         })}
-        message={t("admin.candidates.deleteConfirmMessage")}
-        confirmLabel={t("admin.candidates.deleteConfirmYes")}
+        message={t("admin:candidates.deleteConfirmMessage")}
+        confirmLabel={t("admin:candidates.deleteConfirmYes")}
         variant="danger"
         isPending={pendingDelete}
         onConfirm={handleDeleteConfirm}

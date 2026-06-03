@@ -49,7 +49,7 @@ function clipRise(visible: boolean, delay = "0s"): CSSProperties {
 }
 
 export default function LandingFeaturedJobs() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'landing', 'publicJobs']);
   const [jobsRef, jobsVisible] = useReveal(0.15);
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -259,7 +259,7 @@ export default function LandingFeaturedJobs() {
               </div>
               <div className="mt-2 overflow-hidden">
                 <h2 className="text-2xl font-semibold text-white/92 sm:text-3xl" style={clipRise(jobsVisible, "0.1s")}>
-                  {t("landing.featuredJobs.title")}
+                  {t("landing:featuredJobs.title")}
                 </h2>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function LandingFeaturedJobs() {
               className="mb-1 shrink-0 text-sm text-copper/70 transition hover:text-copper"
               style={cardRise(jobsVisible, "0.15s")}
             >
-              {t("landing.featuredJobs.viewAll")} ←
+              {t("landing:featuredJobs.viewAll")} ←
             </Link>
           </div>
 
@@ -300,7 +300,7 @@ export default function LandingFeaturedJobs() {
                 draggable={false}
                 className="group relative flex min-h-[210px] w-[65vw] shrink-0 flex-col rounded-xl border border-gold/40 bg-card p-5 transition-colors hover:border-gold/60 sm:w-72"
               >
-                <FeaturedRibbon label={t("publicJobs.board.featured")} />
+                <FeaturedRibbon label={t("publicJobs:board.featured")} />
                 <h3 className="font-medium text-white/90">{job.title}</h3>
                 <p className="mt-1 text-sm text-white/40">{job.location}</p>
                 <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/60">
@@ -319,7 +319,7 @@ export default function LandingFeaturedJobs() {
                   </div>
                 )}
                 <p className="mt-auto pt-4 text-xs text-white/30">
-                  {t("common.posted")} {formatDate(job.created_at)}
+                  {t("common:posted")} {formatDate(job.created_at)}
                 </p>
               </Link>
             ))}

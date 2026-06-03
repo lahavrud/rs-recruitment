@@ -26,7 +26,7 @@ export default function CandidatesTable({
   sentinelRef,
   isFetchingMore,
 }: CandidatesTableProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
 
   return (
     <>
@@ -35,19 +35,19 @@ export default function CandidatesTable({
           <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
             <tr>
               <th className="px-4 py-3 text-start">
-                {t("admin.candidates.table.name")}
+                {t("admin:candidates.table.name")}
               </th>
               <th className="px-4 py-3 text-start">
-                {t("admin.candidates.table.phone")}
+                {t("admin:candidates.table.phone")}
               </th>
               <th className="px-4 py-3 text-start">
-                {t("admin.candidates.table.resume")}
+                {t("admin:candidates.table.resume")}
               </th>
               <th className="px-4 py-3 text-start">
-                {t("admin.candidates.table.linkedin")}
+                {t("admin:candidates.table.linkedin")}
               </th>
               <th className="px-4 py-3 text-start">
-                {t("admin.candidates.table.date")}
+                {t("admin:candidates.table.date")}
               </th>
               <th className="px-4 py-3 text-end" aria-hidden />
             </tr>
@@ -71,11 +71,11 @@ export default function CandidatesTable({
                     <ResumeButton
                       resumePath={c.resume_path}
                       candidateName={c.full_name}
-                      label={t("admin.candidates.table.resume")}
+                      label={t("admin:candidates.table.resume")}
                     />
                   ) : (
                     <span className="text-white/20">
-                      {t("admin.candidates.noFile")}
+                      {t("admin:candidates.noFile")}
                     </span>
                   )}
                 </td>
@@ -99,18 +99,18 @@ export default function CandidatesTable({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <DropdownMenu
-                    ariaLabel={t("admin.candidates.rowActionsLabel")}
+                    ariaLabel={t("admin:candidates.rowActionsLabel")}
                     trigger={<KebabButton size="sm" />}
                   >
                     <DropdownMenuItem onSelect={() => onView(c)}>
-                      {t("admin.candidates.viewAction")}
+                      {t("admin:candidates.viewAction")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => onEdit(c)}>
-                      {t("admin.candidates.editAction")}
+                      {t("admin:candidates.editAction")}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="danger" onSelect={() => onDelete(c)}>
-                      {t("admin.candidates.deleteAction")}
+                      {t("admin:candidates.deleteAction")}
                     </DropdownMenuItem>
                   </DropdownMenu>
                 </td>

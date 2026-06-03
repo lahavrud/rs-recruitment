@@ -19,7 +19,7 @@ export default function ApplyAutofillSection({
   me: CandidateMeRead;
   onChange: (next: CandidateMeRead) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['candidate', 'https']);
   const [phone, setPhone] = useState(me.phone ?? "");
   const [linkedin, setLinkedin] = useState(me.linkedin_url ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -42,8 +42,8 @@ export default function ApplyAutofillSection({
       setState("error");
       setError(
         axios.isAxiosError(err) && err.response?.status === 422
-          ? t("candidate.profile.autofill.errors.validation")
-          : t("candidate.profile.autofill.errors.generic"),
+          ? t("candidate:profile.autofill.errors.validation")
+          : t("candidate:profile.autofill.errors.generic"),
       );
     } finally {
       setSubmitting(false);
@@ -54,10 +54,10 @@ export default function ApplyAutofillSection({
     <section className="rounded-xl border border-white/8 bg-card p-6">
       <header className="mb-5">
         <h2 className="text-base font-semibold text-white/85">
-          {t("candidate.profile.autofill.title")}
+          {t("candidate:profile.autofill.title")}
         </h2>
         <p className="mt-1 text-xs text-white/45">
-          {t("candidate.profile.autofill.subtitle")}
+          {t("candidate:profile.autofill.subtitle")}
         </p>
       </header>
 
@@ -70,8 +70,8 @@ export default function ApplyAutofillSection({
         {/* ── Left column: phone + LinkedIn ────────────────────────── */}
         <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
           <Field
-            label={t("candidate.profile.autofill.phone")}
-            hint={t("candidate.profile.autofill.phoneHint")}
+            label={t("candidate:profile.autofill.phone")}
+            hint={t("candidate:profile.autofill.phoneHint")}
           >
             <input
               type="tel"
@@ -86,8 +86,8 @@ export default function ApplyAutofillSection({
             />
           </Field>
           <Field
-            label={t("candidate.profile.autofill.linkedin")}
-            hint={t("candidate.profile.autofill.linkedinHint")}
+            label={t("candidate:profile.autofill.linkedin")}
+            hint={t("candidate:profile.autofill.linkedinHint")}
           >
             <input
               type="url"
@@ -106,7 +106,7 @@ export default function ApplyAutofillSection({
             <div className="text-xs">
               {state === "saved" && (
                 <span className="text-copper">
-                  {t("candidate.profile.autofill.saved")}
+                  {t("candidate:profile.autofill.saved")}
                 </span>
               )}
               {state === "error" && error && (
@@ -115,8 +115,8 @@ export default function ApplyAutofillSection({
             </div>
             <Button type="submit" disabled={submitting}>
               {submitting
-                ? t("candidate.profile.autofill.saving")
-                : t("candidate.profile.autofill.save")}
+                ? t("candidate:profile.autofill.saving")
+                : t("candidate:profile.autofill.save")}
             </Button>
           </div>
         </form>

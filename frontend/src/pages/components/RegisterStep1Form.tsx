@@ -43,15 +43,15 @@ export default function RegisterStep1Form({
   onLogoChange,
   onNext,
 }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('auth');
 
   return (
     <div className="space-y-4">
       {/* Company details */}
       <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-        <Eyebrow className="mb-4">{t("auth.register.companySection")}</Eyebrow>
+        <Eyebrow className="mb-4">{t("auth:register.companySection")}</Eyebrow>
         <div className="space-y-3">
-          <Field label={`${t("auth.register.companyName")} *`} error={fieldErrors.companyName}>
+          <Field label={`${t("auth:register.companyName")} *`} error={fieldErrors.companyName}>
             <input
               name="companyName"
               type="text"
@@ -67,7 +67,7 @@ export default function RegisterStep1Form({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label={`${t("auth.register.companyIdLabel")} *`} error={fieldErrors.companyId}>
+            <Field label={`${t("auth:register.companyIdLabel")} *`} error={fieldErrors.companyId}>
               <input
                 name="companyId"
                 type="text"
@@ -81,7 +81,7 @@ export default function RegisterStep1Form({
                 dir="ltr"
               />
             </Field>
-            <Field label={`${t("auth.register.addressLabel")} *`} error={fieldErrors.address}>
+            <Field label={`${t("auth:register.addressLabel")} *`} error={fieldErrors.address}>
               <input
                 name="address"
                 type="text"
@@ -91,13 +91,13 @@ export default function RegisterStep1Form({
                 onChange={onFieldChange}
                 onBlur={onFieldBlur}
                 className={inputCls}
-                placeholder={t("auth.register.addressPlaceholder")}
+                placeholder={t("auth:register.addressPlaceholder")}
                 autoComplete="street-address"
               />
             </Field>
           </div>
 
-          <Field label={`${t("auth.register.logoLabel")} *`} error={fieldErrors.logo}>
+          <Field label={`${t("auth:register.logoLabel")} *`} error={fieldErrors.logo}>
             <input
               ref={logoInputRef}
               type="file"
@@ -112,12 +112,12 @@ export default function RegisterStep1Form({
       {/* Contact details */}
       <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
         <Eyebrow className="mb-4">
-          {t("auth.register.contactSection", "איש קשר")}
+          {t("auth:register.contactSection", "איש קשר")}
         </Eyebrow>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field
-              label={`${t("auth.register.contactFirstName")} *`}
+              label={`${t("auth:register.contactFirstName")} *`}
               error={fieldErrors.contactFirstName}
             >
               <input
@@ -129,12 +129,12 @@ export default function RegisterStep1Form({
                 onChange={onFieldChange}
                 onBlur={onFieldBlur}
                 className={inputCls}
-                placeholder={t("auth.register.contactFirstNamePlaceholder")}
+                placeholder={t("auth:register.contactFirstNamePlaceholder")}
                 autoComplete="given-name"
               />
             </Field>
             <Field
-              label={`${t("auth.register.contactLastName")} *`}
+              label={`${t("auth:register.contactLastName")} *`}
               error={fieldErrors.contactLastName}
             >
               <input
@@ -146,14 +146,14 @@ export default function RegisterStep1Form({
                 onChange={onFieldChange}
                 onBlur={onFieldBlur}
                 className={inputCls}
-                placeholder={t("auth.register.contactLastNamePlaceholder")}
+                placeholder={t("auth:register.contactLastNamePlaceholder")}
                 autoComplete="family-name"
               />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field
-              label={`${t("auth.register.contactMobilePhone")} *`}
+              label={`${t("auth:register.contactMobilePhone")} *`}
               error={fieldErrors.contactMobilePhone}
             >
               <input
@@ -165,12 +165,12 @@ export default function RegisterStep1Form({
                 onChange={onFieldChange}
                 onBlur={onFieldBlur}
                 className={inputCls}
-                placeholder={t("auth.register.contactMobilePhonePlaceholder")}
+                placeholder={t("auth:register.contactMobilePhonePlaceholder")}
                 autoComplete="tel"
                 dir="ltr"
               />
             </Field>
-            <Field label={t("auth.register.contactLandlinePhone")}>
+            <Field label={t("auth:register.contactLandlinePhone")}>
               <input
                 name="contactLandlinePhone"
                 type="tel"
@@ -178,7 +178,7 @@ export default function RegisterStep1Form({
                 value={form.contactLandlinePhone}
                 onChange={onFieldChange}
                 className={inputCls}
-                placeholder={t("auth.register.contactLandlinePhonePlaceholder")}
+                placeholder={t("auth:register.contactLandlinePhonePlaceholder")}
                 dir="ltr"
               />
             </Field>
@@ -188,9 +188,9 @@ export default function RegisterStep1Form({
 
       {/* Account credentials */}
       <div className="rounded-xl border border-white/8 bg-card px-5 py-5">
-        <Eyebrow className="mb-4">{t("auth.register.accountSection")}</Eyebrow>
+        <Eyebrow className="mb-4">{t("auth:register.accountSection")}</Eyebrow>
         <div className="space-y-3">
-          <Field label={`${t("auth.register.emailLabel")} *`} error={fieldErrors.email}>
+          <Field label={`${t("auth:register.emailLabel")} *`} error={fieldErrors.email}>
             <input
               name="email"
               type="email"
@@ -201,13 +201,13 @@ export default function RegisterStep1Form({
               onBlur={onFieldBlur}
               readOnly={emailPreFilled}
               className={`${inputCls} ${emailPreFilled ? "cursor-not-allowed opacity-60" : ""}`}
-              placeholder={t("auth.register.emailPlaceholder")}
+              placeholder={t("auth:register.emailPlaceholder")}
               autoComplete="email"
               dir="ltr"
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={`${t("auth.register.passwordLabel")} *`} error={fieldErrors.password}>
+            <Field label={`${t("auth:register.passwordLabel")} *`} error={fieldErrors.password}>
               <input
                 name="password"
                 type="password"
@@ -220,7 +220,7 @@ export default function RegisterStep1Form({
                 autoComplete="new-password"
               />
             </Field>
-            <Field label={`${t("auth.register.confirmLabel")} *`} error={fieldErrors.confirm}>
+            <Field label={`${t("auth:register.confirmLabel")} *`} error={fieldErrors.confirm}>
               <input
                 name="confirm"
                 type="password"
@@ -238,7 +238,7 @@ export default function RegisterStep1Form({
       </div>
 
       <Button type="button" onClick={onNext} className="w-full py-2.5">
-        {t("auth.register.nextStep")} ←
+        {t("auth:register.nextStep")} ←
       </Button>
     </div>
   );

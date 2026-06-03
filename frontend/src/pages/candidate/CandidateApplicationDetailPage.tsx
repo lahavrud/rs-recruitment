@@ -17,7 +17,7 @@ import {
 } from "@/services/candidate";
 
 export default function CandidateApplicationDetailPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('candidate');
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState<CandidateApplicationDetail | null>(null);
@@ -43,7 +43,7 @@ export default function CandidateApplicationDetailPage() {
     (async () => {
       if (!Number.isFinite(appId) || appId <= 0) {
         if (alive) {
-          setError(t("candidate.applications.errors.notFound"));
+          setError(t("candidate:applications.errors.notFound"));
           setLoading(false);
         }
         return;
@@ -54,9 +54,9 @@ export default function CandidateApplicationDetailPage() {
       } catch (err) {
         if (!alive) return;
         if (axios.isAxiosError(err) && err.response?.status === 404) {
-          setError(t("candidate.applications.errors.notFound"));
+          setError(t("candidate:applications.errors.notFound"));
         } else {
-          setError(t("candidate.applications.errors.loadFailed"));
+          setError(t("candidate:applications.errors.loadFailed"));
         }
       } finally {
         if (alive) setLoading(false);
@@ -81,7 +81,7 @@ export default function CandidateApplicationDetailPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setError(t("candidate.applications.errors.generic"));
+      setError(t("candidate:applications.errors.generic"));
     } finally {
       setDownloading(false);
     }
@@ -135,10 +135,10 @@ export default function CandidateApplicationDetailPage() {
         err.response?.status === 409 &&
         err.response.data?.detail === "application_not_editable"
       ) {
-        setSaveError(t("candidate.applications.edit.notEditable"));
+        setSaveError(t("candidate:applications.edit.notEditable"));
         window.location.reload();
       } else {
-        setSaveError(t("candidate.applications.errors.saveFailed"));
+        setSaveError(t("candidate:applications.errors.saveFailed"));
       }
     } finally {
       setSaving(false);
@@ -158,11 +158,11 @@ export default function CandidateApplicationDetailPage() {
         err.response.data?.detail === "application_not_editable"
       ) {
         setWithdrawOpen(false);
-        setError(t("candidate.applications.errors.notEditable"));
+        setError(t("candidate:applications.errors.notEditable"));
         window.location.reload();
       } else {
         setWithdrawOpen(false);
-        setError(t("candidate.applications.errors.generic"));
+        setError(t("candidate:applications.errors.generic"));
       }
     } finally {
       setWithdrawing(false);
@@ -172,7 +172,7 @@ export default function CandidateApplicationDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
-        <p className="text-white/60">{t("candidate.applications.loading")}</p>
+        <p className="text-white/60">{t("candidate:applications.loading")}</p>
       </div>
     );
   }
@@ -185,7 +185,7 @@ export default function CandidateApplicationDetailPage() {
           to="/candidate/applications"
           className="mt-4 inline-block text-sm text-white/60 hover:text-white/90"
         >
-          {t("candidate.applications.detail.back")}
+          {t("candidate:applications.detail.back")}
         </Link>
       </div>
     );
@@ -196,7 +196,7 @@ export default function CandidateApplicationDetailPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader
-        eyebrow={t("candidate.applications.detail.eyebrow")}
+        eyebrow={t("candidate:applications.detail.eyebrow")}
         subtitle={data.job.title}
       />
 
@@ -205,16 +205,16 @@ export default function CandidateApplicationDetailPage() {
           to="/candidate/applications"
           className="text-xs text-white/50 hover:text-white/80"
         >
-          ← {t("candidate.applications.detail.back")}
+          ← {t("candidate:applications.detail.back")}
         </Link>
 
         {data.editable && !isEditing && (
           <div className="flex gap-3">
             <Button variant="primary" size="sm" onClick={startEditing}>
-              {t("candidate.applications.edit.button")}
+              {t("candidate:applications.edit.button")}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setWithdrawOpen(true)}>
-              {t("candidate.applications.withdraw.button")}
+              {t("candidate:applications.withdraw.button")}
             </Button>
           </div>
         )}
@@ -222,14 +222,14 @@ export default function CandidateApplicationDetailPage() {
 
       <section className="mt-6 rounded-xl border border-white/8 bg-card p-6">
         <h2 className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {t("candidate.applications.detail.jobSection")}
+          {t("candidate:applications.detail.jobSection")}
         </h2>
         <div className="mt-3 flex flex-wrap items-baseline gap-3">
           <h3 className="text-xl text-white/90">{data.job.title}</h3>
           <CompanyName name={data.company.name} />
           {data.job.closed && (
             <span className="rounded-sm border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/50">
-              {t("candidate.applications.closedPill")}
+              {t("candidate:applications.closedPill")}
             </span>
           )}
         </div>
@@ -240,30 +240,30 @@ export default function CandidateApplicationDetailPage() {
 
       <section className="mt-6 rounded-xl border border-white/8 bg-card p-6">
         <h2 className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {t("candidate.applications.detail.myAnswers")}
+          {t("candidate:applications.detail.myAnswers")}
         </h2>
 
         {isEditing && editForm ? (
           <div className="mt-4 space-y-4">
             <EditField
-              label={t("candidate.applications.detail.answers.serviceConcept")}
+              label={t("candidate:applications.detail.answers.serviceConcept")}
               value={editForm.service_concept ?? ""}
               onChange={(v) => setEditForm({ ...editForm, service_concept: v || null })}
             />
             <EditField
-              label={t("candidate.applications.detail.answers.salaryExpectations")}
+              label={t("candidate:applications.detail.answers.salaryExpectations")}
               value={editForm.salary_expectations ?? ""}
               onChange={(v) =>
                 setEditForm({ ...editForm, salary_expectations: v || null })
               }
             />
             <EditField
-              label={t("candidate.applications.detail.answers.strength")}
+              label={t("candidate:applications.detail.answers.strength")}
               value={editForm.strength ?? ""}
               onChange={(v) => setEditForm({ ...editForm, strength: v || null })}
             />
             <EditField
-              label={t("candidate.applications.detail.answers.growthArea")}
+              label={t("candidate:applications.detail.answers.growthArea")}
               value={editForm.growth_area ?? ""}
               onChange={(v) => setEditForm({ ...editForm, growth_area: v || null })}
             />
@@ -271,24 +271,24 @@ export default function CandidateApplicationDetailPage() {
         ) : (
           <dl className="mt-4 space-y-4">
             <AnswerRow
-              label={t("candidate.applications.detail.answers.serviceConcept")}
+              label={t("candidate:applications.detail.answers.serviceConcept")}
               value={answers.service_concept}
-              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+              emptyLabel={t("candidate:applications.detail.answersEmpty")}
             />
             <AnswerRow
-              label={t("candidate.applications.detail.answers.salaryExpectations")}
+              label={t("candidate:applications.detail.answers.salaryExpectations")}
               value={answers.salary_expectations}
-              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+              emptyLabel={t("candidate:applications.detail.answersEmpty")}
             />
             <AnswerRow
-              label={t("candidate.applications.detail.answers.strength")}
+              label={t("candidate:applications.detail.answers.strength")}
               value={answers.strength}
-              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+              emptyLabel={t("candidate:applications.detail.answersEmpty")}
             />
             <AnswerRow
-              label={t("candidate.applications.detail.answers.growthArea")}
+              label={t("candidate:applications.detail.answers.growthArea")}
               value={answers.growth_area}
-              emptyLabel={t("candidate.applications.detail.answersEmpty")}
+              emptyLabel={t("candidate:applications.detail.answersEmpty")}
             />
           </dl>
         )}
@@ -296,14 +296,14 @@ export default function CandidateApplicationDetailPage() {
 
       <section className="mt-6 rounded-xl border border-white/8 bg-card p-6">
         <h2 className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {t("candidate.applications.detail.resume")}
+          {t("candidate:applications.detail.resume")}
         </h2>
 
         {isEditing ? (
           <div className="mt-3 space-y-2">
             {stagedResume ? (
               <p className="text-sm text-white/70">
-                {t("candidate.applications.edit.resumeStaged", {
+                {t("candidate:applications.edit.resumeStaged", {
                   filename: stagedResume.name,
                 })}
               </p>
@@ -311,7 +311,7 @@ export default function CandidateApplicationDetailPage() {
               <p className="truncate text-sm text-white/60">{data.resume.filename}</p>
             ) : (
               <p className="text-sm text-white/40">
-                {t("candidate.applications.detail.resumeNone")}
+                {t("candidate:applications.detail.resumeNone")}
               </p>
             )}
             <input
@@ -326,7 +326,7 @@ export default function CandidateApplicationDetailPage() {
               size="sm"
               onClick={() => fileInputRef.current?.click()}
             >
-              {t("candidate.applications.edit.resumeReplace")}
+              {t("candidate:applications.edit.resumeReplace")}
             </Button>
           </div>
         ) : data.resume ? (
@@ -339,13 +339,13 @@ export default function CandidateApplicationDetailPage() {
               className="shrink-0"
             >
               {downloading
-                ? t("candidate.applications.loading")
-                : t("candidate.applications.detail.resumeDownload")}
+                ? t("candidate:applications.loading")
+                : t("candidate:applications.detail.resumeDownload")}
             </Button>
           </div>
         ) : (
           <p className="mt-3 text-sm text-white/55">
-            {t("candidate.applications.detail.resumeNone")}
+            {t("candidate:applications.detail.resumeNone")}
           </p>
         )}
       </section>
@@ -356,11 +356,11 @@ export default function CandidateApplicationDetailPage() {
           <div className="flex gap-3">
             <Button variant="primary" onClick={handleSave} disabled={saving}>
               {saving
-                ? t("candidate.applications.loading")
-                : t("candidate.applications.edit.save")}
+                ? t("candidate:applications.loading")
+                : t("candidate:applications.edit.save")}
             </Button>
             <Button variant="ghost" onClick={cancelEditing} disabled={saving}>
-              {t("candidate.applications.edit.cancel")}
+              {t("candidate:applications.edit.cancel")}
             </Button>
           </div>
         </div>
@@ -369,9 +369,9 @@ export default function CandidateApplicationDetailPage() {
       <ConfirmDialog
         open={withdrawOpen}
         onOpenChange={(o) => !withdrawing && setWithdrawOpen(o)}
-        title={t("candidate.applications.withdraw.title")}
-        message={t("candidate.applications.withdraw.message")}
-        confirmLabel={t("candidate.applications.withdraw.confirm")}
+        title={t("candidate:applications.withdraw.title")}
+        message={t("candidate:applications.withdraw.message")}
+        confirmLabel={t("candidate:applications.withdraw.confirm")}
         variant="primary"
         isPending={withdrawing}
         onConfirm={handleWithdraw}

@@ -38,19 +38,19 @@ export default function JobBoardFilterPanel({
   hasActiveFilter,
   onClearAll,
 }: FilterPanelProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'publicJobs']);
 
   return (
     <div className="space-y-6">
       {showSearch && (
         <div>
           <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
-            {t("common.search")}
+            {t("common:search")}
           </p>
           <SearchInput
             value={query}
             onChange={onQueryChange}
-            placeholder={t("publicJobs.board.searchPlaceholder")}
+            placeholder={t("publicJobs:board.searchPlaceholder")}
             disableShortcut
             clearable
           />
@@ -60,7 +60,7 @@ export default function JobBoardFilterPanel({
       {locations.length >= 2 && (
         <div>
           <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-copper">
-            {t("publicJobs.board.locationLabel")}
+            {t("publicJobs:board.locationLabel")}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -73,7 +73,7 @@ export default function JobBoardFilterPanel({
                   : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white/85",
               ].join(" ")}
             >
-              {t("publicJobs.board.allLocations")}
+              {t("publicJobs:board.allLocations")}
             </button>
             {locations.map((loc) => {
               const active = selectedLocations.includes(loc);
@@ -106,7 +106,7 @@ export default function JobBoardFilterPanel({
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-copper">
-            {t("publicJobs.board.salaryRange")}
+            {t("publicJobs:board.salaryRange")}
           </p>
           {isSalaryActive && (
             <button
@@ -114,7 +114,7 @@ export default function JobBoardFilterPanel({
               onClick={onResetSalary}
               className="text-[11px] text-copper/70 transition hover:text-copper"
             >
-              {t("publicJobs.board.resetSalary")}
+              {t("publicJobs:board.resetSalary")}
             </button>
           )}
         </div>
@@ -125,8 +125,8 @@ export default function JobBoardFilterPanel({
           value={salaryRange}
           onChange={onSalaryChange}
           formatValue={formatSalaryShort}
-          ariaLabelMin={t("publicJobs.board.salaryMinAria")}
-          ariaLabelMax={t("publicJobs.board.salaryMaxAria")}
+          ariaLabelMin={t("publicJobs:board.salaryMinAria")}
+          ariaLabelMax={t("publicJobs:board.salaryMaxAria")}
         />
       </div>
 
@@ -136,7 +136,7 @@ export default function JobBoardFilterPanel({
           onClick={onClearAll}
           className="w-full rounded-sm border border-white/15 px-3 py-2 text-xs font-medium text-white/65 transition hover:border-copper/50 hover:text-copper"
         >
-          {t("publicJobs.board.clearFilters")}
+          {t("publicJobs:board.clearFilters")}
         </button>
       )}
     </div>

@@ -38,7 +38,7 @@ export default function SearchInput({
   className = "",
   ariaLabel,
 }: SearchInputProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http']);
   const isControlled = controlledValue !== undefined;
   const [internal, setInternal] = useState(initialValue);
   const value = isControlled ? controlledValue : internal;
@@ -100,8 +100,8 @@ export default function SearchInput({
           setInternal(next);
         }
       }}
-      placeholder={placeholder ?? t("common.searchPlaceholder")}
-      aria-label={ariaLabel ?? t("common.search")}
+      placeholder={placeholder ?? t("common:searchPlaceholder")}
+      aria-label={ariaLabel ?? t("common:search")}
       className={`${inputCls} ${noNativeClear} ${showClear ? "pe-9" : ""} ${className}`}
     />
   );
@@ -116,7 +116,7 @@ export default function SearchInput({
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleClear}
-          aria-label={t("common.clear")}
+          aria-label={t("common:clear")}
           className="absolute inset-y-0 end-2 my-auto inline-flex size-6 items-center justify-center rounded-full text-white/45 transition hover:bg-white/8 hover:text-white/85"
         >
           <svg

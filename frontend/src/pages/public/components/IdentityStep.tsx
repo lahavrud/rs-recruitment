@@ -17,11 +17,11 @@ export default function IdentityStep({
   onBlur: (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   emailReadOnly?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['publicJobs', 'sm']);
   return (
     <div className="grid gap-4 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
       <Field
-        label={t("publicJobs.application.fullName")}
+        label={t("publicJobs:application.fullName")}
         id="full_name"
         required
         error={fieldErrors.full_name}
@@ -35,14 +35,14 @@ export default function IdentityStep({
           onChange={onChange}
           onBlur={onBlur}
           className={inputCls}
-          placeholder={t("publicJobs.application.placeholders.fullName")}
+          placeholder={t("publicJobs:application.placeholders.fullName")}
           autoComplete="name"
           aria-invalid={!!fieldErrors.full_name}
         />
       </Field>
 
       <Field
-        label={t("publicJobs.application.email")}
+        label={t("publicJobs:application.email")}
         id="email"
         required
         error={fieldErrors.email}
@@ -56,21 +56,21 @@ export default function IdentityStep({
           onChange={onChange}
           onBlur={onBlur}
           className={inputCls}
-          placeholder={t("publicJobs.application.placeholders.email")}
+          placeholder={t("publicJobs:application.placeholders.email")}
           autoComplete="email"
           aria-invalid={!!fieldErrors.email}
           readOnly={emailReadOnly}
           aria-readonly={emailReadOnly}
           title={
             emailReadOnly
-              ? t("publicJobs.application.emailLockedHint")
+              ? t("publicJobs:application.emailLockedHint")
               : undefined
           }
         />
       </Field>
 
       <Field
-        label={t("publicJobs.application.phone")}
+        label={t("publicJobs:application.phone")}
         id="phone"
         required
         error={fieldErrors.phone}
@@ -83,14 +83,14 @@ export default function IdentityStep({
           onChange={onChange}
           onBlur={onBlur}
           className={inputCls}
-          placeholder={t("publicJobs.application.placeholders.phone")}
+          placeholder={t("publicJobs:application.placeholders.phone")}
           autoComplete="tel"
           aria-invalid={!!fieldErrors.phone}
         />
       </Field>
 
       <Field
-        label={t("publicJobs.application.linkedin")}
+        label={t("publicJobs:application.linkedin")}
         id="linkedin_url"
         optional
         className="sm:col-span-2"
@@ -104,7 +104,7 @@ export default function IdentityStep({
           onChange={onChange}
           onBlur={onBlur}
           className={inputCls}
-          placeholder={t("publicJobs.application.placeholders.linkedin")}
+          placeholder={t("publicJobs:application.placeholders.linkedin")}
           aria-invalid={!!fieldErrors.linkedin_url}
         />
       </Field>

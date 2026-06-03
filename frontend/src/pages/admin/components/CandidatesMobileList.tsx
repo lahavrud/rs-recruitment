@@ -20,34 +20,34 @@ export default function CandidatesMobileList({
   onEdit,
   onDelete,
 }: CandidatesMobileListProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
 
   return (
     <div className="space-y-2 md:hidden">
       {candidates.map((c) => {
         const actions = (
           <DropdownMenu
-            ariaLabel={t("admin.candidates.rowActionsLabel")}
+            ariaLabel={t("admin:candidates.rowActionsLabel")}
             trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
           >
             <DropdownMenuItem onSelect={() => onEdit(c)}>
-              {t("admin.candidates.editAction")}
+              {t("admin:candidates.editAction")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() =>
                 window.open(
                   `mailto:${c.email}?subject=${encodeURIComponent(
-                    t("admin.candidates.emailSubject", { name: c.full_name }),
+                    t("admin:candidates.emailSubject", { name: c.full_name }),
                   )}`,
                   "_self",
                 )
               }
             >
-              {t("admin.candidates.emailAction")}
+              {t("admin:candidates.emailAction")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="danger" onSelect={() => onDelete(c)}>
-              {t("admin.candidates.deleteAction")}
+              {t("admin:candidates.deleteAction")}
             </DropdownMenuItem>
           </DropdownMenu>
         );

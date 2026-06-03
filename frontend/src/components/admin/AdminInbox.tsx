@@ -41,7 +41,7 @@ interface ItemConfig {
 }
 
 export default function AdminInbox() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('dashboard');
   const [invites, setInvites] = useState<Stat>(null);
   const [companies, setCompanies] = useState<Stat>(null);
   const [jobs, setJobs] = useState<Stat>(null);
@@ -73,36 +73,36 @@ export default function AdminInbox() {
   const items: ItemConfig[] = [
     {
       key: "invites",
-      label: t("dashboard.inbox.invites.label"),
-      hint: t("dashboard.inbox.invites.hint"),
-      empty: t("dashboard.inbox.invites.empty"),
+      label: t("dashboard:inbox.invites.label"),
+      hint: t("dashboard:inbox.invites.hint"),
+      empty: t("dashboard:inbox.invites.empty"),
       to: "/admin/companies?view=invites",
       icon: <EnvelopeIcon />,
       stat: invites,
     },
     {
       key: "companies",
-      label: t("dashboard.inbox.companies.label"),
-      hint: t("dashboard.inbox.companies.hint"),
-      empty: t("dashboard.inbox.companies.empty"),
+      label: t("dashboard:inbox.companies.label"),
+      hint: t("dashboard:inbox.companies.hint"),
+      empty: t("dashboard:inbox.companies.empty"),
       to: "/admin/companies?view=pending",
       icon: <UserCheckIcon />,
       stat: companies,
     },
     {
       key: "jobs",
-      label: t("dashboard.inbox.jobs.label"),
-      hint: t("dashboard.inbox.jobs.hint"),
-      empty: t("dashboard.inbox.jobs.empty"),
+      label: t("dashboard:inbox.jobs.label"),
+      hint: t("dashboard:inbox.jobs.hint"),
+      empty: t("dashboard:inbox.jobs.empty"),
       to: "/admin/jobs?status=PENDING_APPROVAL",
       icon: <BriefcaseIcon />,
       stat: jobs,
     },
     {
       key: "applications",
-      label: t("dashboard.inbox.applications.label"),
-      hint: t("dashboard.inbox.applications.hint"),
-      empty: t("dashboard.inbox.applications.empty"),
+      label: t("dashboard:inbox.applications.label"),
+      hint: t("dashboard:inbox.applications.hint"),
+      empty: t("dashboard:inbox.applications.empty"),
       to: "/admin/applications?status=NEW",
       icon: <DocumentIcon />,
       stat: applications,
@@ -115,11 +115,11 @@ export default function AdminInbox() {
     <div>
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-          {t("dashboard.inbox.title")}
+          {t("dashboard:inbox.title")}
         </p>
         {allClear && (
           <p className="text-xs text-white/40">
-            {t("dashboard.inbox.allClear")}
+            {t("dashboard:inbox.allClear")}
           </p>
         )}
       </div>

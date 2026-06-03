@@ -34,7 +34,7 @@ export default function LandingHero({
   audienceVisible,
   audienceRef,
 }: LandingHeroProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'landing']);
 
   return (
     <>
@@ -45,7 +45,7 @@ export default function LandingHero({
         {/* Centered content */}
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 pb-16 text-center sm:pb-24">
           <LogoBanner />
-          <h1 className="sr-only">{t("landing.seo.h1")}</h1>
+          <h1 className="sr-only">{t("landing:seo.h1")}</h1>
 
           <div
             className="mx-auto mt-7 h-px w-32 sm:mt-8 sm:w-48"
@@ -56,7 +56,7 @@ export default function LandingHero({
           />
 
           <p className="mt-5 text-base font-light tracking-wide text-white/72 sm:mt-6 sm:text-lg">
-            {t("landing.hero.tagline")}
+            {t("landing:hero.tagline")}
           </p>
 
           {/* Search bar */}
@@ -66,12 +66,12 @@ export default function LandingHero({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder={t("landing.hero.searchPlaceholder")}
+                placeholder={t("landing:hero.searchPlaceholder")}
                 className="min-w-0 flex-1 bg-transparent py-4 pe-4 ps-6 text-base text-white/90 placeholder:text-white/35 focus:outline-none sm:text-lg"
               />
               <button
                 type="submit"
-                aria-label={t("common.search")}
+                aria-label={t("common:search")}
                 className="m-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-copper text-white transition hover:bg-gold"
               >
                 <svg
@@ -122,7 +122,7 @@ export default function LandingHero({
               style={cardRise(audienceVisible, "0s")}
             >
               <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/70">
-                {t("landing.hero.forSeekers")}
+                {t("landing:hero.forSeekers")}
               </p>
               {/* Heading clip-reveal inside the already-risen card */}
               <div className="mt-2 overflow-hidden">
@@ -130,17 +130,17 @@ export default function LandingHero({
                   className="text-xl font-semibold leading-tight text-white/95 sm:text-2xl"
                   style={clipRise(audienceVisible, "0.1s")}
                 >
-                  {t("landing.hero.seekersHeadline")}
+                  {t("landing:hero.seekersHeadline")}
                 </h2>
               </div>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-white/60">
-                {t("landing.hero.seekersBody")}
+                {t("landing:hero.seekersBody")}
               </p>
               <Link
                 to="/jobs"
                 className="mt-6 inline-block rounded-sm bg-copper px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-gold"
               >
-                {t("landing.hero.seekersCta")}
+                {t("landing:hero.seekersCta")}
               </Link>
             </div>
 
@@ -150,27 +150,27 @@ export default function LandingHero({
               style={cardRise(audienceVisible, "0.15s")}
             >
               <p className="text-[10px] font-semibold uppercase tracking-widest text-copper/60">
-                {t("landing.hero.forCompanies")}
+                {t("landing:hero.forCompanies")}
               </p>
               <div className="mt-2 overflow-hidden">
                 <h2
                   className="text-lg font-semibold leading-tight text-white/90"
                   style={clipRise(audienceVisible, "0.25s")}
                 >
-                  {t("landing.hero.companiesHeadline")}
+                  {t("landing:hero.companiesHeadline")}
                 </h2>
               </div>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-white/55">
-                {t("landing.hero.companiesBody")}
+                {t("landing:hero.companiesBody")}
               </p>
               <p className="mt-3 text-xs text-white/30">
-                {t("landing.hero.companiesInviteOnly")}
+                {t("landing:hero.companiesInviteOnly")}
               </p>
               <a
-                href={`mailto:${t("landing.contact.email")}`}
+                href={`mailto:${t("landing:contact.email")}`}
                 className="mt-5 inline-block rounded-sm border border-copper/35 px-4 py-2 text-center text-sm text-copper/70 transition hover:border-copper/60 hover:text-copper"
               >
-                {t("landing.hero.companiesContactCta")}
+                {t("landing:hero.companiesContactCta")}
               </a>
             </div>
           </div>

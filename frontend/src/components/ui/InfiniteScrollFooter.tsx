@@ -14,13 +14,13 @@ export default function InfiniteScrollFooter({
   sentinelRef,
   isFetchingMore,
 }: InfiniteScrollFooterProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   return (
     <>
       <div ref={sentinelRef} />
       {isFetchingMore && (
         <p className="mt-4 text-center text-xs text-white/30">
-          {t("common.loading")}
+          {t("common:loading")}
         </p>
       )}
     </>

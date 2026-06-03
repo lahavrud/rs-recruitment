@@ -20,7 +20,7 @@ function formatSalary(min: number | null, max: number | null): string | null {
 }
 
 function RelatedJobs() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['https', 'ui']);
   const [jobs, setJobs] = useState<JobPublicRead[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,7 +80,7 @@ function RelatedJobs() {
         to="/jobs"
         className="mt-6 inline-block text-sm text-copper hover:text-gold"
       >
-        {t("articles.relatedJobsCta")} ←
+        {t("ui:articles.relatedJobsCta")} ←
       </Link>
     </section>
   );

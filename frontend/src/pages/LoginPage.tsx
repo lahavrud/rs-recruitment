@@ -9,7 +9,7 @@ import axios from "axios";
 import { EMAIL_RE } from "@/utils/validators";
 
 export default function LoginPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('auth');
   const { login, isAuthenticated, initializing } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,12 +44,12 @@ export default function LoginPage() {
 
   function validateField(name: string, value: string): string {
     if (name === "email") {
-      if (!value.trim()) return t("auth.login.validation.emailRequired");
-      if (!EMAIL_RE.test(value)) return t("auth.login.validation.emailInvalid");
+      if (!value.trim()) return t("auth:login.validation.emailRequired");
+      if (!EMAIL_RE.test(value)) return t("auth:login.validation.emailInvalid");
     }
     if (name === "password") {
-      if (!value.trim()) return t("auth.login.validation.passwordRequired");
-      if (value.length < 8) return t("auth.login.validation.passwordMin");
+      if (!value.trim()) return t("auth:login.validation.passwordRequired");
+      if (value.length < 8) return t("auth:login.validation.passwordMin");
     }
     return "";
   }
@@ -95,24 +95,24 @@ export default function LoginPage() {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         if (status === 429) {
-          setError(t("auth.login.errors.tooManyAttempts"));
+          setError(t("auth:login.errors.tooManyAttempts"));
         } else if (status === 401) {
           const detail = (err.response?.data?.detail ?? "") as string;
           if (detail === "account_pending_activation") {
-            setError(t("auth.login.errors.pendingActivation"));
+            setError(t("auth:login.errors.pendingActivation"));
             setPendingActivationEmail(email);
           } else if (detail === "account_pending_approval") {
-            setError(t("auth.login.errors.pendingApproval"));
+            setError(t("auth:login.errors.pendingApproval"));
           } else if (detail === "account_inactive") {
-            setError(t("auth.login.errors.accountInactive"));
+            setError(t("auth:login.errors.accountInactive"));
           } else {
-            setError(t("auth.login.errors.loginFailed"));
+            setError(t("auth:login.errors.loginFailed"));
           }
         } else {
-          setError(t("auth.login.errors.loginFailed"));
+          setError(t("auth:login.errors.loginFailed"));
         }
       } else {
-        setError(t("auth.login.errors.unexpectedError"));
+        setError(t("auth:login.errors.unexpectedError"));
       }
     } finally {
       setSubmitting(false);
@@ -127,7 +127,7 @@ export default function LoginPage() {
             <Logo size={36} />
           </div>
           <h1 className="mt-4 text-lg font-semibold text-white/85">
-            {t("auth.login.subtitle")}
+            {t("auth:login.subtitle")}
           </h1>
         </div>
 
@@ -138,9 +138,9 @@ export default function LoginPage() {
               {pendingActivationEmail && (
                 <div className="mt-2 text-xs text-white/60">
                   {resendState === "sent" ? (
-                    <span>{t("auth.login.resendActivation.sent")}</span>
+                    <span>{t("auth:login.resendActivation.sent")}</span>
                   ) : resendState === "error" ? (
-                    <span>{t("auth.login.resendActivation.error")}</span>
+                    <span>{t("auth:login.resendActivation.error")}</span>
                   ) : (
                     <button
                       type="button"
@@ -149,8 +149,8 @@ export default function LoginPage() {
                       className="text-copper underline transition hover:text-gold disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {resendState === "sending"
-                        ? t("auth.login.resendActivation.sending")
-                        : t("auth.login.resendActivation.cta")}
+                        ? t("auth:login.resendActivation.sending")
+                        : t("auth:login.resendActivation.cta")}
                     </button>
                   )}
                 </div>
@@ -161,7 +161,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm text-white/50">
-                {t("auth.login.emailLabel")}
+                {t("auth:login.emailLabel")}
               </label>
               <input
                 id="email"
@@ -172,7 +172,7 @@ export default function LoginPage() {
                 onChange={handleEmailChange}
                 onBlur={handleBlur}
                 className={`mt-1 ${inputCls}`}
-                placeholder={t("auth.login.emailPlaceholder")}
+                placeholder={t("auth:login.emailPlaceholder")}
                 autoComplete="email"
               />
               {fieldErrors.email && (
@@ -182,7 +182,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm text-white/50">
-                {t("auth.login.passwordLabel")}
+                {t("auth:login.passwordLabel")}
               </label>
               <input
                 id="password"
@@ -193,7 +193,7 @@ export default function LoginPage() {
                 onChange={handlePasswordChange}
                 onBlur={handleBlur}
                 className={`mt-1 ${inputCls}`}
-                placeholder={t("auth.login.passwordPlaceholder")}
+                placeholder={t("auth:login.passwordPlaceholder")}
                 autoComplete="current-password"
               />
               {fieldErrors.password && (
@@ -209,7 +209,7 @@ export default function LoginPage() {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="h-4 w-4 cursor-pointer rounded border-white/20 bg-well accent-copper"
             />
-            {t("auth.login.rememberMe")}
+            {t("auth:login.rememberMe")}
           </label>
 
           <button
@@ -217,7 +217,7 @@ export default function LoginPage() {
             disabled={submitting}
             className="w-full rounded-sm bg-copper px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gold focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {submitting ? t("auth.login.submittingText") : t("auth.login.submitText")}
+            {submitting ? t("auth:login.submittingText") : t("auth:login.submitText")}
           </button>
         </form>
 
@@ -227,16 +227,16 @@ export default function LoginPage() {
               to="/forgot-password"
               className="text-copper transition hover:text-gold"
             >
-              {t("auth.login.forgotPasswordLink")}
+              {t("auth:login.forgotPasswordLink")}
             </Link>
           </p>
           <p>
-            {t("auth.login.candidateSignupPrompt")}{" "}
+            {t("auth:login.candidateSignupPrompt")}{" "}
             <Link
               to="/register-candidate"
               className="text-copper transition hover:text-gold"
             >
-              {t("auth.login.candidateSignupLink")}
+              {t("auth:login.candidateSignupLink")}
             </Link>
           </p>
         </div>

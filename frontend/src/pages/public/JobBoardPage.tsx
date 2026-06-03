@@ -16,7 +16,7 @@ import JobBoardFilterChip from "./components/JobBoardFilterChip";
 import MobileFilterDrawer from "./components/MobileFilterDrawer";
 
 export default function JobBoardPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'https', 'lg', 'publicJobs']);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -169,7 +169,7 @@ export default function JobBoardPage() {
         {
           "@type": "ListItem",
           position: 2,
-          name: t("publicJobs.board.title"),
+          name: t("publicJobs:board.title"),
           item: `${SITE_URL}/jobs`,
         },
       ],
@@ -179,7 +179,7 @@ export default function JobBoardPage() {
     }
     const itemList = {
       "@type": "ItemList",
-      name: t("publicJobs.board.title"),
+      name: t("publicJobs:board.title"),
       url: `${SITE_URL}/jobs`,
       numberOfItems: jobs.length,
       itemListElement: jobs.slice(0, 10).map((job, i) => ({
@@ -195,7 +195,7 @@ export default function JobBoardPage() {
   if (fetchError) {
     return (
       <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-center text-sm text-danger">
-        {t("publicJobs.board.errorLoad")}
+        {t("publicJobs:board.errorLoad")}
       </div>
     );
   }
@@ -220,8 +220,8 @@ export default function JobBoardPage() {
   return (
     <div className="pb-14">
       <SeoHead
-        title={t("publicJobs.board.title")}
-        description={t("publicJobs.board.subtitle")}
+        title={t("publicJobs:board.title")}
+        description={t("publicJobs:board.subtitle")}
         canonical={`${SITE_URL}/jobs`}
         ogImage={`${SITE_URL}/og/jobs.svg`}
         structuredData={structuredData}
@@ -245,7 +245,7 @@ export default function JobBoardPage() {
             <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
               <div className="rounded-xl border border-white/8 bg-card-raised/40 p-5">
                 <p className="mb-4 text-sm font-medium text-white/85">
-                  {t("publicJobs.board.filters")}
+                  {t("publicJobs:board.filters")}
                 </p>
                 <JobBoardFilterPanel {...baseFilterPanelProps} />
               </div>
@@ -264,7 +264,7 @@ export default function JobBoardPage() {
                     type="button"
                     onClick={() => setDrawerOpen(true)}
                     className="relative inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-card-raised/40 px-3 text-sm font-medium text-white/75 transition hover:border-copper/40 hover:text-white lg:hidden"
-                    aria-label={t("publicJobs.board.openFilters")}
+                    aria-label={t("publicJobs:board.openFilters")}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -279,7 +279,7 @@ export default function JobBoardPage() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    {t("publicJobs.board.filters")}
+                    {t("publicJobs:board.filters")}
                     {activeFilterCount > 0 && (
                       <span className="inline-flex size-5 items-center justify-center rounded-full bg-copper text-[10px] font-semibold text-white">
                         {activeFilterCount}
@@ -295,14 +295,14 @@ export default function JobBoardPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   {query.trim() && (
                     <JobBoardFilterChip
-                      label={`${t("common.search")}: "${query.trim()}"`}
+                      label={`${t("common:search")}: "${query.trim()}"`}
                       onRemove={() => setQuery("")}
                     />
                   )}
                   {selectedLocations.map((loc) => (
                     <JobBoardFilterChip
                       key={`loc-${loc}`}
-                      label={`${t("publicJobs.board.locationLabel")}: ${loc}`}
+                      label={`${t("publicJobs:board.locationLabel")}: ${loc}`}
                       onRemove={() =>
                         setSelectedLocations((prev) => prev.filter((x) => x !== loc))
                       }
@@ -310,15 +310,15 @@ export default function JobBoardPage() {
                   ))}
                   {isSalaryActive && (
                     <JobBoardFilterChip
-                      label={`${t("publicJobs.board.salaryRange")}: ${formatSalaryShort(effectiveSalaryRange[0])} – ${formatSalaryShort(effectiveSalaryRange[1])}`}
+                      label={`${t("publicJobs:board.salaryRange")}: ${formatSalaryShort(effectiveSalaryRange[0])} – ${formatSalaryShort(effectiveSalaryRange[1])}`}
                       onRemove={handleResetSalary}
                     />
                   )}
                 </div>
                 <p className="text-xs text-white/40">
                   {filtered.length === 1
-                    ? t("publicJobs.board.resultsCount.one")
-                    : t("publicJobs.board.resultsCount.other", { count: filtered.length })}
+                    ? t("publicJobs:board.resultsCount.one")
+                    : t("publicJobs:board.resultsCount.other", { count: filtered.length })}
                 </p>
               </div>
             )}

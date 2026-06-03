@@ -20,7 +20,7 @@ export default function ClaimAccountSection({
   onPasswordConfirmChange: (v: string) => void;
   error: string | null;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['publicJobs', 'sm']);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export default function ClaimAccountSection({
   }
 
   function validateConfirm(val: string, pw: string): string | null {
-    if (val && val !== pw) return t("publicJobs.application.validation.passwordMismatch");
+    if (val && val !== pw) return t("publicJobs:application.validation.passwordMismatch");
     return null;
   }
 
@@ -46,11 +46,11 @@ export default function ClaimAccountSection({
           className="mt-0.5 size-4 shrink-0 cursor-pointer accent-copper"
         />
         <span className="text-sm text-white/80">
-          {t("publicJobs.application.claim.toggle")}
+          {t("publicJobs:application.claim.toggle")}
         </span>
       </label>
       <p className="mt-1 ms-7 text-xs text-white/50">
-        {t("publicJobs.application.claim.description")}
+        {t("publicJobs:application.claim.description")}
       </p>
 
       {enabled && (
@@ -60,7 +60,7 @@ export default function ClaimAccountSection({
               htmlFor="claim_password"
               className="block text-xs text-white/55"
             >
-              {t("publicJobs.application.claim.passwordLabel")}
+              {t("publicJobs:application.claim.passwordLabel")}
             </label>
             <input
               id="claim_password"
@@ -84,7 +84,7 @@ export default function ClaimAccountSection({
               <p className="mt-1 text-xs text-danger">{passwordError}</p>
             ) : (
               <p className="mt-1 text-xs text-white/35">
-                {t("publicJobs.application.claim.passwordHint")}
+                {t("publicJobs:application.claim.passwordHint")}
               </p>
             )}
           </div>
@@ -93,7 +93,7 @@ export default function ClaimAccountSection({
               htmlFor="claim_password_confirm"
               className="block text-xs text-white/55"
             >
-              {t("publicJobs.application.claim.passwordConfirmLabel")}
+              {t("publicJobs:application.claim.passwordConfirmLabel")}
             </label>
             <input
               id="claim_password_confirm"

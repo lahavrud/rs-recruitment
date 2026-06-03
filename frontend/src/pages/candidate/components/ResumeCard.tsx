@@ -30,7 +30,7 @@ export default function ResumeCard({
   me: CandidateMeRead;
   onChange: (next: CandidateMeRead) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('candidate');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Rename UX: candidate clicks the displayed filename to swap into
@@ -50,8 +50,8 @@ export default function ResumeCard({
     } catch (err) {
       setError(
         axios.isAxiosError(err) && err.response?.status === 422
-          ? t("candidate.profile.resume.errors.invalidFile")
-          : t("candidate.profile.resume.errors.generic"),
+          ? t("candidate:profile.resume.errors.invalidFile")
+          : t("candidate:profile.resume.errors.generic"),
       );
     } finally {
       setBusy(false);
@@ -60,14 +60,14 @@ export default function ResumeCard({
   }
 
   async function handleDelete() {
-    if (!confirm(t("candidate.profile.resume.confirmDelete"))) return;
+    if (!confirm(t("candidate:profile.resume.confirmDelete"))) return;
     setBusy(true);
     setError(null);
     try {
       const updated = await deleteResume();
       onChange(updated);
     } catch {
-      setError(t("candidate.profile.resume.errors.generic"));
+      setError(t("candidate:profile.resume.errors.generic"));
     } finally {
       setBusy(false);
     }
@@ -123,10 +123,10 @@ export default function ResumeCard({
         setError(
           typeof detail === "string"
             ? detail
-            : t("candidate.profile.resume.renameErrors.invalid"),
+            : t("candidate:profile.resume.renameErrors.invalid"),
         );
       } else {
-        setError(t("candidate.profile.resume.errors.generic"));
+        setError(t("candidate:profile.resume.errors.generic"));
       }
     } finally {
       setBusy(false);
@@ -136,7 +136,7 @@ export default function ResumeCard({
   return (
     <div className="flex flex-col">
       <label className="block text-xs text-white/55">
-        {t("candidate.profile.resume.title")}
+        {t("candidate:profile.resume.title")}
       </label>
       <div className="mt-1.5 flex-1">
         {displayName ? (
@@ -185,7 +185,7 @@ export default function ResumeCard({
                     maxLength={Math.max(1, 100 - (displayExt.length + 1))}
                     className="min-w-0 max-w-full rounded-sm border border-copper/40 bg-well px-2 py-1 text-center text-sm font-medium text-white/90 focus:outline-none focus:ring-1 focus:ring-copper/50"
                     aria-label={t(
-                      "candidate.profile.resume.renameInputLabel",
+                      "candidate:profile.resume.renameInputLabel",
                     )}
                   />
                   {displayExt && (
@@ -199,7 +199,7 @@ export default function ResumeCard({
                   type="button"
                   onClick={startRename}
                   className="group/rename block w-full min-w-0"
-                  title={t("candidate.profile.resume.renameTooltip")}
+                  title={t("candidate:profile.resume.renameTooltip")}
                 >
                   <span
                     className="block truncate text-sm font-medium text-white/85 transition group-hover/rename:text-copper"
@@ -211,8 +211,8 @@ export default function ResumeCard({
               )}
               <p className="mt-1 text-[11px] text-white/40">
                 {renaming
-                  ? t("candidate.profile.resume.renameHint")
-                  : t("candidate.profile.resume.attachedHint")}
+                  ? t("candidate:profile.resume.renameHint")
+                  : t("candidate:profile.resume.attachedHint")}
               </p>
             </div>
 
@@ -228,7 +228,7 @@ export default function ResumeCard({
                   onChange={handleUpload}
                   disabled={busy}
                 />
-                {t("candidate.profile.resume.replace")}
+                {t("candidate:profile.resume.replace")}
               </label>
               <button
                 type="button"
@@ -236,7 +236,7 @@ export default function ResumeCard({
                 onClick={handleDelete}
                 className="rounded-sm border border-danger/40 px-3 py-1.5 text-xs text-danger/80 transition hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t("candidate.profile.resume.remove")}
+                {t("candidate:profile.resume.remove")}
               </button>
             </div>
           </div>
@@ -266,10 +266,10 @@ export default function ResumeCard({
               </svg>
             </span>
             <span className="text-sm font-medium text-white/75">
-              {t("candidate.profile.resume.upload")}
+              {t("candidate:profile.resume.upload")}
             </span>
             <span className="text-[11px] text-white/40">
-              {t("candidate.profile.resume.uploadHint")}
+              {t("candidate:profile.resume.uploadHint")}
             </span>
           </label>
         )}

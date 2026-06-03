@@ -31,7 +31,7 @@ function clipRise(visible: boolean, delay = "0s"): CSSProperties {
 }
 
 export default function LandingAbout() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('landing');
   const [aboutTextRef, aboutTextVisible] = useReveal(0.2);
   const [aboutImgLoaded, setAboutImgLoaded] = useState(false);
   const [cardsVisible, setCardsVisible] = useState<boolean>(
@@ -65,30 +65,30 @@ export default function LandingAbout() {
             <div className="h-px w-8 bg-copper/40" style={aboutTextVisible ? { animation: "line-expand-h 0.6s cubic-bezier(0.215,0.61,0.355,1) both", transformOrigin: "right" } : { transform: "scaleX(0)" }} />
             <div className="overflow-hidden">
               <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-copper" style={clipRise(aboutTextVisible, "0.05s")}>
-                {t("landing.about.eyebrow")}
+                {t("landing:about.eyebrow")}
               </p>
             </div>
             <div className="mt-5 overflow-hidden">
               <h2 className="text-xl font-semibold leading-snug text-white/90 sm:text-2xl" style={clipRise(aboutTextVisible, "0.15s")}>
-                {t("landing.about.headline")}
+                {t("landing:about.headline")}
               </h2>
             </div>
             <p className="mt-5 text-base leading-relaxed text-white/60" style={cardRise(aboutTextVisible, "0.28s")}>
               <span className="font-wordmark text-3xl font-light tracking-widest text-gold/60 sm:text-4xl">RS Recruiting</span>{" "}
-              {t("landing.about.body")}
+              {t("landing:about.body")}
             </p>
             <p className="mt-4 text-sm leading-relaxed text-white/50" style={cardRise(aboutTextVisible, "0.38s")}>
-              {t("landing.about.body2")}
+              {t("landing:about.body2")}
             </p>
             <p className="mt-8 text-xs uppercase tracking-widest text-white/25" style={cardRise(aboutTextVisible, "0.48s")}>
-              {t("landing.about.pillars")}
+              {t("landing:about.pillars")}
             </p>
             <Link
               to="/about"
               className="mt-6 inline-block text-sm text-copper/70 transition hover:text-copper"
               style={cardRise(aboutTextVisible, "0.56s")}
             >
-              {t("landing.about.learnMore")} ←
+              {t("landing:about.learnMore")} ←
             </Link>
           </div>
 
@@ -121,9 +121,9 @@ export default function LandingAbout() {
         >
           {(
             [
-              { titleKey: "landing.about.feature1Title", bodyKey: "landing.about.feature1Body", num: "01" },
-              { titleKey: "landing.about.feature2Title", bodyKey: "landing.about.feature2Body", num: "02" },
-              { titleKey: "landing.about.feature3Title", bodyKey: "landing.about.feature3Body", num: "03" },
+              { titleKey: "landing:about.feature1Title", bodyKey: "landing:about.feature1Body", num: "01" },
+              { titleKey: "landing:about.feature2Title", bodyKey: "landing:about.feature2Body", num: "02" },
+              { titleKey: "landing:about.feature3Title", bodyKey: "landing:about.feature3Body", num: "03" },
             ] as const
           ).map((f, idx) => (
             <div

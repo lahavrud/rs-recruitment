@@ -33,7 +33,7 @@ interface EditProps {
 }
 
 export default function JobEditDialog({ job, onClose, onSaved, onError }: EditProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [form, setForm] = useState<JobAdminUpdate>({});
   const [initialForm, setInitialForm] = useState<JobAdminUpdate>({});
   const [saving, setSaving] = useState(false);
@@ -118,7 +118,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
       <Dialog
         open={job != null}
         onOpenChange={(o) => !o && handleClose()}
-        title={t("admin.jobs.editModalTitle")}
+        title={t("admin:jobs.editModalTitle")}
         description={job.title}
         size="lg"
         preventOutsideClose
@@ -129,21 +129,21 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
               onClick={handleClose}
               disabled={saving}
             >
-              {t("common.cancel")}
+              {t("common:cancel")}
             </Button>
             <Button
               onClick={requestSave}
               disabled={saving || !isDirty}
             >
-              {saving ? t("common.saving") : t("common.save")}
+              {saving ? t("common:saving") : t("common:save")}
             </Button>
           </>
         }
       >
         <div className="space-y-2 text-sm">
-          <FormSection title={t("admin.jobs.formSections.basics")} defaultOpen>
+          <FormSection title={t("admin:jobs.formSections.basics")} defaultOpen>
             <div className="space-y-3">
-              <Field label={t("admin.jobs.fields.title")} full name="title" error={errors.title}>
+              <Field label={t("admin:jobs.fields.title")} full name="title" error={errors.title}>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -158,7 +158,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
                 </div>
               </Field>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label={t("admin.jobs.fields.location")} name="location" error={errors.location}>
+                <Field label={t("admin:jobs.fields.location")} name="location" error={errors.location}>
                   <input
                     type="text"
                     value={form.location ?? ""}
@@ -166,7 +166,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
                     className={inputCls}
                   />
                 </Field>
-                <Field label={t("admin.jobs.fields.status")} id="edit-job-status">
+                <Field label={t("admin:jobs.fields.status")} id="edit-job-status">
                   <StatusPills
                     value={(form.status ?? job.status) as JobStatus}
                     onChange={(s) => {
@@ -177,7 +177,7 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
                 </Field>
               </div>
               <Field
-                label={t("admin.jobs.fields.salaryRange")}
+                label={t("admin:jobs.fields.salaryRange")}
                 full
                 name="salary_min"
               >
@@ -216,9 +216,9 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
       <ConfirmDialog
         open={pendingStatus !== null}
         onOpenChange={(o) => !o && setPendingStatus(null)}
-        title={t("admin.jobs.statusChangeConfirmTitle")}
-        message={pendingStatus ? t(`admin.jobs.statusChangeConfirm.${pendingStatus}`) : ""}
-        confirmLabel={t("common.confirm")}
+        title={t("admin:jobs.statusChangeConfirmTitle")}
+        message={pendingStatus ? t(`admin:jobs.statusChangeConfirm.${pendingStatus}`) : ""}
+        confirmLabel={t("common:confirm")}
         onConfirm={() => {
           if (pendingStatus) set("status", pendingStatus);
           setPendingStatus(null);
@@ -227,9 +227,9 @@ export default function JobEditDialog({ job, onClose, onSaved, onError }: EditPr
       <ConfirmDialog
         open={confirmSaveOpen}
         onOpenChange={(o) => !o && setConfirmSaveOpen(false)}
-        title={t("admin.jobs.saveConfirmTitle")}
-        message={t("admin.jobs.saveConfirmMessage")}
-        confirmLabel={t("common.save")}
+        title={t("admin:jobs.saveConfirmTitle")}
+        message={t("admin:jobs.saveConfirmMessage")}
+        confirmLabel={t("common:save")}
         onConfirm={executeSave}
       />
     </>

@@ -15,27 +15,27 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('nav');
   const { user } = useAuth();
 
   const adminNav: NavItem[] = [
-    { labelKey: "nav.dashboard", to: "/dashboard" },
-    { labelKey: "nav.companies", to: "/admin/companies" },
-    { labelKey: "nav.jobs", to: "/admin/jobs" },
-    { labelKey: "nav.applications", to: "/admin/applications" },
-    { labelKey: "nav.candidates", to: "/admin/candidates" },
+    { labelKey: "nav:dashboard", to: "/dashboard" },
+    { labelKey: "nav:companies", to: "/admin/companies" },
+    { labelKey: "nav:jobs", to: "/admin/jobs" },
+    { labelKey: "nav:applications", to: "/admin/applications" },
+    { labelKey: "nav:candidates", to: "/admin/candidates" },
   ];
 
   const companyNav: NavItem[] = [
-    { labelKey: "nav.dashboard", to: "/dashboard" },
-    { labelKey: "nav.myJobs", to: "/company/jobs" },
+    { labelKey: "nav:dashboard", to: "/dashboard" },
+    { labelKey: "nav:myJobs", to: "/company/jobs" },
   ];
 
   const candidateNav: NavItem[] = [
-    { labelKey: "nav.dashboard", to: "/dashboard" },
-    { labelKey: "nav.browseJobs", to: "/jobs" },
-    { labelKey: "nav.myApplications", to: "/candidate/applications" },
-    { labelKey: "nav.myProfile", to: "/candidate/profile" },
+    { labelKey: "nav:dashboard", to: "/dashboard" },
+    { labelKey: "nav:browseJobs", to: "/jobs" },
+    { labelKey: "nav:myApplications", to: "/candidate/applications" },
+    { labelKey: "nav:myProfile", to: "/candidate/profile" },
   ];
 
   const navItems =
@@ -93,12 +93,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         `}
       >
         <div className="flex items-center justify-between border-b border-white/8 px-4 py-3 md:hidden">
-          <span className="text-sm text-white/45">{t("nav.menu")}</span>
+          <span className="text-sm text-white/45">{t("nav:menu")}</span>
           <button
             type="button"
             onClick={onClose}
             className="rounded-sm p-1 text-white/30 transition hover:bg-white/5 hover:text-white/60"
-            aria-label={t("nav.closeNavigation")}
+            aria-label={t("nav:closeNavigation")}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

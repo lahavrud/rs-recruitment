@@ -21,7 +21,7 @@ export default function IdentitySection({
   me: CandidateMeRead;
   onChange: (next: CandidateMeRead) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('candidate');
   const [fullName, setFullName] = useState(me.full_name);
   const [submitting, setSubmitting] = useState(false);
   const [state, setState] = useState<"idle" | "saved" | "error">("idle");
@@ -40,8 +40,8 @@ export default function IdentitySection({
       setState("error");
       setError(
         axios.isAxiosError(err) && err.response?.status === 422
-          ? t("candidate.profile.identity.errors.validation")
-          : t("candidate.profile.identity.errors.generic"),
+          ? t("candidate:profile.identity.errors.validation")
+          : t("candidate:profile.identity.errors.generic"),
       );
     } finally {
       setSubmitting(false);
@@ -75,7 +75,7 @@ export default function IdentitySection({
             doesn't actually constrain to the parent flex column and
             the whole row overflows the viewport on narrow screens. */}
         <div className="min-w-0 flex-1 space-y-2">
-          <Field label={t("candidate.profile.identity.fullName")}>
+          <Field label={t("candidate:profile.identity.fullName")}>
             <input
               type="text"
               value={fullName}
@@ -90,12 +90,12 @@ export default function IdentitySection({
           </Field>
           <p
             className="truncate text-xs text-white/45"
-            title={t("candidate.profile.identity.emailLockedHint")}
+            title={t("candidate:profile.identity.emailLockedHint")}
           >
             <span dir="ltr">{me.email}</span>
             <span className="mx-1.5 text-white/25">·</span>
             <span className="text-white/30">
-              {t("candidate.profile.identity.emailLockedHint")}
+              {t("candidate:profile.identity.emailLockedHint")}
             </span>
           </p>
         </div>
@@ -103,8 +103,8 @@ export default function IdentitySection({
         <div className="flex shrink-0 flex-col items-end gap-1">
           <Button type="submit" disabled={submitting}>
             {submitting
-              ? t("candidate.profile.identity.saving")
-              : t("candidate.profile.identity.save")}
+              ? t("candidate:profile.identity.saving")
+              : t("candidate:profile.identity.save")}
           </Button>
           <span
             aria-live="polite"
@@ -117,7 +117,7 @@ export default function IdentitySection({
             }`}
           >
             {state === "saved"
-              ? t("candidate.profile.identity.saved")
+              ? t("candidate:profile.identity.saved")
               : state === "error" && error
                 ? error
                 : /* keep height stable */ "‎"}

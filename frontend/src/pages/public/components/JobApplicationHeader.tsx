@@ -9,7 +9,7 @@ interface JobApplicationHeaderProps {
 }
 
 export default function JobApplicationHeader({ job, jobId }: JobApplicationHeaderProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['http', 'publicJobs']);
 
   return (
     <>
@@ -30,14 +30,14 @@ export default function JobApplicationHeader({ job, jobId }: JobApplicationHeade
             clipRule="evenodd"
           />
         </svg>
-        {t("publicJobs.application.backToJob")}
+        {t("publicJobs:application.backToJob")}
       </Link>
 
       {/* Compact job header */}
       <div className="mb-8 flex items-start justify-between gap-4 rounded-xl border border-white/8 bg-card p-5 sm:p-6">
         <div className="min-w-0">
           <Eyebrow>
-            {t("publicJobs.application.applyFor")}
+            {t("publicJobs:application.applyFor")}
           </Eyebrow>
           <h1 className="mt-1 truncate text-lg font-semibold text-white/90 sm:text-xl">
             {job?.title}

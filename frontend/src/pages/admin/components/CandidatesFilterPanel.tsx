@@ -21,7 +21,7 @@ export default function CandidatesFilterPanel({
   allJobs,
   companyNameById,
 }: CandidatesFilterPanelProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
 
   return (
     <div
@@ -38,7 +38,7 @@ export default function CandidatesFilterPanel({
           {/* Company first → in RTL it lands on the visual right */}
           <div>
             <Eyebrow size="md" className="mb-1.5">
-              {t("admin.candidates.filterByCompany")}
+              {t("admin:candidates.filterByCompany")}
             </Eyebrow>
             <SearchableMultiSelect<number>
               values={companyFilter}
@@ -57,12 +57,12 @@ export default function CandidatesFilterPanel({
                 value: id,
                 label: name,
               }))}
-              placeholder={t("admin.candidates.allCompanies")}
+              placeholder={t("admin:candidates.allCompanies")}
             />
           </div>
           <div>
             <Eyebrow size="md" className="mb-1.5">
-              {t("admin.candidates.filterByJob")}
+              {t("admin:candidates.filterByJob")}
             </Eyebrow>
             <SearchableMultiSelect<number>
               values={jobFilter}
@@ -73,7 +73,7 @@ export default function CandidatesFilterPanel({
                     companyFilter.length === 0 || companyFilter.includes(j.company_id),
                 )
                 .map((j) => ({ value: j.id, label: j.title }))}
-              placeholder={t("admin.candidates.allJobs")}
+              placeholder={t("admin:candidates.allJobs")}
             />
           </div>
         </div>
