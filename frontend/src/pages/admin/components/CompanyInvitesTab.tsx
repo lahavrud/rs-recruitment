@@ -65,7 +65,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
   const [revokePending, setRevokePending] = useState<InviteTokenRead | null>(null);
   const [deletePending, setDeletePending] = useState<InviteTokenRead | null>(null);
   const [pendingMutation, setPendingMutation] = useState(false);
-  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (externalOpen) {
