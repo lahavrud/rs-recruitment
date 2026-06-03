@@ -180,29 +180,14 @@ class TestJWTTokenDecoding:
         assert payload is None
 
     def test_decode_access_token_wrong_secret(self):
-        """Test decoding with wrong secret key."""
-        data = {"sub": "123"}
-        token = create_access_token(data)
-
-        # Try to decode with wrong secret
-        try:
-            payload = jwt.decode(
-                token,
-                "wrong_secret_key",
-                algorithms=[settings.jwt_algorithm],
-            )
-            # Should not reach here
-            assert False, "Should have raised JWTError"
-        except jwt.exceptions.InvalidTokenError:
-            # Expected behavior
-            pass
-
-        # decode_access_token should return None for invalid token
-        # But we can't easily test this without mocking, so we test the behavior
-        # by ensuring decode_access_token handles errors gracefully
-        payload = decode_access_token(token)
-        # With correct secret, should work
-        assert payload is not None
+        """Test that a token signed with the wrong secret is rejected."""
+        wrong_key_token = jwt.encode(
+            {"sub": "123", "exp": datetime.now(timezone.utc) + timedelta(minutes=30)},
+            "wrong_secret_key",
+            algorithm=settings.jwt_algorithm,
+        )
+        payload = decode_access_token(wrong_key_token)
+        assert payload is None
 
     def test_decode_access_token_missing_claims(self):
         """Test decoding token with missing required claims."""
