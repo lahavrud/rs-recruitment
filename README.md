@@ -136,7 +136,7 @@ erDiagram
 
 **SEO prerendering for a SPA** — Client-side React can't be indexed for job-specific pages. The backend generates server-side HTML snapshots with full Open Graph meta, canonical URLs, and JSON-LD `JobPosting` structured data (title, salary range, location, dates). A dynamic sitemap.xml lists all published jobs with `lastmod` from `updated_at`. Googlebot gets a real HTML response; users get the SPA.
 
-**Hebrew-only RTL UI** — The entire frontend is in Hebrew with `<html dir="rtl">` forced globally. All UI strings live in a single `he.json` locale file; raw backend error strings are never surfaced to the user.
+**Hebrew-only RTL UI** — The entire frontend is in Hebrew with `<html dir="rtl">` forced globally. All UI strings live in per-namespace JSON files under `locales/he/` (13 files, one per feature area); raw backend error strings are never surfaced to the user.
 
 ---
 
@@ -227,7 +227,7 @@ rs-recruitment/
 │   ├── pages/        # public/, admin/, company/, candidate/ + auth pages
 │   ├── components/   # layout/, guards/, ui/ — shared React components
 │   ├── hooks/        # useAuth, useInfiniteList, useDebounce, usePageTitle…
-│   └── locales/      # he.json (all UI strings)
+│   └── locales/he/   # per-namespace translation files (common, auth, admin, …)
 ├── tests/            # 70+ test files, pytest-xdist parallel execution
 ├── scripts/          # 5 CI validation scripts
 ├── docs/             # Architecture decisions, API design, infrastructure, runbooks
