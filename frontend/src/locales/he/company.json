@@ -1,0 +1,43 @@
+{
+  "jobs": {
+    "title": "המשרות שלי",
+    "subtitle": "נהל את פרסומי המשרות שלך. משרות חדשות דורשות אישור מנהל לפני פרסום.",
+    "postJob": "+ פרסום משרה",
+    "loading": "טוען…",
+    "empty": "אין עדיין משרות. פרסם את המשרה הראשונה שלך.",
+    "statusLabels": {
+      "PENDING_APPROVAL": "ממתין לאישור",
+      "PUBLISHED": "פורסם",
+      "CLOSED": "סגור"
+    },
+    "createTitle": "פרסם משרה חדשה",
+    "editTitle": "עריכת משרה",
+    "submitForReview": "שלח לאישור",
+    "saveChanges": "שמור שינויים",
+    "cancel": "ביטול",
+    "saving": "שומר…",
+    "edit": "עריכה",
+    "delete": "מחיקה",
+    "deleteConfirm": "למחוק פרסום משרה זה?",
+    "form": {
+      "jobTitle": "כותרת המשרה",
+      "location": "מיקום",
+      "shortDescription": "תיאור קצר",
+      "description": "תיאור מלא",
+      "requirements": "דרישות",
+      "tags": "תגיות"
+    },
+    "placeholders": {
+      "jobTitle": "למשל: מנהל חשבונות ראשי",
+      "location": "למשל: תל אביב",
+      "shortDescription": "משפט אחד שמסביר את המשרה — יופיע על כרטיס המשרה",
+      "description": "תאר את התפקיד והאחריויות…"
+    },
+    "postedLabel": "פורסם",
+    "errors": {
+      "loadFailed": "טעינת המשרות נכשלה.",
+      "saveFailed": "השמירה נכשלה. נסה שוב.",
+      "deleteFailed": "מחיקת המשרה נכשלה. רק משרות ממתינות ניתנות למחיקה."
+    }
+  }
+}
