@@ -106,6 +106,7 @@ class PendingCompanyRead(BaseModel):
 
     user: UserRead
     company_profile: CompanyProfileRead
+    invitation_sent: bool = False
 
 
 class ApprovedCompanyRead(BaseModel):

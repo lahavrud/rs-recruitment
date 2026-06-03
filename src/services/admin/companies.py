@@ -17,6 +17,7 @@ from src.core.services.storage import get_storage_provider
 from src.core.tasks import enqueue_email_task
 from src.enums import UserRole
 from src.models import (
+    ActivationToken,
     CompanyProfile,
     User,
 )
@@ -81,8 +82,12 @@ async def list_pending_companies(
     """One page of pending companies (inactive COMPANY users), newest first."""
     page_size = clamp_limit(limit)
     query = apply_cursor(
-        select(User, CompanyProfile)
+        select(User, CompanyProfile, ActivationToken)
         .join(CompanyProfile, User.id == CompanyProfile.user_id)
+        .outerjoin(
+            ActivationToken,
+            (ActivationToken.user_id == User.id) & (ActivationToken.used == False),  # noqa: E712
+        )
         .where(User.role == UserRole.COMPANY, User.is_active == False),  # noqa: E712
         sort_col=User.created_at,  # pyright: ignore[reportArgumentType]
         id_col=User.id,  # pyright: ignore[reportArgumentType]
@@ -95,6 +100,7 @@ async def list_pending_companies(
         serializer=lambda row: PendingCompanyRead(
             user=UserRead.model_validate(row[0]),
             company_profile=CompanyProfileRead.model_validate(row[1]),
+            invitation_sent=row[2] is not None,
         ),
         cursor_key=lambda row: (row[0].created_at, row[0].id),
         limit=page_size,

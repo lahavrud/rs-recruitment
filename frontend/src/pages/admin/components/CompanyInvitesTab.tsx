@@ -65,6 +65,7 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
   const [revokePending, setRevokePending] = useState<InviteTokenRead | null>(null);
   const [deletePending, setDeletePending] = useState<InviteTokenRead | null>(null);
   const [pendingMutation, setPendingMutation] = useState(false);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (externalOpen) {
@@ -108,6 +109,8 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
   }
 
   async function handleResend(invite: InviteTokenRead) {
+    if (resendingId !== null) return;
+    setResendingId(invite.id);
     const wasPending = invite.status === InviteTokenStatus.PENDING;
     try {
       await resendInvite(invite.id);
@@ -122,6 +125,8 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
       reload();
     } catch {
       toast.error(t("admin.companies.inviteList.resendError"));
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -139,7 +144,10 @@ export default function CompanyInvitesTab({ query, externalOpen, onExternalClose
         trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
       >
         {canResend && (
-          <DropdownMenuItem onSelect={() => handleResend(invite)}>
+          <DropdownMenuItem
+            onSelect={() => handleResend(invite)}
+            disabled={resendingId !== null}
+          >
             {isPending
               ? t("admin.companies.resendAction")
               : t("admin.companies.reactivateAction")}

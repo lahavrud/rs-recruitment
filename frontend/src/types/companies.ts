@@ -3,6 +3,7 @@ import type { CompanyProfileRead, UserRead } from "@/types/auth";
 export interface PendingCompanyRead {
   user: UserRead;
   company_profile: CompanyProfileRead;
+  invitation_sent: boolean;
 }
 
 export interface ApprovedCompanyRead {

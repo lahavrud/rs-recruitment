@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   approveCompany,
@@ -8,6 +8,7 @@ import {
 import type { CompanyProfileRead, PendingCompanyRead } from "@/types/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import TableSkeleton from "@/components/ui/TableSkeleton";
@@ -63,14 +64,32 @@ export default function CompanyPendingTab({ query }: { query: string }) {
   const [rejectPending, setRejectPending] = useState<PendingCompanyRead | null>(null);
   const [pendingMutation, setPendingMutation] = useState(false);
   const [detail, setDetail] = useState<CompanyProfileRead | null>(null);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  // Optimistic set: IDs approved this session before the list reloads.
+  // invitation_sent (from backend) covers the persistent case after refresh.
+  const [approvedIds, setApprovedIds] = useState<Set<number>>(new Set());
+  const approvingRef = useRef<number | null>(null);
+
+  function isInvitationSent(row: PendingCompanyRead) {
+    return row.invitation_sent || approvedIds.has(row.user.id);
+  }
 
   async function handleApprove(row: PendingCompanyRead) {
+    if (approvingRef.current !== null) return;
+    const alreadySent = isInvitationSent(row);
+    approvingRef.current = row.user.id;
+    setApprovingId(row.user.id);
     try {
       await approveCompany(row.user.id);
-      removeItem((c) => c.user.id === row.user.id);
-      toast.success(t("admin.companies.approvedToast"));
+      setApprovedIds((prev) => new Set(prev).add(row.user.id));
+      toast.success(
+        t(alreadySent ? "admin.companies.resendApprovalToast" : "admin.companies.approvedToast"),
+      );
     } catch {
       toast.error(t("admin.companies.approveError"));
+    } finally {
+      approvingRef.current = null;
+      setApprovingId(null);
     }
   }
 
@@ -143,20 +162,34 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                     {row.company_profile.name}
                   </span>
                 }
+                badge={
+                  isInvitationSent(row) ? (
+                    <StatusBadge
+                      label={t("admin.companies.invitationSentBadge")}
+                      colorCls="bg-warning/10 text-warning"
+                    />
+                  ) : undefined
+                }
                 actions={renderRowActions(row)}
               >
                 <CompanyDetailBody profile={row.company_profile} />
                 <div className="mt-4 flex gap-2">
                   <Button
-                    variant="success"
+                    variant={isInvitationSent(row) ? "ghost" : "success"}
                     onClick={() => handleApprove(row)}
+                    disabled={approvingId !== null}
                     className="flex-1"
                   >
-                    {t("admin.companies.approveAction")}
+                    {approvingId === row.user.id
+                      ? t("admin.companies.approvingButton")
+                      : isInvitationSent(row)
+                        ? t("admin.companies.resendApprovalAction")
+                        : t("admin.companies.approveAction")}
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => setRejectPending(row)}
+                    disabled={approvingId !== null}
                     className="flex-1"
                   >
                     {t("admin.companies.rejectAction")}
@@ -175,9 +208,17 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                 className="flex cursor-pointer flex-col gap-3 rounded-xl border border-white/8 bg-card p-4 transition hover:bg-card-raised sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <span className="block truncate font-medium text-white/90">
-                    {row.company_profile.name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium text-white/90">
+                      {row.company_profile.name}
+                    </span>
+                    {isInvitationSent(row) && (
+                      <StatusBadge
+                        label={t("admin.companies.invitationSentBadge")}
+                        colorCls="bg-warning/10 text-warning"
+                      />
+                    )}
+                  </div>
                   <p className="truncate text-xs text-white/45">{row.user.email}</p>
                   <p className="mt-1 text-xs text-white/35">
                     {t("admin.companies.contactLabel")}:{" "}
@@ -192,11 +233,16 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
-                    variant="success"
+                    variant={isInvitationSent(row) ? "ghost" : "success"}
                     size="sm"
                     onClick={() => handleApprove(row)}
+                    disabled={approvingId !== null}
                   >
-                    {t("admin.companies.approveAction")}
+                    {approvingId === row.user.id
+                      ? t("admin.companies.approvingButton")
+                      : isInvitationSent(row)
+                        ? t("admin.companies.resendApprovalAction")
+                        : t("admin.companies.approveAction")}
                   </Button>
                   {renderRowActions(row)}
                 </div>

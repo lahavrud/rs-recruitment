@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { createInvite } from "@/services/adminInvites";
@@ -21,6 +21,7 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
   const [form, setForm] = useState<InviteTokenCreate>({ email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -31,6 +32,8 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
   }, [open]);
 
   async function handleSubmit() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setErrorKey(null);
     setSubmitting(true);
     try {
@@ -52,6 +55,7 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
         setErrorKey("admin.companies.inviteForm.errorMessage");
       }
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
