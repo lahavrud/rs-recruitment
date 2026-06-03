@@ -114,6 +114,7 @@ class RefreshToken(SQLModel, table=True):
     expires_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
+    remember_me: bool = Field(default=False)
     # ``is_revoked`` removed in #641 — refresh tokens are now deleted on
     # use / logout / password change instead of being marked revoked.
     # The column provided no security benefit (revoked + missing were

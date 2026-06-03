@@ -10,7 +10,7 @@ import { EMAIL_RE } from "@/utils/validators";
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, initializing } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const from = (queryRedirect?.startsWith("/") ? queryRedirect : null) ?? stateFrom ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ email: "", password: "" });
@@ -77,6 +78,7 @@ export default function LoginPage() {
     if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: "" }));
   }
 
+  if (initializing) return null;
   if (isAuthenticated) return <Navigate to={from} replace />;
 
   async function handleSubmit(e: FormEvent) {
@@ -87,7 +89,7 @@ export default function LoginPage() {
     if (!validateForm()) return;
     setSubmitting(true);
     try {
-      await login({ email, password });
+      await login({ email, password, remember_me: rememberMe });
       navigate(from, { replace: true });
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -199,6 +201,16 @@ export default function LoginPage() {
               )}
             </div>
           </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-white/50">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 cursor-pointer rounded border-white/20 bg-well accent-copper"
+            />
+            {t("auth.login.rememberMe")}
+          </label>
 
           <button
             type="submit"

@@ -3,6 +3,7 @@ import type { UserRole } from "@/types/enums";
 export interface LoginRequest {
   email: string;
   password: string;
+  remember_me?: boolean;
 }
 
 export interface TokenResponse {

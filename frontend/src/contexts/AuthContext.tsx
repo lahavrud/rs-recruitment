@@ -1,9 +1,17 @@
-import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import * as Sentry from "@sentry/react";
-import { login as loginService, logout as logoutService } from "@/services/auth";
-import type { JwtPayload, LoginRequest } from "@/types/api";
+import { login as loginService, logout as logoutService, refreshTokens } from "@/services/auth";
+import type { LoginRequest } from "@/types/api";
 import type { UserRole } from "@/types/api";
-import { decodeToken, getToken } from "@/utils/token";
+import { getToken, inspectToken, removeToken } from "@/utils/token";
 
 export interface AuthUser {
   id: string;
@@ -14,6 +22,9 @@ export interface AuthUser {
 export interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  /** True while the initial refresh-token probe is in flight (page load with
+   *  expired access token). Route guards render null instead of redirecting. */
+  initializing: boolean;
   /** True while logout is in progress. Route guards render null instead of
    *  redirecting so the page-replacement completes without a /login flash. */
   loggingOut: boolean;
@@ -24,34 +35,42 @@ export interface AuthContextType {
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-function payloadToUser(payload: JwtPayload): AuthUser {
-  return {
-    id: payload.sub,
-    email: payload.email,
-    role: payload.role,
-  };
+function payloadToUser(payload: { sub: string; email: string; role: UserRole }): AuthUser {
+  return { id: payload.sub, email: payload.email, role: payload.role };
 }
 
 /**
- * Resolve initial auth state synchronously from localStorage.
- * getToken() and decodeToken() are synchronous (localStorage + base64),
- * so there's no need for an async effect or loading state.
+ * Compute the initial auth state from localStorage in one pass.
+ *
+ * Three cases:
+ *  - No token:       user=null, initializing=false  (never logged in — skip probe)
+ *  - Valid token:    user=AuthUser, initializing=false (no probe needed)
+ *  - Expired token:  user=null, initializing=true   (had a session — probe the cookie)
+ *
+ * Expired tokens are intentionally NOT removed here so this function stays
+ * side-effect-free and safe to call twice in React Strict Mode. The probe
+ * effect's .catch() clears the token if refresh fails.
  */
-function getInitialUser(): AuthUser | null {
+function computeInitialAuth(): { user: AuthUser | null; initializing: boolean } {
   const token = getToken();
-  if (token) {
-    const payload = decodeToken(token);
-    if (payload) {
-      return payloadToUser(payload);
-    }
-
-    logoutService();
+  if (!token) return { user: null, initializing: false };
+  const inspection = inspectToken(token);
+  if (inspection.status === "valid") {
+    return { user: payloadToUser(inspection.payload), initializing: false };
   }
-  return null;
+  if (inspection.status === "expired") {
+    return { user: null, initializing: true };
+  }
+  // Invalid/malformed token — clean it up immediately
+  removeToken();
+  return { user: null, initializing: false };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(getInitialUser);
+  // Single lazy initializer so getToken() is read exactly once
+  const [{ user: initUser, initializing: initInitializing }] = useState(computeInitialAuth);
+  const [user, setUser] = useState<AuthUser | null>(initUser);
+  const [initializing, setInitializing] = useState(initInitializing);
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,6 +78,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       if (logoutTimerRef.current !== null) clearTimeout(logoutTimerRef.current);
     };
+  }, []);
+
+  // Silent refresh on mount: only fires when an expired access token was found
+  // (initializing=true). Removes the expired token immediately so it never lingers
+  // in localStorage regardless of whether the probe completes or is aborted
+  // (e.g. React 18 Strict Mode double-mount, SPA navigation away mid-fetch).
+  // refreshTokens will call setToken on success, restoring a valid token.
+  //
+  // Safety valve: if the network never responds (stalled proxy, partition),
+  // we must still unblock the UI — otherwise every route guard renders null
+  // indefinitely. Mirrors the 500 ms safety valve used by the logout flow.
+  useEffect(() => {
+    if (!initializing) return;
+    removeToken(); // expired token served its purpose as a "had session" marker
+    const controller = new AbortController();
+    const safetyTimer = setTimeout(() => setInitializing(false), 10_000);
+
+    refreshTokens(controller.signal)
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        const inspection = inspectToken(response.access_token);
+        if (inspection.status === "valid") {
+          setUser(payloadToUser(inspection.payload));
+        } else {
+          // Server issued a token that appears invalid/expired locally (extreme clock
+          // skew). Remove it so computeInitialAuth won't find it on the next mount
+          // and re-enter the probe loop.
+          removeToken();
+        }
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        // Token already removed above; nothing further to clean up.
+      })
+      .finally(() => {
+        clearTimeout(safetyTimer);
+        if (!controller.signal.aborted) setInitializing(false);
+      });
+
+    return () => {
+      controller.abort();
+      clearTimeout(safetyTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -71,14 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (credentials: LoginRequest) => {
     const response = await loginService(credentials);
-    const payload = decodeToken(response.access_token);
+    const inspection = inspectToken(response.access_token);
 
-    if (!payload) {
+    if (inspection.status !== "valid") {
       logoutService();
       throw new Error("Authentication failed: invalid access token");
     }
 
-    setUser(payloadToUser(payload));
+    setUser(payloadToUser(inspection.payload));
   }, []);
 
   const logout = useCallback(() => {
@@ -99,11 +162,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isAuthenticated: user !== null,
+      initializing,
       loggingOut,
       login,
       logout,
     }),
-    [user, loggingOut, login, logout],
+    [user, initializing, loggingOut, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
