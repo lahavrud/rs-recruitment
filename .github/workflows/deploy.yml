@@ -247,3 +247,36 @@ jobs:
           done
           echo "==> Timed out waiting for deploy (9 min)"
           exit 1
+
+  # ── Failure notification ──────────────────────────────────────────────────
+  # Runs whenever any upstream job fails. Creates a GitHub issue so the
+  # failure is visible even if no one is watching Actions.
+  notify-failure:
+    name: Notify deploy failure
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend, deploy]
+    # failure() returns true if any non-skipped needed job failed.
+    # Skipped build jobs (workflow_dispatch path) don't prevent this from
+    # firing when deploy itself fails.
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Open GitHub issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          [ -z "${SHA}" ] && SHA="${{ github.sha }}"
+          SHORT_SHA="${SHA:0:7}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ROLLBACK_URL="https://github.com/${{ github.repository }}/actions/workflows/rollback.yml"
+          printf '%s\n\n%s\n\n%s\n' \
+            "**Deploy failed** for commit [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${SHA})." \
+            "Check the [workflow run](${RUN_URL}) for current production state and logs." \
+            "To redeploy a previous version: [run the rollback workflow](${ROLLBACK_URL})." \
+            > /tmp/issue_body.md
+          gh issue create \
+            --title "Deploy failed: ${SHORT_SHA}" \
+            --body-file /tmp/issue_body.md \
+            --repo "${{ github.repository }}"

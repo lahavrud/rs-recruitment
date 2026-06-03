@@ -8,6 +8,7 @@ import logging
 import math
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +32,29 @@ logger = logging.getLogger(__name__)
 
 _MAX_FAILED_ATTEMPTS = 5
 _LOCKOUT_DURATION = timedelta(minutes=15)
+
+
+async def _delete_refresh_token(token_id: int) -> None:
+    """Delete a refresh-token row in its own committed session.
+
+    Must be used instead of ``session.delete()`` on the main request session
+    when an exception is raised afterwards inside a ``transactional()`` block,
+    because ``transactional()`` rolls back ALL pending changes on any exception.
+    Using a separate session here (same pattern as ``_record_failed_attempt``)
+    ensures the row is actually removed regardless of the outer transaction fate.
+
+    Uses a direct DELETE statement (no prior SELECT) — idempotent if the row
+    was already removed by a concurrent request.
+    """
+    from src.core.infrastructure.database import async_session as _session_factory
+
+    async with _session_factory() as cleanup_session:
+        await cleanup_session.execute(
+            sa_delete(RefreshToken).where(
+                RefreshToken.id == token_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        await cleanup_session.commit()
 
 
 def _email_prefix(email: str) -> str:
@@ -168,7 +192,9 @@ async def authenticate_user(
     return user
 
 
-async def create_user_tokens(user: User, session: AsyncSession) -> tuple[str, str]:
+async def create_user_tokens(
+    user: User, session: AsyncSession, *, remember_me: bool = False
+) -> tuple[str, str]:
     """Issue a new access + refresh token pair.
 
     Returns (access_token, raw_refresh_token).
@@ -178,11 +204,14 @@ async def create_user_tokens(user: User, session: AsyncSession) -> tuple[str, st
         data={"sub": str(user.id), "email": user.email, "role": user.role.value}
     )
 
-    raw_refresh, hashed_refresh, expires_at = create_refresh_token()
+    raw_refresh, hashed_refresh, expires_at = create_refresh_token(
+        remember_me=remember_me
+    )
     db_token = RefreshToken(
         token_hash=hashed_refresh,
         user_id=user.id,
         expires_at=expires_at,
+        remember_me=remember_me,
     )
     session.add(db_token)
 
@@ -191,10 +220,12 @@ async def create_user_tokens(user: User, session: AsyncSession) -> tuple[str, st
 
 async def refresh_user_tokens(
     raw_refresh_token: str, session: AsyncSession
-) -> tuple[str, str]:
+) -> tuple[str, str, bool]:
     """Validate and rotate a refresh token.
 
-    Returns (new_access_token, new_raw_refresh_token).
+    Returns (new_access_token, new_raw_refresh_token, remember_me).
+    remember_me is carried through from the original login so cookie
+    persistence survives token rotation.
     """
     token_hash = hash_token(raw_refresh_token)
     result = await session.execute(
@@ -209,10 +240,13 @@ async def refresh_user_tokens(
 
     # Expired-on-discovery rows are deleted on the way out so the
     # ``refreshtoken`` table doesn't accumulate dead state without a
-    # cleanup path (issue #641). The HTTP behaviour is unchanged — the
-    # caller still gets 401.
+    # cleanup path (issue #641). Uses a separate committed session because
+    # the outer transactional() block rolls back on the InvalidCredentialsError
+    # that follows — a plain session.delete() would be undone. The HTTP
+    # behaviour is unchanged — the caller still gets 401.
     if db_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-        await session.delete(db_token)
+        assert db_token.id is not None
+        await _delete_refresh_token(db_token.id)
         raise InvalidCredentialsError("Invalid or expired refresh token")
 
     user_result = await session.execute(
@@ -220,7 +254,11 @@ async def refresh_user_tokens(
     )
     user = user_result.scalar_one_or_none()
     if user is None or not user.is_active:
+        assert db_token.id is not None
+        await _delete_refresh_token(db_token.id)
         raise InvalidCredentialsError("Invalid or expired refresh token")
+
+    remember_me = db_token.remember_me
 
     # Rotate: drop the consumed token before minting the next one. The
     # previous "is_revoked = True" approach left rows accumulating
@@ -230,7 +268,10 @@ async def refresh_user_tokens(
     await session.delete(db_token)
     await session.flush()
 
-    return await create_user_tokens(user, session)
+    access_token, raw_refresh = await create_user_tokens(
+        user, session, remember_me=remember_me
+    )
+    return access_token, raw_refresh, remember_me
 
 
 async def logout_user(

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { useContext } from "react";
 import { vi } from "vitest";
 import { AuthContext, AuthProvider } from "@/contexts/AuthContext";
@@ -6,10 +6,14 @@ import { UserRole } from "@/types/api";
 
 vi.mock("@sentry/react", () => ({ setUser: vi.fn() }));
 
-const { mockLogout } = vi.hoisted(() => ({ mockLogout: vi.fn() }));
+const { mockLogout, mockRefreshTokens } = vi.hoisted(() => ({
+  mockLogout: vi.fn(),
+  mockRefreshTokens: vi.fn(),
+}));
 vi.mock("@/services/auth", () => ({
   login: vi.fn(),
   logout: mockLogout,
+  refreshTokens: mockRefreshTokens,
 }));
 
 const ACCESS_TOKEN_KEY = "access_token";
@@ -29,6 +33,7 @@ function Consumer() {
   return (
     <>
       <span data-testid="authenticated">{String(ctx.isAuthenticated)}</span>
+      <span data-testid="initializing">{String(ctx.initializing)}</span>
       <span data-testid="role">{ctx.user?.role ?? "none"}</span>
     </>
   );
@@ -37,10 +42,11 @@ function Consumer() {
 beforeEach(() => {
   localStorage.clear();
   mockLogout.mockClear();
+  mockRefreshTokens.mockReset();
 });
 
 describe("AuthContext initial state", () => {
-  it("populates user from a valid token in localStorage", () => {
+  it("populates user from a valid token in localStorage (no refresh needed)", async () => {
     const token = makeJwt({
       sub: "user-42",
       email: "admin@example.com",
@@ -56,10 +62,85 @@ describe("AuthContext initial state", () => {
     );
 
     expect(screen.getByTestId("authenticated").textContent).toBe("true");
+    expect(screen.getByTestId("initializing").textContent).toBe("false");
     expect(screen.getByTestId("role").textContent).toBe(UserRole.ADMIN);
+    expect(mockRefreshTokens).not.toHaveBeenCalled();
   });
 
-  it("sets user to null and clears localStorage for an expired token", () => {
+  it("attempts silent refresh when access token is expired", async () => {
+    const expiredToken = makeJwt({
+      sub: "user-42",
+      email: "admin@example.com",
+      role: UserRole.ADMIN,
+      exp: Math.floor(Date.now() / 1000) - 1,
+    });
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken);
+
+    const freshToken = makeJwt({
+      sub: "user-42",
+      email: "admin@example.com",
+      role: UserRole.ADMIN,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    mockRefreshTokens.mockResolvedValue({ access_token: freshToken });
+
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>,
+    );
+
+    // During refresh probe, initializing=true and not authenticated
+    expect(screen.getByTestId("initializing").textContent).toBe("true");
+    expect(screen.getByTestId("authenticated").textContent).toBe("false");
+
+    await waitFor(() =>
+      expect(screen.getByTestId("initializing").textContent).toBe("false"),
+    );
+    expect(screen.getByTestId("authenticated").textContent).toBe("true");
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it("stays unauthenticated when probe fails for an expired token (no valid cookie)", async () => {
+    const expiredToken = makeJwt({
+      sub: "user-42",
+      email: "admin@example.com",
+      role: UserRole.ADMIN,
+      exp: Math.floor(Date.now() / 1000) - 1,
+    });
+    localStorage.setItem(ACCESS_TOKEN_KEY, expiredToken);
+    mockRefreshTokens.mockRejectedValue(new Error("401"));
+
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("initializing").textContent).toBe("false"),
+    );
+    expect(screen.getByTestId("authenticated").textContent).toBe("false");
+    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it("does not probe and shows login immediately when localStorage is empty", () => {
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>,
+    );
+
+    // No probe fired — initializing starts and stays false for users with no token
+    expect(screen.getByTestId("initializing").textContent).toBe("false");
+    expect(screen.getByTestId("authenticated").textContent).toBe("false");
+    expect(screen.getByTestId("role").textContent).toBe("none");
+    expect(mockRefreshTokens).not.toHaveBeenCalled();
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it("does not call logoutService for an expired token", async () => {
     const token = makeJwt({
       sub: "user-42",
       email: "admin@example.com",
@@ -67,6 +148,7 @@ describe("AuthContext initial state", () => {
       exp: Math.floor(Date.now() / 1000) - 1,
     });
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    mockRefreshTokens.mockRejectedValue(new Error("401"));
 
     render(
       <AuthProvider>
@@ -74,21 +156,9 @@ describe("AuthContext initial state", () => {
       </AuthProvider>,
     );
 
-    expect(screen.getByTestId("authenticated").textContent).toBe("false");
-    expect(screen.getByTestId("role").textContent).toBe("none");
-    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
-  });
-
-  it("sets user to null with no side-effects when localStorage is empty", () => {
-    render(
-      <AuthProvider>
-        <Consumer />
-      </AuthProvider>,
+    await waitFor(() =>
+      expect(screen.getByTestId("initializing").textContent).toBe("false"),
     );
-
-    expect(screen.getByTestId("authenticated").textContent).toBe("false");
-    expect(screen.getByTestId("role").textContent).toBe("none");
-    expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull();
     expect(mockLogout).not.toHaveBeenCalled();
   });
 });

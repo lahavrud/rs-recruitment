@@ -51,7 +51,12 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         return None
 
 
-def create_refresh_token() -> tuple[str, str, datetime]:
+_REFRESH_TTL_SHORT = timedelta(days=1)  # remember_me=False (session-like)
+# Exported — imported by login.py to derive the cookie max_age.
+REFRESH_TTL_LONG = timedelta(days=30)  # remember_me=True
+
+
+def create_refresh_token(*, remember_me: bool = False) -> tuple[str, str, datetime]:
     """Generate a cryptographically secure refresh token.
 
     Returns:
@@ -60,7 +65,6 @@ def create_refresh_token() -> tuple[str, str, datetime]:
     import secrets
 
     raw = secrets.token_urlsafe(48)
-    expires_at = datetime.now(timezone.utc) + timedelta(
-        days=settings.jwt_refresh_token_expire_days
-    )
+    ttl = REFRESH_TTL_LONG if remember_me else _REFRESH_TTL_SHORT
+    expires_at = datetime.now(timezone.utc) + ttl
     return raw, hash_token(raw), expires_at

@@ -8,7 +8,11 @@ import type {
 import { getToken, removeToken, setToken } from "@/utils/token";
 
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
-  const response = await api.post<TokenResponse>("/auth/login", credentials);
+  // withCredentials required cross-origin so the browser stores the Set-Cookie
+  // refresh_token from the response (same reasoning as refreshTokens below).
+  const response = await api.post<TokenResponse>("/auth/login", credentials, {
+    withCredentials: true,
+  });
   setToken(response.data.access_token);
   return response.data;
 }
@@ -24,9 +28,13 @@ export async function register(
   return response.data;
 }
 
-export async function refreshTokens(): Promise<TokenResponse> {
-  // Refresh token is an HttpOnly cookie — browser sends it automatically.
-  const response = await api.post<TokenResponse>("/auth/refresh");
+export async function refreshTokens(signal?: AbortSignal): Promise<TokenResponse> {
+  // Refresh token is an HttpOnly cookie — requires withCredentials for cross-origin
+  // requests (e.g. frontend on app.* and API on api.* subdomain in production).
+  const response = await api.post<TokenResponse>("/auth/refresh", null, {
+    signal,
+    withCredentials: true,
+  });
   setToken(response.data.access_token);
   return response.data;
 }
@@ -101,7 +109,9 @@ export function logout(): void {
     void fetch(`${baseURL}/auth/logout`, {
       method: "POST",
       keepalive: true,
-      credentials: "same-origin",
+      // "include" (not "same-origin") so the refresh cookie is sent cross-origin
+      // in production, allowing the server to delete the RefreshToken row.
+      credentials: "include",
       headers,
     }).catch(() => {});
   } catch {

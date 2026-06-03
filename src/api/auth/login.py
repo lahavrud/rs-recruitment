@@ -10,6 +10,7 @@ from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import client_ip, get_token_payload
 from src.core.infrastructure.error_handling import service_exception_to_http
 from src.core.infrastructure.limiter import get_limiter
+from src.core.infrastructure.security import REFRESH_TTL_LONG
 from src.core.infrastructure.transactions import transactional
 from src.enums import UserRole
 from src.schemas import AccessTokenResponse, LoginRequest
@@ -34,7 +35,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 _REFRESH_COOKIE = "refresh_token"
-_REFRESH_MAX_AGE = 7 * 24 * 60 * 60  # 7 days, matches RefreshToken lifetime in config
+# Derived from REFRESH_TTL_LONG so cookie lifetime always matches the DB token TTL.
+_REMEMBER_ME_MAX_AGE = int(REFRESH_TTL_LONG.total_seconds())
 
 
 def _refresh_cookie_secure() -> bool:
@@ -51,16 +53,20 @@ def _refresh_cookie_secure() -> bool:
     return not settings.testing
 
 
-def _set_refresh_cookie(response: Response, token: str) -> None:
-    response.set_cookie(
+def _set_refresh_cookie(
+    response: Response, token: str, *, remember_me: bool = False
+) -> None:
+    kwargs: dict = dict(
         key=_REFRESH_COOKIE,
         value=token,
         httponly=True,
         secure=_refresh_cookie_secure(),
         samesite="strict",
-        max_age=_REFRESH_MAX_AGE,
         path="/auth",
     )
+    if remember_me:
+        kwargs["max_age"] = _REMEMBER_ME_MAX_AGE
+    response.set_cookie(**kwargs)
 
 
 def _clear_refresh_cookie(response: Response) -> None:
@@ -102,7 +108,9 @@ async def login(
     )
 
     async with transactional(session):
-        access_token, refresh_token = await create_user_tokens(user, session)
+        access_token, refresh_token = await create_user_tokens(
+            user, session, remember_me=login_data.remember_me
+        )
         if user.role == UserRole.ADMIN:
             await record_audit_event(
                 session,
@@ -112,7 +120,7 @@ async def login(
                 target_id=user.id,
             )
 
-    _set_refresh_cookie(response, refresh_token)
+    _set_refresh_cookie(response, refresh_token, remember_me=login_data.remember_me)
     return AccessTokenResponse(access_token=access_token)
 
 
@@ -138,13 +146,13 @@ async def refresh(
         )
     try:
         async with transactional(session):
-            access_token, new_refresh_token = await refresh_user_tokens(
+            access_token, new_refresh_token, remember_me = await refresh_user_tokens(
                 raw_refresh, session
             )
     except InvalidCredentialsError as e:
         raise service_exception_to_http(e) from e
 
-    _set_refresh_cookie(response, new_refresh_token)
+    _set_refresh_cookie(response, new_refresh_token, remember_me=remember_me)
     return AccessTokenResponse(access_token=access_token)
 
 
