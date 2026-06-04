@@ -14,7 +14,7 @@ export function ProfileCompletion({
   me: CandidateMeRead | null;
   onMeChange: (next: CandidateMeRead) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('dashboard');
   const [expanded, setExpanded] = useState<MissingKey | null>(null);
   // Keeps the inline editor mounted during the close animation so the
   // collapse looks symmetric to the open. Set synchronously by ``open``
@@ -60,17 +60,17 @@ export function ProfileCompletion({
     {
       key: "phone",
       filled: !!me.phone,
-      label: t("dashboard.candidate.profileCompletion.fields.phone"),
+      label: t("dashboard:candidate.profileCompletion.fields.phone"),
     },
     {
       key: "linkedin",
       filled: !!me.linkedin_url,
-      label: t("dashboard.candidate.profileCompletion.fields.linkedin"),
+      label: t("dashboard:candidate.profileCompletion.fields.linkedin"),
     },
     {
       key: "resume",
       filled: !!me.resume_path,
-      label: t("dashboard.candidate.profileCompletion.fields.resume"),
+      label: t("dashboard:candidate.profileCompletion.fields.resume"),
     },
   ];
   const missing = slots.filter((s) => !s.filled);
@@ -87,7 +87,7 @@ export function ProfileCompletion({
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 ps-4 pe-3 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-          {t("dashboard.candidate.profileCompletion.title")}{" "}
+          {t("dashboard:candidate.profileCompletion.title")}{" "}
           <span className="text-white/55">
             {slots.length - missing.length}/{slots.length}
           </span>

@@ -29,7 +29,7 @@ function pickRandom<T>(arr: readonly T[]): T {
 }
 
 export default function JobTagsInput({ value, onChange, error }: Props) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http']);
   const [draft, setDraft] = useState("");
   const canAdd = value.length < JOB_TAG_MAX_COUNT;
   // Stable per-mount placeholder so the empty input shows a fresh hint each open.
@@ -70,7 +70,7 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
               <button
                 type="button"
                 onClick={() => remove(tag)}
-                aria-label={`${t("common.removeTag")} ${tag}`}
+                aria-label={`${t("common:removeTag")} ${tag}`}
                 className="inline-flex size-5 items-center justify-center rounded-full text-copper/80 transition hover:bg-copper/20 hover:text-copper"
               >
                 <svg
@@ -105,11 +105,11 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
           disabled={!canAdd || !draft.trim()}
           className="shrink-0 rounded-sm border border-copper/35 px-3 py-1.5 text-xs font-medium text-copper transition hover:border-copper/60 hover:bg-copper/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {t("common.addTag")}
+          {t("common:addTag")}
         </button>
       </div>
       <p className="mt-1 text-[11px] text-white/35">
-        {t("common.tagHint", { max: JOB_TAG_MAX_COUNT })}
+        {t("common:tagHint", { max: JOB_TAG_MAX_COUNT })}
       </p>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>

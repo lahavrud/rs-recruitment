@@ -9,10 +9,10 @@ import CandidateDashboard from "@/components/dashboard/CandidateDashboard";
 
 function getGreetingKey(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "dashboard.greeting.morning";
-  if (hour < 17) return "dashboard.greeting.afternoon";
-  if (hour < 22) return "dashboard.greeting.evening";
-  return "dashboard.greeting.night";
+  if (hour < 12) return "dashboard:greeting.morning";
+  if (hour < 17) return "dashboard:greeting.afternoon";
+  if (hour < 22) return "dashboard:greeting.evening";
+  return "dashboard:greeting.night";
 }
 
 function formatToday(): string {
@@ -35,7 +35,7 @@ function nameFromEmail(email: string | undefined): string {
 }
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('dashboard');
   const { user } = useAuth();
   const isAdmin = user?.role === UserRole.ADMIN;
   const isCandidate = user?.role === UserRole.CANDIDATE;
@@ -45,10 +45,10 @@ export default function DashboardPage() {
   const today = formatToday();
 
   const heroSubtitleKey = isAdmin
-    ? "dashboard.heroSubtitle.admin"
+    ? "dashboard:heroSubtitle.admin"
     : isCandidate
-      ? "dashboard.heroSubtitle.candidate"
-      : "dashboard.heroSubtitle.company";
+      ? "dashboard:heroSubtitle.candidate"
+      : "dashboard:heroSubtitle.company";
 
   return (
     <div>
@@ -89,10 +89,10 @@ export default function DashboardPage() {
             className="group rounded-xl border border-white/8 bg-card p-5 transition duration-200 hover:border-copper/30 hover:bg-card-raised"
           >
             <p className="font-medium text-white/85 transition group-hover:text-white/95">
-              {t("dashboard.companyLinks.myJobs")}
+              {t("dashboard:companyLinks.myJobs")}
             </p>
             <p className="mt-1 text-sm text-white/45">
-              {t("dashboard.companyLinks.myJobsDesc")}
+              {t("dashboard:companyLinks.myJobsDesc")}
             </p>
           </Link>
         </div>
@@ -103,12 +103,12 @@ export default function DashboardPage() {
 
 /** Admin call-to-actions: warmer button styles + brief copy. */
 function QuickActions() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('dashboard');
   const actions = [
     {
       to: "/admin/companies?view=invites&action=invite",
-      label: t("dashboard.quickActions.invite.label"),
-      hint: t("dashboard.quickActions.invite.hint"),
+      label: t("dashboard:quickActions.invite.label"),
+      hint: t("dashboard:quickActions.invite.hint"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 6 9-6M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
@@ -117,8 +117,8 @@ function QuickActions() {
     },
     {
       to: "/admin/companies?view=active",
-      label: t("dashboard.quickActions.companies.label"),
-      hint: t("dashboard.quickActions.companies.hint"),
+      label: t("dashboard:quickActions.companies.label"),
+      hint: t("dashboard:quickActions.companies.hint"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M13 9h.01M9 13h.01M13 13h.01M9 17h.01M13 17h.01" />
@@ -127,8 +127,8 @@ function QuickActions() {
     },
     {
       to: "/admin/jobs",
-      label: t("dashboard.quickActions.jobs.label"),
-      hint: t("dashboard.quickActions.jobs.hint"),
+      label: t("dashboard:quickActions.jobs.label"),
+      hint: t("dashboard:quickActions.jobs.hint"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2ZM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -137,8 +137,8 @@ function QuickActions() {
     },
     {
       to: "/admin/candidates",
-      label: t("dashboard.quickActions.candidates.label"),
-      hint: t("dashboard.quickActions.candidates.hint"),
+      label: t("dashboard:quickActions.candidates.label"),
+      hint: t("dashboard:quickActions.candidates.hint"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm14 0a4 4 0 1 0-2-7.5" />
@@ -149,7 +149,7 @@ function QuickActions() {
   return (
     <div>
       <Eyebrow className="mb-3">
-        {t("dashboard.quickActions.title")}
+        {t("dashboard:quickActions.title")}
       </Eyebrow>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {actions.map((a) => (

@@ -33,35 +33,35 @@ export default function QuestionsStep({
   onTermsOpen: () => void;
   hideConsent?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['publicJobs', 'sm']);
   const fields: Array<{ name: keyof typeof form; label: string; ph: string }> =
     [
       {
         name: "service_concept",
-        label: t("publicJobs.application.serviceConcept"),
-        ph: t("publicJobs.application.placeholders.serviceConcept"),
+        label: t("publicJobs:application.serviceConcept"),
+        ph: t("publicJobs:application.placeholders.serviceConcept"),
       },
       {
         name: "salary_expectations",
-        label: t("publicJobs.application.salaryExpectations"),
-        ph: t("publicJobs.application.placeholders.salaryExpectations"),
+        label: t("publicJobs:application.salaryExpectations"),
+        ph: t("publicJobs:application.placeholders.salaryExpectations"),
       },
       {
         name: "strength",
-        label: t("publicJobs.application.strength"),
-        ph: t("publicJobs.application.placeholders.strength"),
+        label: t("publicJobs:application.strength"),
+        ph: t("publicJobs:application.placeholders.strength"),
       },
       {
         name: "growth_area",
-        label: t("publicJobs.application.growthArea"),
-        ph: t("publicJobs.application.placeholders.growthArea"),
+        label: t("publicJobs:application.growthArea"),
+        ph: t("publicJobs:application.placeholders.growthArea"),
       },
     ];
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       <div className="rounded-lg border border-copper/20 bg-copper/5 p-4 sm:col-span-2">
         <p className="text-xs leading-relaxed text-white/65">
-          {t("publicJobs.application.questionsStepBanner")}
+          {t("publicJobs:application.questionsStepBanner")}
         </p>
       </div>
 
@@ -92,7 +92,7 @@ export default function QuestionsStep({
                   over ? "text-danger" : "text-white/30"
                 }`}
               >
-                {t("publicJobs.application.charCount", {
+                {t("publicJobs:application.charCount", {
                   count,
                   max: TEXT_FIELD_MAX,
                 })}
@@ -115,17 +115,17 @@ export default function QuestionsStep({
         }`}
       >
         <Eyebrow>
-          {t("publicJobs.application.termsConsentTitle")}
+          {t("publicJobs:application.termsConsentTitle")}
         </Eyebrow>
         <p className="mt-2 text-xs leading-relaxed text-white/55">
-          {t("publicJobs.application.termsConsentPreview")}
+          {t("publicJobs:application.termsConsentPreview")}
         </p>
         <button
           type="button"
           onClick={onTermsOpen}
           className="mt-1 text-xs text-copper/80 underline-offset-2 hover:text-copper hover:underline"
         >
-          {t("publicJobs.application.termsConsentReadFull")}
+          {t("publicJobs:application.termsConsentReadFull")}
         </button>
         <label className="mt-3 flex cursor-pointer items-start gap-2.5">
           <input
@@ -136,7 +136,7 @@ export default function QuestionsStep({
             aria-describedby={fieldErrors.terms ? "terms-error" : undefined}
           />
           <span className="text-sm text-white/80">
-            {t("publicJobs.application.termsConsentCheckbox")}
+            {t("publicJobs:application.termsConsentCheckbox")}
           </span>
         </label>
         {fieldErrors.terms && (
@@ -155,17 +155,17 @@ export default function QuestionsStep({
         }`}
       >
         <Eyebrow>
-          {t("publicJobs.application.privacyConsentTitle")}
+          {t("publicJobs:application.privacyConsentTitle")}
         </Eyebrow>
         <p className="mt-2 text-xs leading-relaxed text-white/55">
-          {t("publicJobs.application.privacyConsentPreview")}
+          {t("publicJobs:application.privacyConsentPreview")}
         </p>
         <button
           type="button"
           onClick={onPrivacyOpen}
           className="mt-1 text-xs text-copper/80 underline-offset-2 hover:text-copper hover:underline"
         >
-          {t("publicJobs.application.privacyConsentReadFull")}
+          {t("publicJobs:application.privacyConsentReadFull")}
         </button>
         <label className="mt-3 flex cursor-pointer items-start gap-2.5">
           <input
@@ -176,7 +176,7 @@ export default function QuestionsStep({
             aria-describedby={fieldErrors.privacy ? "privacy-error" : undefined}
           />
           <span className="text-sm text-white/80">
-            {t("publicJobs.application.privacyConsentCheckbox")}
+            {t("publicJobs:application.privacyConsentCheckbox")}
           </span>
         </label>
         {fieldErrors.privacy && (

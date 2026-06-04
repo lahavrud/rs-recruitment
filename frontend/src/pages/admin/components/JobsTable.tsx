@@ -33,7 +33,7 @@ export default function JobsTable({
   onDelete,
   onMailto,
 }: JobsTableProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
 
   return (
     <div className="hidden overflow-x-auto rounded-xl border border-white/8 bg-card md:block">
@@ -41,19 +41,19 @@ export default function JobsTable({
         <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
           <tr>
             <th className="px-4 py-3 text-start">
-              {t("admin.jobs.fields.title")}
+              {t("admin:jobs.fields.title")}
             </th>
             <th className="px-4 py-3 text-start">
-              {t("admin.jobs.fields.location")}
+              {t("admin:jobs.fields.location")}
             </th>
             <th className="px-4 py-3 text-start">
-              {t("common.salary")}
+              {t("common:salary")}
             </th>
             <th className="px-4 py-3 text-start">
-              {t("admin.jobs.fields.status")}
+              {t("admin:jobs.fields.status")}
             </th>
             <th className="px-4 py-3 text-start">
-              {t("admin.jobs.submittedLabel")}
+              {t("admin:jobs.submittedLabel")}
             </th>
             <th className="px-4 py-3 text-end" aria-hidden />
           </tr>
@@ -91,29 +91,29 @@ export default function JobsTable({
                 onClick={(e) => e.stopPropagation()}
               >
                 <DropdownMenu
-                  ariaLabel={t("admin.jobs.rowActionsLabel")}
+                  ariaLabel={t("admin:jobs.rowActionsLabel")}
                   trigger={<KebabButton size="sm" />}
                 >
                   <DropdownMenuItem onSelect={() => onOpenDetail(job)}>
-                    {t("admin.jobs.viewAction")}
+                    {t("admin:jobs.viewAction")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => onEdit(job)}>
-                    {t("admin.jobs.editAction")}
+                    {t("admin:jobs.editAction")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => onMailto(job)}>
-                    {t("admin.jobs.email")}
+                    {t("admin:jobs.email")}
                   </DropdownMenuItem>
                   {job.status === JobStatus.PENDING_APPROVAL && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={() => onApprove(job)}>
-                        {t("admin.jobs.approve")}
+                        {t("admin:jobs.approve")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         variant="danger"
                         onSelect={() => onReject(job)}
                       >
-                        {t("admin.jobs.reject")}
+                        {t("admin:jobs.reject")}
                       </DropdownMenuItem>
                     </>
                   )}
@@ -122,7 +122,7 @@ export default function JobsTable({
                     variant="danger"
                     onSelect={() => onDelete(job)}
                   >
-                    {t("admin.jobs.deleteAction")}
+                    {t("admin:jobs.deleteAction")}
                   </DropdownMenuItem>
                 </DropdownMenu>
               </td>

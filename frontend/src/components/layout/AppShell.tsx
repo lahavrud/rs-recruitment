@@ -15,7 +15,7 @@ interface Props {
 
 /* ── Public footer ───────────────────────────────────────────────────────── */
 export function PublicFooter() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'common', 'http', 'landing', 'nav']);
   return (
     <footer className="border-t border-white/8 bg-void">
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-6 py-8 sm:flex-row sm:justify-between">
@@ -23,15 +23,15 @@ export function PublicFooter() {
           <Logo size={24} />
         </Link>
         <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/30">
-          <Link to="/jobs"     className="transition hover:text-white/60">{t("nav.jobs")}</Link>
-          <Link to="/articles" className="transition hover:text-white/60">{t("nav.articles")}</Link>
-          <Link to="/about"    className="transition hover:text-white/60">{t("nav.about")}</Link>
-          <Link to="/contact"  className="transition hover:text-white/60">{t("nav.contact")}</Link>
+          <Link to="/jobs"     className="transition hover:text-white/60">{t("nav:jobs")}</Link>
+          <Link to="/articles" className="transition hover:text-white/60">{t("nav:articles")}</Link>
+          <Link to="/about"    className="transition hover:text-white/60">{t("nav:about")}</Link>
+          <Link to="/contact"  className="transition hover:text-white/60">{t("nav:contact")}</Link>
         </nav>
         <p className="text-xs text-white/20">
           &copy; {new Date().getFullYear()}{" "}
           <span className="text-copper/60">RS Recruiting</span>.{" "}
-          {t("landing.footer.copyright")}
+          {t("landing:footer.copyright")}
         </p>
       </div>
     </footer>
@@ -40,7 +40,7 @@ export function PublicFooter() {
 
 /* ── Public header ───────────────────────────────────────────────────────── */
 export function PublicHeader({ transparent = false }: { transparent?: boolean }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['auth', 'common', 'http', 'landing', 'nav']);
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   // When transparent=true, track scroll to solidify the bar
@@ -59,10 +59,10 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
   }, [transparent]);
 
   const links = [
-    { to: "/jobs",     label: t("nav.jobs") },
-    { to: "/articles", label: t("nav.articles") },
-    { to: "/about",    label: t("nav.about") },
-    { to: "/contact",  label: t("nav.contact") },
+    { to: "/jobs",     label: t("nav:jobs") },
+    { to: "/articles", label: t("nav:articles") },
+    { to: "/about",    label: t("nav:about") },
+    { to: "/contact",  label: t("nav:contact") },
   ];
 
   // Glass style (landing page at top): white-tinted frosted glass
@@ -104,12 +104,12 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
             {isAuthenticated ? (
               <Link to="/dashboard"
                 className="rounded-sm border border-white/18 px-4 py-1.5 text-sm text-white/60 transition hover:border-white/35 hover:text-white/90">
-                {t("nav.dashboard")}
+                {t("nav:dashboard")}
               </Link>
             ) : (
               <Link to="/login"
                 className="rounded-sm border border-copper/40 px-4 py-1.5 text-sm text-copper/80 transition hover:border-copper/70 hover:text-copper">
-                {t("auth.login.submitText")}
+                {t("auth:login.submitText")}
               </Link>
             )}
           </nav>
@@ -117,7 +117,7 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
           {/* Mobile hamburger */}
           <button
             onClick={() => setOpen(true)}
-            aria-label={t("nav.menu")}
+            aria-label={t("nav:menu")}
             className="flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
           >
             <span className="block h-px w-5 rounded-full bg-white/55" />
@@ -148,7 +148,7 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
             </Link>
             <button
               onClick={() => setOpen(false)}
-              aria-label={t("common.close")}
+              aria-label={t("common:close")}
               className="flex size-9 items-center justify-center text-white/35 transition hover:text-white/70"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -179,12 +179,12 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
             {isAuthenticated ? (
               <Link to="/dashboard" onClick={() => setOpen(false)}
                 className="mt-8 self-start rounded-sm border border-copper/40 px-6 py-2.5 text-sm text-copper transition hover:bg-copper/10">
-                {t("nav.dashboard")}
+                {t("nav:dashboard")}
               </Link>
             ) : (
               <Link to="/login" onClick={() => setOpen(false)}
                 className="mt-8 self-start rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold">
-                {t("auth.login.submitText")}
+                {t("auth:login.submitText")}
               </Link>
             )}
           </nav>

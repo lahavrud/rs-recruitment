@@ -44,7 +44,7 @@ export default function Dialog({
   size = "md",
   preventOutsideClose = false,
 }: DialogProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http']);
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -85,7 +85,7 @@ export default function Dialog({
               )}
             </div>
             <RadixDialog.Close
-              aria-label={t("common.close")}
+              aria-label={t("common:close")}
               className="shrink-0 rounded-sm p-1 text-white/30 transition hover:bg-white/8 hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden="true">

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 interface NoResultsProps {
-  /** Override the default `publicJobs.board.noResults` message. */
+  /** Override the default `publicJobs:board.noResults` message. */
   message?: string;
   /** Optional CTA rendered below the message (e.g. "clear filters"). */
   children?: ReactNode;
@@ -14,11 +14,11 @@ interface NoResultsProps {
  * `EmptyState` instead.
  */
 export default function NoResults({ message, children }: NoResultsProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
   return (
     <div className="rounded-xl border border-dashed border-white/10 py-16 text-center">
       <p className="text-sm text-white/40">
-        {message ?? t("publicJobs.board.noResults")}
+        {message ?? t("publicJobs:board.noResults")}
       </p>
       {children}
     </div>

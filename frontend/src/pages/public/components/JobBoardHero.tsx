@@ -19,7 +19,7 @@ interface JobBoardHeroProps {
 }
 
 export default function JobBoardHero({ initialQuery, onSearch }: JobBoardHeroProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
   const heroBgLoaded = useImageLoaded("/property-exterior.webp");
 
   return (
@@ -66,7 +66,7 @@ export default function JobBoardHero({ initialQuery, onSearch }: JobBoardHeroPro
             className="text-3xl font-semibold leading-snug text-white/92 sm:text-4xl"
             style={rise("0.3s")}
           >
-            {t("publicJobs.board.title")}
+            {t("publicJobs:board.title")}
           </h1>
         </div>
 
@@ -75,7 +75,7 @@ export default function JobBoardHero({ initialQuery, onSearch }: JobBoardHeroPro
           className="mt-3 max-w-xl text-sm leading-relaxed text-white/45"
           style={revealUp("0.5s")}
         >
-          {t("publicJobs.board.subtitle")}
+          {t("publicJobs:board.subtitle")}
         </p>
 
         {/* Search bar */}
@@ -83,7 +83,7 @@ export default function JobBoardHero({ initialQuery, onSearch }: JobBoardHeroPro
           <SearchInput
             initialValue={initialQuery}
             onChange={onSearch}
-            placeholder={t("publicJobs.board.searchPlaceholder")}
+            placeholder={t("publicJobs:board.searchPlaceholder")}
           />
         </div>
       </div>

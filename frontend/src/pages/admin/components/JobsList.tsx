@@ -31,7 +31,7 @@ export default function JobsList({
   onDelete,
   onMailto,
 }: JobsListProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
 
   return (
     <div className="space-y-2 md:hidden">
@@ -44,28 +44,28 @@ export default function JobsList({
           companyName={companyNameById.get(job.company_id)}
           actions={
             <DropdownMenu
-              ariaLabel={t("admin.jobs.rowActionsLabel")}
+              ariaLabel={t("admin:jobs.rowActionsLabel")}
               trigger={
                 <KebabButton onClick={(e) => e.stopPropagation()} />
               }
             >
               <DropdownMenuItem onSelect={() => onEdit(job)}>
-                {t("admin.jobs.editAction")}
+                {t("admin:jobs.editAction")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onMailto(job)}>
-                {t("admin.jobs.email")}
+                {t("admin:jobs.email")}
               </DropdownMenuItem>
               {job.status === JobStatus.PENDING_APPROVAL && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => onApprove(job)}>
-                    {t("admin.jobs.approve")}
+                    {t("admin:jobs.approve")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     variant="danger"
                     onSelect={() => onReject(job)}
                   >
-                    {t("admin.jobs.reject")}
+                    {t("admin:jobs.reject")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -74,7 +74,7 @@ export default function JobsList({
                 variant="danger"
                 onSelect={() => onDelete(job)}
               >
-                {t("admin.jobs.deleteAction")}
+                {t("admin:jobs.deleteAction")}
               </DropdownMenuItem>
             </DropdownMenu>
           }

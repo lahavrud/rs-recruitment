@@ -21,17 +21,17 @@ export default function CompanyProfileFields({
   errors,
   showRequired = false,
 }: ProfileFieldsProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   return (
     <div className="space-y-5">
       {/* Section: Company */}
       <section>
         <Eyebrow className="mb-3">
-          {t("admin.companies.formSections.company")}
+          {t("admin:companies.formSections.company")}
         </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <Field
-            label={t("admin.companies.fields.name")}
+            label={t("admin:companies.fields.name")}
             required={showRequired}
             full
             name="name"
@@ -42,14 +42,14 @@ export default function CompanyProfileFields({
               value={form.name ?? ""}
               onChange={(e) => setField("name", e.target.value)}
               className={inputCls}
-              placeholder={t("admin.companies.placeholders.name")}
+              placeholder={t("admin:companies.placeholders.name")}
               aria-invalid={!!errors?.name}
             />
           </Field>
           <Field
-            label={t("admin.companies.fields.companyId")}
+            label={t("admin:companies.fields.companyId")}
             required={showRequired}
-            hint={showRequired ? t("admin.companies.hints.companyId") : undefined}
+            hint={showRequired ? t("admin:companies.hints.companyId") : undefined}
             name="company_id"
             error={errors?.company_id}
           >
@@ -65,7 +65,7 @@ export default function CompanyProfileFields({
             />
           </Field>
           <Field
-            label={t("admin.companies.fields.address")}
+            label={t("admin:companies.fields.address")}
             required={showRequired}
             name="address"
             error={errors?.address}
@@ -75,7 +75,7 @@ export default function CompanyProfileFields({
               value={form.address ?? ""}
               onChange={(e) => setField("address", e.target.value)}
               className={inputCls}
-              placeholder={t("admin.companies.placeholders.address")}
+              placeholder={t("admin:companies.placeholders.address")}
               aria-invalid={!!errors?.address}
             />
           </Field>
@@ -85,11 +85,11 @@ export default function CompanyProfileFields({
       {/* Section: Contact person */}
       <section>
         <Eyebrow className="mb-3">
-          {t("admin.companies.formSections.contact")}
+          {t("admin:companies.formSections.contact")}
         </Eyebrow>
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <Field
-            label={t("admin.companies.fields.contactEmail")}
+            label={t("admin:companies.fields.contactEmail")}
             required={showRequired}
             full
             name="contact_email"
@@ -106,7 +106,7 @@ export default function CompanyProfileFields({
             />
           </Field>
           <Field
-            label={t("admin.companies.fields.contactFirstName")}
+            label={t("admin:companies.fields.contactFirstName")}
             required={showRequired}
             name="contact_first_name"
             error={errors?.contact_first_name}
@@ -121,7 +121,7 @@ export default function CompanyProfileFields({
             />
           </Field>
           <Field
-            label={t("admin.companies.fields.contactLastName")}
+            label={t("admin:companies.fields.contactLastName")}
             required={showRequired}
             name="contact_last_name"
             error={errors?.contact_last_name}
@@ -136,9 +136,9 @@ export default function CompanyProfileFields({
             />
           </Field>
           <Field
-            label={t("admin.companies.fields.contactMobile")}
+            label={t("admin:companies.fields.contactMobile")}
             required={showRequired}
-            hint={showRequired ? t("admin.companies.hints.mobile") : undefined}
+            hint={showRequired ? t("admin:companies.hints.mobile") : undefined}
             name="contact_mobile_phone"
             error={errors?.contact_mobile_phone}
           >
@@ -154,7 +154,7 @@ export default function CompanyProfileFields({
             />
           </Field>
           <Field
-            label={t("admin.companies.fields.contactLandline")}
+            label={t("admin:companies.fields.contactLandline")}
             optional
           >
             <input

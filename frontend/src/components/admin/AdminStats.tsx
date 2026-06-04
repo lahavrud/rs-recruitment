@@ -24,7 +24,7 @@ const LIMIT = 100;
 type Stat = { n: number; capped: boolean } | null;
 
 export default function AdminStats() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'dashboard']);
   const [activeCompanies, setActiveCompanies] = useState<Stat>(null);
   const [publishedJobs, setPublishedJobs] = useState<Stat>(null);
   const [candidates, setCandidates] = useState<Stat>(null);
@@ -84,16 +84,16 @@ export default function AdminStats() {
   }, [appCache]);
 
   const kpis = [
-    { label: t("dashboard.stats.activeCompanies"), stat: activeCompanies },
-    { label: t("dashboard.stats.publishedJobs"), stat: publishedJobs },
-    { label: t("dashboard.stats.candidates"), stat: candidates },
-    { label: t("dashboard.stats.hired"), stat: hired },
+    { label: t("dashboard:stats.activeCompanies"), stat: activeCompanies },
+    { label: t("dashboard:stats.publishedJobs"), stat: publishedJobs },
+    { label: t("dashboard:stats.candidates"), stat: candidates },
+    { label: t("dashboard:stats.hired"), stat: hired },
   ];
 
   return (
     <div className="space-y-5">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-        {t("dashboard.stats.title")}
+        {t("dashboard:stats.title")}
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpis.map((k) => (
@@ -139,7 +139,7 @@ function ApplicationStatusBar({
 }: {
   counts: { [k: string]: number };
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'dashboard']);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const segments = [
     { status: ApplicationStatus.NEW, n: counts[ApplicationStatus.NEW] ?? 0 },
@@ -156,11 +156,11 @@ function ApplicationStatusBar({
   return (
     <div className="rounded-xl border border-white/8 bg-card p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-        {t("dashboard.stats.statusBreakdown")}
+        {t("dashboard:stats.statusBreakdown")}
       </p>
       {total === 0 ? (
         <p className="mt-3 text-sm text-white/40">
-          {t("dashboard.stats.noApplications")}
+          {t("dashboard:stats.noApplications")}
         </p>
       ) : (
         <>
@@ -171,7 +171,7 @@ function ApplicationStatusBar({
                   key={seg.status}
                   className={STATUS_META[seg.status].barClass}
                   style={{ width: `${(seg.n / total) * 100}%` }}
-                  title={`${t(`admin.applications.statusLabels.${seg.status}`)} — ${seg.n}`}
+                  title={`${t(`admin:applications.statusLabels.${seg.status}`)} — ${seg.n}`}
                 />
               ),
             )}
@@ -187,7 +187,7 @@ function ApplicationStatusBar({
                   aria-hidden="true"
                 />
                 <span className="text-white/55">
-                  {t(`admin.applications.statusLabels.${seg.status}`)}
+                  {t(`admin:applications.statusLabels.${seg.status}`)}
                 </span>
                 <span className="font-medium text-white/85">{seg.n}</span>
               </div>
@@ -206,18 +206,18 @@ function TopJobsList({
   jobs: { id: number; title: string; count: number }[];
   loading: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'dashboard']);
   const maxCount = jobs[0]?.count ?? 0;
   return (
     <div className="rounded-xl border border-white/8 bg-card p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-        {t("dashboard.stats.topJobs")}
+        {t("dashboard:stats.topJobs")}
       </p>
       {loading ? (
-        <p className="mt-3 text-sm text-white/40">{t("common.loading")}</p>
+        <p className="mt-3 text-sm text-white/40">{t("common:loading")}</p>
       ) : jobs.length === 0 ? (
         <p className="mt-3 text-sm text-white/40">
-          {t("dashboard.stats.noTopJobs")}
+          {t("dashboard:stats.noTopJobs")}
         </p>
       ) : (
         <ol className="mt-3 space-y-2">

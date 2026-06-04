@@ -8,7 +8,7 @@ interface SuccessScreenProps {
 }
 
 export default function SuccessScreen({ job, claimAccount }: SuccessScreenProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-8">
@@ -18,23 +18,23 @@ export default function SuccessScreen({ job, claimAccount }: SuccessScreenProps)
             ✓
           </div>
           <h2 className="mt-5 text-lg font-semibold text-white/90">
-            {t("publicJobs.application.submitted")}
+            {t("publicJobs:application.submitted")}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/50">
-            {t("publicJobs.application.submittedMessage")}{" "}
+            {t("publicJobs:application.submittedMessage")}{" "}
             <span className="text-white/70">{job?.title}</span>.{" "}
-            {t("publicJobs.application.submittedDetail")}
+            {t("publicJobs:application.submittedDetail")}
           </p>
           {claimAccount && (
             <p className="mt-4 rounded-lg border border-copper/20 bg-copper/5 px-4 py-3 text-sm leading-relaxed text-white/65">
-              {t("publicJobs.application.claim.accountCreated")}
+              {t("publicJobs:application.claim.accountCreated")}
             </p>
           )}
           <Link
             to="/jobs"
             className="mt-7 inline-block rounded-sm border border-white/20 px-6 py-2.5 text-sm text-white/60 transition hover:border-white/40 hover:text-white/90"
           >
-            {t("publicJobs.application.browseMore")}
+            {t("publicJobs:application.browseMore")}
           </Link>
         </div>
       </div>

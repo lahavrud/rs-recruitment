@@ -13,16 +13,16 @@ export default function Stepper({
   maxStep: Step;
   onJump: (s: Step) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
   const labels: [Step, string][] = [
-    [1, t("publicJobs.application.steps.identity")],
-    [2, t("publicJobs.application.steps.resume")],
-    [3, t("publicJobs.application.steps.questions")],
+    [1, t("publicJobs:application.steps.identity")],
+    [2, t("publicJobs:application.steps.resume")],
+    [3, t("publicJobs:application.steps.questions")],
   ];
   return (
     <div>
       <Eyebrow className="mb-3">
-        {t("publicJobs.application.steps.indicator", {
+        {t("publicJobs:application.steps.indicator", {
           current: step,
           total: TOTAL_STEPS,
         })}

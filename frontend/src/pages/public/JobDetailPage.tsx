@@ -137,7 +137,7 @@ function LocationIcon() {
 }
 
 export default function JobDetailPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http', 'https', 'lg', 'publicJobs']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,9 +169,9 @@ export default function JobDetailPage() {
       } catch (err) {
         if (!cancelled) {
           if (axios.isAxiosError(err) && err.response?.status === 404) {
-            setError(t("publicJobs.detail.unavailable"));
+            setError(t("publicJobs:detail.unavailable"));
           } else {
-            setError(t("publicJobs.detail.errorLoad"));
+            setError(t("publicJobs:detail.errorLoad"));
           }
         }
       } finally {
@@ -196,13 +196,13 @@ export default function JobDetailPage() {
     return (
       <div className="text-center">
         <div className="rounded-lg border border-danger/20 bg-danger/10 p-6 text-sm text-danger">
-          {error ?? t("publicJobs.detail.notFound")}
+          {error ?? t("publicJobs:detail.notFound")}
         </div>
         <Link
           to={backTo}
           className="mt-6 inline-block text-sm text-white/40 transition hover:text-copper"
         >
-          {t("publicJobs.detail.backToJobs")}
+          {t("publicJobs:detail.backToJobs")}
         </Link>
       </div>
     );
@@ -219,9 +219,9 @@ export default function JobDetailPage() {
       : `/jobs/${job.id}/apply`;
   const applyLabelKey = myApp
     ? myApp.editable
-      ? "publicJobs.detail.editYourApplication"
-      : "publicJobs.detail.alreadyApplied"
-    : "publicJobs.detail.applyNow";
+      ? "publicJobs:detail.editYourApplication"
+      : "publicJobs:detail.alreadyApplied"
+    : "publicJobs:detail.applyNow";
   const applyDisabled = Boolean(myApp && !myApp.editable);
   const salaryStr = formatSalary(job.salary_min, job.salary_max);
 
@@ -261,7 +261,7 @@ export default function JobDetailPage() {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: SITE_NAME, item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: t("publicJobs.board.title"), item: `${SITE_URL}/jobs` },
+      { "@type": "ListItem", position: 2, name: t("publicJobs:board.title"), item: `${SITE_URL}/jobs` },
       { "@type": "ListItem", position: 3, name: job.title, item: `${SITE_URL}/jobs/${job.id}` },
     ],
   };
@@ -298,7 +298,7 @@ export default function JobDetailPage() {
             clipRule="evenodd"
           />
         </svg>
-        {t("publicJobs.detail.backToJobs")}
+        {t("publicJobs:detail.backToJobs")}
       </Link>
 
       <div className="lg:grid lg:grid-cols-[1fr_280px] lg:items-start lg:gap-8">
@@ -319,7 +319,7 @@ export default function JobDetailPage() {
               >
                 <path d="M12 2c.7 2.5 2.5 3.5 2.5 6a2.5 2.5 0 0 1-5 0c0-1 .4-1.7 1-2.3C9 7 9 5 12 2zm0 8c3.5 0 6 2.8 6 6.3a6 6 0 1 1-12 0c0-2 1-3.5 2.4-4.5-.1 1.6.7 2.7 1.9 3.3-.7-2.2.7-3.5 1.7-5.1z" />
               </svg>
-              {t("publicJobs.board.featured")}
+              {t("publicJobs:board.featured")}
             </p>
           )}
           {/* Header: title, status badge, location, posted, salary */}
@@ -349,12 +349,12 @@ export default function JobDetailPage() {
           )}
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <p className="text-xs text-white/30">
-              {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
+              {t("publicJobs:detail.posted")} {formatDate(job.created_at)}
             </p>
             <p className="flex items-center gap-1.5 text-sm">
-              <span className="text-white/40">{t("common.salary")}:</span>
+              <span className="text-white/40">{t("common:salary")}:</span>
               <span className="font-medium text-copper/85">
-                {salaryStr ?? t("common.salaryNotSpecified")}
+                {salaryStr ?? t("common:salaryNotSpecified")}
               </span>
             </p>
           </div>
@@ -364,7 +364,7 @@ export default function JobDetailPage() {
           {/* About the role */}
           <div>
             <Eyebrow className="mb-3">
-              {t("publicJobs.detail.aboutRole")}
+              {t("publicJobs:detail.aboutRole")}
             </Eyebrow>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/65 sm:text-[15px]">
               {job.description}
@@ -375,7 +375,7 @@ export default function JobDetailPage() {
           {job.requirements.length > 0 && (
             <div className="mt-8">
               <Eyebrow className="mb-3">
-                {t("publicJobs.detail.requirements")}
+                {t("publicJobs:detail.requirements")}
               </Eyebrow>
               <ul className="space-y-2 text-sm leading-relaxed text-white/65 sm:text-[15px]">
                 {job.requirements.map((req, i) => (
@@ -401,12 +401,12 @@ export default function JobDetailPage() {
               {job.location}
             </p>
             <p className="mt-1 text-xs text-white/25">
-              {t("publicJobs.detail.posted")} {formatDate(job.created_at)}
+              {t("publicJobs:detail.posted")} {formatDate(job.created_at)}
             </p>
             <p className="mt-2 flex items-center gap-1.5 text-sm">
-              <span className="text-white/40">{t("common.salary")}:</span>
+              <span className="text-white/40">{t("common:salary")}:</span>
               <span className="font-medium text-copper/85">
-                {salaryStr ?? t("common.salaryNotSpecified")}
+                {salaryStr ?? t("common:salaryNotSpecified")}
               </span>
             </p>
 

@@ -24,7 +24,7 @@ export default function CandidateEditDialog({
   onSaved,
   onError,
 }: EditProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [form, setForm] = useState<CandidateProfileUpdate>({});
   const [initialForm, setInitialForm] = useState<CandidateProfileUpdate>({});
   const [saving, setSaving] = useState(false);
@@ -56,24 +56,24 @@ export default function CandidateEditDialog({
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!form.full_name?.trim()) e.full_name = t("common.validation.required");
+    if (!form.full_name?.trim()) e.full_name = t("common:validation.required");
     else if (form.full_name.trim().length < 2)
-      e.full_name = t("common.validation.tooShort", { min: 2 });
+      e.full_name = t("common:validation.tooShort", { min: 2 });
     else if (form.full_name.length > 100)
-      e.full_name = t("common.validation.tooLong", { max: 100 });
-    if (!form.email?.trim()) e.email = t("common.validation.required");
-    else if (!EMAIL_RE.test(form.email)) e.email = t("common.validation.emailInvalid");
-    if (!form.phone?.trim()) e.phone = t("common.validation.required");
+      e.full_name = t("common:validation.tooLong", { max: 100 });
+    if (!form.email?.trim()) e.email = t("common:validation.required");
+    else if (!EMAIL_RE.test(form.email)) e.email = t("common:validation.emailInvalid");
+    if (!form.phone?.trim()) e.phone = t("common:validation.required");
     else if (!MOBILE_RE.test(form.phone.trim())) {
-      e.phone = t("common.validation.phoneInvalid");
+      e.phone = t("common:validation.phoneInvalid");
     }
     if (form.linkedin_url?.trim()) {
       try {
         const url = new URL(form.linkedin_url);
         if (!url.hostname.endsWith("linkedin.com"))
-          e.linkedin_url = t("common.validation.linkedinInvalid");
+          e.linkedin_url = t("common:validation.linkedinInvalid");
       } catch {
-        e.linkedin_url = t("common.validation.linkedinInvalid");
+        e.linkedin_url = t("common:validation.linkedinInvalid");
       }
     }
     setErrors(e);
@@ -106,22 +106,22 @@ export default function CandidateEditDialog({
       <Dialog
         open={candidate != null}
         onOpenChange={(o) => !o && handleClose()}
-        title={t("admin.candidates.editModalTitle")}
+        title={t("admin:candidates.editModalTitle")}
         description={candidate.email}
         size="lg"
         footer={
           <>
             <Button variant="ghost" onClick={handleClose} disabled={saving}>
-              {t("common.cancel")}
+              {t("common:cancel")}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? t("common.saving") : t("common.save")}
+              {saving ? t("common:saving") : t("common:save")}
             </Button>
           </>
         }
       >
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <Field label={t("admin.candidates.fields.fullName")} error={errors.full_name}>
+          <Field label={t("admin:candidates.fields.fullName")} error={errors.full_name}>
             <input
               type="text"
               value={form.full_name ?? ""}
@@ -129,7 +129,7 @@ export default function CandidateEditDialog({
               className={inputCls}
             />
           </Field>
-          <Field label={t("admin.candidates.fields.email")} error={errors.email}>
+          <Field label={t("admin:candidates.fields.email")} error={errors.email}>
             <input
               type="email"
               value={form.email ?? ""}
@@ -137,7 +137,7 @@ export default function CandidateEditDialog({
               className={inputCls}
             />
           </Field>
-          <Field label={t("admin.candidates.fields.phone")} error={errors.phone}>
+          <Field label={t("admin:candidates.fields.phone")} error={errors.phone}>
             <input
               type="tel"
               value={form.phone ?? ""}
@@ -145,7 +145,7 @@ export default function CandidateEditDialog({
               className={inputCls}
             />
           </Field>
-          <Field label={t("admin.candidates.fields.linkedin")} error={errors.linkedin_url}>
+          <Field label={t("admin:candidates.fields.linkedin")} error={errors.linkedin_url}>
             <input
               type="url"
               value={form.linkedin_url ?? ""}

@@ -18,7 +18,7 @@ export default function StepNav({
   onBack: () => void;
   onNext: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
   const isFinal = step === TOTAL_STEPS;
   // Sticky bottom-0 — works as sibling of content inside min-h-screen flex-col.
   // Naturally stops before the footer (sticky can't extend past its parent).
@@ -31,7 +31,7 @@ export default function StepNav({
           disabled={step === 1}
           className="rounded-sm border border-white/15 px-4 py-2 text-sm text-white/65 transition hover:border-white/35 hover:text-white/90 disabled:cursor-not-allowed disabled:opacity-30"
         >
-          {t("publicJobs.application.steps.back")}
+          {t("publicJobs:application.steps.back")}
         </button>
         {isFinal ? (
           // Distinct `key` from the Continue button — guarantees React mounts
@@ -48,8 +48,8 @@ export default function StepNav({
             className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50 sm:px-8 sm:py-3 sm:text-base"
           >
             {submitting
-              ? t("publicJobs.application.submittingText")
-              : t("publicJobs.application.submitText")}
+              ? t("publicJobs:application.submittingText")
+              : t("publicJobs:application.submitText")}
           </button>
         ) : (
           <button
@@ -64,7 +64,7 @@ export default function StepNav({
             }}
             className="rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold sm:px-8 sm:py-3 sm:text-base"
           >
-            {t("publicJobs.application.steps.continue")}
+            {t("publicJobs:application.steps.continue")}
           </button>
         )}
       </div>

@@ -23,7 +23,7 @@ export default function ApplicationNotesDialog({
   onSaved,
   onError,
 }: NotesDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [notes, setNotes] = useState<string>(app?.admin_notes ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -46,7 +46,7 @@ export default function ApplicationNotesDialog({
     <Dialog
       open={app != null}
       onOpenChange={(o) => !o && onClose()}
-      title={t("admin.applications.notesModalTitle")}
+      title={t("admin:applications.notesModalTitle")}
       description={app.candidate.full_name}
       size="md"
       footer={
@@ -56,13 +56,13 @@ export default function ApplicationNotesDialog({
             onClick={onClose}
             disabled={saving}
           >
-            {t("common.cancel")}
+            {t("common:cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? t("common.saving") : t("common.save")}
+            {saving ? t("common:saving") : t("common:save")}
           </Button>
         </>
       }
@@ -73,7 +73,7 @@ export default function ApplicationNotesDialog({
         rows={5}
         maxLength={5000}
         className={textareaCls}
-        placeholder={t("admin.applications.modal.notesPlaceholder")}
+        placeholder={t("admin:applications.modal.notesPlaceholder")}
       />
       {notes.length > 4800 && (
         <p className="mt-1 text-xs text-white/35">{notes.length} / 5000</p>

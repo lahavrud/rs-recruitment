@@ -14,7 +14,7 @@ export function Hero({
   me: CandidateMeRead | null;
   appsPage: CandidateApplicationsPage | null;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('dashboard');
   const today = new Date().toLocaleDateString("he-IL", {
     weekday: "long",
     day: "numeric",
@@ -24,12 +24,12 @@ export function Hero({
   const hour = new Date().getHours();
   const greetingKey =
     hour < 12
-      ? "dashboard.greeting.morning"
+      ? "dashboard:greeting.morning"
       : hour < 17
-        ? "dashboard.greeting.afternoon"
+        ? "dashboard:greeting.afternoon"
         : hour < 22
-          ? "dashboard.greeting.evening"
-          : "dashboard.greeting.night";
+          ? "dashboard:greeting.evening"
+          : "dashboard:greeting.night";
 
   // Prefer the candidate's actual first name from the profile; only
   // fall back to the email local-part while the fetch is in flight or
@@ -50,28 +50,28 @@ export function Hero({
         {firstName && <span className="text-copper/85">{`, ${firstName}`}</span>}
       </h1>
       <p className="mt-2 max-w-prose text-sm text-white/55">
-        {t("dashboard.heroSubtitle.candidate")}
+        {t("dashboard:heroSubtitle.candidate")}
       </p>
 
       <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-white/8 sm:grid-cols-2">
         <Stat
-          label={t("dashboard.candidate.stats.applicationsSubmitted")}
+          label={t("dashboard:candidate.stats.applicationsSubmitted")}
           value={appsCount === null ? "—" : appsCount.toString()}
           hint={
             appsCount === 0
-              ? t("dashboard.candidate.stats.applicationsHintEmpty")
+              ? t("dashboard:candidate.stats.applicationsHintEmpty")
               : appsCount === null
                 ? ""
-                : t("dashboard.candidate.stats.applicationsHint")
+                : t("dashboard:candidate.stats.applicationsHint")
           }
         />
         <Stat
-          label={t("dashboard.candidate.stats.profileCompletion")}
+          label={t("dashboard:candidate.stats.profileCompletion")}
           value={completion === null ? "—" : `${completion}%`}
           hint={
             completion === 100
-              ? t("dashboard.candidate.stats.profileHintComplete")
-              : t("dashboard.candidate.stats.profileHintIncomplete")
+              ? t("dashboard:candidate.stats.profileHintComplete")
+              : t("dashboard:candidate.stats.profileHintIncomplete")
           }
         />
       </dl>

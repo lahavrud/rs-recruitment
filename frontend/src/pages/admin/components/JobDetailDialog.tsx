@@ -17,11 +17,11 @@ import { formatDate } from "@/utils/formatDate";
  * enough that it doesn't visually overlap the title.
  */
 export function FeaturedDesktopSash() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common', 'http', 'publicJobs']);
   return (
     <span
       className="pointer-events-none absolute right-0 top-0 z-20 h-7 w-7 overflow-hidden"
-      aria-label={t("publicJobs.board.featured")}
+      aria-label={t("publicJobs:board.featured")}
     >
       <span
         className="absolute top-1 -right-3 inline-flex w-12 origin-center rotate-45 items-center justify-center bg-gradient-to-r from-copper via-gold to-gold-light py-px text-white shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
@@ -62,7 +62,7 @@ export default function JobDetailDialog({
   onApprove,
   onReject,
 }: DetailProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common', 'http', 'publicJobs']);
   if (!job) return null;
   const isPending = job.status === JobStatus.PENDING_APPROVAL;
   return (
@@ -78,14 +78,14 @@ export default function JobDetailDialog({
             variant="danger"
             onClick={onDelete}
           >
-            {t("admin.jobs.deleteAction")}
+            {t("admin:jobs.deleteAction")}
           </Button>
           {isPending && onReject && (
             <Button
               variant="ghost"
               onClick={onReject}
             >
-              {t("admin.jobs.reject")}
+              {t("admin:jobs.reject")}
             </Button>
           )}
           {isPending && onApprove && (
@@ -93,13 +93,13 @@ export default function JobDetailDialog({
               variant="success"
               onClick={onApprove}
             >
-              {t("admin.jobs.approve")}
+              {t("admin:jobs.approve")}
             </Button>
           )}
           <Button
             onClick={onEdit}
           >
-            {t("admin.jobs.editAction")}
+            {t("admin:jobs.editAction")}
           </Button>
         </>
       }
@@ -128,7 +128,7 @@ export function JobDetailBody({
   companyName?: string;
   onLeavePage?: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common', 'http', 'publicJobs']);
   const navigate = useNavigate();
 
   // Lazy-fetch application count for this job. `null` = loading, number = total.
@@ -172,14 +172,14 @@ export function JobDetailBody({
             >
               <path d="M12 2c.7 2.5 2.5 3.5 2.5 6a2.5 2.5 0 0 1-5 0c0-1 .4-1.7 1-2.3C9 7 9 5 12 2zm0 8c3.5 0 6 2.8 6 6.3a6 6 0 1 1-12 0c0-2 1-3.5 2.4-4.5-.1 1.6.7 2.7 1.9 3.3-.7-2.2.7-3.5 1.7-5.1z" />
             </svg>
-            {t("publicJobs.board.featured")}
+            {t("publicJobs:board.featured")}
           </span>
         )}
       </div>
 
       {/* Metadata grid — labeled fields read cleanly on mobile */}
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-6">
-        <dt className="text-white/40">{t("admin.jobs.fields.company")}</dt>
+        <dt className="text-white/40">{t("admin:jobs.fields.company")}</dt>
         <dd>
           <button
             type="button"
@@ -189,18 +189,18 @@ export function JobDetailBody({
             }}
             className="inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-2 py-0.5 text-copper/90 transition hover:border-copper/30 hover:bg-copper/10 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:text-copper/85 sm:hover:bg-transparent sm:hover:text-copper sm:hover:underline"
           >
-            {companyName ?? t("admin.jobs.companyLabel", { id: job.company_id })}
+            {companyName ?? t("admin:jobs.companyLabel", { id: job.company_id })}
           </button>
         </dd>
-        <dt className="text-white/40">{t("admin.jobs.submittedLabel")}</dt>
+        <dt className="text-white/40">{t("admin:jobs.submittedLabel")}</dt>
         <dd className="text-white/70">{formatDate(job.created_at)}</dd>
         {salaryStr && (
           <>
-            <dt className="text-white/40">{t("common.salary")}</dt>
+            <dt className="text-white/40">{t("common:salary")}</dt>
             <dd className="font-medium text-copper/85">{salaryStr}</dd>
           </>
         )}
-        <dt className="text-white/40">{t("admin.jobs.candidatesLabel")}</dt>
+        <dt className="text-white/40">{t("admin:jobs.candidatesLabel")}</dt>
         <dd className="inline-flex items-center gap-1.5">
           <span className="font-medium text-copper/85">
             {applicationCount == null
@@ -218,7 +218,7 @@ export function JobDetailBody({
               }}
               className="inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-2 py-0.5 text-white/65 transition hover:border-copper/30 hover:bg-copper/10 hover:text-copper sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:text-white/40 sm:hover:bg-transparent sm:hover:text-copper sm:hover:underline"
             >
-              {t("admin.jobs.candidatesView")}
+              {t("admin:jobs.candidatesView")}
             </button>
           )}
         </dd>
@@ -240,18 +240,18 @@ export function JobDetailBody({
       {/* Short description: lifted into a subtle well so it doesn't compete with the metadata */}
       <div className="rounded-md border border-white/6 bg-well/30 px-3 py-2.5">
         <Eyebrow>
-          {t("admin.jobs.fields.shortDescription")}
+          {t("admin:jobs.fields.shortDescription")}
         </Eyebrow>
         <p className="mt-1 leading-relaxed text-white/80">{job.short_description}</p>
       </div>
 
-      <CollapsibleSection title={t("admin.jobs.fields.description")}>
+      <CollapsibleSection title={t("admin:jobs.fields.description")}>
         <p className="whitespace-pre-wrap leading-relaxed text-white/75">
           {job.description}
         </p>
       </CollapsibleSection>
       {job.requirements.length > 0 && (
-        <CollapsibleSection title={t("admin.jobs.fields.requirements")}>
+        <CollapsibleSection title={t("admin:jobs.fields.requirements")}>
           <ul className="space-y-1.5 text-white/75">
             {job.requirements.map((req, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -291,7 +291,7 @@ export function MobileJobCard({
   companyName?: string;
   actions: React.ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common', 'http', 'publicJobs']);
   const [open, setOpen] = useState(false);
   return (
     <div
@@ -303,7 +303,7 @@ export function MobileJobCard({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={open ? t("admin.jobs.collapseLabel") : t("admin.jobs.expandLabel")}
+        aria-label={open ? t("admin:jobs.collapseLabel") : t("admin:jobs.expandLabel")}
         className="flex w-full cursor-pointer items-center gap-3 px-3 py-3 pe-12 text-start active:scale-[0.99]"
       >
         <span
@@ -372,7 +372,7 @@ export function MobileJobCard({
                   clipRule="evenodd"
                 />
               </svg>
-              {t("admin.jobs.collapseLabel")}
+              {t("admin:jobs.collapseLabel")}
             </button>
           </div>
         </div>

@@ -73,7 +73,7 @@ const SWIPE_HINT_KEY = "triage.swipeHintSeen";
  *   - Minimal chrome: labels recede, content leads.
  */
 export default function AdminApplicationsTriagePage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const toast = useToast();
   const { items, isLoading, error, reload } = useTriageQueue();
@@ -184,7 +184,7 @@ export default function AdminApplicationsTriagePage() {
           return next;
         });
         setPendingUndo((p) => (p?.appId === appId ? null : p));
-        toast.error(t("admin.applications.triage.errors.saveDecision"));
+        toast.error(t("admin:applications.triage.errors.saveDecision"));
       });
     },
     [current, flying, isSwapping, goNext, index, toast, t],
@@ -211,7 +211,7 @@ export default function AdminApplicationsTriagePage() {
         if (snapshot) {
           setDecisions((prev) => ({ ...prev, [appId]: snapshot }));
         }
-        toast.error(t("admin.applications.triage.errors.undoDecision"));
+        toast.error(t("admin:applications.triage.errors.undoDecision"));
       });
     },
     [decisions, toast, t],
@@ -391,17 +391,17 @@ export default function AdminApplicationsTriagePage() {
 
   // ── Render gates: loading / error / empty / done ──────────────────────
   if (isLoading) {
-    return <CenteredMessage>{t("admin.applications.triage.loading")}</CenteredMessage>;
+    return <CenteredMessage>{t("admin:applications.triage.loading")}</CenteredMessage>;
   }
   if (error) {
     return (
       <CenteredMessage>
-        <p>{t("admin.applications.triage.errorTitle")}</p>
+        <p>{t("admin:applications.triage.errorTitle")}</p>
         <div className="mt-4 flex justify-center gap-2">
           <Button variant="ghost" onClick={() => navigate("/admin/applications")}>
-            {t("admin.applications.triage.back")}
+            {t("admin:applications.triage.back")}
           </Button>
-          <Button onClick={reload}>{t("admin.applications.triage.retry")}</Button>
+          <Button onClick={reload}>{t("admin:applications.triage.retry")}</Button>
         </div>
       </CenteredMessage>
     );
@@ -409,13 +409,13 @@ export default function AdminApplicationsTriagePage() {
   if (total === 0) {
     return (
       <CenteredMessage>
-        <p>{t("admin.applications.triage.emptyTitle")}</p>
+        <p>{t("admin:applications.triage.emptyTitle")}</p>
         <p className="mt-1 text-sm text-white/40">
-          {t("admin.applications.triage.emptySubtitle")}
+          {t("admin:applications.triage.emptySubtitle")}
         </p>
         <div className="mt-6 flex justify-center">
           <Button onClick={() => navigate("/admin/applications")}>
-            {t("admin.applications.triage.backToList")}
+            {t("admin:applications.triage.backToList")}
           </Button>
         </div>
       </CenteredMessage>
@@ -446,17 +446,17 @@ export default function AdminApplicationsTriagePage() {
           type="button"
           onClick={() => navigate("/admin/applications")}
           className="relative z-10 inline-flex shrink-0 items-center gap-2 rounded-sm border border-white/10 px-2 py-1.5 text-xs text-white/55 transition hover:border-white/30 hover:text-white sm:px-3"
-          aria-label={t("admin.applications.triage.exitAria")}
+          aria-label={t("admin:applications.triage.exitAria")}
         >
           <IconClose />
-          <span className="hidden sm:inline">{t("admin.applications.triage.exit")}</span>
+          <span className="hidden sm:inline">{t("admin:applications.triage.exit")}</span>
         </button>
 
         {/* Absolute-centered title — fills the header, pointer-events-none
             so it doesn't intercept clicks meant for the side buttons. */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
           <p className="max-w-full truncate text-sm text-white/85 tabular-nums">
-            {t("admin.applications.triage.progress", {
+            {t("admin:applications.triage.progress", {
               current: index + 1,
               total,
             })}
@@ -464,7 +464,7 @@ export default function AdminApplicationsTriagePage() {
           </p>
           {decidedCount > 0 && (
             <p className="mt-0.5 text-[11px] text-white/40">
-              {t("admin.applications.triage.decidedCount", { count: decidedCount })}
+              {t("admin:applications.triage.decidedCount", { count: decidedCount })}
             </p>
           )}
         </div>
@@ -473,7 +473,7 @@ export default function AdminApplicationsTriagePage() {
           type="button"
           onClick={() => setShowHelp((s) => !s)}
           className="relative z-10 hidden shrink-0 rounded-sm border border-white/10 px-2.5 py-1.5 text-xs text-white/45 transition hover:border-copper/40 hover:text-white sm:inline-flex"
-          aria-label={t("admin.applications.triage.keyboardShortcutsAria")}
+          aria-label={t("admin:applications.triage.keyboardShortcutsAria")}
         >
           <kbd className="text-[11px]">?</kbd>
         </button>
@@ -555,13 +555,13 @@ export default function AdminApplicationsTriagePage() {
           side="right"
           onClick={goNext}
           disabled={index === total - 1}
-          label={t("admin.applications.triage.nextCandidate")}
+          label={t("admin:applications.triage.nextCandidate")}
         />
         <SideArrow
           side="left"
           onClick={goPrev}
           disabled={index === 0}
-          label={t("admin.applications.triage.prevCandidate")}
+          label={t("admin:applications.triage.prevCandidate")}
         />
       </div>
 

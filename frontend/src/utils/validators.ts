@@ -67,23 +67,23 @@ export function validateCompanyProfile(
   t: TFunction,
 ): Record<string, string> {
   const e: Record<string, string> = {};
-  if (!form.name?.trim()) e.name = t("common.validation.required");
-  if (!form.company_id?.trim()) e.company_id = t("common.validation.required");
+  if (!form.name?.trim()) e.name = t("common:validation.required");
+  if (!form.company_id?.trim()) e.company_id = t("common:validation.required");
   else if (!COMPANY_ID_RE.test(form.company_id))
-    e.company_id = t("admin.companies.validation.companyId");
-  if (!form.address?.trim()) e.address = t("common.validation.required");
+    e.company_id = t("admin:companies.validation.companyId");
+  if (!form.address?.trim()) e.address = t("common:validation.required");
   if (!form.contact_email?.trim())
-    e.contact_email = t("common.validation.required");
+    e.contact_email = t("common:validation.required");
   else if (!EMAIL_RE.test(form.contact_email))
-    e.contact_email = t("admin.companies.validation.email");
+    e.contact_email = t("admin:companies.validation.email");
   if (!form.contact_first_name?.trim())
-    e.contact_first_name = t("common.validation.required");
+    e.contact_first_name = t("common:validation.required");
   if (!form.contact_last_name?.trim())
-    e.contact_last_name = t("common.validation.required");
+    e.contact_last_name = t("common:validation.required");
   if (!form.contact_mobile_phone?.trim())
-    e.contact_mobile_phone = t("common.validation.required");
+    e.contact_mobile_phone = t("common:validation.required");
   else if (!MOBILE_RE.test(form.contact_mobile_phone))
-    e.contact_mobile_phone = t("admin.companies.validation.mobile");
+    e.contact_mobile_phone = t("admin:companies.validation.mobile");
   return e;
 }
 
@@ -108,29 +108,29 @@ export function validateJob(
   t: TFunction,
 ): Record<string, string> {
   const e: Record<string, string> = {};
-  if (!form.title?.trim()) e.title = t("common.validation.required");
+  if (!form.title?.trim()) e.title = t("common:validation.required");
   else if (form.title.length > JOB_TITLE_MAX)
-    e.title = t("common.validation.tooLong", { max: JOB_TITLE_MAX });
+    e.title = t("common:validation.tooLong", { max: JOB_TITLE_MAX });
   if (!form.short_description?.trim())
-    e.short_description = t("common.validation.required");
+    e.short_description = t("common:validation.required");
   else if (form.short_description.length > JOB_SHORT_DESC_MAX)
-    e.short_description = t("common.validation.tooLong", { max: JOB_SHORT_DESC_MAX });
-  if (!form.location?.trim()) e.location = t("common.validation.required");
+    e.short_description = t("common:validation.tooLong", { max: JOB_SHORT_DESC_MAX });
+  if (!form.location?.trim()) e.location = t("common:validation.required");
   else if (form.location.length > JOB_LOCATION_MAX)
-    e.location = t("common.validation.tooLong", { max: JOB_LOCATION_MAX });
-  if (!form.description?.trim()) e.description = t("common.validation.required");
+    e.location = t("common:validation.tooLong", { max: JOB_LOCATION_MAX });
+  if (!form.description?.trim()) e.description = t("common:validation.required");
   else if (form.description.length > JOB_DESC_MAX)
-    e.description = t("common.validation.tooLong", { max: JOB_DESC_MAX });
+    e.description = t("common:validation.tooLong", { max: JOB_DESC_MAX });
   const filledReqs = (form.requirements ?? []).filter(
     (r) => r.text.trim().length > 0,
   );
   if (filledReqs.length < JOB_REQ_MIN_COUNT)
-    e.requirements = t("common.validation.requirementsMin", { min: JOB_REQ_MIN_COUNT });
+    e.requirements = t("common:validation.requirementsMin", { min: JOB_REQ_MIN_COUNT });
   if (form.salary_min == null || form.salary_min < 0)
-    e.salary_min = t("common.validation.required");
+    e.salary_min = t("common:validation.required");
   if (form.salary_max == null || form.salary_max < 0)
-    e.salary_max = t("common.validation.required");
+    e.salary_max = t("common:validation.required");
   else if (form.salary_min != null && form.salary_max < form.salary_min)
-    e.salary_max = t("common.validation.salaryMaxBelowMin");
+    e.salary_max = t("common:validation.salaryMaxBelowMin");
   return e;
 }

@@ -36,13 +36,13 @@ export default function JobContentLists({
   onRequirementsChange,
   onTagsChange,
 }: JobContentListsProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   return (
     <>
-      <FormSection title={t("admin.jobs.formSections.content")}>
+      <FormSection title={t("admin:jobs.formSections.content")}>
         <div className="space-y-3">
           <Field
-            label={t("admin.jobs.fields.shortDescription")}
+            label={t("admin:jobs.fields.shortDescription")}
             full
             name="short_description"
             error={errors.short_description}
@@ -55,14 +55,14 @@ export default function JobContentLists({
               className={inputCls}
             />
             <p className="mt-1 text-[11px] text-white/35">
-              {t("admin.jobs.fields.shortDescriptionHint", {
+              {t("admin:jobs.fields.shortDescriptionHint", {
                 count: (form.short_description ?? "").length,
                 max: JOB_SHORT_DESC_MAX,
               })}
             </p>
           </Field>
           <Field
-            label={t("admin.jobs.fields.description")}
+            label={t("admin:jobs.fields.description")}
             full
             name="description"
             error={errors.description}
@@ -76,10 +76,10 @@ export default function JobContentLists({
           </Field>
         </div>
       </FormSection>
-      <FormSection title={t("admin.jobs.formSections.lists")}>
+      <FormSection title={t("admin:jobs.formSections.lists")}>
         <div className="space-y-3">
           <Field
-            label={t("admin.jobs.fields.requirements")}
+            label={t("admin:jobs.fields.requirements")}
             full
             name="requirements"
           >
@@ -89,7 +89,7 @@ export default function JobContentLists({
               error={errors.requirements}
             />
           </Field>
-          <Field label={t("admin.jobs.fields.tags")} full>
+          <Field label={t("admin:jobs.fields.tags")} full>
             <JobTagsInput
               value={form.tags ?? []}
               onChange={onTagsChange}

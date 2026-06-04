@@ -27,7 +27,7 @@ import CompanyDetailDialog, { CompanyDetailBody } from "./CompanyDetailDialog";
 import { formatDate } from "@/utils/formatDate";
 
 export default function CompanyPendingTab({ query }: { query: string }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'md']);
   const toast = useToast();
 
   const fetcher = useCallback(
@@ -83,10 +83,10 @@ export default function CompanyPendingTab({ query }: { query: string }) {
       await approveCompany(row.user.id);
       setApprovedIds((prev) => new Set(prev).add(row.user.id));
       toast.success(
-        t(alreadySent ? "admin.companies.resendApprovalToast" : "admin.companies.approvedToast"),
+        t(alreadySent ? "admin:companies.resendApprovalToast" : "admin:companies.approvedToast"),
       );
     } catch {
-      toast.error(t("admin.companies.approveError"));
+      toast.error(t("admin:companies.approveError"));
     } finally {
       approvingRef.current = null;
       setApprovingId(null);
@@ -99,10 +99,10 @@ export default function CompanyPendingTab({ query }: { query: string }) {
     try {
       await rejectCompany(rejectPending.user.id);
       removeItem((c) => c.user.id === rejectPending.user.id);
-      toast.success(t("admin.companies.rejectedToast"));
+      toast.success(t("admin:companies.rejectedToast"));
       setRejectPending(null);
     } catch {
-      toast.error(t("admin.companies.rejectError"));
+      toast.error(t("admin:companies.rejectError"));
     } finally {
       setPendingMutation(false);
     }
@@ -111,20 +111,20 @@ export default function CompanyPendingTab({ query }: { query: string }) {
   function renderRowActions(row: PendingCompanyRead) {
     return (
       <DropdownMenu
-        ariaLabel={t("admin.companies.rowActionsLabel")}
+        ariaLabel={t("admin:companies.rowActionsLabel")}
         trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
       >
         <DropdownMenuItem onSelect={() => setDetail(row.company_profile)}>
-          {t("admin.companies.viewAction")}
+          {t("admin:companies.viewAction")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => window.open(`mailto:${row.user.email}`, "_self")}
         >
-          {t("admin.companies.emailAction")}
+          {t("admin:companies.emailAction")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="danger" onSelect={() => setRejectPending(row)}>
-          {t("admin.companies.rejectAction")}
+          {t("admin:companies.rejectAction")}
         </DropdownMenuItem>
       </DropdownMenu>
     );
@@ -142,11 +142,11 @@ export default function CompanyPendingTab({ query }: { query: string }) {
           </div>
         </>
       ) : error ? (
-        <ErrorState message={t("admin.companies.loadError")} onRetry={reload} />
+        <ErrorState message={t("admin:companies.loadError")} onRetry={reload} />
       ) : companies.length === 0 ? (
         <EmptyState
-          eyebrow={t("admin.companies.tabs.pending")}
-          headline={t("admin.companies.empty")}
+          eyebrow={t("admin:companies.tabs.pending")}
+          headline={t("admin:companies.empty")}
         />
       ) : filtered.length === 0 ? (
         <NoResults />
@@ -165,7 +165,7 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                 badge={
                   isInvitationSent(row) ? (
                     <StatusBadge
-                      label={t("admin.companies.invitationSentBadge")}
+                      label={t("admin:companies.invitationSentBadge")}
                       colorCls="bg-warning/10 text-warning"
                     />
                   ) : undefined
@@ -181,10 +181,10 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                     className="flex-1"
                   >
                     {approvingId === row.user.id
-                      ? t("admin.companies.approvingButton")
+                      ? t("admin:companies.approvingButton")
                       : isInvitationSent(row)
-                        ? t("admin.companies.resendApprovalAction")
-                        : t("admin.companies.approveAction")}
+                        ? t("admin:companies.resendApprovalAction")
+                        : t("admin:companies.approveAction")}
                   </Button>
                   <Button
                     variant="danger"
@@ -192,7 +192,7 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                     disabled={approvingId !== null}
                     className="flex-1"
                   >
-                    {t("admin.companies.rejectAction")}
+                    {t("admin:companies.rejectAction")}
                   </Button>
                 </div>
               </MobileEntityCard>
@@ -214,17 +214,17 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                     </span>
                     {isInvitationSent(row) && (
                       <StatusBadge
-                        label={t("admin.companies.invitationSentBadge")}
+                        label={t("admin:companies.invitationSentBadge")}
                         colorCls="bg-warning/10 text-warning"
                       />
                     )}
                   </div>
                   <p className="truncate text-xs text-white/45">{row.user.email}</p>
                   <p className="mt-1 text-xs text-white/35">
-                    {t("admin.companies.contactLabel")}:{" "}
+                    {t("admin:companies.contactLabel")}:{" "}
                     {row.company_profile.contact_first_name}{" "}
                     {row.company_profile.contact_last_name} ·{" "}
-                    {t("admin.companies.registeredLabel")}{" "}
+                    {t("admin:companies.registeredLabel")}{" "}
                     {formatDate(row.user.created_at)}
                   </p>
                 </div>
@@ -239,10 +239,10 @@ export default function CompanyPendingTab({ query }: { query: string }) {
                     disabled={approvingId !== null}
                   >
                     {approvingId === row.user.id
-                      ? t("admin.companies.approvingButton")
+                      ? t("admin:companies.approvingButton")
                       : isInvitationSent(row)
-                        ? t("admin.companies.resendApprovalAction")
-                        : t("admin.companies.approveAction")}
+                        ? t("admin:companies.resendApprovalAction")
+                        : t("admin:companies.approveAction")}
                   </Button>
                   {renderRowActions(row)}
                 </div>
@@ -264,9 +264,9 @@ export default function CompanyPendingTab({ query }: { query: string }) {
       <ConfirmDialog
         open={rejectPending != null}
         onOpenChange={(o) => !o && setRejectPending(null)}
-        title={t("admin.companies.rejectConfirmTitle")}
-        message={t("admin.companies.rejectConfirm")}
-        confirmLabel={t("admin.companies.rejectAction")}
+        title={t("admin:companies.rejectConfirmTitle")}
+        message={t("admin:companies.rejectConfirm")}
+        confirmLabel={t("admin:companies.rejectAction")}
         variant="danger"
         isPending={pendingMutation}
         onConfirm={handleRejectConfirm}

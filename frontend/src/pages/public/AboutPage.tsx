@@ -99,7 +99,7 @@ function CharRise({
 }
 
 export default function AboutPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['about', 'http', 'https']);
 
   /* Reading progress bar */
   const [progress, setProgress] = useState(0);
@@ -132,7 +132,7 @@ export default function AboutPage() {
   const storyBgLoaded = useImageLoaded("/property-exterior.webp");
   const processBgLoaded = useImageLoaded("/team-meeting.webp");
 
-  const quoteWords = t("about.philosophy.quote").split(" ");
+  const quoteWords = t("about:philosophy.quote").split(" ");
 
   return (
     <>
@@ -147,8 +147,8 @@ export default function AboutPage() {
       />
 
       <SeoHead
-        title={t("about.seo.title")}
-        description={t("about.seo.description")}
+        title={t("about:seo.title")}
+        description={t("about:seo.description")}
         canonical={`${SITE_URL}/about`}
         ogImage={`${SITE_URL}/og/about.svg`}
         structuredData={[
@@ -157,7 +157,7 @@ export default function AboutPage() {
             "@type": "Organization",
             name: "RS Recruiting",
             url: SITE_URL,
-            description: t("about.seo.description"),
+            description: t("about:seo.description"),
             email: "support@rs-recruiting.com",
           },
           {
@@ -165,10 +165,10 @@ export default function AboutPage() {
             "@type": "FAQPage",
             mainEntity: Array.from({ length: 10 }, (_, i) => ({
               "@type": "Question",
-              name: t(`about.faq.q${i + 1}`),
+              name: t(`about:faq.q${i + 1}`),
               acceptedAnswer: {
                 "@type": "Answer",
-                text: t(`about.faq.a${i + 1}`),
+                text: t(`about:faq.a${i + 1}`),
               },
             })),
           },
@@ -214,7 +214,7 @@ export default function AboutPage() {
             <div className="h-px w-10 bg-copper/50" style={ruleDraw(true, "0.25s")} />
             <div className="overflow-hidden">
               <p className="text-xs font-semibold uppercase tracking-widest text-copper/80" style={rise(true, "0.5s", "0.6s")}>
-                {t("about.hero.eyebrow")}
+                {t("about:hero.eyebrow")}
               </p>
             </div>
           </div>
@@ -222,14 +222,14 @@ export default function AboutPage() {
           {/* Headline — character-by-character rise */}
           <h1 className="mt-6 text-[clamp(3.5rem,12vw,9rem)] font-light leading-[0.92] tracking-tight">
             <CharRise
-              text={t("about.hero.headlineLine1")}
+              text={t("about:hero.headlineLine1")}
               baseDelay={0.65}
               gap={0.055}
               visible={true}
               className="block text-white/90"
             />
             <CharRise
-              text={t("about.hero.headlineLine2")}
+              text={t("about:hero.headlineLine2")}
               baseDelay={0.9}
               gap={0.04}
               visible={true}
@@ -242,7 +242,7 @@ export default function AboutPage() {
             className="mx-auto mt-10 max-w-xs text-sm leading-relaxed text-white/38"
             style={revealUp(true, "1.4s", "0.7s")}
           >
-            {t("about.hero.subtitle")}
+            {t("about:hero.subtitle")}
           </p>
         </div>
 
@@ -279,16 +279,16 @@ export default function AboutPage() {
               <div className="mt-3 overflow-hidden">
                 <p className="text-xs font-semibold uppercase tracking-widest text-copper"
                   style={rise(storyVisible, "0.1s", "0.6s")}>
-                  {t("about.story.eyebrow")}
+                  {t("about:story.eyebrow")}
                 </p>
               </div>
               <p className="mt-8 text-xl leading-relaxed text-white/80 sm:text-2xl"
                 style={revealUp(storyVisible, "0.25s")}>
-                {t("about.story.paragraph1")}
+                {t("about:story.paragraph1")}
               </p>
               <p className="mt-6 text-base leading-relaxed text-white/50"
                 style={revealUp(storyVisible, "0.45s")}>
-                {t("about.story.paragraph2")}
+                {t("about:story.paragraph2")}
               </p>
             </div>
 
@@ -328,7 +328,7 @@ export default function AboutPage() {
             className="mt-5 text-[10px] font-semibold uppercase tracking-widest text-copper/40"
             style={revealUp(philosophyVisible, "1.1s", "0.6s")}
           >
-            {t("about.philosophy.attribution")}
+            {t("about:philosophy.attribution")}
           </p>
         </div>
       </div>
@@ -340,15 +340,15 @@ export default function AboutPage() {
           <div className="mt-3 overflow-hidden">
             <p className="text-xs font-semibold uppercase tracking-widest text-copper"
               style={rise(valuesVisible, "0.1s", "0.6s")}>
-              {t("about.values.eyebrow")}
+              {t("about:values.eyebrow")}
             </p>
           </div>
 
           {(
             [
-              { tk: "about.values.v1Title", bk: "about.values.v1Body", num: "01", rev: false, d1: "0.2s", d2: "0.32s" },
-              { tk: "about.values.v2Title", bk: "about.values.v2Body", num: "02", rev: true,  d1: "0.44s", d2: "0.56s" },
-              { tk: "about.values.v3Title", bk: "about.values.v3Body", num: "03", rev: false, d1: "0.68s", d2: "0.8s" },
+              { tk: "about:values.v1Title", bk: "about:values.v1Body", num: "01", rev: false, d1: "0.2s", d2: "0.32s" },
+              { tk: "about:values.v2Title", bk: "about:values.v2Body", num: "02", rev: true,  d1: "0.44s", d2: "0.56s" },
+              { tk: "about:values.v3Title", bk: "about:values.v3Body", num: "03", rev: false, d1: "0.68s", d2: "0.8s" },
             ] as const
           ).map((v) => (
             <div
@@ -418,22 +418,22 @@ export default function AboutPage() {
           <div className="mt-3 overflow-hidden">
             <p className="text-xs font-semibold uppercase tracking-widest text-copper"
               style={rise(processVisible, "0.1s", "0.6s")}>
-              {t("about.howItWorks.eyebrow")}
+              {t("about:howItWorks.eyebrow")}
             </p>
           </div>
           <div className="mt-5 overflow-hidden">
             <p className="text-xl font-semibold text-white/90 sm:text-2xl"
               style={rise(processVisible, "0.2s")}>
-              {t("about.howItWorks.headline")}
+              {t("about:howItWorks.headline")}
             </p>
           </div>
 
           <ol className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
             {(
               [
-                { tk: "about.howItWorks.step1Title", bk: "about.howItWorks.step1Body", num: 1, d: "0.32s" },
-                { tk: "about.howItWorks.step2Title", bk: "about.howItWorks.step2Body", num: 2, d: "0.5s" },
-                { tk: "about.howItWorks.step3Title", bk: "about.howItWorks.step3Body", num: 3, d: "0.68s" },
+                { tk: "about:howItWorks.step1Title", bk: "about:howItWorks.step1Body", num: 1, d: "0.32s" },
+                { tk: "about:howItWorks.step2Title", bk: "about:howItWorks.step2Body", num: 2, d: "0.5s" },
+                { tk: "about:howItWorks.step3Title", bk: "about:howItWorks.step3Body", num: 3, d: "0.68s" },
               ] as const
             ).map((s) => (
               <li key={s.num}
@@ -461,15 +461,15 @@ export default function AboutPage() {
           <div className="overflow-hidden text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-copper"
               style={rise(statsVisible, "0s", "0.6s")}>
-              {t("about.stats.eyebrow")}
+              {t("about:stats.eyebrow")}
             </p>
           </div>
           <div className="mt-10 grid grid-cols-3">
             {(
               [
-                { lk: "about.stats.placementsLabel", d: "0.2s" },
-                { lk: "about.stats.companiesLabel",  d: "0.4s" },
-                { lk: "about.stats.experienceLabel", d: "0.6s" },
+                { lk: "about:stats.placementsLabel", d: "0.2s" },
+                { lk: "about:stats.companiesLabel",  d: "0.4s" },
+                { lk: "about:stats.experienceLabel", d: "0.6s" },
               ] as const
             ).map((s) => (
               <div key={s.lk}
@@ -490,13 +490,13 @@ export default function AboutPage() {
           <div className="mt-3 overflow-hidden">
             <p className="text-xs font-semibold uppercase tracking-widest text-copper"
               style={rise(faqVisible, "0.1s", "0.6s")}>
-              {t("about.faq.eyebrow")}
+              {t("about:faq.eyebrow")}
             </p>
           </div>
           <div className="mt-3 overflow-hidden">
             <p className="text-xl font-semibold text-white/85 sm:text-2xl"
               style={rise(faqVisible, "0.2s")}>
-              {t("about.faq.headline")}
+              {t("about:faq.headline")}
             </p>
           </div>
 
@@ -516,7 +516,7 @@ export default function AboutPage() {
                     className="group flex w-full items-start justify-between gap-4 py-5 text-start"
                   >
                     <dt className="text-sm font-medium leading-relaxed text-white/70 transition-colors duration-200 group-hover:text-white/90">
-                      {t(`about.faq.q${n}`)}
+                      {t(`about:faq.q${n}`)}
                     </dt>
                     <span
                       className="mt-0.5 shrink-0 text-copper/60 transition-all duration-300 group-hover:text-copper"
@@ -538,7 +538,7 @@ export default function AboutPage() {
                         : "max-height 0.08s ease, opacity 0.06s ease, padding-bottom 0.08s ease",
                     }}
                   >
-                    {t(`about.faq.a${n}`)}
+                    {t(`about:faq.a${n}`)}
                   </dd>
                 </div>
               );
@@ -552,13 +552,13 @@ export default function AboutPage() {
       <div className="texture-wave bg-void px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-[clamp(1.4rem,3.5vw,2.2rem)] font-light text-white/45">
-            {t("about.hero.subtitle")}
+            {t("about:hero.subtitle")}
           </p>
           <Link
             to="/contact"
             className="mt-10 inline-block rounded-sm bg-copper px-8 py-3 text-sm font-medium text-white transition-colors duration-300 hover:bg-gold"
           >
-            {t("about.cta")}
+            {t("about:cta")}
           </Link>
         </div>
       </div>

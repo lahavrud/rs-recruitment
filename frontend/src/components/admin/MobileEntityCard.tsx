@@ -25,7 +25,7 @@ export default function MobileEntityCard({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http']);
   const [open, setOpen] = useState(false);
   return (
     <div
@@ -39,7 +39,7 @@ export default function MobileEntityCard({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={open ? t("common.collapse") : t("common.expand")}
+        aria-label={open ? t("common:collapse") : t("common:expand")}
         className="flex w-full cursor-pointer items-center gap-3 px-3 py-3 pe-12 text-start active:scale-[0.99]"
       >
         <span
@@ -99,7 +99,7 @@ export default function MobileEntityCard({
                   clipRule="evenodd"
                 />
               </svg>
-              {t("common.collapse")}
+              {t("common:collapse")}
             </button>
           </div>
         </div>

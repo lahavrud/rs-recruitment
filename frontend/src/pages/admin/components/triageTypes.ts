@@ -34,9 +34,9 @@ export const DECISION_META: Record<
   }
 > = {
   APPROVED_BY_ADMIN: {
-    shortLabelKey: "admin.applications.statusLabels.APPROVED_BY_ADMIN",
-    bannerLabelKey: "admin.applications.triage.bannerApproved",
-    summaryLabelKey: "admin.applications.triage.summaryApprovedLabel",
+    shortLabelKey: "admin:applications.statusLabels.APPROVED_BY_ADMIN",
+    bannerLabelKey: "admin:applications.triage.bannerApproved",
+    summaryLabelKey: "admin:applications.triage.summaryApprovedLabel",
     text: "text-success",
     border: "border-success/40",
     bgTint: "bg-success/10",
@@ -44,9 +44,9 @@ export const DECISION_META: Record<
     icon: "check",
   },
   REJECTED: {
-    shortLabelKey: "admin.applications.statusLabels.REJECTED",
-    bannerLabelKey: "admin.applications.triage.bannerRejected",
-    summaryLabelKey: "admin.applications.triage.summaryRejectedLabel",
+    shortLabelKey: "admin:applications.statusLabels.REJECTED",
+    bannerLabelKey: "admin:applications.triage.bannerRejected",
+    summaryLabelKey: "admin:applications.triage.summaryRejectedLabel",
     text: "text-danger",
     border: "border-danger/40",
     bgTint: "bg-danger/10",

@@ -30,7 +30,7 @@ export function CandidateCard({
   onOpenResume: () => void;
   onUndoDecision: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const hasResume = app.candidate.resume_path != null;
   return (
     <div
@@ -100,7 +100,7 @@ export function CandidateCard({
                 tabIndex={active ? 0 : -1}
               >
                 <IconDocument />
-                <span>{t("admin.applications.triage.openResume")}</span>
+                <span>{t("admin:applications.triage.openResume")}</span>
               </button>
             </div>
           )}
@@ -110,7 +110,7 @@ export function CandidateCard({
         <div className="space-y-6">
           {app.service_concept && (
             <AnswerBlock
-              label={t("admin.applications.details.serviceConcept")}
+              label={t("admin:applications.details.serviceConcept")}
               body={app.service_concept}
             />
           )}
@@ -118,14 +118,14 @@ export function CandidateCard({
             <div className="grid gap-6 sm:grid-cols-2">
               {app.salary_expectations && (
                 <AnswerBlock
-                  label={t("admin.applications.details.salaryExpectations")}
+                  label={t("admin:applications.details.salaryExpectations")}
                   body={app.salary_expectations}
                   compact
                 />
               )}
               {app.strength && (
                 <AnswerBlock
-                  label={t("admin.applications.details.strength")}
+                  label={t("admin:applications.details.strength")}
                   body={app.strength}
                   compact
                 />
@@ -134,14 +134,14 @@ export function CandidateCard({
           )}
           {app.growth_area && (
             <AnswerBlock
-              label={t("admin.applications.details.weakness")}
+              label={t("admin:applications.details.weakness")}
               body={app.growth_area}
             />
           )}
         </div>
 
         <div>
-          <p className="mb-1.5 text-xs text-white/35">{t("admin.applications.triage.noteLabel")}</p>
+          <p className="mb-1.5 text-xs text-white/35">{t("admin:applications.triage.noteLabel")}</p>
           <NoteField key={app.id} initial={app.admin_notes ?? ""} />
         </div>
       </div>

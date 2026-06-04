@@ -61,7 +61,7 @@ const STEP_3_FIELDS = [
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function ApplicationPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const jobId = id !== undefined ? Number.parseInt(id, 10) : NaN;
@@ -135,7 +135,7 @@ export default function ApplicationPage() {
       // A new upload OR the saved-profile-resume affordance both satisfy
       // the "every live application has a resume" backend rule.
       if (!resumeFile && !savedResumeFilename) {
-        setResumeError(t("publicJobs.application.resumeErrors.required"));
+        setResumeError(t("publicJobs:application.resumeErrors.required"));
         return false;
       }
       if (resumeError) return false;
@@ -156,13 +156,13 @@ export default function ApplicationPage() {
     // already accepted at activation time (Sprint 11 / #605).
     if (!isLoggedInCandidate) {
       if (!privacyAccepted) {
-        errors.privacy = t("publicJobs.application.validation.privacyRequired");
+        errors.privacy = t("publicJobs:application.validation.privacyRequired");
         ok = false;
       } else {
         delete errors.privacy;
       }
       if (!termsAccepted) {
-        errors.terms = t("publicJobs.application.validation.termsRequired");
+        errors.terms = t("publicJobs:application.validation.termsRequired");
         ok = false;
       } else {
         delete errors.terms;
@@ -212,9 +212,9 @@ export default function ApplicationPage() {
       } catch (err) {
         if (!cancelled) {
           if (axios.isAxiosError(err) && err.response?.status === 404) {
-            setJobError(t("publicJobs.application.unavailable"));
+            setJobError(t("publicJobs:application.unavailable"));
           } else {
-            setJobError(t("publicJobs.application.errorLoad"));
+            setJobError(t("publicJobs:application.errorLoad"));
           }
         }
       } finally {
@@ -276,13 +276,13 @@ export default function ApplicationPage() {
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!(RESUME_ALLOWED_EXTENSIONS as readonly string[]).includes(ext)) {
       setResumeError(
-        t("publicJobs.application.resumeErrors.invalidExtension"),
+        t("publicJobs:application.resumeErrors.invalidExtension"),
       );
       return;
     }
     if (file.size > RESUME_MAX_FILE_SIZE_BYTES) {
       setResumeError(
-        t("publicJobs.application.resumeErrors.fileTooBig", {
+        t("publicJobs:application.resumeErrors.fileTooBig", {
           maxSize: RESUME_MAX_FILE_SIZE_MB,
         }),
       );
@@ -375,7 +375,7 @@ export default function ApplicationPage() {
     // submission. The backend re-validates on the same source-of-truth.
     if (!isLoggedInCandidate && claimAccount) {
       if (claimPassword !== claimPasswordConfirm) {
-        setClaimError(t("publicJobs.application.validation.passwordMismatch"));
+        setClaimError(t("publicJobs:application.validation.passwordMismatch"));
         return;
       }
       const claimPwError = validateClaimPassword(t, claimPassword);
@@ -436,9 +436,9 @@ export default function ApplicationPage() {
 
   const stepHint =
     step === 1
-      ? t("publicJobs.application.identityStepHint")
+      ? t("publicJobs:application.identityStepHint")
       : step === 2
-        ? t("publicJobs.application.resumeStepHint")
+        ? t("publicJobs:application.resumeStepHint")
         : null;
 
   return (
@@ -449,10 +449,10 @@ export default function ApplicationPage() {
       <SeoHead
         title={
           job
-            ? `${t("publicJobs.application.applyFor")} ${job.title}`
-            : t("publicJobs.application.applyFor")
+            ? `${t("publicJobs:application.applyFor")} ${job.title}`
+            : t("publicJobs:application.applyFor")
         }
-        description={`${t("publicJobs.application.applyFor")}${job ? ` ${job.title}` : ""} ב-RS Recruiting.`}
+        description={`${t("publicJobs:application.applyFor")}${job ? ` ${job.title}` : ""} ב-RS Recruiting.`}
         canonical={`${SITE_URL}/jobs/${jobId}/apply`}
         noIndex
       />
@@ -465,10 +465,10 @@ export default function ApplicationPage() {
         {isLoggedInCandidate && profilePrefilled && (
           <div className="flex items-center gap-2 rounded-lg border border-copper/20 bg-copper/5 px-3 py-2 text-xs text-white/70">
             <span className="rounded-sm bg-copper/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-copper">
-              {t("publicJobs.application.prefilledTag")}
+              {t("publicJobs:application.prefilledTag")}
             </span>
             <span className="truncate">
-              {t("publicJobs.application.prefilledHint", { email: user!.email })}
+              {t("publicJobs:application.prefilledHint", { email: user!.email })}
             </span>
           </div>
         )}

@@ -38,7 +38,7 @@ export function SessionStatusStrip({
   currentIndex: number;
   onJump: (index: number) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const activeChipRef = useRef<HTMLButtonElement>(null);
 
   // Keep the active chip centered when the user navigates. Without this,
@@ -77,11 +77,11 @@ export function SessionStatusStrip({
                 onClick={() => onJump(item.index)}
                 aria-label={
                   meta
-                    ? t("admin.applications.triage.candidateAriaWithStatus", {
+                    ? t("admin:applications.triage.candidateAriaWithStatus", {
                         num: item.index + 1,
                         status: t(meta.shortLabelKey),
                       })
-                    : t("admin.applications.triage.candidateAria", { num: item.index + 1 })
+                    : t("admin:applications.triage.candidateAria", { num: item.index + 1 })
                 }
                 aria-current={isCurrent ? "true" : undefined}
                 className={`group relative inline-flex shrink-0 items-center justify-center rounded-md transition ${
@@ -116,7 +116,7 @@ export function RevisitBanner({
   decision: Decision;
   onUndo: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const meta = DECISION_META[decision];
   return (
     <div
@@ -131,7 +131,7 @@ export function RevisitBanner({
         onClick={onUndo}
         className="rounded-full bg-white/8 px-3 py-1 text-xs font-medium text-copper transition hover:bg-white/12 hover:text-gold"
       >
-        {t("admin.applications.triage.undoBannerButton")}
+        {t("admin:applications.triage.undoBannerButton")}
       </button>
     </div>
   );
@@ -145,7 +145,7 @@ export function RevisitBanner({
  * of viewport / safe-area changes.
  */
 export function SwipeHint({ onDismiss }: { onDismiss: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const id = setTimeout(onDismiss, 3500);
@@ -157,7 +157,7 @@ export function SwipeHint({ onDismiss }: { onDismiss: () => void }) {
       style={{ animation: "triage-hint-fade 3500ms ease-out forwards" }}
     >
       <div className="rounded-full border border-white/10 bg-card-raised/90 px-3.5 py-1.5 text-[11px] text-white/55 shadow-lg backdrop-blur">
-        {t("admin.applications.triage.swipeHint")}
+        {t("admin:applications.triage.swipeHint")}
       </div>
     </div>
   );
@@ -197,7 +197,7 @@ export function DecisionButtons({
   onReject: () => void;
   onApprove: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   return (
     <div className="flex flex-1 items-center justify-end gap-2 lg:flex-initial lg:justify-center lg:gap-3">
       <Button
@@ -206,7 +206,7 @@ export function DecisionButtons({
         className="flex-1 sm:flex-initial lg:min-w-36 lg:px-7 lg:py-2.5 lg:text-base"
       >
         <IconClose className="me-2 hidden size-4 lg:inline-block" />
-        {t("admin.applications.triage.decisionRejectButton")}
+        {t("admin:applications.triage.decisionRejectButton")}
       </Button>
       <Button
         variant="success"
@@ -214,7 +214,7 @@ export function DecisionButtons({
         className="flex-1 sm:flex-initial lg:min-w-36 lg:px-7 lg:py-2.5 lg:text-base"
       >
         <IconCheck className="me-2 hidden size-4 lg:inline-block" />
-        {t("admin.applications.triage.decisionApproveButton")}
+        {t("admin:applications.triage.decisionApproveButton")}
       </Button>
     </div>
   );
@@ -253,14 +253,14 @@ export function SideArrow({
 // ── Note field — keyed reset per candidate ────────────────────────────────
 
 export function NoteField({ initial }: { initial: string }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const [value, setValue] = useState(initial);
   return (
     <AutoGrowTextarea
       value={value}
       onChange={setValue}
       minRows={2}
-      placeholder={t("admin.applications.triage.notePlaceholder")}
+      placeholder={t("admin:applications.triage.notePlaceholder")}
       className={textareaCls}
     />
   );
@@ -277,7 +277,7 @@ export function UndoToast({
   onUndo: () => void;
   onDismiss: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const id = setTimeout(onDismiss, 5000);
@@ -299,7 +299,7 @@ export function UndoToast({
           onClick={onUndo}
           className="rounded-full bg-white/8 px-3 py-1 text-xs font-medium text-copper transition hover:bg-white/12 hover:text-gold"
         >
-          {t("admin.applications.triage.undoButton")}
+          {t("admin:applications.triage.undoButton")}
         </button>
       </div>
     </div>
@@ -309,21 +309,21 @@ export function UndoToast({
 // ── Help overlay ──────────────────────────────────────────────────────────
 
 export function HelpOverlay({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const rows: [string, string][] = [
-    ["A", t("admin.applications.triage.help.approveAction")],
-    ["R", t("admin.applications.triage.help.rejectAction")],
-    ["N  /  →", t("admin.applications.triage.help.nextAction")],
-    ["P  /  ←", t("admin.applications.triage.help.prevAction")],
-    ["Z", t("admin.applications.triage.help.undoLastAction")],
-    ["Esc", t("admin.applications.triage.help.exitAction")],
-    ["?", t("admin.applications.triage.help.toggleHelpAction")],
+    ["A", t("admin:applications.triage.help.approveAction")],
+    ["R", t("admin:applications.triage.help.rejectAction")],
+    ["N  /  →", t("admin:applications.triage.help.nextAction")],
+    ["P  /  ←", t("admin:applications.triage.help.prevAction")],
+    ["Z", t("admin:applications.triage.help.undoLastAction")],
+    ["Esc", t("admin:applications.triage.help.exitAction")],
+    ["?", t("admin:applications.triage.help.toggleHelpAction")],
   ];
   return (
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={t("admin.applications.triage.help.title")}
+      title={t("admin:applications.triage.help.title")}
       size="sm"
     >
       <ul className="space-y-2 text-sm text-white/80">
@@ -352,7 +352,7 @@ export function SummaryScreen({
   decisions: Record<number, Decision>;
   onExit: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const counts = Object.values(decisions).reduce(
     (acc, d) => {
       acc[d] = (acc[d] ?? 0) + 1;
@@ -370,13 +370,13 @@ export function SummaryScreen({
     >
       <div className="w-full max-w-lg rounded-md border border-white/10 bg-card-raised p-6 text-center sm:p-8">
         <p className="text-[11px] uppercase tracking-widest text-white/40">
-          {t("admin.applications.triage.summaryEyebrow")}
+          {t("admin:applications.triage.summaryEyebrow")}
         </p>
         <h1 className="mt-3 text-xl font-light sm:text-2xl">
-          {t("admin.applications.triage.summaryTitle")}
+          {t("admin:applications.triage.summaryTitle")}
         </h1>
         <p className="mt-1 text-sm text-white/50">
-          {t("admin.applications.triage.summarySubtitle")}
+          {t("admin:applications.triage.summarySubtitle")}
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
@@ -404,10 +404,10 @@ export function SummaryScreen({
             onClick={() => window.location.reload()}
             className="w-full sm:w-auto"
           >
-            {t("admin.applications.triage.startNewReview")}
+            {t("admin:applications.triage.startNewReview")}
           </Button>
           <Button onClick={onExit} className="w-full sm:w-auto">
-            {t("admin.applications.triage.backToList")}
+            {t("admin:applications.triage.backToList")}
           </Button>
         </div>
       </div>

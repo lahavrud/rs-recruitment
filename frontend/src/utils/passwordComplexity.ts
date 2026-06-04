@@ -7,10 +7,10 @@
  *   - at least one non-alphanumeric character
  */
 export function checkPasswordComplexity(val: string): string | null {
-  if (val.length < 8) return "publicJobs.application.validation.passwordMin";
-  if (!/[A-Z]/.test(val)) return "publicJobs.application.validation.passwordUppercase";
-  if (!/[a-z]/.test(val)) return "publicJobs.application.validation.passwordLowercase";
-  if (!/\d/.test(val)) return "publicJobs.application.validation.passwordDigit";
-  if (/^[A-Za-z0-9]*$/.test(val)) return "publicJobs.application.validation.passwordSpecial";
+  if (val.length < 8) return "publicJobs:application.validation.passwordMin";
+  if (!/[A-Z]/.test(val)) return "publicJobs:application.validation.passwordUppercase";
+  if (!/[a-z]/.test(val)) return "publicJobs:application.validation.passwordLowercase";
+  if (!/\d/.test(val)) return "publicJobs:application.validation.passwordDigit";
+  if (/^[A-Za-z0-9]*$/.test(val)) return "publicJobs:application.validation.passwordSpecial";
   return null;
 }

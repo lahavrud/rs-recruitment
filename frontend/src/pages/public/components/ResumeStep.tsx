@@ -19,7 +19,7 @@ export default function ResumeStep({
   onClear: () => void;
   onClearSaved: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('publicJobs');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -67,7 +67,7 @@ export default function ResumeStep({
               {savedResumeFilename}
             </p>
             <p className="mt-0.5 text-xs text-white/40">
-              {t("publicJobs.application.resumeSavedHint")}
+              {t("publicJobs:application.resumeSavedHint")}
             </p>
           </div>
           <button
@@ -78,7 +78,7 @@ export default function ResumeStep({
             }}
             className="shrink-0 rounded-sm border border-white/15 px-3 py-1.5 text-xs text-white/65 transition hover:border-copper/50 hover:text-copper"
           >
-            {t("publicJobs.application.resumeReplace")}
+            {t("publicJobs:application.resumeReplace")}
           </button>
         </div>
       ) : file ? (
@@ -104,7 +104,7 @@ export default function ResumeStep({
               {file.name}
             </p>
             <p className="mt-0.5 text-xs text-white/40">
-              {t("publicJobs.application.fileSizeBytes", {
+              {t("publicJobs:application.fileSizeBytes", {
                 kb: Math.round(file.size / 1024).toLocaleString("he-IL"),
               })}
             </p>
@@ -117,7 +117,7 @@ export default function ResumeStep({
             }}
             className="shrink-0 rounded-sm border border-white/15 px-3 py-1.5 text-xs text-white/65 transition hover:border-copper/50 hover:text-copper"
           >
-            {t("publicJobs.application.resumeReplace")}
+            {t("publicJobs:application.resumeReplace")}
           </button>
         </div>
       ) : (
@@ -127,7 +127,7 @@ export default function ResumeStep({
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
-          aria-label={t("publicJobs.application.resumeUpload")}
+          aria-label={t("publicJobs:application.resumeUpload")}
           className={[
             "flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-200",
             dragging
@@ -158,10 +158,10 @@ export default function ResumeStep({
             </svg>
           </span>
           <span className="text-sm font-medium text-white/80">
-            {t("publicJobs.application.resumeDropPrompt")}
+            {t("publicJobs:application.resumeDropPrompt")}
           </span>
           <span className="text-xs text-white/45">
-            {t("publicJobs.application.resumeDropAlt")}
+            {t("publicJobs:application.resumeDropAlt")}
           </span>
         </button>
       )}
@@ -178,7 +178,7 @@ export default function ResumeStep({
 
       {error && <p className="mt-3 text-xs text-danger">{error}</p>}
       <p className="mt-3 text-xs text-white/30">
-        {t("publicJobs.application.fileHint", { maxSize: RESUME_MAX_FILE_SIZE_MB })}
+        {t("publicJobs:application.fileHint", { maxSize: RESUME_MAX_FILE_SIZE_MB })}
       </p>
     </div>
   );

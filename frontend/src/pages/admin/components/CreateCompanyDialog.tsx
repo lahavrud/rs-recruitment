@@ -22,7 +22,7 @@ interface CreateProps {
 }
 
 export default function CreateCompanyDialog({ open, onClose, onCreated }: CreateProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['active', 'admin', 'common']);
   const toast = useToast();
   const [form, setForm] = useState<Partial<CompanyProfileAdminCreate>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -85,10 +85,10 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
         contact_mobile_phone: form.contact_mobile_phone!,
         contact_landline_phone: form.contact_landline_phone || null,
       });
-      toast.success(t("admin.companies.createdToast"));
+      toast.success(t("admin:companies.createdToast"));
       onCreated(created);
     } catch {
-      toast.error(t("admin.companies.errors.createFailed"));
+      toast.error(t("admin:companies.errors.createFailed"));
     } finally {
       setSaving(false);
     }
@@ -101,8 +101,8 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
       <Dialog
         open={open}
         onOpenChange={(o) => { if (!o) requestClose(); }}
-        title={t("admin.companies.newCompanyModalTitle")}
-        description={t("admin.companies.newCompanyModalDescription")}
+        title={t("admin:companies.newCompanyModalTitle")}
+        description={t("admin:companies.newCompanyModalDescription")}
         size="lg"
         footer={
           <>
@@ -111,14 +111,14 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
               onClick={requestClose}
               disabled={saving}
             >
-              {t("common.cancel")}
+              {t("common:cancel")}
             </Button>
             <Button
               onClick={requestSave}
               disabled={saving}
               className="active:scale-95"
             >
-              {saving ? t("common.saving") : t("admin.companies.createSubmit")}
+              {saving ? t("common:saving") : t("admin:companies.createSubmit")}
             </Button>
           </>
         }
@@ -136,16 +136,16 @@ export default function CreateCompanyDialog({ open, onClose, onCreated }: Create
         />
         {hasErrors && (
           <p className="mt-3 text-xs text-danger">
-            {t("admin.companies.validation.fixErrors")}
+            {t("admin:companies.validation.fixErrors")}
           </p>
         )}
       </Dialog>
       <ConfirmDialog
         open={confirmCreateOpen}
         onOpenChange={(o) => !o && setConfirmCreateOpen(false)}
-        title={t("admin.companies.createConfirmTitle")}
-        message={t("admin.companies.createConfirmMessage", { name: form.name })}
-        confirmLabel={t("admin.companies.createSubmit")}
+        title={t("admin:companies.createConfirmTitle")}
+        message={t("admin:companies.createConfirmMessage", { name: form.name })}
+        confirmLabel={t("admin:companies.createSubmit")}
         onConfirm={executeSave}
       />
       {discardConfirm}

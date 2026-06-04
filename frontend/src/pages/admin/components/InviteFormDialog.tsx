@@ -16,7 +16,7 @@ interface InviteFormProps {
 }
 
 export default function InviteFormDialog({ open, onClose, onCreated }: InviteFormProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const toast = useToast();
   const [form, setForm] = useState<InviteTokenCreate>({ email: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +38,7 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
     setSubmitting(true);
     try {
       const created = await createInvite(form);
-      toast.success(t("admin.companies.inviteForm.successMessage"));
+      toast.success(t("admin:companies.inviteForm.successMessage"));
       onCreated(created);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -47,12 +47,12 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
           typeof detail === "string" &&
           detail.toLowerCase().includes("pending invite")
         ) {
-          setErrorKey("admin.companies.inviteForm.errorPendingInvite");
+          setErrorKey("admin:companies.inviteForm.errorPendingInvite");
         } else {
-          setErrorKey("admin.companies.inviteForm.errorEmailExists");
+          setErrorKey("admin:companies.inviteForm.errorEmailExists");
         }
       } else {
-        setErrorKey("admin.companies.inviteForm.errorMessage");
+        setErrorKey("admin:companies.inviteForm.errorMessage");
       }
     } finally {
       submittingRef.current = false;
@@ -64,7 +64,7 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
     <Dialog
       open={open}
       onOpenChange={(o) => !o && onClose()}
-      title={t("admin.companies.inviteForm.title")}
+      title={t("admin:companies.inviteForm.title")}
       size="md"
       footer={
         <>
@@ -73,15 +73,15 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
             onClick={onClose}
             disabled={submitting}
           >
-            {t("admin.companies.inviteForm.cancelButton")}
+            {t("admin:companies.inviteForm.cancelButton")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={submitting || !form.email}
           >
             {submitting
-              ? t("admin.companies.inviteForm.submittingButton")
-              : t("admin.companies.inviteForm.submitButton")}
+              ? t("admin:companies.inviteForm.submittingButton")
+              : t("admin:companies.inviteForm.submitButton")}
           </Button>
         </>
       }
@@ -89,14 +89,14 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
       <InviteFlowExplainer />
       <label className="block text-sm">
         <span className="block text-xs text-white/45">
-          {t("admin.companies.inviteForm.emailLabel")}
+          {t("admin:companies.inviteForm.emailLabel")}
         </span>
         <input
           type="email"
           value={form.email}
           onChange={(e) => setForm({ email: e.target.value })}
           className={`mt-1 ${inputCls}`}
-          placeholder={t("admin.companies.inviteForm.emailPlaceholder")}
+          placeholder={t("admin:companies.inviteForm.emailPlaceholder")}
         />
       </label>
       {errorKey && <p className="mt-3 text-xs text-danger">{t(errorKey)}</p>}
@@ -106,10 +106,10 @@ export default function InviteFormDialog({ open, onClose, onCreated }: InviteFor
 
 /** Short visual flow of what happens after the admin sends an invite. */
 function InviteFlowExplainer() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('admin');
   const steps = [
     {
-      label: t("admin.companies.inviteForm.flow.step1"),
+      label: t("admin:companies.inviteForm.flow.step1"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 6 9-6M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
@@ -117,7 +117,7 @@ function InviteFlowExplainer() {
       ),
     },
     {
-      label: t("admin.companies.inviteForm.flow.step2"),
+      label: t("admin:companies.inviteForm.flow.step2"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10-3v6m3-3h-6" />
@@ -125,7 +125,7 @@ function InviteFlowExplainer() {
       ),
     },
     {
-      label: t("admin.companies.inviteForm.flow.step3"),
+      label: t("admin:companies.inviteForm.flow.step3"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 12l5 5L20 7" />
@@ -133,7 +133,7 @@ function InviteFlowExplainer() {
       ),
     },
     {
-      label: t("admin.companies.inviteForm.flow.step4"),
+      label: t("admin:companies.inviteForm.flow.step4"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 11V7a4 4 0 1 0-8 0v4M5 11h14v8H5Z" />
@@ -141,7 +141,7 @@ function InviteFlowExplainer() {
       ),
     },
     {
-      label: t("admin.companies.inviteForm.flow.step5"),
+      label: t("admin:companies.inviteForm.flow.step5"),
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2ZM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -152,7 +152,7 @@ function InviteFlowExplainer() {
   return (
     <div className="mb-5 rounded-md border border-white/8 bg-card/40 p-3">
       <Eyebrow className="mb-3">
-        {t("admin.companies.inviteForm.flow.title")}
+        {t("admin:companies.inviteForm.flow.title")}
       </Eyebrow>
       {/* dir="ltr" so the step sequence renders left-to-right regardless of
           document direction. Hebrew labels inside each cell still render RTL

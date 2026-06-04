@@ -29,7 +29,7 @@ export default function SearchableSelect<T extends string | number>({
   placeholder,
   searchPlaceholder,
 }: Props<T>) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'http']);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -146,7 +146,7 @@ export default function SearchableSelect<T extends string | number>({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder ?? t("common.searchPlaceholder")}
+              placeholder={searchPlaceholder ?? t("common:searchPlaceholder")}
               className={inputCls}
             />
           </div>
@@ -165,7 +165,7 @@ export default function SearchableSelect<T extends string | number>({
             )}
             {filtered.length === 0 ? (
               <p className="px-3 py-2 text-xs text-white/30">
-                {t("common.noResultsHeadline")}
+                {t("common:noResultsHeadline")}
               </p>
             ) : (
               filtered.map((o) => (

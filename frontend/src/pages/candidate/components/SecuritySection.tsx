@@ -7,7 +7,7 @@ import { changePassword } from "@/services/candidate";
 import SettingsCard from "./SettingsCard";
 
 export default function SecuritySection() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('candidate');
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirmNext, setConfirmNext] = useState("");
@@ -19,7 +19,7 @@ export default function SecuritySection() {
     e.preventDefault();
     if (next !== confirmNext) {
       setState("error");
-      setError(t("candidate.profile.security.errors.mismatch"));
+      setError(t("candidate:profile.security.errors.mismatch"));
       return;
     }
     setBusy(true);
@@ -34,13 +34,13 @@ export default function SecuritySection() {
     } catch (err) {
       setState("error");
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        setError(t("candidate.profile.security.errors.wrongCurrent"));
+        setError(t("candidate:profile.security.errors.wrongCurrent"));
       } else if (axios.isAxiosError(err) && err.response?.status === 422) {
-        setError(t("candidate.profile.security.errors.weakNew"));
+        setError(t("candidate:profile.security.errors.weakNew"));
       } else if (axios.isAxiosError(err) && err.response?.status === 429) {
-        setError(t("candidate.profile.security.errors.tooMany"));
+        setError(t("candidate:profile.security.errors.tooMany"));
       } else {
-        setError(t("candidate.profile.security.errors.generic"));
+        setError(t("candidate:profile.security.errors.generic"));
       }
     } finally {
       setBusy(false);
@@ -65,10 +65,10 @@ export default function SecuritySection() {
           />
         </svg>
       }
-      title={t("candidate.profile.security.title")}
+      title={t("candidate:profile.security.title")}
     >
       <form className="space-y-3" onSubmit={handleSubmit}>
-        <Field label={t("candidate.profile.security.current")}>
+        <Field label={t("candidate:profile.security.current")}>
           <input
             type="password"
             value={current}
@@ -80,7 +80,7 @@ export default function SecuritySection() {
             required
           />
         </Field>
-        <Field label={t("candidate.profile.security.new")}>
+        <Field label={t("candidate:profile.security.new")}>
           <input
             type="password"
             value={next}
@@ -92,7 +92,7 @@ export default function SecuritySection() {
             required
           />
         </Field>
-        <Field label={t("candidate.profile.security.confirm")}>
+        <Field label={t("candidate:profile.security.confirm")}>
           <input
             type="password"
             value={confirmNext}
@@ -108,7 +108,7 @@ export default function SecuritySection() {
           <div className="text-[11px]">
             {state === "saved" && (
               <span className="text-copper">
-                {t("candidate.profile.security.saved")}
+                {t("candidate:profile.security.saved")}
               </span>
             )}
             {state === "error" && error && (
@@ -121,8 +121,8 @@ export default function SecuritySection() {
             className="rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80 transition hover:border-copper/50 hover:text-copper disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy
-              ? t("candidate.profile.security.changing")
-              : t("candidate.profile.security.change")}
+              ? t("candidate:profile.security.changing")
+              : t("candidate:profile.security.change")}
           </button>
         </div>
       </form>

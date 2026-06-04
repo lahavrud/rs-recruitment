@@ -346,7 +346,7 @@ frontend/
 │   ├── utils/                  # formatDate, validation (EMAIL_RE/MOBILE_RE), apiError, …
 │   ├── contexts/               # AuthContext
 │   ├── styles/                 # forms.ts (inputCls, textareaCls, selectCls)
-│   ├── locales/                # he.json (Hebrew UI strings)
+│   ├── locales/he/             # per-namespace Hebrew strings (common, auth, admin, …)
 │   └── index.css               # Tailwind @theme tokens + color-scheme: dark
 ├── vite.config.ts
 └── package.json

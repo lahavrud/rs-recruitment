@@ -22,7 +22,7 @@ export default function ApplicationDetailDialog({
   onEditNotes,
   onDelete,
 }: DetailProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   if (!app) return null;
   const c = app.candidate;
   const isWithdrawn = app.status === ApplicationStatus.WITHDRAWN;
@@ -39,17 +39,17 @@ export default function ApplicationDetailDialog({
             variant="danger"
             onClick={onDelete}
           >
-            {t("admin.applications.deleteAction")}
+            {t("admin:applications.deleteAction")}
           </Button>
           <Button
             variant="ghost"
             onClick={onEditNotes}
           >
-            {t("admin.applications.editNotesAction")}
+            {t("admin:applications.editNotesAction")}
           </Button>
           {!isWithdrawn && (
             <Button onClick={onUpdateStatus}>
-              {t("admin.applications.updateStatusAction")}
+              {t("admin:applications.updateStatusAction")}
             </Button>
           )}
         </>
@@ -68,7 +68,7 @@ export function ApplicationDetailBody({
   app: ApplicationWithDetails;
   onLeavePage?: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const navigate = useNavigate();
   const c = app.candidate;
   const linkBtnCls =
@@ -84,7 +84,7 @@ export function ApplicationDetailBody({
           }}
           className={linkBtnCls}
         >
-          {t("common.viewCandidate")}
+          {t("common:viewCandidate")}
         </button>
         <button
           type="button"
@@ -94,7 +94,7 @@ export function ApplicationDetailBody({
           }}
           className={linkBtnCls}
         >
-          {t("common.viewJob")}
+          {t("common:viewJob")}
         </button>
         <span className="text-xs text-white/40">{formatDate(app.created_at)}</span>
       </div>
@@ -108,19 +108,19 @@ export function ApplicationDetailBody({
             rel="noopener noreferrer"
             className="text-copper hover:text-gold"
           >
-            {t("admin.applications.details.linkedin")} ↗
+            {t("admin:applications.details.linkedin")} ↗
           </a>
         )}
         {c.resume_path ? (
           <ResumeButton
             resumePath={c.resume_path}
             candidateName={c.full_name}
-            label={t("admin.applications.details.resume")}
+            label={t("admin:applications.details.resume")}
           />
         ) : (
           <span className="text-white/40">
-            {t("admin.applications.details.resume")}:{" "}
-            {t("admin.applications.details.noFile")}
+            {t("admin:applications.details.resume")}:{" "}
+            {t("admin:applications.details.noFile")}
           </span>
         )}
       </div>
@@ -133,7 +133,7 @@ export function ApplicationDetailBody({
           {app.service_concept && (
             <>
               <dt className="text-white/35">
-                {t("admin.applications.details.serviceConcept")}
+                {t("admin:applications.details.serviceConcept")}
               </dt>
               <dd className="text-white/70">{app.service_concept}</dd>
             </>
@@ -141,7 +141,7 @@ export function ApplicationDetailBody({
           {app.salary_expectations && (
             <>
               <dt className="text-white/35">
-                {t("admin.applications.details.salaryExpectations")}
+                {t("admin:applications.details.salaryExpectations")}
               </dt>
               <dd className="text-white/70">{app.salary_expectations}</dd>
             </>
@@ -149,7 +149,7 @@ export function ApplicationDetailBody({
           {app.strength && (
             <>
               <dt className="text-white/35">
-                {t("admin.applications.details.strength")}
+                {t("admin:applications.details.strength")}
               </dt>
               <dd className="text-white/70">{app.strength}</dd>
             </>
@@ -157,7 +157,7 @@ export function ApplicationDetailBody({
           {app.growth_area && (
             <>
               <dt className="text-white/35">
-                {t("admin.applications.details.weakness")}
+                {t("admin:applications.details.weakness")}
               </dt>
               <dd className="text-white/70">{app.growth_area}</dd>
             </>
@@ -168,7 +168,7 @@ export function ApplicationDetailBody({
       {app.admin_notes && (
         <div className="rounded-md border border-white/8 bg-card p-3 text-white/70">
           <Eyebrow>
-            {t("admin.applications.modal.adminNotes")}
+            {t("admin:applications.modal.adminNotes")}
           </Eyebrow>
           <p className="mt-1 whitespace-pre-wrap">{app.admin_notes}</p>
         </div>

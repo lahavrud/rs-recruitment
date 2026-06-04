@@ -25,8 +25,8 @@ type Tab = "active" | "pending" | "invites";
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function AdminCompaniesPage() {
-  const { t } = useTranslation();
-  usePageTitle(t("admin.companies.title"));
+  const { t } = useTranslation(['admin', 'common']);
+  usePageTitle(t("admin:companies.title"));
   const toast = useToast();
   const [view, setView] = useState<Tab>(() => {
     const v = new URLSearchParams(window.location.search).get("view");
@@ -54,7 +54,7 @@ export default function AdminCompaniesPage() {
       })
       .catch((e) => {
         if (axios.isCancel(e)) return;
-        toast.error(t("common.genericError"));
+        toast.error(t("common:genericError"));
       });
     return () => ctrl.abort();
   }, [t, toast]);
@@ -116,24 +116,24 @@ export default function AdminCompaniesPage() {
   return (
     <div>
       <h1 data-page-heading className="sr-only">
-        {t("admin.companies.title")}
+        {t("admin:companies.title")}
       </h1>
       <PageHeader
-        eyebrow={t("admin.companies.title")}
-        subtitle={t("admin.companies.subtitle")}
+        eyebrow={t("admin:companies.title")}
+        subtitle={t("admin:companies.subtitle")}
         action={
           <div className="flex w-full gap-2 sm:w-auto sm:items-center">
             <button
               onClick={() => setCreating(true)}
               className="flex-1 rounded-sm bg-copper px-4 py-2 text-sm font-medium text-white hover:bg-gold sm:flex-initial"
             >
-              {t("admin.companies.newCompany")}
+              {t("admin:companies.newCompany")}
             </button>
             <button
               onClick={handleInvite}
               className="flex-1 rounded-sm border border-copper/40 px-4 py-2 text-sm font-medium text-copper/80 transition hover:border-copper hover:text-copper sm:flex-initial"
             >
-              {t("admin.companies.inviteForm.newInviteButton")}
+              {t("admin:companies.inviteForm.newInviteButton")}
             </button>
           </div>
         }
@@ -158,7 +158,7 @@ export default function AdminCompaniesPage() {
                     : "border border-white/12 text-white/60 hover:border-white/30 hover:text-white/85"
                 }`}
               >
-                <span>{t(`admin.companies.tabs.${key}`)}</span>
+                <span>{t(`admin:companies.tabs.${key}`)}</span>
                 <span
                   className={`inline-flex min-w-[1.5rem] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
                     active
@@ -185,8 +185,8 @@ export default function AdminCompaniesPage() {
           onChange={setQuery}
           placeholder={
             view === "invites"
-              ? t("admin.companies.inviteList.searchPlaceholder")
-              : t("admin.companies.searchPlaceholder")
+              ? t("admin:companies.inviteList.searchPlaceholder")
+              : t("admin:companies.searchPlaceholder")
           }
           clearable
         />
@@ -195,7 +195,7 @@ export default function AdminCompaniesPage() {
       {query.trim() && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <ActiveFilterChip
-            label={`${t("common.search")}: "${query.trim()}"`}
+            label={`${t("common:search")}: "${query.trim()}"`}
             onRemove={() => setQuery("")}
           />
         </div>

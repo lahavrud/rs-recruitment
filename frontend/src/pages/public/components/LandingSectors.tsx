@@ -24,7 +24,7 @@ function clipRise(visible: boolean, delay = "0s"): CSSProperties {
 }
 
 export default function LandingSectors() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('landing');
   const [statsRef, statsVisible] = useReveal(0.3);
 
   return (
@@ -35,15 +35,15 @@ export default function LandingSectors() {
             className="mb-6 text-center text-[10px] font-semibold uppercase tracking-widest text-copper/55"
             style={clipRise(statsVisible, "0s")}
           >
-            {t("landing.sectors.eyebrow")}
+            {t("landing:sectors.eyebrow")}
           </p>
         </div>
         <div ref={statsRef} className="grid grid-cols-3">
           {(
             [
-              { titleKey: "landing.sectors.s1Title", subKey: "landing.sectors.s1Sub", i: 0 },
-              { titleKey: "landing.sectors.s2Title", subKey: "landing.sectors.s2Sub", i: 1 },
-              { titleKey: "landing.sectors.s3Title", subKey: "landing.sectors.s3Sub", i: 2 },
+              { titleKey: "landing:sectors.s1Title", subKey: "landing:sectors.s1Sub", i: 0 },
+              { titleKey: "landing:sectors.s2Title", subKey: "landing:sectors.s2Sub", i: 1 },
+              { titleKey: "landing:sectors.s3Title", subKey: "landing:sectors.s3Sub", i: 2 },
             ] as const
           ).map(({ titleKey, subKey, i }) => (
             <div

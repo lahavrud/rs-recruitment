@@ -1,0 +1,22 @@
+{
+  "header": {
+    "logout": "התנתקות"
+  },
+  "notFound": {
+    "title": "404",
+    "message": "הדף לא נמצא",
+    "goToDashboard": "עבור ללוח הבקרה"
+  },
+  "articles": {
+    "relatedJobsCta": "משרות בתחום ניהול מבנים"
+  },
+  "contact": {
+    "seo": {
+      "title": "צרו קשר — RS Recruiting",
+      "description": "צרו קשר עם RS Recruiting — משרד גיוס והשמה בוטיקי. נשמח לשמוע מכם."
+    },
+    "eyebrow": "צרו קשר",
+    "headline": "נשמח לשמוע מכם",
+    "subtitle": "מעסיקים שמחפשים מועמדים, או מועמדים שרוצים לשמוע עוד — פנו אלינו."
+  }
+}

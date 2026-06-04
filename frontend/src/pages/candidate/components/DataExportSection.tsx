@@ -5,7 +5,7 @@ import { requestDataExport } from "@/services/candidate";
 import SettingsCard from "./SettingsCard";
 
 export default function DataExportSection() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('candidate');
   const [state, setState] = useState<"idle" | "queued" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,8 +21,8 @@ export default function DataExportSection() {
       setState("error");
       setError(
         axios.isAxiosError(err) && err.response?.status === 429
-          ? t("candidate.profile.export.errors.alreadyPending")
-          : t("candidate.profile.export.errors.generic"),
+          ? t("candidate:profile.export.errors.alreadyPending")
+          : t("candidate:profile.export.errors.generic"),
       );
     } finally {
       setBusy(false);
@@ -47,17 +47,17 @@ export default function DataExportSection() {
           />
         </svg>
       }
-      title={t("candidate.profile.export.title")}
+      title={t("candidate:profile.export.title")}
     >
       <div className="flex flex-1 flex-col gap-3">
         <p className="text-xs text-white/55">
-          {t("candidate.profile.export.description")}
+          {t("candidate:profile.export.description")}
         </p>
         <div className="mt-auto flex items-center justify-between gap-3">
           <div className="text-[11px]">
             {state === "queued" && (
               <span className="text-copper">
-                {t("candidate.profile.export.queuedMessage")}
+                {t("candidate:profile.export.queuedMessage")}
               </span>
             )}
             {state === "error" && error && (
@@ -71,8 +71,8 @@ export default function DataExportSection() {
             className="rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80 transition hover:border-copper/50 hover:text-copper disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy
-              ? t("candidate.profile.export.requesting")
-              : t("candidate.profile.export.request")}
+              ? t("candidate:profile.export.requesting")
+              : t("candidate:profile.export.request")}
           </button>
         </div>
       </div>

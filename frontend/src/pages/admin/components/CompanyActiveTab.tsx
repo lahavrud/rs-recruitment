@@ -32,7 +32,7 @@ interface ActiveTabProps {
 }
 
 export default function CompanyActiveTab({ query, externalDetail, onExternalDetailClose }: ActiveTabProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'md']);
   const toast = useToast();
 
   const fetcher = useCallback(
@@ -93,10 +93,10 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
         await deleteOrphanCompany(deletePending.company_profile.id);
       }
       removeItem((c) => c.company_profile.id === deletePending.company_profile.id);
-      toast.success(t("admin.companies.deletedToast"));
+      toast.success(t("admin:companies.deletedToast"));
       setDeletePending(null);
     } catch {
-      toast.error(t("admin.companies.active.deleteError"));
+      toast.error(t("admin:companies.active.deleteError"));
     } finally {
       setPendingMutation(false);
     }
@@ -114,11 +114,11 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
           </div>
         </>
       ) : error ? (
-        <ErrorState message={t("admin.companies.active.loadError")} onRetry={reload} />
+        <ErrorState message={t("admin:companies.active.loadError")} onRetry={reload} />
       ) : companies.length === 0 ? (
         <EmptyState
-          eyebrow={t("admin.companies.tabs.active")}
-          headline={t("admin.companies.active.empty")}
+          eyebrow={t("admin:companies.tabs.active")}
+          headline={t("admin:companies.active.empty")}
         />
       ) : filteredCompanies.length === 0 ? (
         <NoResults />
@@ -129,11 +129,11 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
             {filteredCompanies.map((row) => {
               const actions = (
                 <DropdownMenu
-                  ariaLabel={t("admin.companies.rowActionsLabel")}
+                  ariaLabel={t("admin:companies.rowActionsLabel")}
                   trigger={<KebabButton onClick={(e) => e.stopPropagation()} />}
                 >
                   <DropdownMenuItem onSelect={() => setEditing(row.company_profile)}>
-                    {t("admin.companies.editAction")}
+                    {t("admin:companies.editAction")}
                   </DropdownMenuItem>
                   {row.user?.email && (
                     <DropdownMenuItem
@@ -141,7 +141,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
                         window.open(`mailto:${row.user!.email}`, "_self")
                       }
                     >
-                      {t("admin.companies.emailAction")}
+                      {t("admin:companies.emailAction")}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -149,7 +149,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
                     variant="danger"
                     onSelect={() => setDeletePending(row)}
                   >
-                    {t("admin.companies.deleteAction")}
+                    {t("admin:companies.deleteAction")}
                   </DropdownMenuItem>
                 </DropdownMenu>
               );
@@ -174,13 +174,13 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
               <thead className="bg-well text-xs font-medium uppercase tracking-wide text-white/35">
                 <tr>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.active.table.company")}
+                    {t("admin:companies.active.table.company")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.active.table.contact")}
+                    {t("admin:companies.active.table.contact")}
                   </th>
                   <th className="px-4 py-3 text-start">
-                    {t("admin.companies.active.table.joined")}
+                    {t("admin:companies.active.table.joined")}
                   </th>
                   <th className="px-4 py-3 text-end" aria-hidden />
                 </tr>
@@ -214,18 +214,18 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu
-                        ariaLabel={t("admin.companies.rowActionsLabel")}
+                        ariaLabel={t("admin:companies.rowActionsLabel")}
                         trigger={<KebabButton size="sm" />}
                       >
                         <DropdownMenuItem
                           onSelect={() => setDetail(row.company_profile)}
                         >
-                          {t("admin.companies.viewAction")}
+                          {t("admin:companies.viewAction")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => setEditing(row.company_profile)}
                         >
-                          {t("admin.companies.editAction")}
+                          {t("admin:companies.editAction")}
                         </DropdownMenuItem>
                         {row.user?.email && (
                           <DropdownMenuItem
@@ -233,7 +233,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
                               window.open(`mailto:${row.user!.email}`, "_self")
                             }
                           >
-                            {t("admin.companies.emailAction")}
+                            {t("admin:companies.emailAction")}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
@@ -241,7 +241,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
                           variant="danger"
                           onSelect={() => setDeletePending(row)}
                         >
-                          {t("admin.companies.deleteAction")}
+                          {t("admin:companies.deleteAction")}
                         </DropdownMenuItem>
                       </DropdownMenu>
                     </td>
@@ -278,7 +278,7 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
               } as ActiveCompanyRead;
             })(),
           );
-          toast.success(t("admin.companies.savedToast"));
+          toast.success(t("admin:companies.savedToast"));
           setEditing(null);
         }}
       />
@@ -286,9 +286,9 @@ export default function CompanyActiveTab({ query, externalDetail, onExternalDeta
       <ConfirmDialog
         open={deletePending != null}
         onOpenChange={(o) => !o && setDeletePending(null)}
-        title={t("admin.companies.deleteConfirmTitle", { name: deletePending?.company_profile.name ?? "" })}
-        message={t("admin.companies.active.deleteConfirm")}
-        confirmLabel={t("admin.companies.deleteAction")}
+        title={t("admin:companies.deleteConfirmTitle", { name: deletePending?.company_profile.name ?? "" })}
+        message={t("admin:companies.active.deleteConfirm")}
+        confirmLabel={t("admin:companies.deleteAction")}
         variant="danger"
         isPending={pendingMutation}
         onConfirm={handleDelete}

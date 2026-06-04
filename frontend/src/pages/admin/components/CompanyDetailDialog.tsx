@@ -22,7 +22,7 @@ export default function CompanyDetailDialog({
   onEdit,
   hideEditButton = false,
 }: DetailProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const [jobs, setJobs] = useState<JobRead[] | null>(null);
   const [jobsError, setJobsError] = useState(false);
 
@@ -53,14 +53,14 @@ export default function CompanyDetailDialog({
       open={profile != null}
       onOpenChange={(o) => !o && onClose()}
       title={profile.name}
-      description={t("admin.companies.detailDescription")}
+      description={t("admin:companies.detailDescription")}
       size="lg"
       footer={
         hideEditButton ? undefined : (
           <Button
             onClick={onEdit}
           >
-            {t("admin.companies.editAction")}
+            {t("admin:companies.editAction")}
           </Button>
         )
       }
@@ -85,7 +85,7 @@ export function CompanyDetailBody({
   jobsError?: boolean;
   onLeavePage?: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['admin', 'common']);
   const navigate = useNavigate();
   const [localJobs, setLocalJobs] = useState<JobRead[] | null>(null);
   const [localJobsError, setLocalJobsError] = useState(false);
@@ -113,13 +113,13 @@ export function CompanyDetailBody({
   return (
     <div className="space-y-4 text-sm">
       <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-        <dt className="text-white/35">{t("admin.companies.fields.companyId")}</dt>
+        <dt className="text-white/35">{t("admin:companies.fields.companyId")}</dt>
         <dd className="text-white/70">
-          {profile.company_id || t("admin.companies.noCompanyId")}
+          {profile.company_id || t("admin:companies.noCompanyId")}
         </dd>
         {profile.contact_email && (
           <>
-            <dt className="text-white/35">{t("admin.companies.fields.email")}</dt>
+            <dt className="text-white/35">{t("admin:companies.fields.email")}</dt>
             <dd className="text-white/70">
               <a
                 href={`mailto:${profile.contact_email}`}
@@ -132,13 +132,13 @@ export function CompanyDetailBody({
         )}
         {profile.address && (
           <>
-            <dt className="text-white/35">{t("admin.companies.fields.address")}</dt>
+            <dt className="text-white/35">{t("admin:companies.fields.address")}</dt>
             <dd className="text-white/70">{profile.address}</dd>
           </>
         )}
         {(profile.contact_first_name || profile.contact_last_name) && (
           <>
-            <dt className="text-white/35">{t("admin.companies.contactLabel")}</dt>
+            <dt className="text-white/35">{t("admin:companies.contactLabel")}</dt>
             <dd className="text-white/70">
               {profile.contact_first_name} {profile.contact_last_name}
             </dd>
@@ -147,7 +147,7 @@ export function CompanyDetailBody({
         {profile.contact_mobile_phone && (
           <>
             <dt className="text-white/35">
-              {t("admin.companies.fields.contactMobile")}
+              {t("admin:companies.fields.contactMobile")}
             </dt>
             <dd className="text-white/70">{profile.contact_mobile_phone}</dd>
           </>
@@ -155,7 +155,7 @@ export function CompanyDetailBody({
         {profile.contact_landline_phone && (
           <>
             <dt className="text-white/35">
-              {t("admin.companies.fields.contactLandline")}
+              {t("admin:companies.fields.contactLandline")}
             </dt>
             <dd className="text-white/70">{profile.contact_landline_phone}</dd>
           </>
@@ -163,23 +163,23 @@ export function CompanyDetailBody({
         {profile.user_id == null && (
           <>
             <dt className="text-white/35">—</dt>
-            <dd className="text-white/40">{t("admin.companies.noUserAccount")}</dd>
+            <dd className="text-white/40">{t("admin:companies.noUserAccount")}</dd>
           </>
         )}
       </dl>
 
       <div className="border-t border-white/8 pt-4">
         <Eyebrow>
-          {t("admin.companies.jobsSection")}
+          {t("admin:companies.jobsSection")}
         </Eyebrow>
         {jobsError ? (
           <p className="mt-3 text-xs text-danger">
-            {t("admin.companies.errors.jobsLoadFailed")}
+            {t("admin:companies.errors.jobsLoadFailed")}
           </p>
         ) : jobs == null ? (
-          <p className="mt-3 text-xs text-white/35">{t("common.loading")}</p>
+          <p className="mt-3 text-xs text-white/35">{t("common:loading")}</p>
         ) : jobs.length === 0 ? (
-          <p className="mt-3 text-xs text-white/35">{t("admin.companies.noJobs")}</p>
+          <p className="mt-3 text-xs text-white/35">{t("admin:companies.noJobs")}</p>
         ) : (
           <ul className="mt-3 space-y-1.5">
             {jobs.map((j) => (

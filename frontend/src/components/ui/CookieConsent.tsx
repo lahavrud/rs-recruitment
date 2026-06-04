@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { getConsent, saveConsent, applyGtmConsent } from "@/utils/consent";
 
 export default function CookieConsent() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('cookies');
   const [visible, setVisible] = useState(() => getConsent() === null);
   const [closing, setClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -36,14 +36,14 @@ export default function CookieConsent() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white/90">
-                  {t("cookies.necessary.title")}
+                  {t("cookies:necessary.title")}
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed text-white/45">
-                  {t("cookies.necessary.description")}
+                  {t("cookies:necessary.description")}
                 </p>
               </div>
               <span className="mt-0.5 shrink-0 whitespace-nowrap rounded-full bg-copper/20 px-2 py-0.5 text-[10px] font-medium text-copper">
-                {t("cookies.alwaysOn")}
+                {t("cookies:alwaysOn")}
               </span>
             </div>
 
@@ -51,10 +51,10 @@ export default function CookieConsent() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white/90">
-                  {t("cookies.analytics.title")}
+                  {t("cookies:analytics.title")}
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed text-white/45">
-                  {t("cookies.analytics.description")}
+                  {t("cookies:analytics.description")}
                 </p>
               </div>
               {/* dir="ltr" keeps thumb positioning physical so RTL layout doesn't offset it */}
@@ -63,7 +63,7 @@ export default function CookieConsent() {
                 type="button"
                 role="switch"
                 aria-checked={analyticsEnabled}
-                aria-label={t("cookies.analytics.title")}
+                aria-label={t("cookies:analytics.title")}
                 onClick={() => setAnalyticsEnabled((v) => !v)}
                 className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-copper/60 ${
                   analyticsEnabled ? "bg-copper" : "bg-white/20"
@@ -82,7 +82,7 @@ export default function CookieConsent() {
               onClick={() => dismiss(analyticsEnabled)}
               className="w-full rounded-sm bg-copper/15 py-1.5 text-xs font-medium text-copper transition-colors hover:bg-copper/25"
             >
-              {t("cookies.savePreferences")}
+              {t("cookies:savePreferences")}
             </button>
           </div>
         </div>
@@ -121,12 +121,12 @@ export default function CookieConsent() {
               <circle cx="16.5" cy="11" r="0.4" />
             </svg>
             <span className="text-[10px] font-semibold uppercase tracking-widest text-copper">
-              {t("cookies.heading")}
+              {t("cookies:heading")}
             </span>
           </div>
 
           <p className="mb-3 text-[11px] leading-relaxed text-white/50">
-            {t("cookies.banner")}
+            {t("cookies:banner")}
           </p>
 
           {/* Action row */}
@@ -136,7 +136,7 @@ export default function CookieConsent() {
               onClick={() => setSettingsOpen((v) => !v)}
               className="shrink-0 text-[11px] text-white/35 underline underline-offset-2 transition-colors hover:text-white/65"
             >
-              {t("cookies.settings")}
+              {t("cookies:settings")}
             </button>
             <div className="flex flex-1 justify-end gap-2">
               <button
@@ -144,14 +144,14 @@ export default function CookieConsent() {
                 onClick={() => dismiss(false)}
                 className="rounded-sm border border-white/15 px-2.5 py-1.5 text-[11px] text-white/55 transition-colors hover:border-white/30 hover:text-white/80"
               >
-                {t("cookies.essentialOnly")}
+                {t("cookies:essentialOnly")}
               </button>
               <button
                 type="button"
                 onClick={() => dismiss(true)}
                 className="rounded-sm bg-copper px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-gold"
               >
-                {t("cookies.acceptAll")}
+                {t("cookies:acceptAll")}
               </button>
             </div>
           </div>
