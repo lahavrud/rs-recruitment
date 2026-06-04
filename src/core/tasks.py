@@ -12,9 +12,11 @@ Public API (unchanged from Arq era — all 10+ call sites still work):
 import base64
 import json
 import logging
+import time
 from typing import List, Optional
 
 import aioboto3
+from opentelemetry import metrics as otel_metrics
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import async_session
@@ -24,7 +26,17 @@ from src.core.services.email_quota import increment_and_alert
 
 logger = logging.getLogger(__name__)
 
-METRIC_NAMESPACE = "RsRecruiting/Retention"
+_meter = otel_metrics.get_meter("src.core.tasks")
+_purged_counter = _meter.create_counter(
+    name="purged_candidates",
+    description="Number of candidate records purged by the retention task",
+    unit="1",
+)
+_last_purge_ran_gauge = _meter.create_gauge(
+    name="last_purge_ran_at",
+    description="Unix timestamp of the last successful retention purge run",
+    unit="s",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -40,26 +52,6 @@ def _mask_email(to: str | List[str]) -> str:
         return "***"
     local, domain = parts
     return f"{local[:2]}***@{domain}"
-
-
-async def _emit_purge_count_metric(count: int) -> None:
-    if settings.environment != "production":
-        return
-    try:
-        session = aioboto3.Session()
-        async with session.client("cloudwatch", region_name=settings.aws_region) as cw:
-            await cw.put_metric_data(
-                Namespace=METRIC_NAMESPACE,
-                MetricData=[
-                    {
-                        "MetricName": "PurgedCandidatesCount",
-                        "Value": float(count),
-                        "Unit": "Count",
-                    }
-                ],
-            )
-    except Exception:
-        logger.exception("Failed to emit PurgedCandidatesCount metric")
 
 
 async def _sqs_send(message: dict) -> str:
@@ -176,7 +168,9 @@ async def purge_expired_candidate_data_task() -> int:
     async with async_session() as session:
         async with transactional(session):
             count = await purge_expired_candidates(session)
-    await _emit_purge_count_metric(count)
+    attrs = {"environment": settings.environment}
+    _purged_counter.add(count, attrs)
+    _last_purge_ran_gauge.set(time.time(), attrs)
     logger.info("purge_complete", extra={"count": count})
     return count
 

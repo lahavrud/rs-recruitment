@@ -20,8 +20,12 @@ import signal
 import sys
 
 import aioboto3
+from opentelemetry import trace as otel_trace
+from pythonjsonlogger import json as jsonlogger
 
 from src.core.infrastructure.config import settings
+from src.core.infrastructure.middleware import RequestIdFilter
+from src.core.infrastructure.telemetry import configure_telemetry, shutdown_telemetry
 from src.core.tasks import TASK_REGISTRY
 
 logger = logging.getLogger(__name__)
@@ -31,12 +35,20 @@ _LONG_POLL_SECONDS = 20
 _MAX_MESSAGES = 10
 
 
+_tracer = otel_trace.get_tracer("src.worker")
+
+
 def _configure_logging() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format='{"time":"%(asctime)s","level":"%(levelname)s","name":"%(name)s","message":"%(message)s"}',
+    handler = logging.StreamHandler()
+    formatter = jsonlogger.JsonFormatter(
+        fmt="%(asctime)s %(levelname)s %(name)s %(otelTraceID)s %(otelSpanID)s %(message)s",  # noqa: E501
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
+    handler.setFormatter(formatter)
+    handler.addFilter(RequestIdFilter())
+    root = logging.getLogger()
+    root.handlers = [handler]
+    root.setLevel(logging.INFO)
 
 
 def _deserialize_message(body: dict) -> tuple[str, dict]:
@@ -63,9 +75,18 @@ async def _process_message(raw_body: str) -> str:
         logger.warning("unknown_task", extra={"task": task_name})
         return task_name
 
-    logger.info("task_start", extra={"task": task_name})
-    await fn(**kwargs)
-    logger.info("task_done", extra={"task": task_name})
+    with _tracer.start_as_current_span(
+        f"worker.task.{task_name}",
+        attributes={"worker.task_name": task_name},
+    ) as span:
+        logger.info("task_start", extra={"task": task_name})
+        try:
+            await fn(**kwargs)
+            logger.info("task_done", extra={"task": task_name})
+        except Exception as exc:
+            span.record_exception(exc)
+            span.set_status(otel_trace.StatusCode.ERROR, str(exc))
+            raise
     return task_name
 
 
@@ -109,6 +130,7 @@ async def run(stop_event: asyncio.Event) -> None:
 
 def main() -> None:
     _configure_logging()
+    configure_telemetry("rs-recruiting-worker")
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -124,6 +146,7 @@ def main() -> None:
     try:
         loop.run_until_complete(run(stop_event))
     finally:
+        shutdown_telemetry()
         loop.close()
 
 

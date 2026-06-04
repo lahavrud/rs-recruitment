@@ -1,0 +1,192 @@
+// Grafana Alloy pipeline — rs-recruiting production
+//
+// Env vars injected at container start by docker-compose (sourced from SSM
+// by deploy_ec2.sh before `docker compose up`):
+//   GRAFANA_LOKI_URL        GRAFANA_LOKI_USER
+//   GRAFANA_TEMPO_URL       GRAFANA_TEMPO_USER
+//   GRAFANA_PROMETHEUS_URL  GRAFANA_PROMETHEUS_USER
+//   GRAFANA_API_TOKEN
+
+// ── 1. OTLP receiver — accepts traces, metrics, and logs from API + worker ──
+
+otelcol.receiver.otlp "app" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.prometheus.mimir.input]
+    logs    = [otelcol.exporter.loki.app.input]
+  }
+}
+
+// ── 2. Traces → Grafana Cloud Tempo ──────────────────────────────────────
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = sys.env("GRAFANA_TEMPO_URL")
+    auth     = otelcol.auth.basic.tempo.handler
+  }
+}
+
+otelcol.auth.basic "tempo" {
+  username = sys.env("GRAFANA_TEMPO_USER")
+  password = sys.env("GRAFANA_API_TOKEN")
+}
+
+// ── 3. App metrics → Grafana Cloud Mimir (via Prometheus remote_write) ───
+
+otelcol.exporter.prometheus "mimir" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = sys.env("GRAFANA_PROMETHEUS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_PROMETHEUS_USER")
+      password = sys.env("GRAFANA_API_TOKEN")
+    }
+  }
+}
+
+// ── 4. App logs (OTLP path) → Grafana Cloud Loki ─────────────────────────
+
+otelcol.exporter.loki "app" {
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+// ── 5. nginx container log tailing → Loki ────────────────────────────────
+// Only nginx is tailed here. API and worker logs arrive via OTLP (section 1)
+// — tailing them would double-ingest. Worker also ships to CloudWatch via
+// awslogs driver (compliance log group, 400d retention).
+//
+// Container name follows Docker Compose v2 convention: <project>_<service>_1
+// where project = directory name of the app dir on EC2 ("app").
+// If the actual name differs, check with `docker ps` on first deploy.
+
+discovery.docker "nginx" {
+  host = "unix:///var/run/docker.sock"
+
+  filter {
+    name   = "name"
+    values = ["app-nginx-1"]
+  }
+}
+
+discovery.relabel "nginx" {
+  targets = discovery.docker.nginx.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "nginx" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.nginx.output
+  labels     = { app = "rs-recruiting", component = "nginx" }
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+// ── 6. Loki write endpoint ────────────────────────────────────────────────
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_LOKI_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_LOKI_USER")
+      password = sys.env("GRAFANA_API_TOKEN")
+    }
+  }
+}
+
+// ── 7. AWS CloudWatch metrics scraping → Mimir ───────────────────────────
+// Scrapes native AWS metrics (EC2, RDS, SQS, Route53) and forwards to Mimir.
+// The EC2 IAM role has cloudwatch:GetMetricData + cloudwatch:ListMetrics.
+//
+// Route53 health check: replace HEALTH_CHECK_UUID with the actual ID from:
+//   aws route53 list-health-checks --query 'HealthCheckList[].{ID:Id,FQDN:HealthCheckConfig.FullyQualifiedDomainName}'
+
+prometheus.exporter.cloudwatch "aws" {
+  sts_region = "us-east-1"
+
+  discovery {
+    type    = "AWS/EC2"
+    regions = ["us-east-1"]
+    metric {
+      name       = "CPUUtilization"
+      statistics = ["Average"]
+      period     = "5m"
+    }
+    metric {
+      name       = "NetworkIn"
+      statistics = ["Average"]
+      period     = "5m"
+    }
+  }
+
+  discovery {
+    type    = "AWS/RDS"
+    regions = ["us-east-1"]
+    metric {
+      name       = "CPUUtilization"
+      statistics = ["Average"]
+      period     = "5m"
+    }
+    metric {
+      name       = "DatabaseConnections"
+      statistics = ["Average"]
+      period     = "5m"
+    }
+    metric {
+      name       = "FreeStorageSpace"
+      statistics = ["Average"]
+      period     = "5m"
+    }
+  }
+
+  discovery {
+    type    = "AWS/SQS"
+    regions = ["us-east-1"]
+    metric {
+      name       = "NumberOfMessagesSent"
+      statistics = ["Sum"]
+      period     = "5m"
+    }
+    metric {
+      name       = "ApproximateNumberOfMessagesVisible"
+      statistics = ["Average"]
+      period     = "5m"
+    }
+  }
+
+  custom {
+    regions    = ["us-east-1"]
+    namespace  = "AWS/Route53"
+    dimensions = { "HealthCheckId" = "HEALTH_CHECK_UUID" }
+    metric {
+      name       = "HealthCheckStatus"
+      statistics = ["Minimum"]
+      period     = "1m"
+    }
+  }
+}
+
+prometheus.scrape "cloudwatch" {
+  targets         = prometheus.exporter.cloudwatch.aws.targets
+  forward_to      = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "5m"
+}
