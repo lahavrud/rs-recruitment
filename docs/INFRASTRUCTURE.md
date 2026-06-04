@@ -28,21 +28,30 @@ flowchart LR
         api["api<br/>FastAPI<br/>port 8000"]
         worker["worker<br/>Arq"]
         redis["redis<br/>port 6379"]
+        alloy["Grafana Alloy<br/>OTLP collector<br/>port 4317 (loopback)"]
       end
       RDS[("RDS Postgres 16<br/>rs-recruitment-prod-db<br/>db.t3.micro · single-AZ<br/>encrypted · 7d backups")]
     end
 
     S3A[("S3 bucket<br/>rs-recruitment-app<br/>versioning suspended · SSE-S3<br/>resumes + deploy artifacts")]
     S3CT[("S3 bucket<br/>rs-recruitment-cloudtrail<br/>versioned · SSE-S3 · BPA full")]
-    ECR1[("ECR rs-recruitment/api<br/>IMMUTABLE · scanOnPush")]
+    ECR1[("ECR rs-recruiting/api<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
-    CW["CloudWatch<br/>5 log groups · 9 alarms · 1 dashboard"]
+    CW["CloudWatch<br/>1 log group · 9 alarms · 1 dashboard"]
     CT["CloudTrail<br/>multi-region · log validation"]
     SNS1["SNS ops-alerts"]
     Budget["AWS Budget<br/>monthly-40<br/>50/80/100 actual + 100 forecast"]
   end
 
+  subgraph grafana["Grafana Cloud"]
+    Loki["Loki<br/>logs"]
+    Tempo["Tempo<br/>traces"]
+    Mimir["Mimir<br/>metrics"]
+    GrafanaDash["Grafana<br/>dashboards"]
+  end
+
   GHA["GitHub Actions<br/>OIDC role"]
+  Sentry["Sentry"]
   Email["ops email"]
 
   User --> CF --> CFD
@@ -57,6 +66,18 @@ flowchart LR
   worker --> S3A
   api --> SSM
   worker --> SSM
+  api -->|OTLP gRPC| alloy
+  worker -->|OTLP gRPC| alloy
+  alloy -->|traces| Tempo
+  alloy -->|logs| Loki
+  alloy -->|metrics| Mimir
+  alloy -->|"CloudWatch metrics<br/>EC2 · RDS · SQS"| Mimir
+  worker -->|"compliance logs<br/>/rs-recruiting/worker"| CW
+  api -->|errors| Sentry
+  worker -->|errors| Sentry
+  Loki --> GrafanaDash
+  Tempo --> GrafanaDash
+  Mimir --> GrafanaDash
 
   GHA -->|push images| ECR1
   GHA -->|"s3 sync frontend bundle"| S3FE
@@ -64,7 +85,6 @@ flowchart LR
   GHA -->|run command| ec2host
   GHA -->|put CURRENT_SHA| SSM
   ec2host -->|pull images| ECR1
-  ec2host -->|logs + metrics| CW
   ec2host -->|API calls audit| CT
   CT -->|deliver logs| S3CT
   CW -->|ops alarms| SNS1
@@ -156,27 +176,51 @@ Default EBS encryption: ON (account-wide).
 ### Configuration
 | Resource | Notes |
 |---|---|
-| SSM `/rs-recruitment/prod/*` | App secrets (DATABASE_URL, JWT_SECRET_KEY, SMTP_*, STORAGE_PROVIDER, etc.) — SecureString where appropriate. **Naming convention: parameter names are UPPERCASE**; the app loader lowercases them to match snake_case Pydantic field names. Keep new params UPPERCASE for operator clarity. |
-| SSM `/rs-recruitment/infra/CURRENT_SHA` | String — current deployed SHA (deploy version pointer) |
-| SSM `/rs-recruitment/infra/TLS_CERT`, `TLS_KEY` | SecureString — **superseded** by ACM + CloudFront; no longer materialized at deploy time. Kept in SSM pending cleanup. |
+| SSM `/rs-recruiting/prod/*` | App secrets (DATABASE_URL, JWT_SECRET_KEY, SMTP_*, STORAGE_PROVIDER, etc.) — SecureString where appropriate. **Naming convention: parameter names are UPPERCASE**; the app loader lowercases them to match snake_case Pydantic field names. Keep new params UPPERCASE for operator clarity. |
+| SSM `/rs-recruiting/infra/CURRENT_SHA` | String — current deployed SHA (deploy version pointer) |
+| SSM `/rs-recruiting/infra/TLS_CERT`, `TLS_KEY` | SecureString — **superseded** by ACM + CloudFront; no longer materialized at deploy time. Kept in SSM pending cleanup. |
+| SSM `/rs-recruiting/infra/GRAFANA_LOKI_URL` | SecureString — Grafana Cloud Loki push endpoint URL |
+| SSM `/rs-recruiting/infra/GRAFANA_LOKI_USER` | SecureString — Grafana Cloud Loki numeric instance ID |
+| SSM `/rs-recruiting/infra/GRAFANA_TEMPO_URL` | SecureString — Grafana Cloud Tempo OTLP endpoint URL |
+| SSM `/rs-recruiting/infra/GRAFANA_TEMPO_USER` | SecureString — Grafana Cloud Tempo numeric instance ID |
+| SSM `/rs-recruiting/infra/GRAFANA_PROMETHEUS_URL` | SecureString — Grafana Cloud Mimir remote_write URL |
+| SSM `/rs-recruiting/infra/GRAFANA_PROMETHEUS_USER` | SecureString — Grafana Cloud Mimir numeric instance ID |
+| SSM `/rs-recruiting/infra/GRAFANA_API_TOKEN` | SecureString — Grafana Cloud API token (scoped to Loki/Tempo/Mimir write) |
 | KMS | 2 customer-managed keys (default RDS + SSM) |
 | Route 53 | 1 health check; no hosted zones (DNS at Cloudflare) |
 
 ### Observability
+
+**Primary stack: Grafana Cloud (Loki / Tempo / Mimir) via Grafana Alloy on EC2.**
+
+Grafana Alloy (`grafana/alloy:v1.5.1`) runs as a sidecar container. It exposes an OTLP gRPC receiver on `127.0.0.1:4317`. The api and worker containers ship all telemetry (traces, metrics, structured logs) via OTLP to Alloy, which fans out:
+
+| Signal | Source | Destination |
+|---|---|---|
+| Traces | api + worker (OTLP) | Alloy → Grafana Cloud Tempo |
+| App logs | api + worker (OTLP via `LoggingInstrumentor`) | Alloy → Grafana Cloud Loki |
+| nginx logs | Docker socket tail (Alloy `loki.source.docker`) | Grafana Cloud Loki |
+| App metrics | api + worker (OTLP) | Alloy → Grafana Cloud Mimir |
+| AWS metrics | Alloy `prometheus.exporter.cloudwatch` (EC2 CPU/net, RDS CPU/conns/storage, SQS depth) | Grafana Cloud Mimir |
+| Worker compliance logs | awslogs driver (parallel to OTLP) | CloudWatch `/rs-recruiting/worker` 400d |
+
+`otelTraceID` and `otelSpanID` are injected into every log record by `LoggingInstrumentor(set_logging_format=True)` in `telemetry.py`, enabling Loki → Tempo correlation. Sentry errors carry a `trace_id` tag (set in `RequestMiddleware`) that links to the same Tempo trace.
+
+Credentials (`GRAFANA_LOKI_URL/USER`, `GRAFANA_TEMPO_URL/USER`, `GRAFANA_PROMETHEUS_URL/USER`, `GRAFANA_API_TOKEN`) are read from SSM by `deploy_ec2.sh` and injected as env vars into the Alloy container at startup.
+
+**CloudWatch — retained for compliance and alarms only:**
+
 | Resource | Settings |
 |---|---|
-| Log group `/rs-recruitment/api` | 14d retention |
-| Log group `/rs-recruitment/nginx` | 14d retention |
-| Log group `/rs-recruitment/redis` | 14d retention |
-| Log group `/rs-recruitment/worker` | **400d retention** (compliance audit trail for `retention.purge candidate_id=`) |
+| Log group `/rs-recruiting/worker` | **400d retention** — compliance audit trail for `retention.purge candidate_id=` events (awslogs driver on worker container, parallel to OTLP) |
 | Log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` | RDS log export · **30d retention** |
-| Metric filter `nginx-5xx-errors` | `/rs-recruitment/nginx` · nginx combined log field pattern `status=5*` · emits `RsRecruiting/Nginx / Http5xxCount` (Sum, `defaultValue=0`) |
-| Metric filter `auth-login-failed` | `/rs-recruitment/api` · `{ $.message = "login_failed" }` · emits `RsRecruiting/Auth / LoginFailedCount` |
-| Metric filter `auth-account-locked` | `/rs-recruitment/api` · `{ $.message = "login_account_locked" }` · emits `RsRecruiting/Auth / AccountLockedCount` |
-| Metric filter `auth-lockout-hit` | `/rs-recruitment/api` · `{ $.message = "login_lockout_hit" }` · emits `RsRecruiting/Auth / LockoutHitCount` |
-| Metric filter `auth-rate-limited` | `/rs-recruitment/api` · `{ $.message = "rate_limit_hit" }` · emits `RsRecruiting/Auth / RateLimitHitCount` |
-| Alarm `nginx-5xx-rate-high` | `Http5xxCount` Sum > 5 in 5 min → ops-alerts |
-| Alarm `auth-login-failed-spike` | `LoginFailedCount` Sum > 10 in 5 min → ops-alerts (brute-force / credential stuffing signal) |
+| Metric filter `nginx-5xx-errors` | `/rs-recruiting/nginx` · nginx combined log field pattern `status=5*` · emits `RsRecruiting/Nginx / Http5xxCount` (Sum, `defaultValue=0`) — **stale: nginx no longer ships to CloudWatch; filter is a no-op** |
+| Metric filter `auth-login-failed` | `/rs-recruiting/api` · `{ $.message = "login_failed" }` · emits `RsRecruiting/Auth / LoginFailedCount` — **stale: api logs route via OTLP, not CloudWatch** |
+| Metric filter `auth-account-locked` | `/rs-recruiting/api` · `{ $.message = "login_account_locked" }` · emits `RsRecruiting/Auth / AccountLockedCount` — **stale** |
+| Metric filter `auth-lockout-hit` | `/rs-recruiting/api` · `{ $.message = "login_lockout_hit" }` · emits `RsRecruiting/Auth / LockoutHitCount` — **stale** |
+| Metric filter `auth-rate-limited` | `/rs-recruiting/api` · `{ $.message = "rate_limit_hit" }` · emits `RsRecruiting/Auth / RateLimitHitCount` — **stale** |
+| Alarm `nginx-5xx-rate-high` | `Http5xxCount` Sum > 5 in 5 min → ops-alerts — **stale: metric filter is a no-op** |
+| Alarm `auth-login-failed-spike` | `LoginFailedCount` Sum > 10 in 5 min → ops-alerts — **stale** |
 | Alarm `ec2-cpu-high-rs-server` | EC2 CPU >80% for 30min → ops-alerts |
 | Alarm `rds-connections-high` | RDS connections high → ops-alerts |
 | Alarm `rds-cpu-high` | RDS CPU >80% for 30min → ops-alerts |
@@ -184,13 +228,14 @@ Default EBS encryption: ON (account-wide).
 | Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
 | Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
 | Alarm `SecurityAlarm-CloudTrailChanges` | CloudTrail configuration changes → ops-alerts |
-| Dashboard `rs-recruiting-ops` | 6 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage, auth failures (4 series). Created via `aws cloudwatch put-dashboard`. |
-| Logs Insights saved queries | "Last 50 errors" (`levelname = "ERROR"`), "Requests to a path", "Login failures last hour", "Audit events by actor" — all on `/rs-recruitment/api` or `/rs-recruitment/nginx` / `/rs-recruitment/worker` |
+| Dashboard `rs-recruiting-ops` | 6 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage, auth failures. **Partially stale** — panels backed by metric filters that no longer fire are empty. Grafana Cloud dashboard is the primary ops view. |
 | SNS `ops-alerts` | Email → `<OPS_EMAIL>` (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
 | CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-<ACCOUNT_ID>` |
-| GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency, 30-day free trial active until ~2026-06-08; primary input is CloudTrail (above) |
+| GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency; primary input is CloudTrail (above) |
 | EventBridge rule `guardduty-findings` | Pattern: `source=aws.guardduty, detail-type=GuardDuty Finding`. Target: `ops-alerts` SNS with input transformer that flattens raw JSON into a human-readable email (severity, type, title, description, region, resource type) |
 | AWS Budget `monthly-40` | $40/mo cost budget with **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted |
+
+**Cleanup pending:** CloudWatch metric filters for api + nginx logs, their backed alarms (`nginx-5xx-rate-high`, `auth-*`), and the stale `rs-recruiting-ops` panels are dead weight now that logs route via OTLP. Delete them once Grafana Cloud alerting covers the same signals.
 
 ### Backup posture
 | Layer | Mechanism | Retention |
@@ -211,6 +256,11 @@ Default EBS encryption: ON (account-wide).
 ## 4. Decisions log (append-only)
 
 Newest first. Each entry: date, what, why, links. When updating, append; don't rewrite history.
+
+### 2026-06-05 — Grafana Cloud observability stack: Alloy → Loki / Tempo / Mimir
+**Decision:** Replace CloudWatch as the primary log/metric/trace backend with Grafana Cloud. Grafana Alloy (`v1.5.1`) runs as a sidecar container on EC2 and receives all telemetry from the api and worker containers via OTLP gRPC (port 4317 on loopback). Alloy fans out: traces → Grafana Cloud Tempo, structured logs → Grafana Cloud Loki, app metrics → Grafana Cloud Mimir, and AWS native metrics (EC2/RDS/SQS) scraped from CloudWatch → Mimir. nginx container logs are tailed from the Docker socket directly into Loki. The Python `LoggingInstrumentor(set_logging_format=True)` injects `otelTraceID`/`otelSpanID` into every log record for Loki→Tempo deep linking. `RequestMiddleware` sets a Sentry `trace_id` tag from the active OTel span so Sentry errors can be correlated to Tempo traces. Worker logs ship dual-path: OTLP → Loki (primary) and awslogs driver → CloudWatch `/rs-recruiting/worker` (compliance, 400d retention). CloudWatch alarms backed by now-dead metric filters (`nginx-5xx-rate-high`, `auth-*`) remain in AWS but are no-ops — cleanup tracked in the observability table above.
+**Why:** CloudWatch Logs Insights is expensive at scale and query ergonomics are poor. Grafana Cloud free tier covers current traffic. Tempo provides distributed tracing that CloudWatch never offered. A single Grafana dashboard correlating logs, traces, and metrics (including AWS-native metrics) replaces four separate AWS consoles.
+**Trade:** Grafana Cloud credentials (API token + per-datasource URLs) in SSM — one more secret to rotate. Alloy adds a container to the deploy compose; if Alloy crashes, OTLP telemetry is lost until it restarts (worker compliance logs are still safe in CloudWatch via the awslogs path). Existing CloudWatch alarms for EC2/RDS/uptime are kept as a fallback since those signals don't depend on log ingestion.
 
 ### 2026-06-04 — CloudFront + S3 frontend; custom domain via ACM (PR [#723](https://github.com/lahavrud/rs-recruiting/pull/723), infra PR [#1](https://github.com/lahavrud/rs-recruiting-infra/pull/1))
 **Decision:** Replace direct EC2 serving with a CloudFront distribution. Frontend SPA is now served from a dedicated S3 bucket (`rs-recruiting-frontend`, 3-day lifecycle). API traffic (`/api/*`, `/auth/*`, `/health`) continues to hit EC2, but now via CloudFront as an origin — no direct public exposure. Lambda@Edge viewer-request function handles bot/crawler detection and routes to the FastAPI OG prerender endpoint. TLS terminates at CloudFront via an ACM certificate (`us-east-1`) covering apex and www. EC2 port 443 (nginx TLS) is replaced by port 80 restricted to the CloudFront managed prefix list. Cloudflare DNS set to grey-cloud (DNS only) — proxying disabled so CloudFront handles its own TLS handshake. Custom domains wired as CloudFront aliases: `rs-recruiting.com` and `www.rs-recruiting.com`.
