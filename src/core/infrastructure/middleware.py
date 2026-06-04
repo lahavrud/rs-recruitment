@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 
+import sentry_sdk
 from opentelemetry import trace as otel_trace
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -37,8 +38,8 @@ class RequestMiddleware(BaseHTTPMiddleware):
     in the request carries the same request_id, and returns it as X-Request-ID.
 
     Logs method/path/status_code/duration_ms on every response (including
-    errors — the finally block fires even when call_next raises) so CloudWatch
-    Logs Insights can compute p95/p99 per endpoint without a separate APM agent.
+    errors — the finally block fires even when call_next raises) for p95/p99
+    latency analysis in Grafana (logs ship via OTLP → Loki).
 
     /health is excluded from APM logging (Route 53 polls it every 30 s).
     """
@@ -49,8 +50,10 @@ class RequestMiddleware(BaseHTTPMiddleware):
         rid = str(uuid.uuid4())
         request_id_var.set(rid)
         span = otel_trace.get_current_span()
-        if span.is_recording():
+        span_context = span.get_span_context()
+        if span_context.is_valid:
             span.set_attribute("app.request_id", rid)
+            sentry_sdk.set_tag("trace_id", format(span_context.trace_id, "032x"))
 
         path = request.url.path
         t0 = time.perf_counter()
