@@ -7,6 +7,8 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentation
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentation
 from pythonjsonlogger import json as jsonlogger
 from slowapi.errors import RateLimitExceeded
 
@@ -49,9 +51,13 @@ from src.api.company import resumes
 from src.api.public import applications as candidates
 from src.api.public import jobs as public
 from src.core.infrastructure.config import settings, validate_settings
-from src.core.infrastructure.database import init_db
+from src.core.infrastructure.database import engine, init_db
 from src.core.infrastructure.dependencies import client_ip
 from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddleware
+from src.core.infrastructure.telemetry import configure_telemetry, shutdown_telemetry
+
+configure_telemetry("rs-recruiting-api")
+SQLAlchemyInstrumentation().instrument(engine=engine)
 
 if settings.sentry_dsn:
     try:
@@ -73,10 +79,10 @@ if settings.sentry_dsn:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Lifespan context manager for startup/shutdown events."""
     validate_settings()
     await init_db()
     yield
+    shutdown_telemetry()
 
 
 def _configure_logging() -> None:
@@ -89,7 +95,8 @@ def _configure_logging() -> None:
     """
     handler = logging.StreamHandler()
     formatter = jsonlogger.JsonFormatter(
-        fmt="%(asctime)s %(levelname)s %(name)s %(request_id)s %(message)s",
+        fmt="%(asctime)s %(levelname)s %(name)s %(request_id)s"
+        " %(otelTraceID)s %(otelSpanID)s %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
     handler.setFormatter(formatter)
@@ -119,6 +126,7 @@ logging.getLogger().addFilter(RequestIdFilter())
 
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
+FastAPIInstrumentation().instrument_app(app)
 app.add_middleware(RequestMiddleware)
 
 

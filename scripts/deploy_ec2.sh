@@ -42,11 +42,37 @@ echo "==> Logging in to ECR"
 aws ecr get-login-password --region "${REGION}" \
   | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 
+echo "==> Fetching Grafana Cloud credentials from SSM"
+SSM_PREFIX="/rs-recruitment/${ENVIRONMENT}"
+export GRAFANA_LOKI_URL=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_LOKI_URL" \
+  --query 'Parameter.Value' --output text)
+export GRAFANA_LOKI_USER=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_LOKI_USER" \
+  --query 'Parameter.Value' --output text)
+export GRAFANA_TEMPO_URL=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_TEMPO_URL" \
+  --query 'Parameter.Value' --output text)
+export GRAFANA_TEMPO_USER=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_TEMPO_USER" \
+  --query 'Parameter.Value' --output text)
+export GRAFANA_PROMETHEUS_URL=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_PROMETHEUS_URL" \
+  --query 'Parameter.Value' --output text)
+export GRAFANA_PROMETHEUS_USER=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_PROMETHEUS_USER" \
+  --query 'Parameter.Value' --output text)
+export GRAFANA_API_TOKEN=$(aws ssm get-parameter \
+  --name "${SSM_PREFIX}/GRAFANA_API_TOKEN" \
+  --with-decryption \
+  --query 'Parameter.Value' --output text)
+
 echo "==> Fetching SHA-pinned artifacts"
-mkdir -p "${APP_DIR}"
+mkdir -p "${APP_DIR}" "${APP_DIR}/alloy"
 COMPOSE_FILE="${APP_DIR}/docker-compose.deploy.yml"
 aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
 aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/nginx.conf" "${APP_DIR}/nginx.conf"
+aws s3 cp "s3://${S3_BUCKET}/deploy/${IMAGE_TAG}/alloy/config.alloy" "${APP_DIR}/alloy/config.alloy"
 
 echo "==> Pulling Docker images"
 docker compose -f "${COMPOSE_FILE}" pull
