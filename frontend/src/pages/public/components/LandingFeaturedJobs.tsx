@@ -67,14 +67,14 @@ export default function LandingFeaturedJobs() {
   // Only featured jobs appear in the landing "משרות נבחרות" carousel.
   const featuredJobs = useMemo(() => jobs.filter((j) => j.is_featured), [jobs]);
 
-  // Triple the array for the infinite loop
-  const loopedJobs = useMemo(
-    () =>
-      featuredJobs.length > 0
-        ? [...featuredJobs, ...featuredJobs, ...featuredJobs]
-        : [],
-    [featuredJobs],
-  );
+  // Generate enough copies so scrollWidth > 3×container-width, which is
+  // required for the teleportation thresholds to stay non-overlapping.
+  // 3 copies suffice for 3+ jobs; fewer jobs need more copies.
+  const loopedJobs = useMemo(() => {
+    if (featuredJobs.length === 0) return [];
+    const copies = Math.max(3, Math.ceil(9 / featuredJobs.length));
+    return Array.from({ length: copies }, () => featuredJobs).flat();
+  }, [featuredJobs]);
 
   useEffect(() => {
     let cancelled = false;
