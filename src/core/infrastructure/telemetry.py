@@ -4,7 +4,7 @@ Call configure_telemetry() once per process before any instrumentation
 libraries activate. Both src/main.py (API) and src/worker.py use this
 module so the configuration is identical across processes.
 
-OTLP endpoint is read from the OTEL_EXPORTERendpoint env var
+OTLP endpoint is read from the OTEL_EXPORTER_OTLP_ENDPOINT env var
 (compose sets it to http://grafana-alloy:4317). Falls back to localhost
 for local dev where no Alloy is running — the OTLP exporter will fail to
 connect silently; telemetry is simply dropped, which is acceptable in dev.
@@ -47,7 +47,7 @@ def configure_telemetry(
     if _tracer_provider is not None:
         return
 
-    endpoint = os.environ.get("OTEL_EXPORTERendpoint", "http://localhost:4317")
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
     env = deployment_environment or os.environ.get("ENVIRONMENT", "development")
 
     resource = Resource.create(
