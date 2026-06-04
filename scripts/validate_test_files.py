@@ -47,6 +47,10 @@ EXCLUDED_SOURCE_FILES: set[str] = {
     # (src/api/candidate/applications.py) resume endpoints. Exercised
     # end-to-end via the consumer endpoints' tests.
     "src/api/_resume_streaming.py",
+    # OTel SDK initialisation — thin wrappers around TracerProvider,
+    # MeterProvider, and LoggerProvider. No domain logic; exercised
+    # end-to-end by every request/task that emits telemetry in prod.
+    "src/core/infrastructure/telemetry.py",
 }
 
 # Test files allowed to exist without a matching source file.

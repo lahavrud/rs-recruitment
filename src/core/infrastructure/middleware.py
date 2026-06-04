@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 
+from opentelemetry import trace as otel_trace
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -47,6 +48,9 @@ class RequestMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         rid = str(uuid.uuid4())
         request_id_var.set(rid)
+        span = otel_trace.get_current_span()
+        if span.is_recording():
+            span.set_attribute("app.request_id", rid)
 
         path = request.url.path
         t0 = time.perf_counter()

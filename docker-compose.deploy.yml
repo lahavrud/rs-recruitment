@@ -5,20 +5,43 @@
 # detected at the CloudFront layer (Lambda@Edge) and routed to /api/og/*.
 #
 # Required env at compose-time (exported by scripts/deploy_ec2.sh):
-#   ECR_REGISTRY  — <account>.dkr.ecr.us-east-1.amazonaws.com
-#   IMAGE_TAG     — git SHA pinned to the deploy
+#   ECR_REGISTRY      — <account>.dkr.ecr.us-east-1.amazonaws.com
+#   IMAGE_TAG         — git SHA pinned to the deploy
+#   GRAFANA_*         — Grafana Cloud credentials (read from SSM by deploy_ec2.sh)
 #
 # EC2 IAM role permissions:
 #   ssm:GetParameter / GetParametersByPath on /rs-recruitment/*
 #   ssm:PutParameter on /rs-recruitment/infra/CURRENT_SHA, PREV_SHA
 #   s3:GetObject + s3:PutObject on rs-recruiting-data-*
 #   ecr:GetAuthorizationToken + ecr:BatchGetImage
-#   logs:CreateLogStream + logs:PutLogEvents on /rs-recruiting/*
+#   logs:CreateLogStream + logs:PutLogEvents on /rs-recruiting/worker (worker only)
 #   sqs:SendMessage + sqs:ReceiveMessage + sqs:DeleteMessage on rs-recruiting-tasks
+#   cloudwatch:GetMetricData + cloudwatch:ListMetrics (Alloy CloudWatch exporter)
 #
 # Deploy: scripts/deploy_ec2.sh   Rollback: scripts/rollback.sh <SHA>
 
 services:
+  grafana-alloy:
+    image: grafana/alloy:v1.5.1
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:4317:4317"
+    environment:
+      - GRAFANA_LOKI_URL=${GRAFANA_LOKI_URL}
+      - GRAFANA_LOKI_USER=${GRAFANA_LOKI_USER}
+      - GRAFANA_TEMPO_URL=${GRAFANA_TEMPO_URL}
+      - GRAFANA_TEMPO_USER=${GRAFANA_TEMPO_USER}
+      - GRAFANA_PROMETHEUS_URL=${GRAFANA_PROMETHEUS_URL}
+      - GRAFANA_PROMETHEUS_USER=${GRAFANA_PROMETHEUS_USER}
+      - GRAFANA_API_TOKEN=${GRAFANA_API_TOKEN}
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    restart: unless-stopped
+
   nginx:
     image: nginx:1.27-alpine
     ports:
@@ -29,22 +52,18 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: us-east-1
-        awslogs-group: /rs-recruiting/nginx
-        awslogs-create-group: "true"
-        awslogs-stream: nginx
-        tag: "{{.Name}}/{{.ID}}"
+    # Logs via json-file (daemon default); Alloy tails this container via docker socket.
 
   api:
     image: ${ECR_REGISTRY}/rs-recruiting/api:${IMAGE_TAG}
     environment:
       - ENVIRONMENT=production
       - SENTRY_RELEASE=${IMAGE_TAG}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://grafana-alloy:4317
     volumes:
       - app-data:/app/data
+    depends_on:
+      - grafana-alloy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 30s
@@ -52,14 +71,7 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: us-east-1
-        awslogs-group: /rs-recruiting/api
-        awslogs-create-group: "true"
-        awslogs-stream: api
-        tag: "{{.Name}}/{{.ID}}"
+    # Logs via OTLP (telemetry.py LoggerProvider → Alloy :4317 → Loki).
 
   worker:
     image: ${ECR_REGISTRY}/rs-recruiting/api:${IMAGE_TAG}
@@ -67,8 +79,13 @@ services:
     environment:
       - ENVIRONMENT=production
       - SENTRY_RELEASE=${IMAGE_TAG}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://grafana-alloy:4317
+    depends_on:
+      - grafana-alloy
     restart: unless-stopped
     logging:
+      # Compliance: /rs-recruiting/worker log group with 400d retention.
+      # Worker ALSO ships logs to Loki via OTLP (telemetry.py LoggerProvider).
       driver: awslogs
       options:
         awslogs-region: us-east-1

@@ -172,6 +172,7 @@ jobs:
           aws s3 cp docker-compose.deploy.yml "s3://${S3_BUCKET}/deploy/${SHA}/docker-compose.deploy.yml"
           aws s3 cp scripts/deploy_ec2.sh     "s3://${S3_BUCKET}/deploy/${SHA}/deploy_ec2.sh"
           aws s3 cp nginx/nginx.conf          "s3://${S3_BUCKET}/deploy/${SHA}/nginx.conf"
+          aws s3 cp alloy/config.alloy        "s3://${S3_BUCKET}/deploy/${SHA}/alloy/config.alloy"
 
       - name: Trigger deploy via SSM Run Command
         id: ssm
