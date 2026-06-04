@@ -18,7 +18,7 @@ from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.logging import LoggingInstrumentation
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
@@ -87,7 +87,7 @@ def configure_telemetry(
     set_logger_provider(_logger_provider)
 
     # Injects otelTraceID + otelSpanID into every LogRecord for Loki→Tempo correlation.
-    LoggingInstrumentation().instrument(set_logging_format=False)
+    LoggingInstrumentor().instrument(set_logging_format=False)
 
 
 def shutdown_telemetry() -> None:

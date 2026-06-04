@@ -7,8 +7,8 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentation
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentation
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from pythonjsonlogger import json as jsonlogger
 from slowapi.errors import RateLimitExceeded
 
@@ -57,7 +57,7 @@ from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddlewar
 from src.core.infrastructure.telemetry import configure_telemetry, shutdown_telemetry
 
 configure_telemetry("rs-recruiting-api")
-SQLAlchemyInstrumentation().instrument(engine=engine)
+SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
 
 if settings.sentry_dsn:
     try:
@@ -126,7 +126,7 @@ logging.getLogger().addFilter(RequestIdFilter())
 
 
 app = FastAPI(title="RS Recruitment API", lifespan=lifespan)
-FastAPIInstrumentation().instrument_app(app)
+FastAPIInstrumentor().instrument_app(app)
 app.add_middleware(RequestMiddleware)
 
 
