@@ -135,7 +135,7 @@ if [[ -n "${OLD_CURRENT}" && "${OLD_CURRENT}" != "${IMAGE_TAG}" ]]; then
 fi
 echo "==> Updating CURRENT_SHA -> ${IMAGE_TAG}"
 aws ssm put-parameter \
-  --name /rs-recruitment/infra/CURRENT_SHA \
+  --name /rs-recruiting/infra/CURRENT_SHA \
   --value "${IMAGE_TAG}" \
   --type String --overwrite >/dev/null
 
