@@ -56,9 +56,6 @@ from src.core.infrastructure.dependencies import client_ip
 from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddleware
 from src.core.infrastructure.telemetry import configure_telemetry, shutdown_telemetry
 
-configure_telemetry("rs-recruiting-api")
-SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
-
 if settings.sentry_dsn:
     try:
         sentry_sdk.init(
@@ -79,6 +76,8 @@ if settings.sentry_dsn:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    configure_telemetry("rs-recruiting-api")
+    SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
     validate_settings()
     await init_db()
     yield

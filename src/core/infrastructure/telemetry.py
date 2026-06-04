@@ -4,7 +4,7 @@ Call configure_telemetry() once per process before any instrumentation
 libraries activate. Both src/main.py (API) and src/worker.py use this
 module so the configuration is identical across processes.
 
-OTLP endpoint is read from the OTEL_EXPORTER_OTLP_ENDPOINT env var
+OTLP endpoint is read from the OTEL_EXPORTERendpoint env var
 (compose sets it to http://grafana-alloy:4317). Falls back to localhost
 for local dev where no Alloy is running — the OTLP exporter will fail to
 connect silently; telemetry is simply dropped, which is acceptable in dev.
@@ -29,8 +29,6 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 logger = logging.getLogger(__name__)
 
-_OTLP_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-
 _tracer_provider: TracerProvider | None = None
 _meter_provider: MeterProvider | None = None
 _logger_provider: LoggerProvider | None = None
@@ -49,6 +47,7 @@ def configure_telemetry(
     if _tracer_provider is not None:
         return
 
+    endpoint = os.environ.get("OTEL_EXPORTERendpoint", "http://localhost:4317")
     env = deployment_environment or os.environ.get("ENVIRONMENT", "development")
 
     resource = Resource.create(
@@ -62,7 +61,7 @@ def configure_telemetry(
     # Traces
     _tracer_provider = TracerProvider(resource=resource)
     _tracer_provider.add_span_processor(
-        BatchSpanProcessor(OTLPSpanExporter(endpoint=_OTLP_ENDPOINT, insecure=True))
+        BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, insecure=True))
     )
     trace.set_tracer_provider(_tracer_provider)
 
@@ -71,7 +70,7 @@ def configure_telemetry(
         resource=resource,
         metric_readers=[
             PeriodicExportingMetricReader(
-                OTLPMetricExporter(endpoint=_OTLP_ENDPOINT, insecure=True),
+                OTLPMetricExporter(endpoint=endpoint, insecure=True),
                 export_interval_millis=60_000,
             )
         ],
@@ -82,7 +81,7 @@ def configure_telemetry(
     # are forwarded to Loki without changing any call sites.
     _logger_provider = LoggerProvider(resource=resource)
     _logger_provider.add_log_record_processor(
-        BatchLogRecordProcessor(OTLPLogExporter(endpoint=_OTLP_ENDPOINT, insecure=True))
+        BatchLogRecordProcessor(OTLPLogExporter(endpoint=endpoint, insecure=True))
     )
     set_logger_provider(_logger_provider)
 
