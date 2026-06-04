@@ -25,6 +25,19 @@ When editing workflows:
 - OIDC permissions block must stay on any job that calls AWS (`id-token: write`, `contents: read`)
 - Poll SSM run-command status after dispatch — never fire-and-forget
 
+## CD gate — PRs that must not trigger a deploy
+
+`deploy.yml` runs on every merge to `main`. For PRs that touch only docs/config and should not trigger a production deploy, add a path filter exclusion to `deploy.yml`'s `on.push.paths` (or `paths-ignore`) **before merging**.
+
+Changes that never justify a deploy:
+- `CLAUDE.md`, `.claude/`, `docs/`, `*.md` (documentation)
+- `.github/` files that only affect CI meta (workflow comments, issue templates, PR template)
+- `scripts/validate_deploy_artifacts.sh` (runs pre-deploy, not in the image)
+
+If you open a PR that falls into this category, either:
+1. Confirm `deploy.yml` already has a `paths-ignore` covering the changed paths, or
+2. Add the paths to `deploy.yml`'s `paths-ignore` in the same PR before merging.
+
 ## Infrastructure repo
 Terraform/OpenTofu lives in a separate repo (`rs-recruiting-infra`). Do not modify infrastructure from this repo.
 

@@ -20,7 +20,7 @@ Load the relevant rule file before planning changes in these areas:
   → any change touching `alembic/` or `src/models.py`
 - **Tests** (conventions, fixtures, CI): `.claude/rules/tests.md`  
   → any change touching `tests/`
-- **AWS & infrastructure** (OIDC, SSM, CI workflows, production safety): `.claude/rules/aws.md`  
+- **Infrastructure & CI/CD** (OIDC, SSM, CI workflows, deploy safety): `.claude/rules/infra.md`  
   → any change touching `.github/workflows/` or `scripts/`
 
 ## Tech Stack
