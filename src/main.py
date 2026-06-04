@@ -74,9 +74,11 @@ if settings.sentry_dsn:
         )
 
 
+configure_telemetry("rs-recruiting-api")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    configure_telemetry("rs-recruiting-api")
     SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
     validate_settings()
     await init_db()
