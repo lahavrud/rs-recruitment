@@ -86,7 +86,9 @@ def configure_telemetry(
     set_logger_provider(_logger_provider)
 
     # Injects otelTraceID + otelSpanID into every LogRecord for Loki→Tempo correlation.
-    LoggingInstrumentor().instrument(set_logging_format=False)
+    # set_logging_format=True is required — with False the record factory is a no-op
+    # and otelTraceID/otelSpanID are never added to log records.
+    LoggingInstrumentor().instrument(set_logging_format=True)
 
 
 def shutdown_telemetry() -> None:
