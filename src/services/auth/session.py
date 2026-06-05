@@ -19,7 +19,13 @@ from src.core.infrastructure.security import (
     verify_password,
 )
 from src.enums import InviteTokenStatus
-from src.models import ActivationToken, InviteToken, RefreshToken, User
+from src.models import (
+    ActivationToken,
+    InviteToken,
+    RefreshToken,
+    UsedRefreshToken,
+    User,
+)
 from src.services.exceptions import (
     AccountLockedError,
     InvalidCredentialsError,
@@ -55,6 +61,24 @@ async def _delete_refresh_token(token_id: int) -> None:
             )
         )
         await cleanup_session.commit()
+
+
+async def _nuke_user_refresh_tokens(user_id: int) -> None:
+    """Delete every active refresh token for a user on replay detection.
+
+    Uses its own committed session for the same reason as ``_delete_refresh_token``:
+    the caller raises ``InvalidCredentialsError`` afterwards, which rolls back the
+    outer transactional() session and would undo a plain session.execute() delete.
+    """
+    from src.core.infrastructure.database import async_session as _session_factory
+
+    async with _session_factory() as nuke_session:
+        await nuke_session.execute(
+            sa_delete(RefreshToken).where(
+                RefreshToken.user_id == user_id  # pyright: ignore[reportArgumentType]
+            )
+        )
+        await nuke_session.commit()
 
 
 def _email_prefix(email: str) -> str:
@@ -228,6 +252,30 @@ async def refresh_user_tokens(
     persistence survives token rotation.
     """
     token_hash = hash_token(raw_refresh_token)
+
+    # Replay detection: if this hash appears in the used-token store, an
+    # already-consumed token has been presented again — strong signal of theft.
+    # Expired used-hash records are cleaned up passively here; bulk cleanup
+    # lives in the nightly cron (#619).
+    used_result = await session.execute(
+        select(UsedRefreshToken).where(
+            UsedRefreshToken.token_hash == token_hash  # pyright: ignore[reportArgumentType]
+        )
+    )
+    used_record = used_result.scalar_one_or_none()
+    if used_record is not None:
+        if used_record.expires_at > datetime.now(timezone.utc):
+            # Two simultaneous refresh requests sharing one token will also trip
+            # this path — accepted trade-off of single-use rotation.
+            await _nuke_user_refresh_tokens(used_record.user_id)
+            logger.warning(
+                "refresh_token_replay_detected",
+                extra={"user_id": used_record.user_id},
+            )
+            raise InvalidCredentialsError("Invalid or expired refresh token")
+        else:
+            await session.delete(used_record)
+
     result = await session.execute(
         select(RefreshToken).where(
             RefreshToken.token_hash == token_hash  # pyright: ignore[reportArgumentType]
@@ -260,11 +308,15 @@ async def refresh_user_tokens(
 
     remember_me = db_token.remember_me
 
-    # Rotate: drop the consumed token before minting the next one. The
-    # previous "is_revoked = True" approach left rows accumulating
-    # forever — and the code treated ``revoked`` and ``missing``
-    # identically (both raised InvalidCredentialsError), so the column
-    # provided no extra security value.
+    # Rotate: delete the consumed token and record its hash atomically so a
+    # later replay is detected.
+    session.add(
+        UsedRefreshToken(
+            token_hash=db_token.token_hash,
+            user_id=db_token.user_id,
+            expires_at=db_token.expires_at,
+        )
+    )
     await session.delete(db_token)
     await session.flush()
 
@@ -292,6 +344,13 @@ async def logout_user(
         )
         db_token = result.scalar_one_or_none()
         if db_token is not None:
+            session.add(
+                UsedRefreshToken(
+                    token_hash=db_token.token_hash,
+                    user_id=db_token.user_id,
+                    expires_at=db_token.expires_at,
+                )
+            )
             await session.delete(db_token)
 
 

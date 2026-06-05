@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.security import get_password_hash, hash_token
 from src.enums import UserRole
-from src.models import RefreshToken, User
+from src.models import RefreshToken, UsedRefreshToken, User
 from src.schemas import CompanyProfileCreate, UserCreate
 from src.services.auth.registration import register_company_user
 from src.services.auth.session import (
@@ -336,3 +336,137 @@ async def test_logout_user_noop_for_unknown_token(session: AsyncSession):
 async def test_logout_user_noop_for_none(session: AsyncSession):
     """logout_user does not raise when passed None."""
     await logout_user(None, session)
+
+
+# ── replay detection ─────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_refresh_records_used_hash(session: AsyncSession):
+    """After rotation the consumed token hash is written to UsedRefreshToken."""
+    user = _active_user("usedrecord@example.com")
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    _, old_raw = await create_user_tokens(user, session)
+    await session.commit()
+
+    old_hash = hash_token(old_raw)
+    await refresh_user_tokens(old_raw, session)
+    await session.commit()
+
+    result = await session.execute(
+        select(UsedRefreshToken).where(
+            UsedRefreshToken.token_hash == old_hash  # pyright: ignore[reportArgumentType]
+        )
+    )
+    used = result.scalar_one_or_none()
+    assert used is not None
+    assert used.user_id == user.id
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.session._nuke_user_refresh_tokens", new_callable=AsyncMock)
+async def test_refresh_replay_detected_nukes_sessions(
+    mock_nuke: AsyncMock,
+    session: AsyncSession,
+):
+    """Presenting a previously-consumed token triggers session nuke + 401.
+
+    _nuke_user_refresh_tokens is patched for the same reason as _delete_refresh_token
+    in the expired-token test: it opens its own async_session bound to the base
+    DATABASE_URL, which is wrong in -n auto parallel runs.
+    """
+    user = _active_user("replay@example.com")
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    raw_token = "replay-raw-token"
+    used = UsedRefreshToken(
+        token_hash=hash_token(raw_token),
+        user_id=user.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+    )
+    session.add(used)
+    await session.commit()
+
+    with pytest.raises(InvalidCredentialsError):
+        await refresh_user_tokens(raw_token, session)
+
+    mock_nuke.assert_awaited_once_with(user.id)
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.session._nuke_user_refresh_tokens", new_callable=AsyncMock)
+async def test_refresh_expired_used_hash_no_nuke(
+    mock_nuke: AsyncMock,
+    session: AsyncSession,
+):
+    """An expired UsedRefreshToken record does not trigger replay detection."""
+    user = _active_user("expiredused@example.com")
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    raw_token = "expired-used-raw-token"
+    used = UsedRefreshToken(
+        token_hash=hash_token(raw_token),
+        user_id=user.id,
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+    )
+    session.add(used)
+    await session.commit()
+
+    with pytest.raises(InvalidCredentialsError):
+        await refresh_user_tokens(raw_token, session)
+
+    mock_nuke.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_logout_records_used_hash(session: AsyncSession):
+    """logout_user writes the token hash to UsedRefreshToken."""
+    user = _active_user("logoutused@example.com")
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    _, raw = await create_user_tokens(user, session)
+    await session.commit()
+
+    token_hash = hash_token(raw)
+    await logout_user(raw, session)
+    await session.commit()
+
+    result = await session.execute(
+        select(UsedRefreshToken).where(
+            UsedRefreshToken.token_hash == token_hash  # pyright: ignore[reportArgumentType]
+        )
+    )
+    assert result.scalar_one_or_none() is not None
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.session._nuke_user_refresh_tokens", new_callable=AsyncMock)
+async def test_replay_after_logout_nukes_sessions(
+    mock_nuke: AsyncMock,
+    session: AsyncSession,
+):
+    """A token re-presented after logout is treated as a replay — nukes sessions."""
+    user = _active_user("replaylogout@example.com")
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    _, raw = await create_user_tokens(user, session)
+    await session.commit()
+
+    await logout_user(raw, session)
+    await session.commit()
+
+    with pytest.raises(InvalidCredentialsError):
+        await refresh_user_tokens(raw, session)
+
+    mock_nuke.assert_awaited_once_with(user.id)
