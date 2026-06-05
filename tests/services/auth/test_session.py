@@ -15,9 +15,9 @@ from src.core.infrastructure.security import get_password_hash, hash_token
 from src.enums import UserRole
 from src.models import RefreshToken, UsedRefreshToken, User
 from src.schemas import CompanyProfileCreate, UserCreate
+from src.services.auth.login import authenticate_user
 from src.services.auth.registration import register_company_user
 from src.services.auth.session import (
-    authenticate_user,
     create_user_tokens,
     logout_user,
     refresh_user_tokens,
