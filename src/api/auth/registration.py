@@ -120,7 +120,7 @@ async def register(
         if pgcode == "23505":  # unique_violation
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"User with email '{email}' already exists.",
+                detail="email_already_exists",
             ) from e
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
