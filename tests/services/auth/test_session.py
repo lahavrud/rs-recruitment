@@ -116,7 +116,11 @@ async def test_refresh_user_tokens_rotates_token(session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_refresh_user_tokens_single_use(session: AsyncSession):
+@patch("src.services.auth.session._nuke_user_refresh_tokens", new_callable=AsyncMock)
+async def test_refresh_user_tokens_single_use(
+    _mock_nuke: AsyncMock,
+    session: AsyncSession,
+):
     """A consumed refresh token cannot be reused — second rotation raises
     InvalidCredentialsError."""
     user = _active_user("singleuse@example.com")
