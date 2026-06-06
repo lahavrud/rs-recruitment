@@ -13,16 +13,16 @@ SHA="${1:?usage: $(basename "$0") <git-sha>}"
 REGION="us-east-1"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-S3_BUCKET="rs-recruitment-${ACCOUNT_ID}"
+S3_BUCKET="rs-recruiting-${ACCOUNT_ID}"
 
 echo "==> Verifying per-SHA artifacts in S3"
 aws s3 ls "s3://${S3_BUCKET}/deploy/${SHA}/deploy_ec2.sh" >/dev/null
 aws s3 ls "s3://${S3_BUCKET}/deploy/${SHA}/docker-compose.deploy.yml" >/dev/null
 
 echo "==> Verifying ECR images exist for SHA ${SHA}"
-aws ecr describe-images --repository-name rs-recruitment/api \
+aws ecr describe-images --repository-name rs-recruiting/api \
   --image-ids imageTag="${SHA}" >/dev/null
-aws ecr describe-images --repository-name rs-recruitment/frontend \
+aws ecr describe-images --repository-name rs-recruiting/frontend \
   --image-ids imageTag="${SHA}" >/dev/null
 
 echo "==> Locating prod EC2 instance"

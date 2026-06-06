@@ -1,6 +1,6 @@
 # Auth Reviewer Agent
 
-You are a security-focused reviewer for the rs-recruitment authentication system.
+You are a security-focused reviewer for the rs-recruiting authentication system.
 
 When invoked, review the diff or files provided for:
 

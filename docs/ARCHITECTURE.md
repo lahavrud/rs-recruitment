@@ -30,7 +30,7 @@ These principles guide all architectural decisions:
 - **Architecture-First** – Critical infrastructure decisions made before dependent features
 
 **Related Issues:**
-- [#15](https://github.com/lahavrud/rs-recruitment/issues/15) - docs: setup project architecture, roadmap, and ai context
+- [#15](https://github.com/lahavrud/rs-recruiting/issues/15) - docs: setup project architecture, roadmap, and ai context
 
 ---
 
@@ -52,9 +52,9 @@ These principles guide all architectural decisions:
 - Password reset: `POST /api/auth/forgot-password` → email link → `POST /api/auth/reset-password`
 
 **Related Issues:**
-- [#25](https://github.com/lahavrud/rs-recruitment/issues/25) - feat: minimal auth system (registration + login)
-- [#23](https://github.com/lahavrud/rs-recruitment/issues/23) - feat: company onboarding (auth + db)
-- [#604](https://github.com/lahavrud/rs-recruitment/issues/604) - feat(candidate): candidate registration + activation (Sprint 11)
+- [#25](https://github.com/lahavrud/rs-recruiting/issues/25) - feat: minimal auth system (registration + login)
+- [#23](https://github.com/lahavrud/rs-recruiting/issues/23) - feat: company onboarding (auth + db)
+- [#604](https://github.com/lahavrud/rs-recruiting/issues/604) - feat(candidate): candidate registration + activation (Sprint 11)
 
 **Status:** ✅ Implemented
 
@@ -86,8 +86,8 @@ These principles guide all architectural decisions:
 - Configuration: `src/core/infrastructure/config.py` with `storage_provider`, `aws_s3_bucket_name`, `local_storage_path`
 
 **Related Issues:**
-- [#43](https://github.com/lahavrud/rs-recruitment/issues/43) - feat(infra): Implement storage abstraction layer for file uploads (S3/MinIO/Local) ✅ CLOSED
-- [#30](https://github.com/lahavrud/rs-recruitment/issues/30) - infra: integrate AWS S3 and SES services ✅ CLOSED
+- [#43](https://github.com/lahavrud/rs-recruiting/issues/43) - feat(infra): Implement storage abstraction layer for file uploads (S3/MinIO/Local) ✅ CLOSED
+- [#30](https://github.com/lahavrud/rs-recruiting/issues/30) - infra: integrate AWS S3 and SES services ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -134,8 +134,8 @@ These principles guide all architectural decisions:
 - GDPR data export ready → download-link email to candidate
 
 **Related Issues:**
-- [#44](https://github.com/lahavrud/rs-recruitment/issues/44) - feat(infra): Implement async task processing ✅ CLOSED
-- [#30](https://github.com/lahavrud/rs-recruitment/issues/30) - infra: integrate AWS S3 and SES services ✅ CLOSED
+- [#44](https://github.com/lahavrud/rs-recruiting/issues/44) - feat(infra): Implement async task processing ✅ CLOSED
+- [#30](https://github.com/lahavrud/rs-recruiting/issues/30) - infra: integrate AWS S3 and SES services ✅ CLOSED
 
 **Status:** ✅ Fully implemented
 
@@ -214,7 +214,7 @@ These principles guide all architectural decisions:
 - **Volume Mounts:** Persistent data storage for PostgreSQL and local file storage
 
 **Related Issues:**
-- [#9](https://github.com/lahavrud/rs-recruitment/issues/9) - Containerize application with docker ✅ CLOSED
+- [#9](https://github.com/lahavrud/rs-recruiting/issues/9) - Containerize application with docker ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -235,7 +235,7 @@ These principles guide all architectural decisions:
 - **On push to main (after lint + test pass):**
   - `lint` + `test`: (same as above)
   - `deploy`: OIDC auth → ECR push (`:latest` + `:<sha>`) → frontend build → S3 upload → SSM Run Command → poll until complete
-- **Authentication:** GitHub Actions OIDC — role `github-actions-rs-recruitment` (no stored AWS credentials)
+- **Authentication:** GitHub Actions OIDC — role `github-actions-rs-recruiting` (no stored AWS credentials)
 - **Deploy Script:** `scripts/deploy_ec2.sh` runs on EC2 via SSM; derives ECR registry and S3 bucket from the EC2 IAM role at runtime (nothing hardcoded)
 - **Validation Scripts:**
   - `validate_imports.py` - SOC enforcement (separation of concerns)
@@ -245,9 +245,9 @@ These principles guide all architectural decisions:
   - `validate_test_files.py` - Test file existence checks
 
 **Related Issues:**
-- [#21](https://github.com/lahavrud/rs-recruitment/issues/21) - infra: ci/cd pipeline ✅ CLOSED
-- [#80](https://github.com/lahavrud/rs-recruitment/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
-- [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment ✅ CLOSED
+- [#21](https://github.com/lahavrud/rs-recruiting/issues/21) - infra: ci/cd pipeline ✅ CLOSED
+- [#80](https://github.com/lahavrud/rs-recruiting/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
+- [#97](https://github.com/lahavrud/rs-recruiting/issues/97) - deploy1: Production Deployment ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -355,10 +355,10 @@ frontend/
 **Design system conventions** are documented in `CLAUDE.md` (Design System section). Key rules: use `<Button>` for all action buttons, `<Eyebrow>` for section labels, `<Field>` from `@/components/ui/Field` for form fields, and import `formatDate`/validation from `@/utils/`.
 
 **Related Issues:**
-- [#91](https://github.com/lahavrud/rs-recruitment/issues/91) - frontend1: Frontend Structure & Setup ✅ CLOSED
-- [#92](https://github.com/lahavrud/rs-recruitment/issues/92) - frontend2: Public Pages ✅ CLOSED
-- [#93](https://github.com/lahavrud/rs-recruitment/issues/93) - frontend3: Admin/Company dashboards ✅ CLOSED
-- [#655](https://github.com/lahavrud/rs-recruitment/issues/655) - Decompose monolith pages + design system ✅ CLOSED
+- [#91](https://github.com/lahavrud/rs-recruiting/issues/91) - frontend1: Frontend Structure & Setup ✅ CLOSED
+- [#92](https://github.com/lahavrud/rs-recruiting/issues/92) - frontend2: Public Pages ✅ CLOSED
+- [#93](https://github.com/lahavrud/rs-recruiting/issues/93) - frontend3: Admin/Company dashboards ✅ CLOSED
+- [#655](https://github.com/lahavrud/rs-recruiting/issues/655) - Decompose monolith pages + design system ✅ CLOSED
 
 **Status:** ✅ Fully implemented and polished. Admin pages decomposed into co-located components. Design system primitives established.
 
@@ -422,7 +422,7 @@ src/
 ```
 
 **Related Issues:**
-- [#41](https://github.com/lahavrud/rs-recruitment/issues/41) - refactor(services): Extract auth business logic into service layer ✅ CLOSED
+- [#41](https://github.com/lahavrud/rs-recruiting/issues/41) - refactor(services): Extract auth business logic into service layer ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -442,8 +442,8 @@ src/
 - **Async:** Async SQLModel engine for async/await support
 
 **Related Issues:**
-- [#42](https://github.com/lahavrud/rs-recruitment/issues/42) - feat(models): Add Job, CandidateProfile, and Application models with relationships ✅ CLOSED
-- [#23](https://github.com/lahavrud/rs-recruitment/issues/23) - feat: company onboarding (auth + db) ✅ CLOSED
+- [#42](https://github.com/lahavrud/rs-recruiting/issues/42) - feat(models): Add Job, CandidateProfile, and Application models with relationships ✅ CLOSED
+- [#23](https://github.com/lahavrud/rs-recruiting/issues/23) - feat: company onboarding (auth + db) ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -461,8 +461,8 @@ src/
 - **Error Types:** Custom exceptions in `src/services/exceptions.py`
 
 **Related Issues:**
-- [#47](https://github.com/lahavrud/rs-recruitment/issues/47) - fix(auth): Handle race condition in user registration (TOCTOU) ✅ CLOSED
-- [#48](https://github.com/lahavrud/rs-recruitment/issues/48) - fix(auth): Add explicit transaction rollback on registration failure ✅ CLOSED
+- [#47](https://github.com/lahavrud/rs-recruiting/issues/47) - fix(auth): Handle race condition in user registration (TOCTOU) ✅ CLOSED
+- [#48](https://github.com/lahavrud/rs-recruiting/issues/48) - fix(auth): Add explicit transaction rollback on registration failure ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -600,7 +600,7 @@ erDiagram
 
 **Related Issues:**
 
-* [#94](https://github.com/lahavrud/rs-recruitment/issues/94) - devops1: Database Backup Strategy ✅ CLOSED
+* [#94](https://github.com/lahavrud/rs-recruiting/issues/94) - devops1: Database Backup Strategy ✅ CLOSED
 
 **Status:** ✅ Implemented — RDS automated backups active (production)
 
@@ -627,8 +627,8 @@ EC2 t3.micro (Amazon Linux 2023, us-east-1)
   └── worker container   ← SQS worker (same ECR image, different CMD: python -m src.worker)
         │
 RDS PostgreSQL db.t3.micro  ← private subnets, encrypted at rest
-S3 rs-recruitment-app       ← file uploads + CI deploy artifacts + frontend bundle
-ECR rs-recruitment/api      ← Docker image registry
+S3 rs-recruiting-app       ← file uploads + CI deploy artifacts + frontend bundle
+ECR rs-recruiting/api      ← Docker image registry
 AWS SQS rs-recruiting-tasks ← async task queue (email sends, data exports, retention purge)
 ```
 
@@ -639,20 +639,20 @@ AWS SQS rs-recruiting-tasks ← async task queue (email sends, data exports, ret
 | CloudFront | `d2ghcom3efd3zg.cloudfront.net` | CDN + TLS termination, S3 + EC2 origins |
 | ACM | `arn:aws:acm:us-east-1:892512306022:certificate/d0e1d1f5-…` | TLS cert for rs-recruiting.com + www |
 | EC2 | `<EC2_INSTANCE_ID>` | API + worker server (port 80, CloudFront-only) |
-| RDS | `rs-recruitment-prod-db` | PostgreSQL 16, private subnets |
+| RDS | `rs-recruiting-prod-db` | PostgreSQL 16, private subnets |
 | S3 | `<APP_BUCKET>` | Uploads + deploy artifacts + frontend bundle |
-| ECR | `rs-recruitment/api` | Docker images |
+| ECR | `rs-recruiting/api` | Docker images |
 | SQS | `rs-recruiting-tasks` | Async task queue for worker |
-| IAM Role (EC2) | `rs-recruitment-app-role` | SSM, ECR pull, S3, SQS receive/delete, CloudWatch metrics |
-| IAM Role (CI) | `github-actions-rs-recruitment` | OIDC, ECR push, S3 deploy, SSM send |
+| IAM Role (EC2) | `rs-recruiting-app-role` | SSM, ECR pull, S3, SQS receive/delete, CloudWatch metrics |
+| IAM Role (CI) | `github-actions-rs-recruiting` | OIDC, ECR push, S3 deploy, SSM send |
 
 **Domain:** `rs-recruiting.com` — DNS in Cloudflare (grey-cloud, DNS only). TLS terminates at CloudFront via ACM certificate (`us-east-1`). Cloudflare proxying intentionally disabled — CloudFront handles CDN and certificate.
 
-**Configuration:** Runtime secrets stored in a `.env` file on EC2 (`/home/ec2-user/app/.env`). Non-secret config stored in AWS SSM Parameter Store under `/rs-recruitment/prod/`.
+**Configuration:** Runtime secrets stored in a `.env` file on EC2 (`/home/ec2-user/app/.env`). Non-secret config stored in AWS SSM Parameter Store under `/rs-recruiting/prod/`.
 
 **Related Issues:**
 
-* [#97](https://github.com/lahavrud/rs-recruitment/issues/97) - deploy1: Production Deployment ✅ CLOSED
+* [#97](https://github.com/lahavrud/rs-recruiting/issues/97) - deploy1: Production Deployment ✅ CLOSED
 
 **Status:** ✅ Live at https://rs-recruiting.com
 
@@ -671,8 +671,8 @@ AWS SQS rs-recruiting-tasks ← async task queue (email sends, data exports, ret
 
 **Related Issues (icebox):**
 
-* [#95](https://github.com/lahavrud/rs-recruitment/issues/95) - devops2: Dev Environment Deployment 🧊 ICEBOX
-* [#96](https://github.com/lahavrud/rs-recruitment/issues/96) - devops3: Staging Environment Deployment 🧊 ICEBOX
+* [#95](https://github.com/lahavrud/rs-recruiting/issues/95) - devops2: Dev Environment Deployment 🧊 ICEBOX
+* [#96](https://github.com/lahavrud/rs-recruiting/issues/96) - devops3: Staging Environment Deployment 🧊 ICEBOX
 
 **Status:** ✅ Production live, 🧊 Dev/staging deferred
 
@@ -696,7 +696,7 @@ AWS SQS rs-recruiting-tasks ← async task queue (email sends, data exports, ret
 
 **Related Issues:**
 
-* [#75](https://github.com/lahavrud/rs-recruitment/issues/75) - chore(infra): Enhance pre-commit hooks configuration ✅ CLOSED
+* [#75](https://github.com/lahavrud/rs-recruiting/issues/75) - chore(infra): Enhance pre-commit hooks configuration ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -722,7 +722,7 @@ AWS SQS rs-recruiting-tasks ← async task queue (email sends, data exports, ret
 
 **Related Issues:**
 
-* [#80](https://github.com/lahavrud/rs-recruitment/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
+* [#80](https://github.com/lahavrud/rs-recruiting/issues/80) - chore(infra): Add type hints, blocking I/O, and test file validation to CI ✅ CLOSED
 
 **Status:** ✅ Implemented
 
@@ -734,22 +734,22 @@ This section tracks when decisions were made and implemented:
 
 | Decision | Issue | Status | Date |
 |----------|-------|--------|------|
-| File Storage Strategy | [#43](https://github.com/lahavrud/rs-recruitment/issues/43) | ✅ Implemented | - |
-| Email/Notification Service | [#44](https://github.com/lahavrud/rs-recruitment/issues/44) | ✅ Implemented | - |
+| File Storage Strategy | [#43](https://github.com/lahavrud/rs-recruiting/issues/43) | ✅ Implemented | - |
+| Email/Notification Service | [#44](https://github.com/lahavrud/rs-recruiting/issues/44) | ✅ Implemented | - |
 | Async Background Jobs | Architecture doc | ✅ Implemented | - |
-| Containerization | [#9](https://github.com/lahavrud/rs-recruitment/issues/9) | ✅ Implemented | - |
-| CI/CD Pipeline | [#21](https://github.com/lahavrud/rs-recruitment/issues/21), [#97](https://github.com/lahavrud/rs-recruitment/issues/97) | ✅ Implemented | 2026-04-23 |
+| Containerization | [#9](https://github.com/lahavrud/rs-recruiting/issues/9) | ✅ Implemented | - |
+| CI/CD Pipeline | [#21](https://github.com/lahavrud/rs-recruiting/issues/21), [#97](https://github.com/lahavrud/rs-recruiting/issues/97) | ✅ Implemented | 2026-04-23 |
 | Frontend Architecture | Architecture doc | ✅ Implemented | - |
 | CORS Configuration | Architecture doc | ✅ Implemented | - |
-| Service Layer Pattern | [#41](https://github.com/lahavrud/rs-recruitment/issues/41) | ✅ Implemented | - |
-| Database Models | [#42](https://github.com/lahavrud/rs-recruitment/issues/42) | ✅ Implemented | - |
-| Error Handling | [#47](https://github.com/lahavrud/rs-recruitment/issues/47), [#48](https://github.com/lahavrud/rs-recruitment/issues/48) | ✅ Implemented | - |
-| Production Infrastructure | [#97](https://github.com/lahavrud/rs-recruitment/issues/97) | ✅ Live | 2026-04-23 |
-| Database Backup Strategy | [#94](https://github.com/lahavrud/rs-recruitment/issues/94) | ✅ Implemented (RDS automated backups) | - |
-| Candidate Authentication | [#604](https://github.com/lahavrud/rs-recruitment/issues/604) | ✅ Implemented | 2026-05 |
-| Staging Environment | [#95](https://github.com/lahavrud/rs-recruitment/issues/95), [#96](https://github.com/lahavrud/rs-recruitment/issues/96) | 🧊 Icebox | - |
-| Pre-commit Hooks | [#75](https://github.com/lahavrud/rs-recruitment/issues/75) | ✅ Implemented | - |
-| Code Validation | [#80](https://github.com/lahavrud/rs-recruitment/issues/80) | ✅ Implemented | - |
+| Service Layer Pattern | [#41](https://github.com/lahavrud/rs-recruiting/issues/41) | ✅ Implemented | - |
+| Database Models | [#42](https://github.com/lahavrud/rs-recruiting/issues/42) | ✅ Implemented | - |
+| Error Handling | [#47](https://github.com/lahavrud/rs-recruiting/issues/47), [#48](https://github.com/lahavrud/rs-recruiting/issues/48) | ✅ Implemented | - |
+| Production Infrastructure | [#97](https://github.com/lahavrud/rs-recruiting/issues/97) | ✅ Live | 2026-04-23 |
+| Database Backup Strategy | [#94](https://github.com/lahavrud/rs-recruiting/issues/94) | ✅ Implemented (RDS automated backups) | - |
+| Candidate Authentication | [#604](https://github.com/lahavrud/rs-recruiting/issues/604) | ✅ Implemented | 2026-05 |
+| Staging Environment | [#95](https://github.com/lahavrud/rs-recruiting/issues/95), [#96](https://github.com/lahavrud/rs-recruiting/issues/96) | 🧊 Icebox | - |
+| Pre-commit Hooks | [#75](https://github.com/lahavrud/rs-recruiting/issues/75) | ✅ Implemented | - |
+| Code Validation | [#80](https://github.com/lahavrud/rs-recruiting/issues/80) | ✅ Implemented | - |
 
 ---
 
@@ -768,7 +768,7 @@ Potential future architectural decisions:
 
 ## References
 
-* [GitHub Issues](https://github.com/lahavrud/rs-recruitment/issues) - All architecture-related issues
+* [GitHub Issues](https://github.com/lahavrud/rs-recruiting/issues) - All architecture-related issues
 * [CLAUDE.md](../CLAUDE.md) - Developer guide, design system, conventions, and running locally
 * [GitHub Organization](GITHUB_ORGANIZATION.md) - Issue templates and project management
 * [Retention Purge Runbook](RETENTION_PURGE.md) - Candidate data retention background job

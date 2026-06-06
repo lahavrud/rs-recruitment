@@ -30,11 +30,11 @@ flowchart LR
         redis["redis<br/>port 6379"]
         alloy["Grafana Alloy<br/>OTLP collector<br/>port 4317 (loopback)"]
       end
-      RDS[("RDS Postgres 16<br/>rs-recruitment-prod-db<br/>db.t3.micro · single-AZ<br/>encrypted · 7d backups")]
+      RDS[("RDS Postgres 16<br/>rs-recruiting-prod-db<br/>db.t3.micro · single-AZ<br/>encrypted · 7d backups")]
     end
 
-    S3A[("S3 bucket<br/>rs-recruitment-app<br/>versioning suspended · SSE-S3<br/>resumes + deploy artifacts")]
-    S3CT[("S3 bucket<br/>rs-recruitment-cloudtrail<br/>versioned · SSE-S3 · BPA full")]
+    S3A[("S3 bucket<br/>rs-recruiting-app<br/>versioning suspended · SSE-S3<br/>resumes + deploy artifacts")]
+    S3CT[("S3 bucket<br/>rs-recruiting-cloudtrail<br/>versioned · SSE-S3 · BPA full")]
     ECR1[("ECR rs-recruiting/api<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
     CW["CloudWatch<br/>1 log group · 9 alarms · 1 dashboard"]
@@ -118,7 +118,7 @@ Loose end: App-SG egress on `5432` is `0.0.0.0/0`; could be tightened to `RDS-SG
 ```mermaid
 flowchart LR
   PR["PR merge to main"] --> CI["GitHub Actions"]
-  CI -->|assume OIDC| AWS["github-actions-rs-recruitment role"]
+  CI -->|assume OIDC| AWS["github-actions-rs-recruiting role"]
   CI --> B1["Build api at SHA"] --> ECR1["ECR api at SHA"]
   CI --> B2["Build frontend at SHA"] --> ECR2["ECR frontend at SHA"]
   CI -->|"s3 cp"| S3["s3 deploy prefix per SHA<br/>compose + deploy_ec2.sh"]
@@ -149,8 +149,8 @@ flowchart LR
 | EC2 | `<EC2_INSTANCE_ID>` (t3.micro) | IMDSv2 required, basic monitoring, in `App-SG` + `Web-SG`. Port 80 restricted to CloudFront prefix list. |
 | EBS root | `<EBS_VOL_ID>` (8 GB gp3) | **Unencrypted** (pre-default-encryption); account-default now ON; one-shot re-encryption pending |
 | Elastic IP | `<ELASTIC_IP>` (`<EIP_ASSOC_ID>`) | Attached to EC2 |
-| RDS | `rs-recruitment-prod-db` (db.t3.micro) | Postgres 16, single-AZ, encrypted, 7d backup retention, deletion protection ON, Performance Insights 7d, postgresql log export to CW |
-| Key pair | `rs-recruitment-key` | EC2 SSH key |
+| RDS | `rs-recruiting-prod-db` (db.t3.micro) | Postgres 16, single-AZ, encrypted, 7d backup retention, deletion protection ON, Performance Insights 7d, postgresql log export to CW |
+| Key pair | `rs-recruiting-key` | EC2 SSH key |
 
 ### Storage
 | Bucket / repo | Purpose | Settings |
@@ -158,14 +158,14 @@ flowchart LR
 | `<APP_BUCKET>` | App data — resumes (`resumes/`), public assets (`public/*`), deploy artifacts (`deploy/${SHA}/`) | **Versioning SUSPENDED** (was ON; suspended 2026-05-13 — see decisions log). SSE-S3. BPA partial (public path allowed for BIMI logo). **Lifecycle:** noncurrent versions expire after 1d; delete markers auto-cleaned (`ExpiredObjectDeleteMarker: true`); abort incomplete multipart 7d. Deploy artifacts (`deploy/` prefix) expire after 30d (S3 lifecycle rule — CI does not prune; see decisions log 2026-05-09). |
 | `rs-recruiting-frontend` | Frontend SPA bundle — CloudFront default-behavior origin | SSE-S3. **Lifecycle:** current versions expire after 3 days (stale bundle cleanup). CI syncs the new bundle and CloudFront serves from here; previous deploy's assets expire automatically. |
 | `<CLOUDTRAIL_BUCKET>` | CloudTrail logs | Versioning ON, SSE-S3, BPA full block |
-| ECR `rs-recruitment/api` | Backend image | IMMUTABLE, scanOnPush, lifecycle "keep last 10 images" (manually applied — no IaC) |
+| ECR `rs-recruiting/api` | Backend image | IMMUTABLE, scanOnPush, lifecycle "keep last 10 images" (manually applied — no IaC) |
 
 ### IAM
 | Principal | Type | What it does |
 |---|---|---|
 | `lahav-admin` | User | Console + CLI admin (MFA on) |
-| `rs-recruitment-app-role` | EC2 instance profile | EC2-side: ECR pull, SSM read on `/rs-recruitment/*`, S3 `GetObject`/`PutObject`/`DeleteObject`/`DeleteObjectVersion`/`ListBucket`/`ListBucketVersions` on the app bucket, CW Logs write, namespace-scoped `cloudwatch:PutMetricData` for `RsRecruiting/Retention` |
-| `github-actions-rs-recruitment` | GHA OIDC | CI: ECR push, S3 write to deploy prefix, SSM SendCommand + PutParameter on CURRENT_SHA |
+| `rs-recruiting-app-role` | EC2 instance profile | EC2-side: ECR pull, SSM read on `/rs-recruiting/*`, S3 `GetObject`/`PutObject`/`DeleteObject`/`DeleteObjectVersion`/`ListBucket`/`ListBucketVersions` on the app bucket, CW Logs write, namespace-scoped `cloudwatch:PutMetricData` for `RsRecruiting/Retention` |
+| `github-actions-rs-recruiting` | GHA OIDC | CI: ECR push, S3 write to deploy prefix, SSM SendCommand + PutParameter on CURRENT_SHA |
 | `github-role` | Older GHA role | Legacy — verify if still referenced; candidate for cleanup |
 | `AWSDataLifecycleManagerDefaultRole` | Service | DLM weekly EC2 snapshot policy |
 | `AWS-QuickSetup-SSM-*` | Service | SSM fleet manager quick-setup (unused) |
@@ -213,7 +213,7 @@ Credentials (`GRAFANA_LOKI_URL/USER`, `GRAFANA_TEMPO_URL/USER`, `GRAFANA_PROMETH
 | Resource | Settings |
 |---|---|
 | Log group `/rs-recruiting/worker` | **400d retention** — compliance audit trail for `retention.purge candidate_id=` events (awslogs driver on worker container, parallel to OTLP) |
-| Log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` | RDS log export · **30d retention** |
+| Log group `/aws/rds/instance/rs-recruiting-prod-db/postgresql` | RDS log export · **30d retention** |
 | Metric filter `nginx-5xx-errors` | `/rs-recruiting/nginx` · nginx combined log field pattern `status=5*` · emits `RsRecruiting/Nginx / Http5xxCount` (Sum, `defaultValue=0`) — **stale: nginx no longer ships to CloudWatch; filter is a no-op** |
 | Metric filter `auth-login-failed` | `/rs-recruiting/api` · `{ $.message = "login_failed" }` · emits `RsRecruiting/Auth / LoginFailedCount` — **stale: api logs route via OTLP, not CloudWatch** |
 | Metric filter `auth-account-locked` | `/rs-recruiting/api` · `{ $.message = "login_account_locked" }` · emits `RsRecruiting/Auth / AccountLockedCount` — **stale** |
@@ -230,7 +230,7 @@ Credentials (`GRAFANA_LOKI_URL/USER`, `GRAFANA_TEMPO_URL/USER`, `GRAFANA_PROMETH
 | Alarm `SecurityAlarm-CloudTrailChanges` | CloudTrail configuration changes → ops-alerts |
 | Dashboard `rs-recruiting-ops` | 6 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage, auth failures. **Partially stale** — panels backed by metric filters that no longer fire are empty. Grafana Cloud dashboard is the primary ops view. |
 | SNS `ops-alerts` | Email → `<OPS_EMAIL>` (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
-| CloudTrail `rs-recruitment-trail` | Multi-region, log file validation, → `rs-recruitment-cloudtrail-<ACCOUNT_ID>` |
+| CloudTrail `rs-recruiting-trail` | Multi-region, log file validation, → `rs-recruiting-cloudtrail-<ACCOUNT_ID>` |
 | GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency; primary input is CloudTrail (above) |
 | EventBridge rule `guardduty-findings` | Pattern: `source=aws.guardduty, detail-type=GuardDuty Finding`. Target: `ops-alerts` SNS with input transformer that flattens raw JSON into a human-readable email (severity, type, title, description, region, resource type) |
 | AWS Budget `monthly-40` | $40/mo cost budget with **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted |
@@ -273,17 +273,17 @@ Newest first. Each entry: date, what, why, links. When updating, append; don't r
 **Trade:** `login_email_not_found` is always logged internally but the HTTP response remains identical to `login_failed` — no user-facing information leak. Rate-limit logging only fires in production (limiter is disabled in dev/test per `limiter.py`).
 
 ### 2026-05-20 — Rename CW metric namespaces RsRecruitment → RsRecruiting
-**Decision:** Renamed both custom CloudWatch metric namespaces to match the correct brand name: `RsRecruitment/Retention` → `RsRecruiting/Retention` and `RsRecruitment/Nginx` → `RsRecruiting/Nginx`. Updated IAM inline policy `CloudWatchPutRetentionMetric` condition on `rs-recruitment-app-role` to allow `RsRecruiting/Retention`. Updated `retention-purge-stale` and `nginx-5xx-rate-high` alarms, `rs-recruiting-ops` dashboard, `nginx-5xx-errors` metric filter, `tasks.py` `METRIC_NAMESPACE` constant.
+**Decision:** Renamed both custom CloudWatch metric namespaces to match the correct brand name: `RsRecruitment/Retention` → `RsRecruiting/Retention` and `RsRecruitment/Nginx` → `RsRecruiting/Nginx`. Updated IAM inline policy `CloudWatchPutRetentionMetric` condition on `rs-recruiting-app-role` to allow `RsRecruiting/Retention`. Updated `retention-purge-stale` and `nginx-5xx-rate-high` alarms, `rs-recruiting-ops` dashboard, `nginx-5xx-errors` metric filter, `tasks.py` `METRIC_NAMESPACE` constant.
 **Why:** All other brand-visible naming uses "RS Recruiting"; the old namespace string was a copy-paste of the repo slug rather than the brand name.
 **Trade:** Brief window between alarm update and next worker cron run (~0–26h) where `retention-purge-stale` may fire once, then self-recover on the first nightly emit to the new namespace.
 
 ### 2026-05-20 — 5xx alarm, RDS log retention, ops dashboard (PRs #587 #595 #596)
-**Decision:** (1) Added CloudWatch metric filter `nginx-5xx-errors` on `/rs-recruitment/nginx` using the nginx combined-log field-extraction pattern (`status=5*`), emitting `RsRecruiting/Nginx / Http5xxCount`. Created alarm `nginx-5xx-rate-high` at Sum > 5 per 5-min window → `ops-alerts`. (2) Set 30d retention on the RDS log group `/aws/rds/instance/rs-recruitment-prod-db/postgresql` (was indefinite). (3) Created dashboard `rs-recruiting-ops` with 5 metric panels and 4 saved Logs Insights queries.
+**Decision:** (1) Added CloudWatch metric filter `nginx-5xx-errors` on `/rs-recruiting/nginx` using the nginx combined-log field-extraction pattern (`status=5*`), emitting `RsRecruiting/Nginx / Http5xxCount`. Created alarm `nginx-5xx-rate-high` at Sum > 5 per 5-min window → `ops-alerts`. (2) Set 30d retention on the RDS log group `/aws/rds/instance/rs-recruiting-prod-db/postgresql` (was indefinite). (3) Created dashboard `rs-recruiting-ops` with 5 metric panels and 4 saved Logs Insights queries.
 **Why:** A 500 storm on any business endpoint would not have fired any existing alarm (Route53 health check only pings `/health`). RDS log group was the only log group without a retention policy, creating unbounded cost risk. Dashboard reduces mean-time-to-orient when `ops-alerts` fires.
 **Trade:** Alarm threshold of 5 per 5 min is intentionally generous for a low-traffic job board — avoids noise from transient deploys. Lockout-rate dashboard panel deferred pending #588.
 
-### 2026-05-13 — Permanent S3 file deletion + versioning suspended (PR [#406](https://github.com/lahavrud/rs-recruitment/pull/406))
-**Decision:** (1) Suspend S3 versioning on the app bucket. (2) Add lifecycle rule: noncurrent versions expire after 1 day, delete markers auto-cleaned. (3) Update `S3StorageProvider.delete_file` to walk `list_object_versions` and call `delete_objects` with explicit VersionIds, permanently removing every version and marker rather than creating a new delete marker. (4) Extend `rs-recruitment-app-role` S3 policy with `s3:DeleteObjectVersion` and `s3:ListBucketVersions`.
+### 2026-05-13 — Permanent S3 file deletion + versioning suspended (PR [#406](https://github.com/lahavrud/rs-recruiting/pull/406))
+**Decision:** (1) Suspend S3 versioning on the app bucket. (2) Add lifecycle rule: noncurrent versions expire after 1 day, delete markers auto-cleaned. (3) Update `S3StorageProvider.delete_file` to walk `list_object_versions` and call `delete_objects` with explicit VersionIds, permanently removing every version and marker rather than creating a new delete marker. (4) Extend `rs-recruiting-app-role` S3 policy with `s3:DeleteObjectVersion` and `s3:ListBucketVersions`.
 **Why:** With versioning enabled, `delete_object` only inserts a delete marker — the actual object data remains. A live test confirmed that deleting a candidate left their resume version in S3 (observable via `list_object_versions`). Since all file keys include a UUID (no overwrite risk), versioning bought nothing for the app while making every delete a multi-step operation. Suspension + code-level permanent delete satisfies the 12-month retention policy's "data is gone" guarantee. Lifecycle rule is the safety net for any marker or version that pre-dates this change.
 **Trade:** Can't fully disable versioning once enabled (AWS limitation) — suspension is the equivalent. The permanent-delete code path (version walk + `delete_objects`) is slightly more complex than a plain `delete_object` call, but remains correct on both suspended and fully-versioned buckets.
 
@@ -308,21 +308,21 @@ Newest first. Each entry: date, what, why, links. When updating, append; don't r
 ### 2026-05-09 — Day 1 + Day 2 hardening
 **Decision:** Delete `rs-app-dev` long-lived IAM key + wildcard policies; password policy; default EBS encryption; ECR `IMMUTABLE` + `scanOnPush`; alarm routing to `ops-alerts` (billing kept on `billing-alerts`); RDS Performance Insights + log exports; worker log retention 14→400 days; delete default VPC + orphan SGs.
 **Why:** AWS audit pre-Day 3. Detail in this conversation; resource state above reflects post-change.
-**Side-effect PR:** [#301](https://github.com/lahavrud/rs-recruitment/pull/301) dropped `:latest` push from CI to enable `IMMUTABLE`.
+**Side-effect PR:** [#301](https://github.com/lahavrud/rs-recruiting/pull/301) dropped `:latest` push from CI to enable `IMMUTABLE`.
 
 ### 2026-05-09 — Audit log: DB-only with INSERT-only grants (Phase 1); S3 Object Lock deferred (Phase 2)
-**Decision:** Keep PR [#300](https://github.com/lahavrud/rs-recruitment/pull/300)'s DB table as the source of truth. Add INSERT-only grants for the app role (issue [#303](https://github.com/lahavrud/rs-recruitment/issues/303), Phase 1). Defer S3 Object Lock + Firehose archive (Phase 2) until enterprise/regulator triggers it.
+**Decision:** Keep PR [#300](https://github.com/lahavrud/rs-recruiting/pull/300)'s DB table as the source of truth. Add INSERT-only grants for the app role (issue [#303](https://github.com/lahavrud/rs-recruiting/issues/303), Phase 1). Defer S3 Object Lock + Firehose archive (Phase 2) until enterprise/regulator triggers it.
 **Why not CloudWatch-only:** loses transactional consistency with the business operation — silent compliance gaps under failure. **Why not Object Lock today:** permanent commitment, ~1 day of work, no auditor asking right now.
 
-### 2026-05-08 — Retention purge observability (PR [#298](https://github.com/lahavrud/rs-recruitment/pull/298), runbook in [#299](https://github.com/lahavrud/rs-recruitment/pull/299))
-**Decision:** Emit `PurgedCandidatesCount` metric nightly (always — even count=0). Stale-purge alarm via missing data. New `ops-alerts` SNS topic for ops separately from billing. Per-candidate audit log line `retention.purge candidate_id=<id>` to `/rs-recruitment/worker` (later bumped to 400d retention).
+### 2026-05-08 — Retention purge observability (PR [#298](https://github.com/lahavrud/rs-recruiting/pull/298), runbook in [#299](https://github.com/lahavrud/rs-recruiting/pull/299))
+**Decision:** Emit `PurgedCandidatesCount` metric nightly (always — even count=0). Stale-purge alarm via missing data. New `ops-alerts` SNS topic for ops separately from billing. Per-candidate audit log line `retention.purge candidate_id=<id>` to `/rs-recruiting/worker` (later bumped to 400d retention).
 **Why:** Compliance requires proving the purge ran; missing-data alarm catches dead worker / IAM regression.
 
-### 2026-05-04 — Atomic deploy artifact (PR [#296](https://github.com/lahavrud/rs-recruitment/pull/296))
+### 2026-05-04 — Atomic deploy artifact (PR [#296](https://github.com/lahavrud/rs-recruiting/pull/296))
 **Decision:** SHA-pinned ECR images for both api and frontend (`frontend/Dockerfile` multistage bakes `nginx.conf` + `dist/`). Per-SHA immutable S3 prefix `deploy/${SHA}/`. SSM `CURRENT_SHA` as version pointer. `scripts/rollback.sh` for one-shot SHA flip.
 **Why:** 521 outage on 2026-05-04 was caused by stale-base push to `main` overwriting S3 deploy configs (last-writer-wins). Splitting the artifact across mutable S3 + ECR `:latest` allowed an old config + new image (or vice versa) to combine into untested state.
 
-### 2026-05-04 — Nightly candidate retention purge (PR [#295](https://github.com/lahavrud/rs-recruitment/pull/295))
+### 2026-05-04 — Nightly candidate retention purge (PR [#295](https://github.com/lahavrud/rs-recruiting/pull/295))
 **Decision:** Arq cron at 03:00 UTC, eligibility = "every application is on a CLOSED job updated >365d ago AND not HIRED." Best-effort S3 resume delete + DB cascade. See [`RETENTION_PURGE.md`](./RETENTION_PURGE.md).
 **Why:** Privacy policy commits to 12-month retention.
 
@@ -348,4 +348,4 @@ Newest first. Each entry: date, what, why, links. When updating, append; don't r
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — high-level decisions (auth, framework, schema)
 - [`RETENTION_PURGE.md`](./RETENTION_PURGE.md) — runbook for the nightly purge cron
 - [`API_DESIGN.md`](./API_DESIGN.md), [`CONTEXT.md`](./CONTEXT.md), [`ROADMAP.md`](./ROADMAP.md) — product / domain context
-- [Issue #303](https://github.com/lahavrud/rs-recruitment/issues/303) — pending: audit-log tamper evidence (Phase 1: INSERT-only grants)
+- [Issue #303](https://github.com/lahavrud/rs-recruiting/issues/303) — pending: audit-log tamper evidence (Phase 1: INSERT-only grants)

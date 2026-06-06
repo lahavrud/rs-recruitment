@@ -113,7 +113,7 @@ aws cloudwatch describe-alarms --alarm-names retention-purge-stale \
   --query 'MetricAlarms[0].{State:StateValue,Reason:StateReason}'
 
 # 3. What was deleted last night?
-ssh ec2 'docker logs --since 24h rs-recruitment-worker-1 2>&1 | grep retention.purge'
+ssh ec2 'docker logs --since 24h rs-recruiting-worker-1 2>&1 | grep retention.purge'
 ```
 
 ---
@@ -169,7 +169,7 @@ If you need to run the purge outside the cron schedule (e.g. compliance request 
 
 ```bash
 ssh ec2
-docker exec -it rs-recruitment-worker-1 python -c "
+docker exec -it rs-recruiting-worker-1 python -c "
 import asyncio
 from src.core.infrastructure.database import async_session
 from src.core.infrastructure.transactions import transactional
