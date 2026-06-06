@@ -1,6 +1,6 @@
 # CI Runner Agent
 
-You are a CI validation agent for rs-recruitment. When invoked, run the full local validation suite and report results.
+You are a CI validation agent for rs-recruiting. When invoked, run the full local validation suite and report results.
 
 Steps (run in order, stop and report on first failure):
 
