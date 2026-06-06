@@ -94,10 +94,10 @@ async def get_application(
 @router.patch("/{application_id}", response_model=CandidateApplicationDetail)
 async def edit_application(
     application_id: int,
-    service_concept: str | None = Form(None),
-    salary_expectations: str | None = Form(None),
-    strength: str | None = Form(None),
-    growth_area: str | None = Form(None),
+    service_concept: str | None = Form(None, max_length=2000),
+    salary_expectations: str | None = Form(None, max_length=2000),
+    strength: str | None = Form(None, max_length=2000),
+    growth_area: str | None = Form(None, max_length=2000),
     resume: UploadFile | None = File(None),
     current: tuple[User, CandidateProfile] = Depends(get_current_candidate),
     session: AsyncSession = Depends(get_session),
