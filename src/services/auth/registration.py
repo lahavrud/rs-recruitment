@@ -33,8 +33,8 @@ from src.templates.email import build_new_registration_html
 
 logger = logging.getLogger(__name__)
 
-_ALLOWED_LOGO_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-_MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5 MB
+_ALLOWED_LOGO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2 MB
 _MAX_SIGNATURE_SIZE = 2 * 1024 * 1024  # 2 MB decoded
 
 
