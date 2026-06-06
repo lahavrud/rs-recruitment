@@ -38,6 +38,13 @@ _MAX_LOGO_SIZE = 5 * 1024 * 1024  # 5 MB
 _MAX_SIGNATURE_SIZE = 2 * 1024 * 1024  # 2 MB decoded
 
 
+def _mask_email(email: str) -> str:
+    parts = email.split("@", 1)
+    if len(parts) != 2:
+        return "***"
+    return f"{parts[0][:2]}***@{parts[1]}"
+
+
 def _decode_signature(agreement_signature: str) -> bytes:
     if not agreement_signature.strip():
         raise ValueError("Agreement signature is required")
@@ -85,7 +92,7 @@ async def _notify_admins_new_registration(
             company_signature_png_bytes=sig_bytes,
         )
     except Exception:
-        logger.exception("Failed to generate contract PDF for %s", email)
+        logger.exception("Failed to generate contract PDF for %s", _mask_email(email))
     attachments = [("חוזה-RS.pdf", pdf_bytes, "application/pdf")] if pdf_bytes else None
     await enqueue_email_task(
         to=admin_emails,
