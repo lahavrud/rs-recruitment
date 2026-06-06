@@ -1,6 +1,6 @@
 # PR Checklist
 
-Run the full pre-PR validation suite for rs-recruitment.
+Run the full pre-PR validation suite for rs-recruiting.
 
 ## Steps
 
