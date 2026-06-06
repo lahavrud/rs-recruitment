@@ -20,28 +20,26 @@ Requires: Python 3.12+, Node 22+, PostgreSQL 16.
 Issues live on the [project board](https://github.com/users/lahavrud/projects/1). Every issue moves through statuses as work progresses — don't skip steps, it's how we track what's in flight.
 
 ```
-Backlog → Ready → In Progress → In Review → Done
-                                    ↕
-                                 Blocked
+Backlog → In Progress → In Review → Done
+               ↕              ↕
+            Blocked        Blocked
 ```
-
-**Icebox** exits the flow entirely — no timeline, no auto-close.
 
 | Status | When to set it |
 |---|---|
-| **Backlog** | Issue exists, milestone assigned, but not actively being worked |
-| **Ready 🎯** | You've decided this gets done now — scope is clear, ready to branch |
-| **In Progress 🏗️** | Branch is open, work is happening |
-| **In Review 🔍** | PR is open, waiting on CI + review |
-| **Done ✅** | Set automatically when the PR merges via `Closes #` in the PR body |
-| **Blocked ⛔** | Can't proceed — comment what's blocking and who needs to act |
-| **Icebox 🧊** | Deliberately deferred — not this milestone, not the next one |
+| **Backlog** | Exists and is real, but not actively being worked. Default state for all new issues. |
+| **In Progress 🏗️** | Branch is open. Move here when you cut the branch, not when you start coding. |
+| **In Review 🔍** | PR is open. The handoff signal — tells the other person their attention is needed. |
+| **Done ✅** | Set automatically when the PR merges via `Closes #NNN` in the PR body. Never set manually. |
+| **Blocked ⛔** | Can't proceed. Comment what's blocking and who needs to act, then move back to In Progress when unblocked. |
+
+Deferred issues with no timeline get the `icebox` label and stay in Backlog — they won't auto-close.
 
 **Rules:**
-- Move the issue to **In Progress** when you open the branch, not when you start coding.
+- Move to **In Progress** when you open the branch, not when you start coding.
 - Move to **In Review** when you open the PR, not when it's approved.
-- Never close an issue manually — the `Closes #NNN` line in the PR body does it on merge.
-- Keep one active milestone at a time. If you're In Progress on three different milestones you're context-switching too much.
+- Never close an issue manually — `Closes #NNN` in the PR body does it on merge.
+- Keep one active milestone at a time. Multiple milestones in progress simultaneously is a sign of too much context-switching.
 
 ---
 
