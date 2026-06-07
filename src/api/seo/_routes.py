@@ -158,7 +158,7 @@ async def og_job(
         )
     ).scalar_one_or_none()
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="job_not_found")
 
     site_url = settings.frontend_base_url
     canonical = f"{site_url}/jobs/{job.id}"
