@@ -169,8 +169,8 @@ uv run pytest -n auto
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/lahavrud/rs-recruitment.git
-cd rs-recruitment
+git clone https://github.com/lahavrud/rs-recruiting.git
+cd rs-recruiting
 uv sync
 
 # 2. Start services (PostgreSQL + Mailpit local SMTP)
@@ -211,7 +211,7 @@ cd frontend && npx tsc --noEmit && npm run lint
 ## Project Structure
 
 ```
-rs-recruitment/
+rs-recruiting/
 ├── src/
 │   ├── api/          # Thin FastAPI routers (auth, admin, company, public, seo)
 │   ├── services/     # Business logic, decoupled from routers
