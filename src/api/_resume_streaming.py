@@ -49,7 +49,7 @@ async def stream_resume(file_key: str) -> Response:
     """
     if not _SAFE_KEY.match(file_key):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file key"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_file_key"
         )
 
     content_type = _content_type(file_key)
@@ -63,11 +63,11 @@ async def stream_resume(file_key: str) -> Response:
             file_path.relative_to(storage_root)
         except ValueError as exc:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file key"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_file_key"
             ) from exc
         if not file_path.is_file():
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="file_not_found"
             )
         return FileResponse(
             path=file_path,
@@ -81,7 +81,7 @@ async def stream_resume(file_key: str) -> Response:
         file_bytes = await storage.download_file(storage_key)
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="file_not_found"
         ) from e
     return Response(
         content=file_bytes,
