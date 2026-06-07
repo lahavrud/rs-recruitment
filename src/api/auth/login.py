@@ -142,7 +142,7 @@ async def refresh(
     if not raw_refresh:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No refresh token",
+            detail="refresh_token_missing",
         )
     try:
         async with transactional(session):

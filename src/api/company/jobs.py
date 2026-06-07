@@ -1,6 +1,6 @@
 """Company job endpoints — list, get, create, update, delete."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
@@ -53,10 +53,7 @@ async def get_job_posting(
     try:
         job = await get_job(job_id, session)
         if job.company_id != company_profile.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job not found",
-            )
+            raise JobNotFoundError(f"Job with ID {job_id} not owned by company")
         return job
     except JobNotFoundError as e:
         raise service_exception_to_http(e) from e

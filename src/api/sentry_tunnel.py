@@ -83,14 +83,14 @@ async def sentry_tunnel(request: Request) -> Response:
         if not dsn or dsn != settings.frontend_sentry_dsn:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid DSN",
+                detail="invalid_dsn",
             )
 
         ingest_url = _sentry_ingest_url(dsn)
         if not ingest_url:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Malformed DSN",
+                detail="malformed_dsn",
             )
 
         try:
@@ -104,7 +104,7 @@ async def sentry_tunnel(request: Request) -> Response:
             _logger.warning("Sentry tunnel: upstream request failed: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Sentry unreachable",
+                detail="sentry_unreachable",
             )
 
         return Response(content=resp.content, status_code=resp.status_code)

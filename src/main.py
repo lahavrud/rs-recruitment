@@ -136,7 +136,7 @@ async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONR
     logger.warning(
         "rate_limit_hit", extra={"path": request.url.path, "ip": client_ip(request)}
     )
-    return JSONResponse(status_code=429, content={"detail": "Too many requests"})
+    return JSONResponse(status_code=429, content={"detail": "too_many_requests"})
 
 
 # Configure CORS middleware

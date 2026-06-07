@@ -1,6 +1,6 @@
 """Public invite token endpoints (no authentication required)."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +30,7 @@ async def get_invite_metadata(
     )
     record = result.scalar_one_or_none()
     if record is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invite token not found"
+        raise service_exception_to_http(
+            InvalidInviteTokenError(f"Invite token not found: {token}")
         )
     return InviteMetadataPublic.model_validate(record)

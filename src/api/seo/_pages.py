@@ -182,7 +182,7 @@ async def og_article(slug: str) -> HTMLResponse:
     """
     item = get_article(slug)
     if item is None:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="article_not_found")
 
     site_url = settings.frontend_base_url
     canonical = f"{site_url}/articles/{item.slug}"
