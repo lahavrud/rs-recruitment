@@ -112,8 +112,7 @@ export function FeaturedConfirmDialog({
 
 const ghostNumCls =
   "w-24 rounded-md border border-transparent bg-transparent px-1.5 py-1 " +
-  "text-sm text-copper/80 outline-none transition [appearance:textfield] " +
-  "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none " +
+  "text-sm text-copper/80 outline-none transition " +
   "hover:border-white/10 hover:bg-white/3 focus:border-copper/30 focus:bg-white/4";
 
 const RADIX = 10;
@@ -153,14 +152,14 @@ export function SalaryRangeField({
 
   return (
     <div className="mt-1 space-y-2">
-      {/* dir="ltr" keeps min on the left and max on the right in the RTL form */}
-      <div className="flex items-center gap-0.5" dir="ltr">
+      {/* dir="ltr" keeps min–max order; justify-end anchors the group to the
+          right so it aligns with the rest of the RTL form */}
+      <div className="flex items-center justify-end gap-0.5" dir="ltr">
         <input
-          type="number"
-          value={draftLo ?? lo}
-          min={SALARY_FORM_MIN}
-          max={SALARY_FORM_MAX}
-          step={SALARY_FORM_STEP}
+          type="text"
+          inputMode="numeric"
+          value={draftLo ?? lo.toLocaleString("he-IL")}
+          onFocus={() => { if (draftLo === null) setDraftLo(String(lo)); }}
           onChange={(e) => setDraftLo(e.target.value)}
           onBlur={commitLo}
           onKeyDown={(e) => {
@@ -170,13 +169,12 @@ export function SalaryRangeField({
           aria-label={t("common:salaryMin")}
           className={ghostNumCls}
         />
-        <span className="shrink-0 text-white/30" aria-hidden="true">-</span>
+        <span className="shrink-0 px-0.5 text-white/30" aria-hidden="true">-</span>
         <input
-          type="number"
-          value={draftHi ?? hi}
-          min={SALARY_FORM_MIN}
-          max={SALARY_FORM_MAX}
-          step={SALARY_FORM_STEP}
+          type="text"
+          inputMode="numeric"
+          value={draftHi ?? hi.toLocaleString("he-IL")}
+          onFocus={() => { if (draftHi === null) setDraftHi(String(hi)); }}
           onChange={(e) => setDraftHi(e.target.value)}
           onBlur={commitHi}
           onKeyDown={(e) => {
@@ -186,7 +184,7 @@ export function SalaryRangeField({
           aria-label={t("common:salaryMax")}
           className={ghostNumCls}
         />
-        <span className="shrink-0 text-xs text-white/40">₪/חודש</span>
+        <span className="shrink-0 ps-1 text-xs text-white/40">₪/חודש</span>
       </div>
       <RangeSlider
         min={SALARY_FORM_MIN}

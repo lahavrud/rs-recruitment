@@ -88,7 +88,14 @@ function SortableReqItem({
     useSortable({ id });
 
   const commit = () => {
-    onUpdate(index, draft.trim());
+    const trimmed = draft.trim();
+    // If the item was always a blank placeholder (never had text) and we can
+    // remove it, drop it silently instead of keeping a dead empty row.
+    if (trimmed === "" && req.text === "" && canRemove) {
+      onRemove(index);
+    } else {
+      onUpdate(index, trimmed);
+    }
     setEditing(false);
   };
 
