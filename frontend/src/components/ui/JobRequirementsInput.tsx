@@ -100,15 +100,15 @@ function SortableReqItem({
   return (
     <li
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group flex items-center gap-2 py-0.5 ${isDragging ? "relative z-50 opacity-50" : ""}`}
+      className={`group flex cursor-grab items-center gap-2 py-0.5 active:cursor-grabbing ${isDragging ? "relative z-50 opacity-50" : ""}`}
     >
-      {/* Grip drag handle */}
+      {/* Grip dots — visual hint only, no listeners */}
       <span
-        {...attributes}
-        {...listeners}
         aria-label={t("common:dragHandle")}
-        className="shrink-0 cursor-grab opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
+        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-60"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -140,9 +140,10 @@ function SortableReqItem({
             if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
             if (e.key === "Escape") { setDraft(req.text); setEditing(false); }
           }}
+          onPointerDown={(e) => e.stopPropagation()}
           maxLength={JOB_REQ_TEXT_MAX}
           placeholder={placeholder}
-          className={`${ghostInputCls} flex-1`}
+          className={`${ghostInputCls} flex-1 cursor-text`}
         />
       ) : (
         <span
