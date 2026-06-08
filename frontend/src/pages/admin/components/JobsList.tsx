@@ -6,7 +6,7 @@ import DropdownMenu, {
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
 import KebabButton from "@/components/ui/KebabButton";
-import { MobileJobCard } from "./JobDetailDialog";
+import { MobileJobCard } from "./JobViewBody";
 
 export interface JobsListProps {
   jobs: JobRead[];
