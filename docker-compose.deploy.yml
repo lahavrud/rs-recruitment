@@ -66,6 +66,12 @@ services:
       - ENVIRONMENT=production
       - SENTRY_RELEASE=${IMAGE_TAG}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://grafana-alloy:4317
+      # Trust nginx's pinned IP (see `networks.default.ipam` + the nginx
+      # service above) as the sole source of X-Forwarded-For. Must mirror
+      # TRUSTED_PROXY_IPS in SSM (/rs-recruiting/prod/TRUSTED_PROXY_IPS) —
+      # see client_ip()'s docstring in core/infrastructure/dependencies.py
+      # for why both layers need to agree.
+      - FORWARDED_ALLOW_IPS=172.28.0.2
     volumes:
       - app-data:/app/data
     depends_on:
