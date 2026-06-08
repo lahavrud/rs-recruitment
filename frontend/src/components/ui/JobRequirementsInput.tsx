@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -56,8 +56,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 // ── Sortable row ─────────────────────────────────────────────────────────────
-// Long press (250 ms) on the text → drag to reorder.
-// Short click on the text → inline edit.
+// Grip handle activates drag. Click the text → inline edit.
 
 interface ReqItemProps {
   id: number;
@@ -65,34 +64,25 @@ interface ReqItemProps {
   index: number;
   placeholder: string;
   canRemove: boolean;
-  autoFocusRef: React.MutableRefObject<number | null>;
+  /** True only for items just added via the + button — opens the field immediately. */
+  startInEditMode: boolean;
   onUpdate: (index: number, text: string) => void;
   onRemove: (index: number) => void;
 }
 
 function SortableReqItem({
-  id,
   req,
   index,
   placeholder,
   canRemove,
-  autoFocusRef,
+  startInEditMode,
   onUpdate,
   onRemove,
+  id,
 }: ReqItemProps) {
   const { t } = useTranslation(["common"]);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startInEditMode);
   const [draft, setDraft] = useState(req.text);
-
-  // Auto-open edit mode for newly added items (set via autoFocusRef before mount).
-  useEffect(() => {
-    if (autoFocusRef.current === id) {
-      autoFocusRef.current = null;
-      setEditing(true);
-    }
-    // Only check once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
@@ -113,6 +103,29 @@ function SortableReqItem({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`group flex items-center gap-2 py-0.5 ${isDragging ? "relative z-50 opacity-50" : ""}`}
     >
+      {/* Grip drag handle */}
+      <span
+        {...attributes}
+        {...listeners}
+        aria-label={t("common:dragHandle")}
+        className="shrink-0 cursor-grab opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className="size-3.5 text-white/50"
+          aria-hidden="true"
+        >
+          <circle cx="5" cy="3.5" r="1" />
+          <circle cx="5" cy="8" r="1" />
+          <circle cx="5" cy="12.5" r="1" />
+          <circle cx="11" cy="3.5" r="1" />
+          <circle cx="11" cy="8" r="1" />
+          <circle cx="11" cy="12.5" r="1" />
+        </svg>
+      </span>
+
       {/* Copper bullet */}
       <span aria-hidden="true" className="inline-block size-1.5 shrink-0 rounded-full bg-copper/60" />
 
@@ -132,17 +145,14 @@ function SortableReqItem({
           className={`${ghostInputCls} flex-1`}
         />
       ) : (
-        // Long press → drag. Short click → edit.
         <span
-          {...attributes}
-          {...listeners}
           onClick={startEdit}
           className="flex-1 cursor-pointer select-none text-sm leading-relaxed"
         >
           {req.text ? (
-            <span className="text-white/80 hover:text-white/95 transition-colors">{req.text}</span>
+            <span className="text-white/80 transition-colors hover:text-white/95">{req.text}</span>
           ) : (
-            <span className="text-white/22 italic">{placeholder}</span>
+            <span className="italic text-white/25">{placeholder}</span>
           )}
         </span>
       )}
@@ -179,9 +189,9 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
 
   const nextId = useRef(value.length);
   const [ids, setIds] = useState<number[]>(() => value.map((_, i) => i));
-  const autoFocusRef = useRef<number | null>(null);
+  // Tracks which numeric ID (if any) should open in edit mode immediately on mount.
+  const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
 
-  // 250 ms hold → drag. Quick tap → click fires normally.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -208,7 +218,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
 
   const add = () => {
     const newId = nextId.current++;
-    autoFocusRef.current = newId;
+    setPendingFocusId(newId);
     setIds((prev) => [...prev, newId]);
     onChange([...value, { text: "" }]);
   };
@@ -230,7 +240,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
                 index={i}
                 placeholder={placeholders[i % placeholders.length]}
                 canRemove={canRemove}
-                autoFocusRef={autoFocusRef}
+                startInEditMode={ids[i] === pendingFocusId}
                 onUpdate={update}
                 onRemove={remove}
               />
