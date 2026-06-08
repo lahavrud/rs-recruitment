@@ -28,6 +28,7 @@
   "discardMessage": "השינויים שביצעת לא יישמרו.",
   "discard": "צא ללא שמירה",
   "continueEditing": "המשך עריכה",
+  "revertChanges": "בטל שינויים",
   "validation": {
     "required": "שדה חובה",
     "tooLong": "מקסימום {{max}} תווים",
