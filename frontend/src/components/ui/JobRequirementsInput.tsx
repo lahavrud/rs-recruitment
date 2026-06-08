@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslation } from "react-i18next";
-import { inputCls } from "@/styles/forms";
+import { ghostInputCls } from "@/styles/forms";
 import {
   JOB_REQ_MAX_COUNT,
   JOB_REQ_MIN_COUNT,
@@ -56,6 +56,8 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 // ── Sortable row ─────────────────────────────────────────────────────────────
+// Long press (250 ms) on the text → drag to reorder.
+// Short click on the text → inline edit.
 
 interface ReqItemProps {
   id: number;
@@ -63,65 +65,95 @@ interface ReqItemProps {
   index: number;
   placeholder: string;
   canRemove: boolean;
+  autoFocusRef: React.MutableRefObject<number | null>;
   onUpdate: (index: number, text: string) => void;
   onRemove: (index: number) => void;
 }
 
-function SortableReqItem({ id, req, index, placeholder, canRemove, onUpdate, onRemove }: ReqItemProps) {
-  const { t } = useTranslation(['common']);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+function SortableReqItem({
+  id,
+  req,
+  index,
+  placeholder,
+  canRemove,
+  autoFocusRef,
+  onUpdate,
+  onRemove,
+}: ReqItemProps) {
+  const { t } = useTranslation(["common"]);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(req.text);
+
+  // Auto-open edit mode for newly added items (set via autoFocusRef before mount).
+  useEffect(() => {
+    if (autoFocusRef.current === id) {
+      autoFocusRef.current = null;
+      setEditing(true);
+    }
+    // Only check once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const commit = () => {
+    onUpdate(index, draft.trim());
+    setEditing(false);
+  };
+
+  const startEdit = () => {
+    setDraft(req.text);
+    setEditing(true);
+  };
 
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 ${isDragging ? "relative z-50 opacity-50" : ""}`}
+      className={`group flex items-center gap-2 py-0.5 ${isDragging ? "relative z-50 opacity-50" : ""}`}
     >
-      {/* Drag handle — separate activator node so text input clicks don't trigger drag */}
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        aria-label={t("common:dragHandle")}
-        className="inline-flex size-6 shrink-0 cursor-grab items-center justify-center rounded-sm text-white/25 transition hover:text-white/55 active:cursor-grabbing touch-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className="size-3.5"
-          aria-hidden="true"
+      {/* Copper bullet */}
+      <span aria-hidden="true" className="inline-block size-1.5 shrink-0 rounded-full bg-copper/60" />
+
+      {editing ? (
+        <input
+          type="text"
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+            if (e.key === "Escape") { setDraft(req.text); setEditing(false); }
+          }}
+          maxLength={JOB_REQ_TEXT_MAX}
+          placeholder={placeholder}
+          className={`${ghostInputCls} flex-1`}
+        />
+      ) : (
+        // Long press → drag. Short click → edit.
+        <span
+          {...attributes}
+          {...listeners}
+          onClick={startEdit}
+          className="flex-1 cursor-pointer select-none text-sm leading-relaxed"
         >
-          <path d="M5.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
-        </svg>
-      </button>
-      <span
-        aria-hidden="true"
-        className="inline-block size-1.5 shrink-0 rounded-full bg-copper/70"
-      />
-      <input
-        type="text"
-        value={req.text}
-        onChange={(e) => onUpdate(index, e.target.value)}
-        maxLength={JOB_REQ_TEXT_MAX}
-        placeholder={placeholder}
-        className={inputCls}
-      />
+          {req.text ? (
+            <span className="text-white/80 hover:text-white/95 transition-colors">{req.text}</span>
+          ) : (
+            <span className="text-white/22 italic">{placeholder}</span>
+          )}
+        </span>
+      )}
+
       <button
         type="button"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={() => onRemove(index)}
         disabled={!canRemove}
         aria-label={t("common:removeRequirement")}
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm border border-white/15 text-white/55 transition hover:border-danger/40 hover:text-danger disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/15 disabled:hover:text-white/55"
+        className="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-white/25 opacity-0 transition group-hover:opacity-100 hover:text-danger/70 disabled:cursor-not-allowed disabled:hover:text-white/25"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -140,25 +172,19 @@ function SortableReqItem({ id, req, index, placeholder, canRemove, onUpdate, onR
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function JobRequirementsInput({ value, onChange, error }: Props) {
-  const { t } = useTranslation(['common', 'http']);
+  const { t } = useTranslation(["common"]);
   const canAdd = value.length < JOB_REQ_MAX_COUNT;
   const canRemove = value.length > 1;
-  // Stable per-mount placeholder order so each row gets a distinct example.
   const placeholders = useMemo(() => shuffled(REQUIREMENT_PLACEHOLDER_POOL), []);
 
-  // Stable numeric IDs for sortable items. Maintained in parallel with `value`.
   const nextId = useRef(value.length);
   const [ids, setIds] = useState<number[]>(() => value.map((_, i) => i));
+  const autoFocusRef = useRef<number | null>(null);
 
+  // 250 ms hold → drag. Quick tap → click fires normally.
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      // Require an 8px movement before activating drag, so typing in the
-      // input and clicking the remove button never accidentally start a drag.
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   function handleDragEnd({ active, over }: DragEndEvent) {
@@ -182,6 +208,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
 
   const add = () => {
     const newId = nextId.current++;
+    autoFocusRef.current = newId;
     setIds((prev) => [...prev, newId]);
     onChange([...value, { text: "" }]);
   };
@@ -194,7 +221,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <ul className="space-y-2">
+          <ul className="space-y-0.5">
             {value.map((req, i) => (
               <SortableReqItem
                 key={ids[i]}
@@ -203,6 +230,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
                 index={i}
                 placeholder={placeholders[i % placeholders.length]}
                 canRemove={canRemove}
+                autoFocusRef={autoFocusRef}
                 onUpdate={update}
                 onRemove={remove}
               />
@@ -210,25 +238,26 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
           </ul>
         </SortableContext>
       </DndContext>
+
       <div className="mt-2 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={add}
           disabled={!canAdd}
-          className="inline-flex items-center gap-1.5 rounded-sm border border-copper/35 px-3 py-1.5 text-xs font-medium text-copper transition hover:border-copper/60 hover:bg-copper/10 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center gap-1.5 text-xs text-copper/40 transition hover:text-copper/65 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 16 16"
             fill="currentColor"
-            className="size-3.5"
+            className="size-3"
             aria-hidden="true"
           >
             <path d="M8 2.75a.75.75 0 0 1 .75.75v3.75h3.75a.75.75 0 0 1 0 1.5H8.75v3.75a.75.75 0 0 1-1.5 0V8.75H3.5a.75.75 0 0 1 0-1.5h3.75V3.5A.75.75 0 0 1 8 2.75Z" />
           </svg>
           {t("common:addRequirement")}
         </button>
-        <span className="text-[11px] text-white/35">
+        <span className="text-[11px] text-white/25">
           {t("common:requirementCount", {
             count: value.length,
             min: JOB_REQ_MIN_COUNT,
