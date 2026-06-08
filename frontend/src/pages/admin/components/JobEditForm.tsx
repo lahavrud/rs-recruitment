@@ -16,22 +16,17 @@ interface JobEditFormProps {
   form: JobAdminUpdate;
   errors: Record<string, string>;
   set: <K extends keyof JobAdminUpdate>(key: K, value: JobAdminUpdate[K]) => void;
-  onFeaturedToggleRequest: () => void;
-  onStatusChangeRequest: (status: JobStatus) => void;
+  onFeaturedToggle: () => void;
+  onStatusChange: (status: JobStatus) => void;
 }
 
-/**
- * The editable form content of the job dialog — the "basics" fields plus the
- * shared content/lists sections. Extracted so `JobDialog` can swap it in for
- * `JobViewBody` in place, without remounting the dialog shell.
- */
 export default function JobEditForm({
   job,
   form,
   errors,
   set,
-  onFeaturedToggleRequest,
-  onStatusChangeRequest,
+  onFeaturedToggle,
+  onStatusChange,
 }: JobEditFormProps) {
   const { t } = useTranslation(['admin', 'common']);
   const currentStatus = (form.status ?? job.status) as JobStatus;
@@ -49,7 +44,7 @@ export default function JobEditForm({
               />
               <FeaturedStarButton
                 active={form.is_featured ?? false}
-                onToggleRequest={onFeaturedToggleRequest}
+                onToggleRequest={onFeaturedToggle}
               />
             </div>
           </Field>
@@ -67,9 +62,14 @@ export default function JobEditForm({
                 value={currentStatus}
                 onChange={(s) => {
                   if (s === currentStatus) return;
-                  onStatusChangeRequest(s);
+                  onStatusChange(s);
                 }}
               />
+              {currentStatus === JobStatus.CLOSED && job.status === JobStatus.PUBLISHED && (
+                <p className="mt-1.5 rounded-sm bg-warning/8 px-2 py-1 text-[11px] leading-relaxed text-warning/80">
+                  {t("admin:jobs.notifyClosingWarning")}
+                </p>
+              )}
             </Field>
           </div>
           <Field
@@ -87,6 +87,11 @@ export default function JobEditForm({
               error={errors.salary_min || errors.salary_max}
             />
           </Field>
+          {job.status === JobStatus.PUBLISHED && (
+            <p className="text-[11px] text-white/30">
+              {t("admin:jobs.notifyPublishedHint")}
+            </p>
+          )}
         </div>
       </FormSection>
       <JobContentLists

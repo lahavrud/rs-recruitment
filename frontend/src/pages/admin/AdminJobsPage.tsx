@@ -396,8 +396,6 @@ export default function AdminJobsPage() {
 
       <JobDialog
         job={detail}
-        statusLabels={STATUS_LABELS}
-        statusColors={STATUS_COLORS}
         companyName={detail ? companyNameById.get(detail.company_id) : undefined}
         onClose={() => setDetail(null)}
         onSaved={(updated) => {
