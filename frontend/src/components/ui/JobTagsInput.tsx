@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -19,6 +19,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { useTranslation } from "react-i18next";
 import { inputCls } from "@/styles/forms";
 import { JOB_TAG_MAX_COUNT, JOB_TAG_MAX_LEN } from "@/types/api";
+
+const TAG_EDIT_MIN_CHARS = 4;
 
 interface Props {
   value: string[];
@@ -47,8 +49,20 @@ function pickRandom<T>(arr: readonly T[]): T {
 
 // ── Sortable pill ─────────────────────────────────────────────────────────────
 
-function SortableTag({ tag, onRemove }: { tag: string; onRemove: () => void }) {
+function SortableTag({
+  tag,
+  onRemove,
+  onEdit,
+}: {
+  tag: string;
+  onRemove: () => void;
+  onEdit: (next: string) => void;
+}) {
   const { t } = useTranslation(['common']);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(tag);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const {
     attributes,
     listeners,
@@ -59,35 +73,78 @@ function SortableTag({ tag, onRemove }: { tag: string; onRemove: () => void }) {
     isDragging,
   } = useSortable({ id: tag });
 
+  const commit = () => {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== tag) {
+      onEdit(trimmed);
+    } else {
+      setDraft(tag);
+    }
+    setEditing(false);
+  };
+
+  const startEdit = () => {
+    setDraft(tag);
+    setEditing(true);
+  };
+
   return (
     <span
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`inline-flex items-center gap-1 rounded-full border border-copper/35 bg-copper/12 py-1 pe-1 text-xs font-medium text-copper ${
+      className={`inline-flex items-center gap-1 rounded-full border py-1 text-xs font-medium text-copper ${
         isDragging ? "z-50 opacity-50" : ""
-      }`}
+      } ${editing ? "border-copper/50 bg-copper/18 pe-1.5" : "border-copper/35 bg-copper/12 pe-1"}`}
     >
-      {/* Grip handle — drag activator, separate from text/remove so clicks don't drag */}
-      <span
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        aria-label={t("common:dragHandle")}
-        role="button"
-        tabIndex={0}
-        className="inline-flex size-5 cursor-grab items-center justify-center rounded-full ps-1 text-copper/40 transition hover:text-copper/70 active:cursor-grabbing touch-none"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className="size-3"
-          aria-hidden="true"
+      {/* Grip handle — hidden while editing to prevent accidental drag */}
+      {!editing && (
+        <span
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          aria-label={t("common:dragHandle")}
+          role="button"
+          tabIndex={0}
+          className="inline-flex size-5 cursor-grab items-center justify-center rounded-full ps-1 text-copper/40 transition hover:text-copper/70 active:cursor-grabbing touch-none"
         >
-          <path d="M5.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
-        </svg>
-      </span>
-      {tag}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className="size-3"
+            aria-hidden="true"
+          >
+            <path d="M5.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+          </svg>
+        </span>
+      )}
+
+      {editing ? (
+        <input
+          ref={inputRef}
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+            if (e.key === "Escape") { setDraft(tag); setEditing(false); }
+          }}
+          maxLength={JOB_TAG_MAX_LEN}
+          className="inline-block bg-transparent text-copper outline-none ps-1.5"
+          style={{ width: `${Math.max(draft.length + 1, TAG_EDIT_MIN_CHARS)}ch` }}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={startEdit}
+          title={t("common:editTag")}
+          className="text-copper hover:text-copper/80 focus:outline-none focus-visible:underline"
+        >
+          {tag}
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onRemove}
@@ -148,6 +205,11 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
 
   const remove = (tag: string) => onChange(value.filter((t) => t !== tag));
 
+  const edit = (oldTag: string, newTag: string) => {
+    if (value.some((t) => t.toLowerCase() === newTag.toLowerCase() && t !== oldTag)) return;
+    onChange(value.map((t) => (t === oldTag ? newTag : t)));
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
@@ -166,7 +228,12 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
           <SortableContext items={value} strategy={rectSortingStrategy}>
             <div className="mb-2 flex flex-wrap gap-1.5">
               {value.map((tag) => (
-                <SortableTag key={tag} tag={tag} onRemove={() => remove(tag)} />
+                <SortableTag
+                  key={tag}
+                  tag={tag}
+                  onRemove={() => remove(tag)}
+                  onEdit={(next) => edit(tag, next)}
+                />
               ))}
             </div>
           </SortableContext>

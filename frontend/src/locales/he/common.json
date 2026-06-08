@@ -44,6 +44,7 @@
   "removeRequirement": "הסר דרישה",
   "requirementCount": "{{count}} מתוך {{min}}–{{max}}",
   "addTag": "הוסף תגית",
+  "editTag": "ערוך תגית",
   "removeTag": "הסר תגית",
   "tagHint": "עד {{max}} תגיות. Enter או פסיק להוספת תגית.",
   "charsRemaining": "נותרו {{count}} תווים",
