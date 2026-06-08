@@ -1,4 +1,21 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useTranslation } from "react-i18next";
 import { inputCls } from "@/styles/forms";
 import { JOB_TAG_MAX_COUNT, JOB_TAG_MAX_LEN } from "@/types/api";
@@ -28,12 +45,93 @@ function pickRandom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// ── Sortable pill ─────────────────────────────────────────────────────────────
+
+function SortableTag({ tag, onRemove }: { tag: string; onRemove: () => void }) {
+  const { t } = useTranslation(['common']);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tag });
+
+  return (
+    <span
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`inline-flex items-center gap-1 rounded-full border border-copper/35 bg-copper/12 py-1 pe-1 text-xs font-medium text-copper ${
+        isDragging ? "z-50 opacity-50" : ""
+      }`}
+    >
+      {/* Grip handle — drag activator, separate from text/remove so clicks don't drag */}
+      <span
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        aria-label={t("common:dragHandle")}
+        role="button"
+        tabIndex={0}
+        className="inline-flex size-5 cursor-grab items-center justify-center rounded-full ps-1 text-copper/40 transition hover:text-copper/70 active:cursor-grabbing touch-none"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className="size-3"
+          aria-hidden="true"
+        >
+          <path d="M5.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM12.5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+        </svg>
+      </span>
+      {tag}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`${t("common:removeTag")} ${tag}`}
+        className="inline-flex size-5 items-center justify-center rounded-full text-copper/80 transition hover:bg-copper/20 hover:text-copper"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className="size-3"
+          aria-hidden="true"
+        >
+          <path d="M3.28 2.22a.75.75 0 0 0-1.06 1.06L6.94 8l-4.72 4.72a.75.75 0 1 0 1.06 1.06L8 9.06l4.72 4.72a.75.75 0 1 0 1.06-1.06L9.06 8l4.72-4.72a.75.75 0 0 0-1.06-1.06L8 6.94 3.28 2.22Z" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function JobTagsInput({ value, onChange, error }: Props) {
   const { t } = useTranslation(['common', 'http']);
   const [draft, setDraft] = useState("");
   const canAdd = value.length < JOB_TAG_MAX_COUNT;
   // Stable per-mount placeholder so the empty input shows a fresh hint each open.
   const placeholder = useMemo(() => pickRandom(TAG_PLACEHOLDER_POOL), []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const oldIndex = value.indexOf(active.id as string);
+    const newIndex = value.indexOf(over.id as string);
+    onChange(arrayMove(value, oldIndex, newIndex));
+  }
 
   const commit = () => {
     const trimmed = draft.trim();
@@ -60,32 +158,19 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
   return (
     <div>
       {value.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {value.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-full border border-copper/35 bg-copper/12 py-1 ps-3 pe-1 text-xs font-medium text-copper"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => remove(tag)}
-                aria-label={`${t("common:removeTag")} ${tag}`}
-                className="inline-flex size-5 items-center justify-center rounded-full text-copper/80 transition hover:bg-copper/20 hover:text-copper"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="size-3"
-                  aria-hidden="true"
-                >
-                  <path d="M3.28 2.22a.75.75 0 0 0-1.06 1.06L6.94 8l-4.72 4.72a.75.75 0 1 0 1.06 1.06L8 9.06l4.72 4.72a.75.75 0 1 0 1.06-1.06L9.06 8l4.72-4.72a.75.75 0 0 0-1.06-1.06L8 6.94 3.28 2.22Z" />
-                </svg>
-              </button>
-            </span>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={value} strategy={rectSortingStrategy}>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {value.map((tag) => (
+                <SortableTag key={tag} tag={tag} onRemove={() => remove(tag)} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
       <div className="flex gap-2">
         <input
@@ -101,6 +186,7 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
         />
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={commit}
           disabled={!canAdd || !draft.trim()}
           className="shrink-0 rounded-sm border border-copper/35 px-3 py-1.5 text-xs font-medium text-copper transition hover:border-copper/60 hover:bg-copper/10 disabled:cursor-not-allowed disabled:opacity-40"

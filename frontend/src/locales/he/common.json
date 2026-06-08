@@ -38,6 +38,7 @@
     "salaryMaxBelowMin": "המקסימום חייב להיות גבוה מהמינימום",
     "requirementsMin": "יש להזין לפחות {{min}} דרישות"
   },
+  "dragHandle": "גרור לשינוי סדר",
   "addRequirement": "הוסף דרישה",
   "removeRequirement": "הסר דרישה",
   "requirementCount": "{{count}} מתוך {{min}}–{{max}}",
