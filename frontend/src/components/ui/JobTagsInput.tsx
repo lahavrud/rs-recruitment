@@ -183,7 +183,7 @@ function AddTagPill({
       type="button"
       onClick={() => setEditing(true)}
       aria-label={t("common:addTag")}
-      className="inline-flex items-center gap-1 rounded-full border border-dashed border-copper/25 py-1 px-2 text-xs font-medium text-copper/45 transition hover:border-copper/45 hover:text-copper/70"
+      className="inline-flex items-center gap-1 rounded-full border border-dashed border-copper/40 py-1 px-2 text-xs font-medium text-copper/70 transition hover:border-copper/65 hover:text-copper"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -205,9 +205,10 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
   const { t } = useTranslation(["common"]);
   const canAdd = value.length < JOB_TAG_MAX_COUNT;
 
-  // 250 ms hold → drag. Quick tap → click (edit/remove) fires normally.
+  // 150 ms hold → drag. Quick tap → click (edit/remove) fires normally.
+  // tolerance: 15 avoids cancelling the drag when the finger drifts slightly during the hold.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { delay: 150, tolerance: 15 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 

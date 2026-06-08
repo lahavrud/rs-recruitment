@@ -193,7 +193,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -254,7 +254,7 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
           type="button"
           onClick={add}
           disabled={!canAdd}
-          className="flex items-center gap-1.5 text-xs text-copper/40 transition hover:text-copper/65 disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex items-center gap-1.5 text-sm text-copper/70 transition hover:text-copper disabled:cursor-not-allowed disabled:opacity-30"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

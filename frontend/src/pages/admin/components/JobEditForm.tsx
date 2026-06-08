@@ -68,7 +68,7 @@ export default function JobEditForm({
         </div>
         {errors.location && <p className="text-xs text-danger">{errors.location}</p>}
 
-        {currentStatus === JobStatus.CLOSED && job.status === JobStatus.PUBLISHED && (
+        {currentStatus === JobStatus.CLOSED && job.status !== JobStatus.CLOSED && (
           <p className="rounded-sm bg-warning/8 px-2 py-1 text-[11px] leading-relaxed text-warning/80">
             {t("admin:jobs.notifyClosingWarning")}
           </p>
