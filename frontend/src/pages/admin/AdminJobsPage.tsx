@@ -25,8 +25,7 @@ import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
-import JobDetailDialog from "./components/JobDetailDialog";
-import JobEditDialog from "./components/JobEditDialog";
+import JobDialog from "./components/JobDialog";
 import JobCreateDialog from "./components/JobCreateDialog";
 import JobsFilterPanel from "./components/JobsFilterPanel";
 import JobsTable from "./components/JobsTable";
@@ -88,7 +87,6 @@ export default function AdminJobsPage() {
   } = useInfiniteList<JobRead>(fetcher);
 
   const [detail, setDetail] = useState<JobRead | null>(null);
-  const [editing, setEditing] = useState<JobRead | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletePending, setDeletePending] = useState<JobRead | null>(null);
   const [rejectPending, setRejectPending] = useState<JobRead | null>(null);
@@ -373,7 +371,7 @@ export default function AdminJobsPage() {
             statusLabels={STATUS_LABELS}
             statusColors={STATUS_COLORS}
             companyNameById={companyNameById}
-            onEdit={setEditing}
+            onEdit={setDetail}
             onApprove={handleApprove}
             onReject={setRejectPending}
             onDelete={setDeletePending}
@@ -385,7 +383,7 @@ export default function AdminJobsPage() {
             statusLabels={STATUS_LABELS}
             statusColors={STATUS_COLORS}
             onOpenDetail={setDetail}
-            onEdit={setEditing}
+            onEdit={setDetail}
             onApprove={handleApprove}
             onReject={setRejectPending}
             onDelete={setDeletePending}
@@ -396,16 +394,18 @@ export default function AdminJobsPage() {
         </>
       )}
 
-      <JobDetailDialog
+      <JobDialog
         job={detail}
         statusLabels={STATUS_LABELS}
         statusColors={STATUS_COLORS}
         companyName={detail ? companyNameById.get(detail.company_id) : undefined}
         onClose={() => setDetail(null)}
-        onEdit={() => {
-          if (detail) setEditing(detail);
-          setDetail(null);
+        onSaved={(updated) => {
+          updateItem((j) => j.id === updated.id, updated);
+          setDetail(updated);
+          toast.success(t("admin:jobs.savedToast"));
         }}
+        onError={() => toast.error(t("admin:jobs.errors.saveFailed"))}
         onDelete={() => {
           if (detail) setDeletePending(detail);
           setDetail(null);
@@ -418,17 +418,6 @@ export default function AdminJobsPage() {
           if (detail) setRejectPending(detail);
           setDetail(null);
         }}
-      />
-
-      <JobEditDialog
-        job={editing}
-        onClose={() => setEditing(null)}
-        onSaved={(updated) => {
-          updateItem((j) => j.id === updated.id, updated);
-          toast.success(t("admin:jobs.savedToast"));
-          setEditing(null);
-        }}
-        onError={() => toast.error(t("admin:jobs.errors.saveFailed"))}
       />
 
       <JobCreateDialog
