@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { JobStatus } from "@/types/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -109,7 +110,14 @@ export function FeaturedConfirmDialog({
   );
 }
 
-/** Salary range slider + numeric display (replaces two number inputs). */
+const ghostNumCls =
+  "w-24 rounded-md border border-transparent bg-transparent px-1.5 py-1 " +
+  "text-sm text-copper/80 outline-none transition [appearance:textfield] " +
+  "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none " +
+  "hover:border-white/10 hover:bg-white/3 focus:border-copper/30 focus:bg-white/4";
+
+const RADIX = 10;
+
 export function SalaryRangeField({
   min,
   max,
@@ -123,24 +131,72 @@ export function SalaryRangeField({
 }) {
   const { t } = useTranslation(['admin', 'common']);
   const lo = Math.max(SALARY_FORM_MIN, Math.min(min ?? SALARY_FORM_MIN, SALARY_FORM_MAX));
-  const hi = Math.max(
-    Math.min(SALARY_FORM_MAX, Math.max(max ?? SALARY_FORM_MAX, SALARY_FORM_MIN)),
-    lo,
-  );
+  const hi = Math.max(Math.min(SALARY_FORM_MAX, Math.max(max ?? SALARY_FORM_MAX, SALARY_FORM_MIN)), lo);
+
+  // null = showing slider-derived value; non-null = user is typing
+  const [draftLo, setDraftLo] = useState<string | null>(null);
+  const [draftHi, setDraftHi] = useState<string | null>(null);
+
+  const commitLo = () => {
+    if (draftLo === null) return;
+    const n = parseInt(draftLo, RADIX);
+    onChange(isNaN(n) ? lo : Math.max(SALARY_FORM_MIN, Math.min(n, hi - SALARY_FORM_STEP)), hi);
+    setDraftLo(null);
+  };
+
+  const commitHi = () => {
+    if (draftHi === null) return;
+    const n = parseInt(draftHi, RADIX);
+    onChange(lo, isNaN(n) ? hi : Math.max(lo + SALARY_FORM_STEP, Math.min(n, SALARY_FORM_MAX)));
+    setDraftHi(null);
+  };
+
   return (
-    <div className="mt-1 space-y-3 rounded-md border border-white/8 bg-well/40 px-3 pb-3 pt-2.5">
-      <p className="text-sm font-medium text-copper/85">
-        {lo.toLocaleString("he-IL")}–{hi.toLocaleString("he-IL")} ₪/חודש
-      </p>
+    <div className="mt-1 space-y-2">
+      {/* dir="ltr" keeps min on the left and max on the right in the RTL form */}
+      <div className="flex items-center gap-0.5" dir="ltr">
+        <input
+          type="number"
+          value={draftLo ?? lo}
+          min={SALARY_FORM_MIN}
+          max={SALARY_FORM_MAX}
+          step={SALARY_FORM_STEP}
+          onChange={(e) => setDraftLo(e.target.value)}
+          onBlur={commitLo}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commitLo(); }
+            if (e.key === "Escape") setDraftLo(null);
+          }}
+          aria-label={t("common:salaryMin")}
+          className={ghostNumCls}
+        />
+        <span className="shrink-0 text-white/30" aria-hidden="true">-</span>
+        <input
+          type="number"
+          value={draftHi ?? hi}
+          min={SALARY_FORM_MIN}
+          max={SALARY_FORM_MAX}
+          step={SALARY_FORM_STEP}
+          onChange={(e) => setDraftHi(e.target.value)}
+          onBlur={commitHi}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commitHi(); }
+            if (e.key === "Escape") setDraftHi(null);
+          }}
+          aria-label={t("common:salaryMax")}
+          className={ghostNumCls}
+        />
+        <span className="shrink-0 text-xs text-white/40">₪/חודש</span>
+      </div>
       <RangeSlider
         min={SALARY_FORM_MIN}
         max={SALARY_FORM_MAX}
         step={SALARY_FORM_STEP}
         value={[lo, hi]}
         onChange={([newLo, newHi]) => onChange(newLo, newHi)}
-        formatValue={(n) => `${n.toLocaleString("he-IL")} ₪`}
         ariaLabelMin={t("common:salaryMin")}
         ariaLabelMax={t("common:salaryMax")}
+        showLabels={false}
       />
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>

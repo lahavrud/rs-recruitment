@@ -9,6 +9,7 @@ interface RangeSliderProps {
   formatValue?: (n: number) => string;
   ariaLabelMin?: string;
   ariaLabelMax?: string;
+  showLabels?: boolean;
 }
 
 const THUMB_STYLES =
@@ -36,6 +37,7 @@ export default function RangeSlider({
   formatValue = (n) => n.toString(),
   ariaLabelMin,
   ariaLabelMax,
+  showLabels = true,
 }: RangeSliderProps) {
   const [valMin, valMax] = value;
 
@@ -94,10 +96,12 @@ export default function RangeSlider({
           className={`pointer-events-none absolute inset-x-0 top-0 h-5 w-full appearance-none bg-transparent ${THUMB_STYLES}`}
         />
       </div>
-      <div className="mt-2 flex justify-between text-xs font-medium text-white/55">
-        <span>{formatValue(valMin)}</span>
-        <span>{formatValue(valMax)}</span>
-      </div>
+      {showLabels && (
+        <div className="mt-2 flex justify-between text-xs font-medium text-white/55">
+          <span>{formatValue(valMin)}</span>
+          <span>{formatValue(valMax)}</span>
+        </div>
+      )}
     </div>
   );
 }

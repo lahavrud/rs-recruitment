@@ -5,6 +5,7 @@ import { JOB_REQ_MIN_COUNT, JobStatus } from "@/types/api";
 import type { JobAdminUpdate, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
+import Eyebrow from "@/components/ui/Eyebrow";
 import { focusFirstError } from "@/utils/focusFirstError";
 import { isDirtyByJSON } from "@/utils/isDirty";
 import { JOB_EDIT_FIELD_ORDER, validateJob } from "@/utils/validators";
@@ -118,11 +119,14 @@ export default function JobDialog({
 
   const isPending = job?.status === JobStatus.PENDING_APPROVAL;
 
+  // Single wrapper div so Dialog's *:flex-1 gives it full width;
+  // inside we split delete (left) from the rest (right).
   const footer = (
-    <>
+    <div className="flex w-full items-center gap-2">
       <Button variant="danger" onClick={onDelete}>
         {t("admin:jobs.deleteAction")}
       </Button>
+      <span className="flex-1" aria-hidden="true" />
       {isPending && onReject && (
         <Button variant="ghost" onClick={onReject}>
           {t("admin:jobs.reject")}
@@ -141,7 +145,7 @@ export default function JobDialog({
       <Button onClick={() => void save()} disabled={saving || !isDirty}>
         {saving ? t("common:saving") : t("common:save")}
       </Button>
-    </>
+    </div>
   );
 
   if (!job) return null;
@@ -151,7 +155,7 @@ export default function JobDialog({
         open={job != null}
         onOpenChange={(o) => !o && handleClose()}
         title={job.title}
-        description={companyName ? `${companyName} · ${job.location}` : job.location}
+        headerContent={companyName ? <Eyebrow>{companyName}</Eyebrow> : null}
         size="lg"
         preventOutsideClose
         footer={footer}
