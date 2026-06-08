@@ -254,13 +254,15 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
           type="button"
           onClick={add}
           disabled={!canAdd}
-          className="flex items-center gap-1.5 text-sm text-copper/70 transition hover:text-copper disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex items-center gap-2 text-sm text-copper/70 transition hover:text-copper disabled:cursor-not-allowed disabled:opacity-30"
         >
+          {/* Spacer matching the grip handle column so + and label align with the list */}
+          <span className="size-3.5 shrink-0" aria-hidden="true" />
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 16 16"
             fill="currentColor"
-            className="size-3"
+            className="size-3 shrink-0"
             aria-hidden="true"
           >
             <path d="M8 2.75a.75.75 0 0 1 .75.75v3.75h3.75a.75.75 0 0 1 0 1.5H8.75v3.75a.75.75 0 0 1-1.5 0V8.75H3.5a.75.75 0 0 1 0-1.5h3.75V3.5A.75.75 0 0 1 8 2.75Z" />

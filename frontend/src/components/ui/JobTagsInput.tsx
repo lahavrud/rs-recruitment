@@ -205,10 +205,10 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
   const { t } = useTranslation(["common"]);
   const canAdd = value.length < JOB_TAG_MAX_COUNT;
 
-  // 150 ms hold → drag. Quick tap → click (edit/remove) fires normally.
-  // tolerance: 15 avoids cancelling the drag when the finger drifts slightly during the hold.
+  // distance: 8 — quick tap (< 8 px drift) fires the click handler (edit); deliberate
+  // drag movement activates reorder. No hold timer needed.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 150, tolerance: 15 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
