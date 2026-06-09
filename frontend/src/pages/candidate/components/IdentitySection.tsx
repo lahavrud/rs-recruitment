@@ -7,7 +7,7 @@ import { inputCls } from "@/styles/forms";
 import { patchMe, type CandidateMeRead } from "@/services/candidate";
 
 function initialsFor(name: string, email: string): string {
-  const source = name?.trim() || email.split("@", 1)[0];
+  const source = name?.trim() || email?.split("@", 1)[0] || "";
   const parts = source.split(/[\s._-]+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
