@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -206,7 +206,22 @@ function AddTagPill({
 
 export default function JobTagsInput({ value, onChange, error }: Props) {
   const { t } = useTranslation(["common"]);
-  const canAdd = value.length < JOB_TAG_MAX_COUNT;
+
+  // Deduplicate preserving first occurrence (case-insensitive).
+  // Guards against dnd-kit ID collisions when the server returns duplicate tag
+  // values; two useSortable({ id: tag }) calls with the same string corrupt the
+  // internal hit map and make drops silently no-op or reorder the wrong item.
+  const uniqValue = useMemo(
+    () => value.filter((tag, i, arr) => arr.findIndex((t) => t.toLowerCase() === tag.toLowerCase()) === i),
+    [value],
+  );
+  useEffect(() => {
+    if (uniqValue.length !== value.length) onChange(uniqValue);
+  // onChange is a stable prop; value is the real trigger — uniqValue derives from it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const canAdd = uniqValue.length < JOB_TAG_MAX_COUNT;
 
   const TOUCH_DELAY_MS = 200;
   const TOUCH_TOLERANCE_PX = 5;
@@ -218,16 +233,16 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
 
   const handleDragEnd = useCallback(({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
-    const oldIndex = value.indexOf(active.id as string);
-    const newIndex = value.indexOf(over.id as string);
+    const oldIndex = uniqValue.indexOf(active.id as string);
+    const newIndex = uniqValue.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
-    onChange(arrayMove(value, oldIndex, newIndex));
-  }, [value, onChange]);
+    onChange(arrayMove(uniqValue, oldIndex, newIndex));
+  }, [uniqValue, onChange]);
 
-  const remove = (tag: string) => onChange(value.filter((t) => t !== tag));
+  const remove = (tag: string) => onChange(uniqValue.filter((t) => t !== tag));
   const edit = (oldTag: string, newTag: string) => {
-    if (value.some((t) => t.toLowerCase() === newTag.toLowerCase() && t !== oldTag)) return;
-    onChange(value.map((t) => (t === oldTag ? newTag : t)));
+    if (uniqValue.some((t) => t.toLowerCase() === newTag.toLowerCase() && t !== oldTag)) return;
+    onChange(uniqValue.map((t) => (t === oldTag ? newTag : t)));
   };
 
   return (
@@ -237,9 +252,9 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={value} strategy={rectSortingStrategy}>
+        <SortableContext items={uniqValue} strategy={rectSortingStrategy}>
           <div className="flex flex-wrap items-center gap-1.5">
-            {value.map((tag) => (
+            {uniqValue.map((tag) => (
               <SortableTag
                 key={tag}
                 tag={tag}
@@ -249,8 +264,8 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
             ))}
             {canAdd && (
               <AddTagPill
-                existing={value}
-                onAdd={(tag) => onChange([...value, tag])}
+                existing={uniqValue}
+                onAdd={(tag) => onChange([...uniqValue, tag])}
               />
             )}
           </div>
