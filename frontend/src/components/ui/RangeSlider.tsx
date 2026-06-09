@@ -10,23 +10,26 @@ interface RangeSliderProps {
   ariaLabelMin?: string;
   ariaLabelMax?: string;
   showLabels?: boolean;
+  /** Enlarges thumbs from size-5 to size-7. */
+  large?: boolean;
 }
 
-const THUMB_STYLES =
+// Two full static strings so Tailwind's scanner sees every class name.
+const THUMB_BASE =
   "[&::-webkit-slider-thumb]:pointer-events-auto " +
   "[&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-20 " +
-  "[&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:rounded-full " +
-  "[&::-webkit-slider-thumb]:appearance-none " +
+  "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:appearance-none " +
   "[&::-webkit-slider-thumb]:bg-copper " +
   "[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/90 " +
   "[&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:shadow-black/40 " +
-  "[&::-webkit-slider-thumb]:cursor-pointer " +
-  "[&::-webkit-slider-thumb]:transition-colors " +
+  "[&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-colors " +
   "hover:[&::-webkit-slider-thumb]:bg-gold " +
-  "[&::-moz-range-thumb]:pointer-events-auto " +
-  "[&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full " +
+  "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:rounded-full " +
   "[&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/90 " +
   "[&::-moz-range-thumb]:bg-copper [&::-moz-range-thumb]:cursor-pointer";
+
+const THUMB_MD = `[&::-webkit-slider-thumb]:size-5 [&::-moz-range-thumb]:size-5 ${THUMB_BASE}`;
+const THUMB_LG = `[&::-webkit-slider-thumb]:size-7 [&::-moz-range-thumb]:size-7 ${THUMB_BASE}`;
 
 export default function RangeSlider({
   min,
@@ -38,8 +41,10 @@ export default function RangeSlider({
   ariaLabelMin,
   ariaLabelMax,
   showLabels = true,
+  large = false,
 }: RangeSliderProps) {
   const [valMin, valMax] = value;
+  const thumbCls = large ? THUMB_LG : THUMB_MD;
 
   const handleMinChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,11 +70,10 @@ export default function RangeSlider({
     // Inherit page direction (RTL). The min thumb anchors to the start of
     // the inline axis (right in RTL, left in LTR) and labels follow suit.
     <div className="select-none">
-      <div className="relative h-5">
+      <div className={`relative ${large ? "h-7" : "h-5"}`}>
         <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/8" />
         <div
           className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-copper/70"
-          // Logical inline-start/end so the band mirrors correctly under RTL.
           style={{
             insetInlineStart: `${minPct}%`,
             insetInlineEnd: `${100 - maxPct}%`,
@@ -83,7 +87,7 @@ export default function RangeSlider({
           value={valMin}
           onChange={handleMinChange}
           aria-label={ariaLabelMin}
-          className={`pointer-events-none absolute inset-x-0 top-0 h-5 w-full appearance-none bg-transparent ${THUMB_STYLES}`}
+          className={`pointer-events-none absolute inset-x-0 top-0 w-full appearance-none bg-transparent ${large ? "h-7" : "h-5"} ${thumbCls}`}
         />
         <input
           type="range"
@@ -93,7 +97,7 @@ export default function RangeSlider({
           value={valMax}
           onChange={handleMaxChange}
           aria-label={ariaLabelMax}
-          className={`pointer-events-none absolute inset-x-0 top-0 h-5 w-full appearance-none bg-transparent ${THUMB_STYLES}`}
+          className={`pointer-events-none absolute inset-x-0 top-0 w-full appearance-none bg-transparent ${large ? "h-7" : "h-5"} ${thumbCls}`}
         />
       </div>
       {showLabels && (
