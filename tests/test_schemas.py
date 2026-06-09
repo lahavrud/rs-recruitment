@@ -9,6 +9,7 @@ from src.schemas import (
     JobAdminCreate,
     JobCreate,
     JobUpdate,
+    RefreshRequest,
 )
 
 
@@ -355,3 +356,16 @@ def test_job_update_allows_partial_salary_change():
     """JobUpdate is OK when only one bound is set (DB CHECK guards the rest)."""
     JobUpdate(salary_min=25000)  # no salary_max in payload -> no schema check
     JobUpdate(salary_max=25000)  # symmetric
+
+
+# ── RefreshRequest: max_length=512 on refresh_token ──────────────────────────
+
+
+def test_refresh_request_accepts_token_at_limit():
+    req = RefreshRequest(refresh_token="x" * 512)
+    assert len(req.refresh_token) == 512
+
+
+def test_refresh_request_rejects_token_over_limit():
+    with pytest.raises(ValidationError):
+        RefreshRequest(refresh_token="x" * 513)

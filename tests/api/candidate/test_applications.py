@@ -839,3 +839,24 @@ async def test_withdraw_allows_reapply_via_partial_unique_index(test_db):
         await session.refresh(second)
 
     assert second.id != a.id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field", ["service_concept", "salary_expectations", "strength", "growth_area"]
+)
+async def test_patch_text_field_over_2000_chars_returns_422(test_db, field: str):
+    """PATCH rejects any text field exceeding 2000 characters with 422."""
+    async with TestSessionLocal() as session:
+        _, job = await _seed_company_and_job(session)
+        await session.commit()
+        user, profile = await _seed_candidate(session, f"big_{field}@test.com")
+        a = await _make_app(session, candidate_id=profile.id, job_id=job.id)
+    _override_user(user.id, user.email)
+
+    async with await _client() as client:
+        resp = await client.patch(
+            f"/api/candidate/me/applications/{a.id}",
+            data={field: "x" * 2001},
+        )
+    assert resp.status_code == 422

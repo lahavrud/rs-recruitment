@@ -61,7 +61,7 @@ class TokenResponse(BaseModel):
 class RefreshRequest(BaseModel):
     """Schema for requesting a new access token using a refresh token."""
 
-    refresh_token: str
+    refresh_token: str = Field(..., max_length=512)
 
 
 class ForgotPasswordRequest(BaseModel):
