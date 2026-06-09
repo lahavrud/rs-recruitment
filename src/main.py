@@ -1,5 +1,3 @@
-import asyncio
-import contextlib
 import logging
 import os
 from collections.abc import AsyncGenerator
@@ -53,7 +51,7 @@ from src.api.company import resumes
 from src.api.public import applications as candidates
 from src.api.public import jobs as public
 from src.core.infrastructure.config import settings, validate_settings
-from src.core.infrastructure.database import engine, init_db, keepalive_loop, warm_pool
+from src.core.infrastructure.database import engine, init_db
 from src.core.infrastructure.dependencies import client_ip
 from src.core.infrastructure.middleware import RequestIdFilter, RequestMiddleware
 from src.core.infrastructure.telemetry import configure_telemetry, shutdown_telemetry
@@ -84,12 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
     validate_settings()
     await init_db()
-    await warm_pool()
-    _keepalive = asyncio.ensure_future(keepalive_loop())
     yield
-    _keepalive.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await _keepalive
     shutdown_telemetry()
 
 

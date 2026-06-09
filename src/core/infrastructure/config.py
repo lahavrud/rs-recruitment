@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     # via env vars (DB_POOL_SIZE, DB_MAX_OVERFLOW, etc.) per environment.
     db_pool_size: int = 15
     db_max_overflow: int = 20
-    db_pool_recycle: int = 1800  # 30 min — avoid stale conns from RDS / NAT
+    db_pool_recycle: int = 300  # 5 min — below AWS NAT Gateway's ~350 s idle-TCP limit
     db_pool_pre_ping: bool = True  # SELECT 1 before checkout — survives blips
 
     # SQS task queue — empty string means tasks run inline (local dev)
