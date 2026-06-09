@@ -304,7 +304,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
                 onChange={(v) => set("description", v)}
                 minRows={5}
                 placeholder={t("admin:jobs.placeholders.description")}
-                className="-mx-1.5 block w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-white/80 placeholder:text-white/25 outline-none transition hover:border-white/10 hover:bg-white/3 focus:border-copper/30 focus:bg-white/4"
+                className={ghostInputCls}
               />
               {errors.description && (
                 <p className="mt-1 text-xs text-danger">{errors.description}</p>
