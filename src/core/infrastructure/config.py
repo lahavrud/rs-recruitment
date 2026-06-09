@@ -82,7 +82,7 @@ class Settings(BaseSettings):
     # Connection pool — SQLAlchemy defaults (5+10) saturate quickly on the
     # production t3.micro target (#230). Sized for modest concurrency; tune
     # via env vars (DB_POOL_SIZE, DB_MAX_OVERFLOW, etc.) per environment.
-    db_pool_size: int = 10
+    db_pool_size: int = 15
     db_max_overflow: int = 20
     db_pool_recycle: int = 1800  # 30 min — avoid stale conns from RDS / NAT
     db_pool_pre_ping: bool = True  # SELECT 1 before checkout — survives blips
