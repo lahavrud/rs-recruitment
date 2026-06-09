@@ -10,12 +10,14 @@ export default function AutoGrowTextarea({
   className,
   minRows = 4,
   placeholder,
+  id,
 }: {
   value: string;
   onChange: (v: string) => void;
   className?: string;
   minRows?: number;
   placeholder?: string;
+  id?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -27,6 +29,7 @@ export default function AutoGrowTextarea({
   return (
     <textarea
       ref={ref}
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       rows={minRows}

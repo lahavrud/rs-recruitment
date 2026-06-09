@@ -147,7 +147,10 @@ export async function listMyApplications(
     "/api/candidate/me/applications",
     { params: cursor ? { cursor } : undefined },
   );
-  return res.data;
+  return {
+    items: res.data?.items ?? [],
+    next_cursor: res.data?.next_cursor ?? null,
+  };
 }
 
 export async function getMyApplication(

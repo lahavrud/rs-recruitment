@@ -4,10 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getApplications } from "@/services/adminApplications";
 import Eyebrow from "@/components/ui/Eyebrow";
 import StatusBadge from "@/components/ui/StatusBadge";
-import Button from "@/components/ui/Button";
 import type { JobRead } from "@/types/api";
-import { JobStatus } from "@/types/api";
-import Dialog from "@/components/ui/Dialog";
 import { CollapsibleSection } from "@/components/admin/AnimatedAccordion";
 import { formatDate } from "@/utils/formatDate";
 
@@ -36,82 +33,6 @@ export function FeaturedDesktopSash() {
         </svg>
       </span>
     </span>
-  );
-}
-
-interface DetailProps {
-  job: JobRead | null;
-  statusLabels: Record<string, string>;
-  statusColors: Record<string, string>;
-  companyName?: string;
-  onClose: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onApprove?: () => void;
-  onReject?: () => void;
-}
-
-export default function JobDetailDialog({
-  job,
-  statusLabels,
-  statusColors,
-  companyName,
-  onClose,
-  onEdit,
-  onDelete,
-  onApprove,
-  onReject,
-}: DetailProps) {
-  const { t } = useTranslation(['admin', 'common', 'http', 'publicJobs']);
-  if (!job) return null;
-  const isPending = job.status === JobStatus.PENDING_APPROVAL;
-  return (
-    <Dialog
-      open={job != null}
-      onOpenChange={(o) => !o && onClose()}
-      title={job.title}
-      description={job.location}
-      size="lg"
-      footer={
-        <>
-          <Button
-            variant="danger"
-            onClick={onDelete}
-          >
-            {t("admin:jobs.deleteAction")}
-          </Button>
-          {isPending && onReject && (
-            <Button
-              variant="ghost"
-              onClick={onReject}
-            >
-              {t("admin:jobs.reject")}
-            </Button>
-          )}
-          {isPending && onApprove && (
-            <Button
-              variant="success"
-              onClick={onApprove}
-            >
-              {t("admin:jobs.approve")}
-            </Button>
-          )}
-          <Button
-            onClick={onEdit}
-          >
-            {t("admin:jobs.editAction")}
-          </Button>
-        </>
-      }
-    >
-      <JobDetailBody
-        job={job}
-        statusLabels={statusLabels}
-        statusColors={statusColors}
-        companyName={companyName}
-        onLeavePage={onClose}
-      />
-    </Dialog>
   );
 }
 

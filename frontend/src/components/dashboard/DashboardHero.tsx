@@ -37,7 +37,7 @@ export function Hero({
   const fullName = me?.full_name?.trim();
   const firstName = fullName ? fullName.split(/\s+/)[0] : undefined;
 
-  const appsCount = appsPage?.items.length ?? null;
+  const appsCount = appsPage?.items?.length ?? null;
   const completion = profileCompletionPercent(me);
 
   return (

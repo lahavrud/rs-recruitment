@@ -10,21 +10,28 @@ const sizeCls: Record<Size, string> = {
 /**
  * Small copper caps label. `sm` (10px) for page headers/eyebrows above a
  * gold rule; `md` (11px) for in-card filter and form section labels.
+ * `dim` reduces opacity to copper/60 for form section use.
+ * `as="label"` + `htmlFor` renders a `<label>` element instead of `<p>`.
  */
 export default function Eyebrow({
   children,
   size = "sm",
+  dim,
+  as: Tag = "p",
+  htmlFor,
   className,
 }: {
   children: ReactNode;
   size?: Size;
+  dim?: boolean;
+  as?: "p" | "label";
+  htmlFor?: string;
   className?: string;
 }) {
-  return (
-    <p
-      className={`${sizeCls[size]} font-semibold uppercase tracking-widest text-copper${className ? ` ${className}` : ""}`}
-    >
-      {children}
-    </p>
-  );
+  const colorCls = dim ? "text-copper/60" : "text-copper";
+  const cls = `${sizeCls[size]} font-semibold uppercase tracking-widest ${colorCls}${className ? ` ${className}` : ""}`;
+  if (Tag === "label") {
+    return <label htmlFor={htmlFor} className={cls}>{children}</label>;
+  }
+  return <p className={cls}>{children}</p>;
 }
