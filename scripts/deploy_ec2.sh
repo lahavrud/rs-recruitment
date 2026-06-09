@@ -90,6 +90,9 @@ echo "==> Running database migrations"
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps -T api alembic upgrade head
 echo "==> MIGRATIONS_APPLIED schema is now at head for IMAGE_TAG=${IMAGE_TAG}"
 
+echo "==> Stopping existing stack (allows network recreation with updated IPAM config)"
+docker compose -f "${COMPOSE_FILE}" down --timeout 30 || true
+
 echo "==> Starting services"
 docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
 
@@ -120,6 +123,7 @@ if ! $healthy; then
   aws s3 cp "s3://${S3_BUCKET}/deploy/${OLD_CURRENT}/docker-compose.deploy.yml" "${COMPOSE_FILE}"
   aws s3 cp "s3://${S3_BUCKET}/deploy/${OLD_CURRENT}/nginx.conf" "${APP_DIR}/nginx.conf"
   IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" pull
+  docker compose -f "${COMPOSE_FILE}" down --timeout 30 || true
   IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
   IMAGE_TAG="${OLD_CURRENT}" docker compose -f "${COMPOSE_FILE}" restart nginx
   echo "==> Rolled back to ${OLD_CURRENT} — deploy failed"
