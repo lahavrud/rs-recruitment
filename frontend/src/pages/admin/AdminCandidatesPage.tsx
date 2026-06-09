@@ -107,7 +107,7 @@ export default function AdminCandidatesPage() {
     const map = new Map<number, Set<number>>();
     for (const a of appCache) {
       if (!map.has(a.candidate_id)) map.set(a.candidate_id, new Set());
-      map.get(a.candidate_id)!.add(a.job_id);
+      map.get(a.candidate_id)?.add(a.job_id);
     }
     return map;
   }, [appCache]);
@@ -116,7 +116,7 @@ export default function AdminCandidatesPage() {
     const map = new Map<number, Set<number>>();
     for (const a of appCache) {
       if (!map.has(a.candidate_id)) map.set(a.candidate_id, new Set());
-      map.get(a.candidate_id)!.add(a.job.company_id);
+      map.get(a.candidate_id)?.add(a.job.company_id);
     }
     return map;
   }, [appCache]);
