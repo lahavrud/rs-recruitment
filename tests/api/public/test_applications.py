@@ -1005,3 +1005,33 @@ async def test_apply_against_non_published_job_returns_404(
             )
         )
         assert result.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field", ["service_concept", "salary_expectations", "strength", "growth_area"]
+)
+@patch("src.services.public._application_helpers.enqueue_email_task")
+async def test_apply_text_field_over_2000_chars_returns_422(
+    mock_enqueue_email,
+    public_client: AsyncClient,
+    published_job: Job,
+    field: str,
+):
+    """Application text fields reject values exceeding 2000 characters."""
+    mock_enqueue_email.return_value = "test-job-id"
+    form_data = {
+        "job_id": published_job.id,
+        "full_name": "Max Length",
+        "email": "maxlength@example.com",
+        "phone": "050-000-0042",
+        "privacy_accepted": "true",
+        "terms_accepted": "true",
+        field: "x" * 2001,
+    }
+    resp = await public_client.post(
+        "/api/candidates/apply",
+        data=form_data,
+        files=FAKE_RESUME,
+    )
+    assert resp.status_code == 422
