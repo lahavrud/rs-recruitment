@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { JobStatus } from "@/types/api";
-import FilterPill from "@/components/ui/FilterPill";
 import RangeSlider from "@/components/ui/RangeSlider";
 
 const ALL_STATUSES = [
@@ -54,7 +53,27 @@ export function FeaturedStarButton({
   );
 }
 
-/** Status as segmented pills (replaces the dropdown). */
+type SegmentConfig = { sliderCls: string; activeCls: string; dotCls: string };
+
+const STATUS_SEGMENT_CONFIG: Record<JobStatus, SegmentConfig> = {
+  [JobStatus.PENDING_APPROVAL]: {
+    sliderCls: "bg-warning/10 border-warning/25",
+    activeCls: "text-warning",
+    dotCls: "bg-warning/65",
+  },
+  [JobStatus.PUBLISHED]: {
+    sliderCls: "bg-success/10 border-success/25",
+    activeCls: "text-success",
+    dotCls: "bg-success/65",
+  },
+  [JobStatus.CLOSED]: {
+    sliderCls: "bg-white/7 border-white/18",
+    activeCls: "text-white/70",
+    dotCls: "bg-white/40",
+  },
+};
+
+/** Status as a segmented control — sliding highlight encodes selection independent of color. */
 export function StatusPills({
   value,
   onChange,
@@ -63,13 +82,52 @@ export function StatusPills({
   onChange: (s: JobStatus) => void;
 }) {
   const { t } = useTranslation(['admin', 'common']);
+  const activeIdx = ALL_STATUSES.indexOf(value);
+  const cfg = STATUS_SEGMENT_CONFIG[value];
+
   return (
-    <div className="mt-1 flex flex-wrap gap-1.5">
-      {ALL_STATUSES.map((s) => (
-        <FilterPill key={s} active={value === s} onClick={() => onChange(s)}>
-          {t(`admin:jobs.statusLabels.${s}`)}
-        </FilterPill>
-      ))}
+    <div
+      role="radiogroup"
+      aria-label={t("admin:jobs.fields.status")}
+      className="relative mt-1 flex overflow-hidden rounded-lg border border-white/10 bg-well"
+    >
+      {/* Sliding highlight — tracks active segment with a smooth lateral animation */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-[3px] rounded-md border ${cfg.sliderCls}`}
+        style={{
+          width: `calc(100% / ${ALL_STATUSES.length})`,
+          insetInlineStart: `calc(${activeIdx} * 100% / ${ALL_STATUSES.length})`,
+          transition:
+            "inset-inline-start 220ms cubic-bezier(0.4, 0, 0.2, 1), background-color 180ms ease, border-color 180ms ease",
+        }}
+      />
+
+      {ALL_STATUSES.map((s) => {
+        const active = value === s;
+        const c = STATUS_SEGMENT_CONFIG[s];
+        return (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(s)}
+            className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors duration-200 ${
+              active ? c.activeCls : "text-white/38 hover:text-white/60"
+            }`}
+          >
+            {/* Status dot — scales in when segment activates */}
+            <span
+              aria-hidden="true"
+              className={`size-1.5 shrink-0 rounded-full transition-[opacity,transform] duration-200 ${c.dotCls} ${
+                active ? "scale-100 opacity-100" : "scale-0 opacity-0"
+              }`}
+            />
+            {t(`admin:jobs.statusLabels.${s}`)}
+          </button>
+        );
+      })}
     </div>
   );
 }
