@@ -47,6 +47,9 @@ function pickRandom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+const TOUCH_DELAY_MS = 200;
+const TOUCH_TOLERANCE_PX = 5;
+
 // ── Sortable pill ─────────────────────────────────────────────────────────────
 // Long press (250 ms) on the label → drag to reorder.
 // Short click on the label → inline edit.
@@ -223,8 +226,6 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
 
   const canAdd = uniqValue.length < JOB_TAG_MAX_COUNT;
 
-  const TOUCH_DELAY_MS = 200;
-  const TOUCH_TOLERANCE_PX = 5;
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: TOUCH_DELAY_MS, tolerance: TOUCH_TOLERANCE_PX } }),

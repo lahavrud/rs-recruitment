@@ -56,6 +56,9 @@ function shuffled<T>(arr: readonly T[]): T[] {
   return out;
 }
 
+const TOUCH_DELAY_MS = 200;
+const TOUCH_TOLERANCE_PX = 5;
+
 // ── Sortable row ─────────────────────────────────────────────────────────────
 // Grip handle activates drag. Click the text → inline edit.
 
@@ -222,8 +225,6 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
   // null = not adding; string = inline add input is open
   const [draftNew, setDraftNew] = useState<string | null>(null);
 
-  const TOUCH_DELAY_MS = 200;
-  const TOUCH_TOLERANCE_PX = 5;
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: TOUCH_DELAY_MS, tolerance: TOUCH_TOLERANCE_PX } }),
