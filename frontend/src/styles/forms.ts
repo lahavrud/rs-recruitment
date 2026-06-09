@@ -13,7 +13,3 @@ export const ghostInputCls =
   "text-sm text-white/80 placeholder:text-white/25 outline-none transition " +
   "hover:border-white/10 hover:bg-white/3 focus:border-copper/30 focus:bg-white/4";
 
-export const ghostTitleCls =
-  "-mx-1.5 block w-full rounded-md border border-transparent bg-transparent px-1.5 py-0.5 " +
-  "text-xl font-semibold text-white/90 placeholder:text-white/25 outline-none transition " +
-  "hover:border-white/10 hover:bg-white/3 focus:border-copper/30 focus:bg-white/4";
