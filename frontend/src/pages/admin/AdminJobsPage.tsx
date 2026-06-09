@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
@@ -25,8 +26,7 @@ import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
-import JobDetailDialog from "./components/JobDetailDialog";
-import JobEditDialog from "./components/JobEditDialog";
+import JobDialog from "./components/JobDialog";
 import JobCreateDialog from "./components/JobCreateDialog";
 import JobsFilterPanel from "./components/JobsFilterPanel";
 import JobsTable from "./components/JobsTable";
@@ -87,8 +87,10 @@ export default function AdminJobsPage() {
     removeItem,
   } = useInfiniteList<JobRead>(fetcher);
 
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [detail, setDetail] = useState<JobRead | null>(null);
-  const [editing, setEditing] = useState<JobRead | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletePending, setDeletePending] = useState<JobRead | null>(null);
   const [rejectPending, setRejectPending] = useState<JobRead | null>(null);
@@ -234,20 +236,41 @@ export default function AdminJobsPage() {
     window.open(`mailto:${email}?subject=${subject}`, "_self");
   }
 
-  // Auto-open detail modal when navigated from another page via ?detail=<id>
+  // Sync ?job=<id> URL param to detail state — enables direct links and back-button close.
+  // effectiveDetail is derived so the dialog closes instantly when the URL param disappears
+  // (back button), without a synchronous setState in the effect body.
+  const jobIdFromUrl = searchParams.get("job");
+  const effectiveDetail = jobIdFromUrl ? detail : null;
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("detail");
-    if (!id || Number.isNaN(Number(id))) return;
+    if (!jobIdFromUrl) return;
+    const id = Number(jobIdFromUrl);
+    if (Number.isNaN(id)) return;
     const ctrl = new AbortController();
-    window.history.replaceState({}, "", window.location.pathname);
-    getJob(Number(id), ctrl.signal)
-      .then((job) => setDetail(job))
+    getJob(id, ctrl.signal)
+      .then(setDetail)
       .catch((e) => {
         if (axios.isCancel(e)) return;
         toast.error(t(apiErrorKey(e)));
       });
     return () => ctrl.abort();
-  }, [t, toast]);
+  }, [jobIdFromUrl, t, toast]);
+
+  function openJob(job: JobRead) {
+    setDetail(job);
+    navigate(`/admin/jobs?job=${job.id}`);
+  }
+
+  function closeJob() {
+    setDetail(null);
+    navigate("/admin/jobs", { replace: true });
+  }
+
+  // Convert legacy ?detail=<id> param (used by other admin pages) to ?job=<id>
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("detail");
+    if (!id || Number.isNaN(Number(id))) return;
+    navigate(`/admin/jobs?job=${id}`, { replace: true });
+  }, [navigate]);
 
   const STATUS_LABELS: Record<string, string> = {
     PENDING_APPROVAL: t("admin:jobs.statusLabels.PENDING_APPROVAL"),
@@ -292,7 +315,7 @@ export default function AdminJobsPage() {
       removeItem((j) => j.id === deletePending.id);
       toast.success(t("admin:jobs.deletedToast"));
       setDeletePending(null);
-      setDetail(null);
+      closeJob();
     } catch {
       toast.error(t("admin:jobs.errors.deleteFailed"));
     } finally {
@@ -373,7 +396,7 @@ export default function AdminJobsPage() {
             statusLabels={STATUS_LABELS}
             statusColors={STATUS_COLORS}
             companyNameById={companyNameById}
-            onEdit={setEditing}
+            onEdit={openJob}
             onApprove={handleApprove}
             onReject={setRejectPending}
             onDelete={setDeletePending}
@@ -384,8 +407,8 @@ export default function AdminJobsPage() {
             jobs={filteredJobs}
             statusLabels={STATUS_LABELS}
             statusColors={STATUS_COLORS}
-            onOpenDetail={setDetail}
-            onEdit={setEditing}
+            onOpenDetail={openJob}
+            onEdit={openJob}
             onApprove={handleApprove}
             onReject={setRejectPending}
             onDelete={setDeletePending}
@@ -396,39 +419,28 @@ export default function AdminJobsPage() {
         </>
       )}
 
-      <JobDetailDialog
-        job={detail}
-        statusLabels={STATUS_LABELS}
-        statusColors={STATUS_COLORS}
-        companyName={detail ? companyNameById.get(detail.company_id) : undefined}
-        onClose={() => setDetail(null)}
-        onEdit={() => {
-          if (detail) setEditing(detail);
-          setDetail(null);
-        }}
-        onDelete={() => {
-          if (detail) setDeletePending(detail);
-          setDetail(null);
-        }}
-        onApprove={() => {
-          if (detail) handleApprove(detail);
-          setDetail(null);
-        }}
-        onReject={() => {
-          if (detail) setRejectPending(detail);
-          setDetail(null);
-        }}
-      />
-
-      <JobEditDialog
-        job={editing}
-        onClose={() => setEditing(null)}
+      <JobDialog
+        job={effectiveDetail}
+        companyName={effectiveDetail ? companyNameById.get(effectiveDetail.company_id) : undefined}
+        onClose={closeJob}
         onSaved={(updated) => {
           updateItem((j) => j.id === updated.id, updated);
+          setDetail(updated);
           toast.success(t("admin:jobs.savedToast"));
-          setEditing(null);
         }}
         onError={() => toast.error(t("admin:jobs.errors.saveFailed"))}
+        onDelete={() => {
+          if (effectiveDetail) setDeletePending(effectiveDetail);
+          closeJob();
+        }}
+        onApprove={() => {
+          if (effectiveDetail) handleApprove(effectiveDetail);
+          closeJob();
+        }}
+        onReject={() => {
+          if (effectiveDetail) setRejectPending(effectiveDetail);
+          closeJob();
+        }}
       />
 
       <JobCreateDialog

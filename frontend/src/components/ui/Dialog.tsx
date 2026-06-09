@@ -21,6 +21,14 @@ interface DialogProps {
    * close button still work.
    */
   preventOutsideClose?: boolean;
+  /**
+   * When set, the `title` is rendered as `sr-only` (accessibility only) and
+   * this node is shown as the visible header content instead. Use to replace
+   * the default large title with a custom layout (e.g. a small eyebrow label).
+   * Pass `null` to suppress the visible header entirely while keeping the
+   * title accessible.
+   */
+  headerContent?: ReactNode;
 }
 
 const sizeCls: Record<Size, string> = {
@@ -43,6 +51,7 @@ export default function Dialog({
   footer,
   size = "md",
   preventOutsideClose = false,
+  headerContent,
 }: DialogProps) {
   const { t } = useTranslation(['common', 'http']);
   return (
@@ -74,16 +83,26 @@ export default function Dialog({
           ].join(" ")}
         >
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <RadixDialog.Title className="text-lg font-semibold text-white sm:text-xl">
-                {title}
-              </RadixDialog.Title>
-              {description && (
-                <RadixDialog.Description className="mt-1 text-sm text-white/60">
-                  {description}
-                </RadixDialog.Description>
-              )}
-            </div>
+            {headerContent !== undefined ? (
+              <>
+                <RadixDialog.Title className="sr-only">{title}</RadixDialog.Title>
+                {description && (
+                  <RadixDialog.Description className="sr-only">{description}</RadixDialog.Description>
+                )}
+                <div className="min-w-0 grow">{headerContent}</div>
+              </>
+            ) : (
+              <div className="min-w-0">
+                <RadixDialog.Title className="text-lg font-semibold text-white sm:text-xl">
+                  {title}
+                </RadixDialog.Title>
+                {description && (
+                  <RadixDialog.Description className="mt-1 text-sm text-white/60">
+                    {description}
+                  </RadixDialog.Description>
+                )}
+              </div>
+            )}
             <RadixDialog.Close
               aria-label={t("common:close")}
               className="shrink-0 rounded-sm p-1 text-white/30 transition hover:bg-white/8 hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"

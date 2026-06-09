@@ -7,7 +7,7 @@ import DropdownMenu, {
   DropdownMenuSeparator,
 } from "@/components/ui/DropdownMenu";
 import KebabButton from "@/components/ui/KebabButton";
-import { FeaturedDesktopSash } from "./JobDetailDialog";
+import { FeaturedDesktopSash } from "./JobViewBody";
 import { formatDate } from "@/utils/formatDate";
 
 export interface JobsTableProps {
