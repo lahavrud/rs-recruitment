@@ -137,6 +137,15 @@ export function RevisitBanner({
   );
 }
 
+// ── Shared: auto-dismiss via timeout ─────────────────────────────────────
+
+function useAutoDismiss(onDismiss: () => void, delayMs: number) {
+  useEffect(() => {
+    const id = setTimeout(onDismiss, delayMs);
+    return () => clearTimeout(id);
+  }, [onDismiss, delayMs]);
+}
+
 // ── Subtle swipe hint — once, then dismisses ──────────────────────────────
 
 /**
@@ -146,11 +155,7 @@ export function RevisitBanner({
  */
 export function SwipeHint({ onDismiss }: { onDismiss: () => void }) {
   const { t } = useTranslation('admin');
-  useEffect(() => {
-    const id = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useAutoDismiss(onDismiss, 3500);
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-full z-40 mb-2 flex justify-center px-4 lg:hidden"
@@ -278,11 +283,7 @@ export function UndoToast({
   onDismiss: () => void;
 }) {
   const { t } = useTranslation('admin');
-  useEffect(() => {
-    const id = setTimeout(onDismiss, 5000);
-    return () => clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useAutoDismiss(onDismiss, 5000);
 
   const meta = DECISION_META[decision];
   return (
