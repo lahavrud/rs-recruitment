@@ -1,6 +1,5 @@
 """Database configuration and async engine setup."""
 
-import asyncio
 import logging
 from collections.abc import AsyncGenerator
 
@@ -59,23 +58,3 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for getting database session."""
     async with async_session() as session:
         yield session
-
-
-async def _pool_ping() -> None:
-    async with engine.connect() as conn:
-        await conn.execute(text("SELECT 1"))
-
-
-async def warm_pool() -> None:
-    """Concurrently open pool_size connections to pre-fill the pool."""
-    await asyncio.gather(*[_pool_ping() for _ in range(settings.db_pool_size)])
-
-
-async def keepalive_loop() -> None:
-    """Ping all pooled connections every 60 s to prevent idle-connection drops."""
-    while True:
-        await asyncio.sleep(60)
-        try:
-            await warm_pool()
-        except Exception:
-            logger.warning("Pool keepalive ping failed")
