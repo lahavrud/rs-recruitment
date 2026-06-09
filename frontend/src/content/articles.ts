@@ -47,6 +47,7 @@ function loadAll(): Article[] {
       // Skip drafts missing required metadata rather than crashing the page.
       continue;
     }
+    const html = marked.parse(body, { async: false });
     out.push({
       slug: meta.slug || slugFromPath,
       title: meta.title,
@@ -55,7 +56,7 @@ function loadAll(): Article[] {
       image: meta.image,
       imageAlt: meta.imageAlt,
       keywords: meta.keywords,
-      bodyHtml: DOMPurify.sanitize(marked.parse(body, { async: false }) as string),
+      bodyHtml: DOMPurify.sanitize(typeof html === "string" ? html : ""),
     });
   }
   // Newest first.

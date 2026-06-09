@@ -115,16 +115,7 @@ export default function ResumeCard({
       setRenameValue("");
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 422) {
-        // Show the server's detail when it's a plain string (the
-        // extension-lock and "no stored resume" guards both raise
-        // ValueError → detail=str(e)). Falls back to a generic message
-        // when the detail is structured (Pydantic validation errors).
-        const detail = err.response.data?.detail;
-        setError(
-          typeof detail === "string"
-            ? detail
-            : t("candidate:profile.resume.renameErrors.invalid"),
-        );
+        setError(t("candidate:profile.resume.renameErrors.invalid"));
       } else {
         setError(t("candidate:profile.resume.errors.generic"));
       }

@@ -290,7 +290,11 @@ export default function RegisterPage() {
           const detail = err.response?.data?.detail;
           const errors = Array.isArray(detail) ? detail : [];
           const pwErr = errors.find((e: { loc?: string[] }) => e.loc?.includes("password"));
-          if (pwErr) setFieldErrors((prev) => ({ ...prev, password: pwErr.msg }));
+          if (pwErr)
+            setFieldErrors((prev) => ({
+              ...prev,
+              password: t("auth:register.validation.passwordComplexity"),
+            }));
           else setSubmitError(t("auth:register.errors.failed"));
         } else if (status === 429) {
           setSubmitError(t("auth:register.errors.tooManyAttempts"));

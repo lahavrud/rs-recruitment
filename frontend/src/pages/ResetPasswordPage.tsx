@@ -99,7 +99,10 @@ export default function ResetPasswordPage() {
             e.loc?.includes("new_password"),
           );
           if (pwErr)
-            setFieldErrors((prev) => ({ ...prev, password: pwErr.msg }));
+            setFieldErrors((prev) => ({
+              ...prev,
+              password: t("auth:resetPassword.validation.passwordComplexity"),
+            }));
           else setError(t("auth:resetPassword.errors.failed"));
         } else setError(t("auth:resetPassword.errors.failed"));
       } else {

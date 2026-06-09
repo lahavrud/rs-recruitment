@@ -5,7 +5,17 @@ const KEY = "cookie_consent";
 export function getConsent(): ConsentChoices | null {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as ConsentChoices) : null;
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "analytics" in parsed &&
+      typeof (parsed as Record<string, unknown>).analytics === "boolean"
+    ) {
+      return parsed as ConsentChoices;
+    }
+    return null;
   } catch {
     return null;
   }
