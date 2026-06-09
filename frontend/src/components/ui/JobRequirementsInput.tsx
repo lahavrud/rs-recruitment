@@ -2,7 +2,8 @@ import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -64,8 +65,6 @@ interface ReqItemProps {
   index: number;
   placeholder: string;
   canRemove: boolean;
-  /** True only for items just added via the + button — opens the field immediately. */
-  startInEditMode: boolean;
   onUpdate: (index: number, text: string) => void;
   onRemove: (index: number) => void;
 }
@@ -75,13 +74,12 @@ function SortableReqItem({
   index,
   placeholder,
   canRemove,
-  startInEditMode,
   onUpdate,
   onRemove,
   id,
 }: ReqItemProps) {
   const { t } = useTranslation(["common"]);
-  const [editing, setEditing] = useState(startInEditMode);
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(req.text);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -89,10 +87,12 @@ function SortableReqItem({
 
   const commit = () => {
     const trimmed = draft.trim();
-    // If the item was always a blank placeholder (never had text) and we can
-    // remove it, drop it silently instead of keeping a dead empty row.
-    if (trimmed === "" && req.text === "" && canRemove) {
-      onRemove(index);
+    if (trimmed === "") {
+      if (req.text === "" && canRemove) {
+        onRemove(index);
+      } else {
+        setDraft(req.text); // restore: user cleared existing text, or last item can't be removed
+      }
     } else {
       onUpdate(index, trimmed);
     }
@@ -110,12 +110,12 @@ function SortableReqItem({
       {...attributes}
       {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group flex cursor-grab items-center gap-2 py-0.5 active:cursor-grabbing ${isDragging ? "relative z-50 opacity-50" : ""}`}
+      className={`group flex cursor-grab items-center gap-2 py-0.5 active:cursor-grabbing ${isDragging ? "relative z-50 opacity-50" : "touch:active:scale-[0.98]"}`}
     >
-      {/* Grip dots — visual hint only, no listeners */}
+      {/* Grip dots — visual cue that the row is draggable; always visible on mobile */}
       <span
-        aria-label={t("common:dragHandle")}
-        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-60"
+        aria-hidden="true"
+        className="shrink-0 opacity-40 transition-opacity sm:opacity-0 sm:group-hover:opacity-60"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -192,16 +192,19 @@ function SortableReqItem({
 export default function JobRequirementsInput({ value, onChange, error }: Props) {
   const { t } = useTranslation(["common"]);
   const canAdd = value.length < JOB_REQ_MAX_COUNT;
-  const canRemove = value.length > 1;
+  const canRemove = value.length > JOB_REQ_MIN_COUNT;
   const placeholders = useMemo(() => shuffled(REQUIREMENT_PLACEHOLDER_POOL), []);
 
   const nextId = useRef(value.length);
   const [ids, setIds] = useState<number[]>(() => value.map((_, i) => i));
-  // Tracks which numeric ID (if any) should open in edit mode immediately on mount.
-  const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
+  // null = not adding; string = inline add input is open
+  const [draftNew, setDraftNew] = useState<string | null>(null);
 
+  const TOUCH_DELAY_MS = 200;
+  const TOUCH_TOLERANCE_PX = 5;
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: TOUCH_DELAY_MS, tolerance: TOUCH_TOLERANCE_PX } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -224,11 +227,17 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
     onChange(value.filter((_, idx) => idx !== i));
   };
 
-  const add = () => {
-    const newId = nextId.current++;
-    setPendingFocusId(newId);
-    setIds((prev) => [...prev, newId]);
-    onChange([...value, { text: "" }]);
+  const add = () => setDraftNew("");
+
+  const commitNew = () => {
+    if (draftNew === null) return;
+    const trimmed = draftNew.trim();
+    if (trimmed.length > 0) {
+      const newId = nextId.current++;
+      setIds((prev) => [...prev, newId]);
+      onChange([...value, { text: trimmed }]);
+    }
+    setDraftNew(null);
   };
 
   return (
@@ -248,7 +257,6 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
                 index={i}
                 placeholder={placeholders[i % placeholders.length]}
                 canRemove={canRemove}
-                startInEditMode={ids[i] === pendingFocusId}
                 onUpdate={update}
                 onRemove={remove}
               />
@@ -257,11 +265,32 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
         </SortableContext>
       </DndContext>
 
+      {draftNew !== null && (
+        <div className="mt-0.5 flex items-center gap-2 py-0.5">
+          <span className="size-3.5 shrink-0" aria-hidden="true" />
+          <span aria-hidden="true" className="inline-block size-1.5 shrink-0 rounded-full bg-copper/60" />
+          <input
+            type="text"
+            autoFocus
+            value={draftNew}
+            onChange={(e) => setDraftNew(e.target.value)}
+            onBlur={commitNew}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+              if (e.key === "Escape") setDraftNew(null);
+            }}
+            maxLength={JOB_REQ_TEXT_MAX}
+            placeholder={placeholders[value.length % placeholders.length]}
+            className={`${ghostInputCls} flex-1 cursor-text`}
+          />
+        </div>
+      )}
+
       <div className="mt-2 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={add}
-          disabled={!canAdd}
+          disabled={!canAdd || draftNew !== null}
           className="flex items-center gap-2 text-sm text-copper/70 transition hover:text-copper disabled:cursor-not-allowed disabled:opacity-30"
         >
           {/* Spacer matching the grip handle column so + and label align with the list */}
