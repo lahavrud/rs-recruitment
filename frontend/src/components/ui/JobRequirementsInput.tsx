@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -230,13 +230,14 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  function handleDragEnd({ active, over }: DragEndEvent) {
+  const handleDragEnd = useCallback(({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
-    const oldIndex = ids.indexOf(active.id as number);
-    const newIndex = ids.indexOf(over.id as number);
+    const oldIndex = renderIds.indexOf(active.id as number);
+    const newIndex = renderIds.indexOf(over.id as number);
+    if (oldIndex === -1 || newIndex === -1) return;
     setIds((prev) => arrayMove(prev, oldIndex, newIndex));
     onChange(arrayMove(value, oldIndex, newIndex));
-  }
+  }, [renderIds, value, onChange]);
 
   const update = (i: number, text: string) => {
     const next = value.slice();

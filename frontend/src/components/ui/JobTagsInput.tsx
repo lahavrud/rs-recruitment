@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -80,7 +81,7 @@ function SortableTag({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`inline-flex items-center rounded-full border text-xs font-medium text-copper ${
         isDragging ? "z-50 opacity-50" : ""
-      } ${editing ? "border-copper/50 bg-copper/18 gap-0 ps-2 pe-1 py-1" : "border-copper/35 bg-copper/12 gap-0 ps-0 pe-1 py-0"}`}
+      } ${editing ? "border-copper/50 bg-copper/18 ps-2 pe-1 py-1" : "border-copper/35 bg-copper/12 ps-0 pe-1 py-0"}`}
     >
       {editing ? (
         <input
@@ -97,16 +98,18 @@ function SortableTag({
           style={{ width: `${Math.max(draft.length + 1, TAG_EDIT_MIN_CHARS)}ch` }}
         />
       ) : (
-        // Long press → drag (PointerSensor delay). Short click → edit.
-        <span
-          {...attributes}
-          {...listeners}
-          onClick={() => { setDraft(tag); setEditing(true); }}
-          title={t("common:editTag")}
-          className="cursor-pointer select-none px-2 py-1"
-        >
-          {tag}
-        </span>
+        <>
+          {/* Tag text — drag target + tap/click to edit */}
+          <span
+            {...attributes}
+            {...listeners}
+            onClick={() => { setDraft(tag); setEditing(true); }}
+            title={t("common:editTag")}
+            className="cursor-grab select-none px-2 py-1 active:cursor-grabbing"
+          >
+            {tag}
+          </span>
+        </>
       )}
 
       <button
@@ -205,19 +208,21 @@ export default function JobTagsInput({ value, onChange, error }: Props) {
   const { t } = useTranslation(["common"]);
   const canAdd = value.length < JOB_TAG_MAX_COUNT;
 
-  // distance: 8 — quick tap (< 8 px drift) fires the click handler (edit); deliberate
-  // drag movement activates reorder. No hold timer needed.
+  const TOUCH_DELAY_MS = 200;
+  const TOUCH_TOLERANCE_PX = 5;
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: TOUCH_DELAY_MS, tolerance: TOUCH_TOLERANCE_PX } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  function handleDragEnd({ active, over }: DragEndEvent) {
+  const handleDragEnd = useCallback(({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
     const oldIndex = value.indexOf(active.id as string);
     const newIndex = value.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
     onChange(arrayMove(value, oldIndex, newIndex));
-  }
+  }, [value, onChange]);
 
   const remove = (tag: string) => onChange(value.filter((t) => t !== tag));
   const edit = (oldTag: string, newTag: string) => {
