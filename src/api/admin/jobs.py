@@ -1,11 +1,12 @@
 """Admin endpoints for job management — CRUD and approval workflow."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
 from src.enums import JobStatus
@@ -32,6 +33,7 @@ from src.services.exceptions import (
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+limiter = get_limiter()
 
 
 @router.get("/jobs/pending", response_model=CursorPage[JobRead])
@@ -152,7 +154,9 @@ async def reject_job_posting(
 
 
 @router.post("/jobs/{job_id}/contact", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("20/hour")
 async def contact_job_posting(
+    request: Request,
     job_id: int,
     body: JobContactEmailRequest,
     current_admin: User = Depends(get_current_admin),

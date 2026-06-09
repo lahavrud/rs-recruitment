@@ -1,11 +1,12 @@
 """Admin endpoints for company invite-token management."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database import get_session
 from src.core.infrastructure.dependencies import get_current_admin
 from src.core.infrastructure.error_handling import service_exception_to_http
+from src.core.infrastructure.limiter import get_limiter
 from src.core.infrastructure.pagination import DEFAULT_LIMIT, MAX_LIMIT, CursorPage
 from src.core.infrastructure.transactions import transactional
 from src.enums import InviteTokenStatus
@@ -27,6 +28,7 @@ from src.services.exceptions import (
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+limiter = get_limiter()
 
 
 @router.post(
@@ -34,7 +36,9 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
     response_model=InviteTokenRead,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("20/hour")
 async def create_company_invite(
+    request: Request,
     data: InviteTokenCreate,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
@@ -98,7 +102,9 @@ async def delete_company_invite(
     "/companies/invites/{token_id}/resend",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("20/hour")
 async def resend_company_invite(
+    request: Request,
     token_id: int,
     current_admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_session),
