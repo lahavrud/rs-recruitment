@@ -49,14 +49,14 @@ export default function CandidateDashboard() {
     };
   }, []);
 
-  const apps = appsPage?.items.slice(0, 3) ?? null;
+  const apps = appsPage?.items?.slice(0, 3) ?? null;
 
   return (
     <div className="space-y-8">
       <Hero me={me} appsPage={appsPage} />
       <ProfileCompletion me={me} onMeChange={setMe} />
       <RecentApplications items={apps} />
-      <BrowseJobsCta hasApps={(appsPage?.items.length ?? 0) > 0} />
+      <BrowseJobsCta hasApps={(appsPage?.items?.length ?? 0) > 0} />
     </div>
   );
 }
