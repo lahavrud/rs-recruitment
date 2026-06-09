@@ -5,6 +5,7 @@ import { JOB_REQ_MIN_COUNT, JobStatus } from "@/types/api";
 import type { JobAdminUpdate, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import AutoGrowTextarea from "@/components/ui/AutoGrowTextarea";
 import { FeaturedStarButton } from "./JobFormHelpers";
 import { focusFirstError } from "@/utils/focusFirstError";
@@ -59,6 +60,7 @@ export default function JobDialog({
   const [initialForm, setInitialForm] = useState<JobAdminUpdate>({});
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Seed form whenever a new job session starts (new job opened, or job updated after save).
   useResetOnTrigger(job, () => {
@@ -123,27 +125,34 @@ export default function JobDialog({
   // Single wrapper div so Dialog's *:flex-1 gives it full width;
   // inside we split delete (left) from the rest (right).
   const footer = (
-    <div className="flex w-full items-center gap-2">
-      <Button variant="danger" onClick={onDelete}>
-        {t("admin:jobs.deleteAction")}
-      </Button>
-      <span className="flex-1" aria-hidden="true" />
+    <div className="flex w-full flex-wrap gap-2 sm:flex-nowrap sm:items-center">
       {isPending && onReject && (
-        <Button variant="ghost" onClick={onReject}>
+        <Button variant="ghost" onClick={onReject} className="flex-1 sm:flex-none">
           {t("admin:jobs.reject")}
         </Button>
       )}
       {isPending && onApprove && (
-        <Button variant="success" onClick={onApprove}>
+        <Button variant="success" onClick={onApprove} className="flex-1 sm:flex-none">
           {t("admin:jobs.approve")}
         </Button>
       )}
       {isDirty && (
-        <Button variant="ghost" onClick={revert} disabled={saving}>
+        <Button variant="ghost" onClick={revert} disabled={saving} className="flex-1 sm:flex-none">
           {t("common:revertChanges")}
         </Button>
       )}
-      <Button onClick={() => void save()} disabled={saving || !isDirty}>
+      <Button
+        variant="danger"
+        onClick={() => setDeleteOpen(true)}
+        className="flex-1 sm:order-first sm:me-auto sm:flex-none"
+      >
+        {t("admin:jobs.deleteAction")}
+      </Button>
+      <Button
+        onClick={() => void save()}
+        disabled={saving || !isDirty}
+        className="w-full sm:w-auto"
+      >
         {saving ? t("common:saving") : t("common:save")}
       </Button>
     </div>
@@ -206,6 +215,16 @@ export default function JobDialog({
       </Dialog>
 
       {discardConfirm}
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t("admin:jobs.deleteConfirmTitle")}
+        message={t("admin:jobs.deleteConfirmMessage")}
+        confirmLabel={t("admin:jobs.deleteConfirmYes")}
+        variant="danger"
+        onConfirm={() => { setDeleteOpen(false); onDelete(); }}
+      />
     </>
   );
 }
