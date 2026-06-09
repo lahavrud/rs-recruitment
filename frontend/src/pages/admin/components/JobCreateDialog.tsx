@@ -19,6 +19,7 @@ import type {
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import AutoGrowTextarea from "@/components/ui/AutoGrowTextarea";
+import Eyebrow from "@/components/ui/Eyebrow";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
 import JobTagsInput from "@/components/ui/JobTagsInput";
 import { focusFirstError } from "@/utils/focusFirstError";
@@ -32,8 +33,6 @@ import {
 const emptyRequirements = (): JobRequirementItem[] =>
   Array.from({ length: JOB_REQ_MIN_COUNT }, () => ({ text: "" }));
 
-const eyebrowCls =
-  "mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-copper/60";
 const subLabelCls =
   "mb-1 block text-[10px] font-medium uppercase tracking-wider text-white/35";
 
@@ -199,9 +198,9 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
           <div className="space-y-2">
             {/* Company selector */}
             <div>
-              <label className={eyebrowCls} htmlFor="company_id">
+              <Eyebrow as="label" htmlFor="company_id" dim className="mb-1.5 block">
                 {t("admin:jobs.fields.company")}
-              </label>
+              </Eyebrow>
               {companiesError ? (
                 <p className="text-xs text-danger">{t("admin:jobs.errors.companiesLoadFailed")}</p>
               ) : companies == null ? (
@@ -255,9 +254,9 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
 
           {/* ── Compensation ────────────────────────────────────── */}
           <div>
-            <label className={eyebrowCls} htmlFor="salary_min">
+            <Eyebrow as="label" htmlFor="salary_min" dim className="mb-1.5 block">
               {t("admin:jobs.fields.salaryRange")}
-            </label>
+            </Eyebrow>
             <SalaryRangeField
               min={form.salary_min}
               max={form.salary_max}
@@ -270,7 +269,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
 
           {/* ── Content ─────────────────────────────────────────── */}
           <div className="space-y-10">
-            <p className={eyebrowCls}>{t("admin:jobs.formSections.content")}</p>
+            <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.formSections.content")}</Eyebrow>
 
             <div>
               <label className={subLabelCls} htmlFor="short_description">
@@ -316,7 +315,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
 
           {/* ── Lists ───────────────────────────────────────────── */}
           <div>
-            <p className={eyebrowCls}>{t("admin:jobs.fields.requirements")}</p>
+            <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.fields.requirements")}</Eyebrow>
             <JobRequirementsInput
               value={form.requirements ?? []}
               onChange={(reqs: JobRequirementItem[]) => set("requirements", reqs)}
@@ -325,7 +324,7 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
           </div>
 
           <div>
-            <p className={eyebrowCls}>{t("admin:jobs.fields.tags")}</p>
+            <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.fields.tags")}</Eyebrow>
             <JobTagsInput
               value={form.tags ?? []}
               onChange={(tags: string[]) => set("tags", tags)}

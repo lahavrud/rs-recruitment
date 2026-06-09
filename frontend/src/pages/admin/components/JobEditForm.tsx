@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { JobStatus, JOB_SHORT_DESC_MAX } from "@/types/api";
 import type { JobAdminUpdate, JobRead, JobRequirementItem } from "@/types/api";
 import AutoGrowTextarea from "@/components/ui/AutoGrowTextarea";
+import Eyebrow from "@/components/ui/Eyebrow";
 import JobRequirementsInput from "@/components/ui/JobRequirementsInput";
 import JobTagsInput from "@/components/ui/JobTagsInput";
 import { ghostInputCls } from "@/styles/forms";
@@ -21,8 +22,6 @@ interface JobEditFormProps {
   companyName?: string;
 }
 
-const eyebrowCls =
-  "mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-copper/60";
 const subLabelCls =
   "mb-1 block text-[10px] font-medium uppercase tracking-wider text-white/35";
 
@@ -120,9 +119,9 @@ export default function JobEditForm({
 
       {/* ── Compensation ────────────────────────────────────── */}
       <div>
-        <label className={eyebrowCls} htmlFor="salary_min">
+        <Eyebrow as="label" htmlFor="salary_min" dim className="mb-1.5 block">
           {t("admin:jobs.fields.salaryRange")}
-        </label>
+        </Eyebrow>
         <SalaryRangeField
           min={form.salary_min}
           max={form.salary_max}
@@ -135,7 +134,7 @@ export default function JobEditForm({
 
       {/* ── Content ─────────────────────────────────────────── */}
       <div className="space-y-10">
-        <p className={eyebrowCls}>{t("admin:jobs.formSections.content")}</p>
+        <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.formSections.content")}</Eyebrow>
 
         <div>
           <label className={subLabelCls} htmlFor="short_description">
@@ -181,7 +180,7 @@ export default function JobEditForm({
 
       {/* ── Lists ───────────────────────────────────────────── */}
       <div>
-        <p className={eyebrowCls}>{t("admin:jobs.fields.requirements")}</p>
+        <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.fields.requirements")}</Eyebrow>
         <JobRequirementsInput
           value={form.requirements ?? []}
           onChange={(reqs: JobRequirementItem[]) => set("requirements", reqs)}
@@ -190,7 +189,7 @@ export default function JobEditForm({
       </div>
 
       <div>
-        <p className={eyebrowCls}>{t("admin:jobs.fields.tags")}</p>
+        <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.fields.tags")}</Eyebrow>
         <JobTagsInput
           value={form.tags ?? []}
           onChange={(tags: string[]) => set("tags", tags)}
