@@ -184,7 +184,12 @@
     },
     "saveConfirmTitle": "שמירת שינויים",
     "saveConfirmMessage": "השינויים יוחלו מיידית. אם שונו פרטי המשרה (כותרת, תיאור, דרישות, תגיות, מיקום או שכר) — החברה תקבל הודעת אימייל. סגירת משרה פורסמה — החברה והמועמדים הפעילים יקבלו הודעה. סימון כמומלצת לא יישלח.",
-    "notifyClosingWarning": "סגירת משרה פעילה תשלח הודעה לחברה ולמועמדים הפעילים",
+    "notifyClosingWarning": "בעת שמירה:",
+    "notifyClosingEffects": {
+      "board": "המשרה תוסר מלוח המשרות הציבורי",
+      "company": "החברה תקבל הודעת סגירה",
+      "applications": "כל הבקשות הפעילות ייסגרו ומועמדים יקבלו הודעה"
+    },
     "notifyPublishedHint": "שמירה תשלח הודעה לחברה אם שונו פרטי המשרה",
     "expandLabel": "פתח פרטים",
     "collapseLabel": "סגור פרטים",
@@ -212,7 +217,7 @@
       "company": "חברה",
       "title": "כותרת המשרה",
       "shortDescription": "תיאור קצר",
-      "shortDescriptionHint": "{{count}} / {{max}} תווים — מופיע על כרטיס המשרה",
+      "shortDescriptionHint": "תווים — מופיע על כרטיס המשרה",
       "description": "תיאור",
       "requirements": "דרישות",
       "tags": "תגיות",
@@ -220,6 +225,12 @@
       "status": "סטטוס",
       "salaryRange": "טווח שכר",
       "featuredToggleAria": "סמן או הסר משרה מומלצת"
+    },
+    "placeholders": {
+      "title": "לדוגמה: מנהל/ת מתקנים בכיר/ה",
+      "location": "לדוגמה: תל אביב",
+      "shortDescription": "תיאור קצר שיופיע על כרטיס המשרה בלוח…",
+      "description": "פירוט המשרה — תחומי אחריות, תנאים, ציפיות…"
     },
     "formSections": {
       "basics": "פרטים בסיסיים",

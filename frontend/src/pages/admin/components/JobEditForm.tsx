@@ -103,13 +103,21 @@ export default function JobEditForm({
         />
 
         {currentStatus === JobStatus.CLOSED && job.status !== JobStatus.CLOSED && (
-          <p className="rounded-sm bg-warning/8 px-2 py-1 text-[11px] leading-relaxed text-warning/80">
-            {t("admin:jobs.notifyClosingWarning")}
-          </p>
+          <div className="rounded-sm bg-warning/8 px-2.5 py-2 text-[11px] leading-relaxed">
+            <p className="font-medium text-warning/85">{t("admin:jobs.notifyClosingWarning")}</p>
+            <ul className="mt-1 space-y-0.5 text-warning/65">
+              {(["board", "company", "applications"] as const).map((k) => (
+                <li key={k} className="flex items-start gap-1.5">
+                  <span aria-hidden="true" className="mt-[3px] size-1 shrink-0 rounded-full bg-warning/40" />
+                  {t(`admin:jobs.notifyClosingEffects.${k}`)}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {job.status === JobStatus.PUBLISHED && (
-          <p className="text-[11px] text-white/30">
+          <p className="rounded-sm bg-info/5 px-2 py-1 text-[11px] leading-relaxed text-info/55">
             {t("admin:jobs.notifyPublishedHint")}
           </p>
         )}
@@ -133,8 +141,8 @@ export default function JobEditForm({
       <hr className="border-white/8" />
 
       {/* ── Content ─────────────────────────────────────────── */}
-      <div className="space-y-10">
-        <Eyebrow dim className="mb-1.5 block">{t("admin:jobs.formSections.content")}</Eyebrow>
+      <div className="space-y-4">
+        <Eyebrow dim>{t("admin:jobs.formSections.content")}</Eyebrow>
 
         <div>
           <label className={subLabelCls} htmlFor="short_description">
@@ -158,6 +166,8 @@ export default function JobEditForm({
             <p className="mt-1 text-xs text-danger">{errors.short_description}</p>
           )}
         </div>
+
+        <hr className="border-white/8" />
 
         <div>
           <label className={subLabelCls} htmlFor="description">
