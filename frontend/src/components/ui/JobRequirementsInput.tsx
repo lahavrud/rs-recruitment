@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -197,6 +197,28 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
 
   const nextId = useRef(value.length);
   const [ids, setIds] = useState<number[]>(() => value.map((_, i) => i));
+
+  // Keep ids in sync with value.length. When save() strips empty requirements
+  // the parent re-seeds value with fewer items; without this, ids retains its
+  // old length and SortableContext holds ghost IDs with no useSortable consumer.
+  useEffect(() => {
+    if (ids.length !== value.length) {
+      setIds((prev) => {
+        if (prev.length > value.length) return prev.slice(0, value.length);
+        const extra = Array.from(
+          { length: value.length - prev.length },
+          () => nextId.current++,
+        );
+        return [...prev, ...extra];
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids.length, value.length]);
+
+  // Safe for the current render: effect above runs asynchronously, so trim
+  // any trailing ghost IDs here to avoid a one-tick bad render.
+  const renderIds = ids.length > value.length ? ids.slice(0, value.length) : ids;
+
   // null = not adding; string = inline add input is open
   const [draftNew, setDraftNew] = useState<string | null>(null);
 
@@ -247,12 +269,12 @@ export default function JobRequirementsInput({ value, onChange, error }: Props) 
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <SortableContext items={renderIds} strategy={verticalListSortingStrategy}>
           <ul className="space-y-0.5">
             {value.map((req, i) => (
               <SortableReqItem
-                key={ids[i]}
-                id={ids[i]}
+                key={renderIds[i]}
+                id={renderIds[i]}
                 req={req}
                 index={i}
                 placeholder={placeholders[i % placeholders.length]}
