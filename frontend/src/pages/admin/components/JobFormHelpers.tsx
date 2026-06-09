@@ -142,7 +142,7 @@ const MIN_INTER_BUBBLE_GAP_PX = 8;
 // large thumb's vertical centre: (-mt-1 = 4 px overlap) + (size-7 / 2 = 14 px) = 10 px.
 // Fallback minimum gap % used before the first ResizeObserver measurement fires.
 const MIN_GAP_PCT_FALLBACK = 16;
-const CARET_REACH_PX = 10;
+const CARET_REACH_PX = 18;
 // Half-height of the SVG arrowhead polygon.
 const ARROWHEAD_H = 4;
 
@@ -369,8 +369,7 @@ export function SalaryRangeField({
             }}
           />
         </div>
-        {/* -mt-1 pulls the slider up snug under the bubbles on desktop */}
-        <div className="sm:-mt-1">
+        <div className="sm:mt-2">
           <RangeSlider
             min={SALARY_FORM_MIN}
             max={SALARY_FORM_MAX}
@@ -380,12 +379,15 @@ export function SalaryRangeField({
             ariaLabelMin={t("common:salaryMin")}
             ariaLabelMax={t("common:salaryMax")}
             showLabels={false}
-            large
           />
         </div>
       </div>
 
-      <p className="mt-1 text-start text-[11px] text-white/30">₪ לחודש</p>
+      <div className="mt-0.5 flex justify-between text-[10px] text-white/20">
+        <span>₪{SALARY_FORM_MIN.toLocaleString("he-IL")}</span>
+        <span>₪{SALARY_FORM_MAX.toLocaleString("he-IL")}</span>
+      </div>
+      <p className="text-start text-[11px] text-white/30">{t("common:salaryPerMonth")}</p>
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
