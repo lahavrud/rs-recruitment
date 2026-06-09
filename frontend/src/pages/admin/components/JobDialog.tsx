@@ -5,7 +5,8 @@ import { JOB_REQ_MIN_COUNT, JobStatus } from "@/types/api";
 import type { JobAdminUpdate, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
-import Eyebrow from "@/components/ui/Eyebrow";
+import AutoGrowTextarea from "@/components/ui/AutoGrowTextarea";
+import { FeaturedStarButton } from "./JobFormHelpers";
 import { focusFirstError } from "@/utils/focusFirstError";
 import { isDirtyByJSON } from "@/utils/isDirty";
 import { JOB_EDIT_FIELD_ORDER, validateJob } from "@/utils/validators";
@@ -155,7 +156,32 @@ export default function JobDialog({
         open={job != null}
         onOpenChange={(o) => !o && handleClose()}
         title={job.title}
-        headerContent={companyName ? <Eyebrow>{companyName}</Eyebrow> : null}
+        headerContent={
+          <div className="pt-2 sm:pt-3">
+            <div className="flex items-start gap-2">
+              <AutoGrowTextarea
+                id="title"
+                value={form.title ?? ""}
+                onChange={(v) => set("title", v.replace(/\n/g, ""))}
+                minRows={1}
+                placeholder={t("admin:jobs.placeholders.title")}
+                className="w-full bg-transparent text-3xl font-semibold leading-snug text-white/90 placeholder:text-white/25 outline-none"
+              />
+              <FeaturedStarButton
+                active={form.is_featured ?? false}
+                onToggleRequest={() => set("is_featured", !(form.is_featured ?? false))}
+              />
+            </div>
+            {errors.title && <p className="mt-1 text-xs text-danger">{errors.title}</p>}
+            {(form.is_featured ?? false) !== job.is_featured && (
+              <p className="mt-1 text-[11px] text-white/50">
+                {(form.is_featured ?? false)
+                  ? t("admin:jobs.featuredSetMessage")
+                  : t("admin:jobs.featuredUnsetMessage")}
+              </p>
+            )}
+          </div>
+        }
         size="lg"
         preventOutsideClose
         footer={footer}
@@ -173,8 +199,8 @@ export default function JobDialog({
             form={form}
             errors={errors}
             set={set}
-            onFeaturedToggle={() => set("is_featured", !(form.is_featured ?? false))}
             onStatusChange={(s) => set("status", s)}
+            companyName={companyName}
           />
         </div>
       </Dialog>

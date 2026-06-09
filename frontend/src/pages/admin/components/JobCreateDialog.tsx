@@ -175,6 +175,11 @@ export default function JobCreateDialog({ open, onClose, onCreated, onError }: C
               />
             </div>
             {errors.title && <p className="mt-1 text-xs text-danger">{errors.title}</p>}
+            {form.is_featured && (
+              <p className="mt-1 text-[11px] text-white/50">
+                {t("admin:jobs.featuredSetMessage")}
+              </p>
+            )}
           </div>
         }
         size="lg"
