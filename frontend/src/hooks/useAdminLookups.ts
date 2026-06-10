@@ -30,11 +30,16 @@ const EMPTY_LOOKUPS: AdminLookups = {
  * and resolve names for display. Cached for `TTL_MS` and shared across
  * every admin page via `resourceCache` so navigating between admin pages
  * doesn't re-issue the same two requests each time.
+ *
+ * Pass `enabled=false` to defer the fetch entirely (e.g. until the filter
+ * panel is opened) so the base page list isn't competing with these
+ * requests on initial load.
  */
-export function useAdminLookups(): AdminLookups {
+export function useAdminLookups(enabled = true): AdminLookups {
   const [lookups, setLookups] = useState<AdminLookups>(EMPTY_LOOKUPS);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     Promise.all([
       getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), TTL_MS),
@@ -60,7 +65,7 @@ export function useAdminLookups(): AdminLookups {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   return lookups;
 }

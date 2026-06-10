@@ -128,8 +128,12 @@ export default function AdminApplicationsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
 
-  // Jobs + active companies for the filter selects (shared cache across admin pages).
-  const { allJobs, companyNameById, jobTitleById } = useAdminLookups();
+  // Jobs + active companies for the filter selects (shared cache across admin
+  // pages). Deferred until the filter panel is opened (or pre-seeded via the
+  // URL) so the base list isn't competing with these requests on page load.
+  const { allJobs, companyNameById, jobTitleById } = useAdminLookups(
+    filterOpen || jobFilter.length > 0 || companyFilter.length > 0,
+  );
 
   const filteredApplications = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();

@@ -61,13 +61,17 @@ export default function AdminCandidatesPage() {
   const [jobFilter, setJobFilter] = useState<number[]>([]);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
 
-  // Jobs + active companies for the filter selects (shared cache across admin pages).
-  const { allJobs, companyNameById, jobTitleById } = useAdminLookups();
+  // Jobs + active companies for the filter selects (shared cache across admin
+  // pages). Deferred until the filter panel is opened so the base candidate
+  // list isn't competing with these requests on page load.
+  const lookupsEnabled = filterOpen || jobFilter.length > 0 || companyFilter.length > 0;
+  const { allJobs, companyNameById, jobTitleById } = useAdminLookups(lookupsEnabled);
 
-  // Applications cache for the candidate→job / candidate→company lookup
-  // (also shared/cached so other admin pages can reuse it).
+  // Applications cache for the candidate→job / candidate→company lookup,
+  // needed for the same job/company filters — deferred alongside them.
   const [appCache, setAppCache] = useState<ApplicationWithDetails[]>([]);
   useEffect(() => {
+    if (!lookupsEnabled) return;
     let cancelled = false;
     getCached("admin-lookups:applications", () => getApplications({ limit: 100 }), 60_000)
       .then((appsPage) => {
@@ -79,7 +83,7 @@ export default function AdminCandidatesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [lookupsEnabled]);
 
   // candidate_id → set of job IDs / company IDs they applied to.
   const candidateAppliedJobs = useMemo(() => {
