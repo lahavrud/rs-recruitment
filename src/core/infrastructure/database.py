@@ -1,9 +1,10 @@
 """Database configuration and async engine setup."""
 
 import logging
+import socket
 from collections.abc import AsyncGenerator
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -34,6 +35,27 @@ engine = create_async_engine(
     pool_recycle=settings.db_pool_recycle,
     pool_pre_ping=settings.db_pool_pre_ping,
 )
+
+
+@event.listens_for(engine.sync_engine, "connect")
+def _set_tcp_keepalive(dbapi_conn: object, _connection_record: object) -> None:
+    # asyncpg doesn't expose TCP keepalives in its public API; set them
+    # directly on the socket so AWS NAT Gateway (idle-TCP timeout ~350 s)
+    # never silently drops pooled connections.  pool_pre_ping catches the
+    # rare case where a connection dies despite keepalives.
+    try:
+        raw = dbapi_conn._connection  # type: ignore[attr-defined]
+        sock: socket.socket | None = raw._protocol.transport.get_extra_info("socket")
+        if sock is None:
+            return
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if hasattr(socket, "TCP_KEEPIDLE"):  # Linux only
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+    except Exception:
+        logger.debug("Could not set TCP keepalive on DB connection", exc_info=True)
+
 
 # Create async session factory
 async_session = async_sessionmaker(
