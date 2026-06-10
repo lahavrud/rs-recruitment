@@ -37,24 +37,36 @@ engine = create_async_engine(
 )
 
 
+_keepalive_failure_logged = False
+
+
 @event.listens_for(engine.sync_engine, "connect")
 def _set_tcp_keepalive(dbapi_conn: object, _connection_record: object) -> None:
     # asyncpg doesn't expose TCP keepalives in its public API; set them
     # directly on the socket so AWS NAT Gateway (idle-TCP timeout ~350 s)
     # never silently drops pooled connections.  pool_pre_ping catches the
     # rare case where a connection dies despite keepalives.
+    global _keepalive_failure_logged
     try:
         raw = dbapi_conn._connection  # type: ignore[attr-defined]
         sock: socket.socket | None = raw._protocol.transport.get_extra_info("socket")
         if sock is None:
-            return
+            raise RuntimeError("connection socket unavailable")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if hasattr(socket, "TCP_KEEPIDLE"):  # Linux only
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
     except Exception:
-        logger.debug("Could not set TCP keepalive on DB connection", exc_info=True)
+        # This relies on asyncpg internals (`_connection._protocol.transport`)
+        # that aren't part of its public API. If they ever change, we rely on
+        # db_pool_recycle + pool_pre_ping alone — log loudly (once) so that's
+        # visible rather than a silent debug line nobody checks.
+        if not _keepalive_failure_logged:
+            _keepalive_failure_logged = True
+            logger.warning(
+                "Could not set TCP keepalive on DB connection", exc_info=True
+            )
 
 
 # Create async session factory
