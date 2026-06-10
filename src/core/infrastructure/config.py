@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     # Connection pool — SQLAlchemy defaults (5+10) saturate quickly on the
     # production t3.micro target (#230). Sized for modest concurrency; tune
     # via env vars (DB_POOL_SIZE, DB_MAX_OVERFLOW, etc.) per environment.
+    # ⚠ pool_size + max_overflow = 35 per process. The production deployment
+    # runs a single uvicorn worker (no --workers / WEB_CONCURRENCY), so the
+    # ceiling is 35 connections. Adding a second worker doubles that — review
+    # pool sizing before scaling to multiple workers on the same RDS instance.
     db_pool_size: int = 15
     db_max_overflow: int = 20
     db_pool_recycle: int = 1800  # 30 min — keepalives handle NAT; recycle last resort
