@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { getJobs } from "@/services/adminJobs";
 import type { CompanyProfileRead, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
@@ -43,9 +42,8 @@ export default function CompanyDetailDialog({
       .then((page) => {
         if (!cancelled) setJobs(page.items.filter((j) => j.company_id === profile.id));
       })
-      .catch((e) => {
-        if (cancelled || axios.isCancel(e)) return;
-        setJobsError(true);
+      .catch(() => {
+        if (!cancelled) setJobsError(true);
       });
     return () => {
       cancelled = true;
@@ -108,9 +106,8 @@ export function CompanyDetailBody({
       .then((page) => {
         if (!cancelled) setLocalJobs(page.items.filter((j) => j.company_id === profile.id));
       })
-      .catch((e) => {
-        if (cancelled || axios.isCancel(e)) return;
-        setLocalJobsError(true);
+      .catch(() => {
+        if (!cancelled) setLocalJobsError(true);
       });
     return () => {
       cancelled = true;
