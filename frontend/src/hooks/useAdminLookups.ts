@@ -21,18 +21,28 @@ export interface AdminLookups {
   allJobs: AdminJobLookup[];
   jobTitleById: Map<number, string>;
   companyNameById: Map<number, string>;
+  companyEmailById: Map<number, string>;
 }
 
 const EMPTY_LOOKUPS: AdminLookups = {
   allJobs: [],
   jobTitleById: new Map(),
   companyNameById: new Map(),
+  companyEmailById: new Map(),
 };
 
 function buildLookups(
   jobsPage: CursorPage<JobRead>,
   companiesPage: CursorPage<ActiveCompanyRead>,
 ): AdminLookups {
+  const companyNameById = new Map<number, string>();
+  const companyEmailById = new Map<number, string>();
+  for (const row of companiesPage.items) {
+    companyNameById.set(row.company_profile.id, row.company_profile.name);
+    if (row.user?.email) {
+      companyEmailById.set(row.company_profile.id, row.user.email);
+    }
+  }
   return {
     allJobs: jobsPage.items.map((j) => ({
       id: j.id,
@@ -40,9 +50,8 @@ function buildLookups(
       company_id: j.company_id,
     })),
     jobTitleById: new Map(jobsPage.items.map((j) => [j.id, j.title])),
-    companyNameById: new Map(
-      companiesPage.items.map((row) => [row.company_profile.id, row.company_profile.name]),
-    ),
+    companyNameById,
+    companyEmailById,
   };
 }
 

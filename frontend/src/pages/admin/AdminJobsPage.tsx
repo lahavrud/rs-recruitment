@@ -4,7 +4,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { apiErrorKey } from "@/utils/apiError";
-import { getActiveCompanies } from "@/services/adminCompanies";
 import {
   approveJob,
   deleteJob,
@@ -12,8 +11,8 @@ import {
   getJobs,
   rejectJob,
 } from "@/services/adminJobs";
-import { ACTIVE_COMPANIES_CACHE_KEY, JOBS_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
-import { getCached, invalidateCached } from "@/utils/resourceCache";
+import { JOBS_CACHE_KEY, useAdminLookups } from "@/hooks/useAdminLookups";
+import { invalidateCached } from "@/utils/resourceCache";
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
@@ -199,37 +198,10 @@ export default function AdminJobsPage() {
     setSalaryRange(null);
   }
 
-  // Load company names + emails for the filter chip and the mailto action.
-  const [companyNameById, setCompanyNameById] = useState<Map<number, string>>(
-    new Map(),
-  );
-  const [companyEmailById, setCompanyEmailById] = useState<Map<number, string>>(
-    new Map(),
-  );
-  useEffect(() => {
-    if (uniqueCompanies.length === 0) return;
-    let cancelled = false;
-    // Same lookup (and cache key) as useAdminLookups — shares the result
-    // with the applications/candidates/triage pages on warm navigation.
-    getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), LOOKUP_TTL_MS)
-      .then((page) => {
-        if (cancelled) return;
-        const names = new Map<number, string>();
-        const emails = new Map<number, string>();
-        for (const row of page.items) {
-          names.set(row.company_profile.id, row.company_profile.name);
-          if (row.user?.email) {
-            emails.set(row.company_profile.id, row.user.email);
-          }
-        }
-        setCompanyNameById(names);
-        setCompanyEmailById(emails);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [uniqueCompanies.length]);
+  // Company names + emails for the filter chip and the mailto action. Shared
+  // cache key with useAdminLookups, so this is warm on navigation from the
+  // applications/candidates/triage pages.
+  const { companyNameById, companyEmailById } = useAdminLookups(uniqueCompanies.length > 0);
 
   function openMailToCompany(job: JobRead) {
     const email = companyEmailById.get(job.company_id);
