@@ -8,6 +8,8 @@ import {
   getPendingCompanies,
 } from "@/services/adminCompanies";
 import { getInvites } from "@/services/adminInvites";
+import { ACTIVE_COMPANIES_CACHE_KEY } from "@/hooks/useAdminLookups";
+import { getCached } from "@/utils/resourceCache";
 import type { CompanyProfileRead } from "@/types/api";
 import { InviteTokenStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
@@ -89,7 +91,9 @@ export default function AdminCompaniesPage() {
     getPendingCompanies({ limit: 100 }, ctrl.signal)
       .then((p) => setPendingCount(toCount(p)))
       .catch(() => {});
-    getActiveCompanies({ limit: 100 }, ctrl.signal)
+    // Same lookup (and cache key) as useAdminLookups — shares the result
+    // with the applications/candidates/jobs/triage pages on warm navigation.
+    getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), 60_000)
       .then((p) => setActiveCount(toCount(p)))
       .catch(() => {});
     getInvites(

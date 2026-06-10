@@ -12,6 +12,8 @@ import {
   getJobs,
   rejectJob,
 } from "@/services/adminJobs";
+import { ACTIVE_COMPANIES_CACHE_KEY } from "@/hooks/useAdminLookups";
+import { getCached } from "@/utils/resourceCache";
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
@@ -206,9 +208,12 @@ export default function AdminJobsPage() {
   );
   useEffect(() => {
     if (uniqueCompanies.length === 0) return;
-    const ctrl = new AbortController();
-    getActiveCompanies({ limit: 100 }, ctrl.signal)
+    let cancelled = false;
+    // Same lookup (and cache key) as useAdminLookups — shares the result
+    // with the applications/candidates/triage pages on warm navigation.
+    getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), 60_000)
       .then((page) => {
+        if (cancelled) return;
         const names = new Map<number, string>();
         const emails = new Map<number, string>();
         for (const row of page.items) {
@@ -221,7 +226,9 @@ export default function AdminJobsPage() {
         setCompanyEmailById(emails);
       })
       .catch(() => {});
-    return () => ctrl.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [uniqueCompanies.length]);
 
   function openMailToCompany(job: JobRead) {
