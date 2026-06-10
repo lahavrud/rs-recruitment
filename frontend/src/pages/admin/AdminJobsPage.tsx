@@ -289,6 +289,7 @@ export default function AdminJobsPage() {
     try {
       const updated = await approveJob(job.id);
       updateItem((j) => j.id === job.id, updated);
+      invalidateCached(JOBS_CACHE_KEY);
       toast.success(t("admin:jobs.approvedToast"));
     } catch {
       toast.error(t("admin:jobs.approveError"));
@@ -305,6 +306,7 @@ export default function AdminJobsPage() {
         ...rejectPending,
         status: JobStatus.CLOSED,
       });
+      invalidateCached(JOBS_CACHE_KEY);
       toast.success(t("admin:jobs.rejectedToast"));
       setRejectPending(null);
     } catch {
@@ -434,6 +436,7 @@ export default function AdminJobsPage() {
         onSaved={(updated) => {
           updateItem((j) => j.id === updated.id, updated);
           setDetail(updated);
+          invalidateCached(JOBS_CACHE_KEY);
           toast.success(t("admin:jobs.savedToast"));
         }}
         onError={() => toast.error(t("admin:jobs.errors.saveFailed"))}
