@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { getJobs } from "@/services/adminJobs";
 import type { CompanyProfileRead, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
-import { JOBS_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
-import { getCached } from "@/utils/resourceCache";
+import { useCompanyJobs } from "./useCompanyJobs";
 
 interface DetailProps {
   profile: CompanyProfileRead | null;
@@ -24,31 +21,7 @@ export default function CompanyDetailDialog({
   hideEditButton = false,
 }: DetailProps) {
   const { t } = useTranslation(['admin', 'common']);
-  const [jobs, setJobs] = useState<JobRead[] | null>(null);
-  const [jobsError, setJobsError] = useState(false);
-
-  useEffect(() => {
-    if (!profile) return;
-    let cancelled = false;
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setJobs(null);
-    setJobsError(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    // No backend ?company_id= filter on /admin/jobs yet; fetch first page and
-    // filter client-side. Adequate while companies have ~5 jobs each. Same
-    // lookup (and cache key) as useAdminLookups — shares the result across
-    // admin pages and repeated dialog opens.
-    getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), LOOKUP_TTL_MS)
-      .then((page) => {
-        if (!cancelled) setJobs(page.items.filter((j) => j.company_id === profile.id));
-      })
-      .catch(() => {
-        if (!cancelled) setJobsError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [profile]);
+  const { jobs, jobsError } = useCompanyJobs(profile?.id);
 
   if (!profile) return null;
 
@@ -91,30 +64,11 @@ export function CompanyDetailBody({
 }) {
   const { t } = useTranslation(['admin', 'common']);
   const navigate = useNavigate();
-  const [localJobs, setLocalJobs] = useState<JobRead[] | null>(null);
-  const [localJobsError, setLocalJobsError] = useState(false);
   // Self-fetch the jobs list when the parent didn't provide one (mobile inline).
   const useLocal = jobsProp === undefined;
-  useEffect(() => {
-    if (!useLocal) return;
-    let cancelled = false;
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setLocalJobs(null);
-    setLocalJobsError(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), LOOKUP_TTL_MS)
-      .then((page) => {
-        if (!cancelled) setLocalJobs(page.items.filter((j) => j.company_id === profile.id));
-      })
-      .catch(() => {
-        if (!cancelled) setLocalJobsError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [profile.id, useLocal]);
-  const jobs = useLocal ? localJobs : jobsProp;
-  const jobsError = useLocal ? localJobsError : (jobsErrorProp ?? false);
+  const local = useCompanyJobs(useLocal ? profile.id : undefined);
+  const jobs = useLocal ? local.jobs : jobsProp;
+  const jobsError = useLocal ? local.jobsError : (jobsErrorProp ?? false);
   return (
     <div className="space-y-4 text-sm">
       <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
