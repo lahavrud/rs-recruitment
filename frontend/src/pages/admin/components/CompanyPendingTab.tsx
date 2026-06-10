@@ -5,6 +5,8 @@ import {
   getPendingCompanies,
   rejectCompany,
 } from "@/services/adminCompanies";
+import { ACTIVE_COMPANIES_CACHE_KEY } from "@/hooks/useAdminLookups";
+import { invalidateCached } from "@/utils/resourceCache";
 import type { CompanyProfileRead, PendingCompanyRead } from "@/types/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Button from "@/components/ui/Button";
@@ -81,6 +83,7 @@ export default function CompanyPendingTab({ query }: { query: string }) {
     setApprovingId(row.user.id);
     try {
       await approveCompany(row.user.id);
+      invalidateCached(ACTIVE_COMPANIES_CACHE_KEY);
       setApprovedIds((prev) => new Set(prev).add(row.user.id));
       toast.success(
         t(alreadySent ? "admin:companies.resendApprovalToast" : "admin:companies.approvedToast"),

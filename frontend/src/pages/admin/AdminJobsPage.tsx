@@ -12,8 +12,8 @@ import {
   getJobs,
   rejectJob,
 } from "@/services/adminJobs";
-import { ACTIVE_COMPANIES_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
-import { getCached } from "@/utils/resourceCache";
+import { ACTIVE_COMPANIES_CACHE_KEY, JOBS_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
+import { getCached, invalidateCached } from "@/utils/resourceCache";
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
@@ -320,6 +320,7 @@ export default function AdminJobsPage() {
     try {
       await deleteJob(deletePending.id);
       removeItem((j) => j.id === deletePending.id);
+      invalidateCached(JOBS_CACHE_KEY);
       toast.success(t("admin:jobs.deletedToast"));
       setDeletePending(null);
       closeJob();
@@ -455,6 +456,7 @@ export default function AdminJobsPage() {
         onClose={() => setCreating(false)}
         onCreated={(created) => {
           prependItem(created);
+          invalidateCached(JOBS_CACHE_KEY);
           toast.success(t("admin:jobs.createdToast"));
           setCreating(false);
         }}
