@@ -49,7 +49,7 @@ def _set_tcp_keepalive(dbapi_conn: object, _connection_record: object) -> None:
     global _keepalive_failure_logged
     try:
         raw = dbapi_conn._connection  # type: ignore[attr-defined]
-        sock: socket.socket | None = raw._protocol.transport.get_extra_info("socket")
+        sock: socket.socket | None = raw._transport.get_extra_info("socket")
         if sock is None:
             raise RuntimeError("connection socket unavailable")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -58,8 +58,8 @@ def _set_tcp_keepalive(dbapi_conn: object, _connection_record: object) -> None:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
     except Exception:
-        # This relies on asyncpg internals (`_connection._protocol.transport`)
-        # that aren't part of its public API. If they ever change, we rely on
+        # This relies on asyncpg internals (`_connection._transport`) that
+        # aren't part of its public API. If they ever change, we rely on
         # db_pool_recycle + pool_pre_ping alone — log loudly (once) so that's
         # visible rather than a silent debug line nobody checks.
         if not _keepalive_failure_logged:

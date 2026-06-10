@@ -1,6 +1,7 @@
 """Unit tests for database module initialization."""
 
 import os
+import socket
 
 import pytest
 from sqlalchemy import inspect, select
@@ -145,6 +146,19 @@ class TestEngineConfiguration:
         assert defaults["db_max_overflow"].default >= 10
         assert defaults["db_pool_recycle"].default > 0
         assert defaults["db_pool_pre_ping"].default is True
+
+
+class TestTcpKeepalive:
+    """Tests for the _set_tcp_keepalive connect-event listener."""
+
+    @pytest.mark.asyncio
+    async def test_keepalive_enabled_on_pooled_connection(self):
+        """SO_KEEPALIVE is enabled on the underlying socket of a pooled connection."""
+        async with engine.connect() as conn:
+            raw = await conn.get_raw_connection()
+            sock = raw.driver_connection._transport.get_extra_info("socket")
+            assert sock is not None
+            assert sock.getsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE) == 1
 
 
 class TestSessionFactory:
