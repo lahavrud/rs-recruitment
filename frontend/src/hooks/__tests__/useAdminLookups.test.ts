@@ -71,4 +71,14 @@ describe("useAdminLookups", () => {
     await waitFor(() => expect(result.current.allJobs.length).toBe(1));
     expect(mockGetJobs).toHaveBeenCalledTimes(1);
   });
+
+  it("returns the warm cache synchronously on first render, with no empty flash", async () => {
+    const first = renderHook(() => useAdminLookups(true));
+    await waitFor(() => expect(first.result.current.allJobs.length).toBe(1));
+
+    const second = renderHook(() => useAdminLookups(true));
+    expect(second.result.current.allJobs).toEqual([
+      { id: 1, title: "Backend Engineer", company_id: 10 },
+    ]);
+  });
 });

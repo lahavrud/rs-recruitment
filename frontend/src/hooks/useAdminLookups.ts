@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { getActiveCompanies } from "@/services/adminCompanies";
 import { getJobs } from "@/services/adminJobs";
-import { getCached } from "@/utils/resourceCache";
+import type { CursorPage } from "@/hooks/useInfiniteList";
+import type { ActiveCompanyRead, JobRead } from "@/types/api";
+import { getCached, peekCached } from "@/utils/resourceCache";
 
 export const JOBS_CACHE_KEY = "admin-lookups:jobs";
 export const ACTIVE_COMPANIES_CACHE_KEY = "admin-lookups:active-companies";
@@ -27,6 +29,31 @@ const EMPTY_LOOKUPS: AdminLookups = {
   companyNameById: new Map(),
 };
 
+function buildLookups(
+  jobsPage: CursorPage<JobRead>,
+  companiesPage: CursorPage<ActiveCompanyRead>,
+): AdminLookups {
+  return {
+    allJobs: jobsPage.items.map((j) => ({
+      id: j.id,
+      title: j.title,
+      company_id: j.company_id,
+    })),
+    jobTitleById: new Map(jobsPage.items.map((j) => [j.id, j.title])),
+    companyNameById: new Map(
+      companiesPage.items.map((row) => [row.company_profile.id, row.company_profile.name]),
+    ),
+  };
+}
+
+/** Read both lookups straight from the warm cache, if both are present. */
+function peekLookups(): AdminLookups | undefined {
+  const jobsPage = peekCached<CursorPage<JobRead>>(JOBS_CACHE_KEY);
+  const companiesPage = peekCached<CursorPage<ActiveCompanyRead>>(ACTIVE_COMPANIES_CACHE_KEY);
+  if (!jobsPage || !companiesPage) return undefined;
+  return buildLookups(jobsPage, companiesPage);
+}
+
 /**
  * Jobs + active-companies lookups used to populate admin filter dropdowns
  * and resolve names for display. Cached for `LOOKUP_TTL_MS` and shared across
@@ -38,7 +65,9 @@ const EMPTY_LOOKUPS: AdminLookups = {
  * requests on initial load.
  */
 export function useAdminLookups(enabled = true): AdminLookups {
-  const [lookups, setLookups] = useState<AdminLookups>(EMPTY_LOOKUPS);
+  const [lookups, setLookups] = useState<AdminLookups>(() =>
+    enabled ? (peekLookups() ?? EMPTY_LOOKUPS) : EMPTY_LOOKUPS,
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -49,17 +78,7 @@ export function useAdminLookups(enabled = true): AdminLookups {
     ])
       .then(([jobsPage, companiesPage]) => {
         if (cancelled) return;
-        setLookups({
-          allJobs: jobsPage.items.map((j) => ({
-            id: j.id,
-            title: j.title,
-            company_id: j.company_id,
-          })),
-          jobTitleById: new Map(jobsPage.items.map((j) => [j.id, j.title])),
-          companyNameById: new Map(
-            companiesPage.items.map((row) => [row.company_profile.id, row.company_profile.name]),
-          ),
-        });
+        setLookups(buildLookups(jobsPage, companiesPage));
       })
       .catch(() => {
         /* best-effort */

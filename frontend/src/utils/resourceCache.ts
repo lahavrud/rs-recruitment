@@ -48,6 +48,15 @@ export function getCached<T>(key: string, fetcher: () => Promise<T>, ttlMs: numb
   return pending;
 }
 
+/** Synchronously read a fresh cached value, if any, without triggering a fetch. */
+export function peekCached<T>(key: string): T | undefined {
+  const entry = cache.get(key) as CacheEntry<T> | undefined;
+  if (entry?.value !== undefined && entry.expiresAt > Date.now()) {
+    return entry.value;
+  }
+  return undefined;
+}
+
 /** Drop a cached entry so the next `getCached` call refetches. */
 export function invalidateCached(key: string): void {
   cache.delete(key);
