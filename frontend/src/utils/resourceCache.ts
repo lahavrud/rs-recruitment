@@ -26,17 +26,25 @@ export function getCached<T>(key: string, fetcher: () => Promise<T>, ttlMs: numb
     return entry.pending;
   }
 
-  const pending = fetcher()
+  const pending: Promise<T> = fetcher()
     .then((value) => {
-      cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+      // Only write back if this fetch is still the entry's current one —
+      // invalidateCached (or a newer fetch) may have replaced/removed it
+      // while this one was in flight, and writing back here would
+      // resurrect stale data.
+      if (cache.get(key)?.pending === pending) {
+        cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+      }
       return value;
     })
     .catch((err: unknown) => {
-      cache.delete(key);
+      if (cache.get(key)?.pending === pending) {
+        cache.delete(key);
+      }
       throw err;
     });
 
-  cache.set(key, { value: entry?.value, expiresAt: entry?.expiresAt ?? 0, pending });
+  cache.set(key, { expiresAt: 0, pending });
   return pending;
 }
 

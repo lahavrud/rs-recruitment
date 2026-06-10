@@ -54,4 +54,26 @@ describe("getCached", () => {
     invalidateCached("key");
     expect(await getCached("key", fetcher, 1000)).toBe("second");
   });
+
+  it("does not resurrect stale data when invalidated while a fetch is in flight", async () => {
+    let resolveFirst!: (value: string) => void;
+    const fetcher = vi
+      .fn()
+      .mockReturnValueOnce(
+        new Promise<string>((res) => {
+          resolveFirst = res;
+        }),
+      )
+      .mockResolvedValueOnce("second");
+
+    const first = getCached("key", fetcher, 1000);
+    invalidateCached("key");
+    resolveFirst("first");
+    expect(await first).toBe("first");
+
+    // The in-flight fetch resolved after invalidation — its stale result
+    // must not have been written back, so this call refetches.
+    expect(await getCached("key", fetcher, 1000)).toBe("second");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });
