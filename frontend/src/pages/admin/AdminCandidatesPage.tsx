@@ -70,15 +70,18 @@ export default function AdminCandidatesPage() {
   // Applications cache for the candidate→job / candidate→company lookup,
   // needed for the same job/company filters — deferred alongside them.
   const [appCache, setAppCache] = useState<ApplicationWithDetails[]>([]);
+  const [appCacheLoaded, setAppCacheLoaded] = useState(false);
   useEffect(() => {
     if (!lookupsEnabled) return;
     let cancelled = false;
     getCached(APPLICATIONS_CACHE_KEY, () => getApplications({ limit: 100 }), LOOKUP_TTL_MS)
       .then((appsPage) => {
-        if (!cancelled) setAppCache(appsPage.items);
+        if (cancelled) return;
+        setAppCache(appsPage.items);
+        setAppCacheLoaded(true);
       })
       .catch(() => {
-        /* best-effort */
+        if (!cancelled) setAppCacheLoaded(true);
       });
     return () => {
       cancelled = true;
@@ -131,6 +134,13 @@ export default function AdminCandidatesPage() {
 
   const activeFilterCount =
     (debouncedQuery.trim() ? 1 : 0) + jobFilter.length + companyFilter.length;
+
+  // While a job/company filter is applied but the applications cache hasn't
+  // resolved yet, candidateAppliedJobs/Companies are still empty and would
+  // filter out every candidate — show a loading skeleton instead of a
+  // misleading "no results" flash.
+  const awaitingAppCache =
+    (jobFilter.length > 0 || companyFilter.length > 0) && !appCacheLoaded;
 
   // Auto-open detail modal when navigated from another page via ?detail=<id>
   useEffect(() => {
@@ -255,6 +265,15 @@ export default function AdminCandidatesPage() {
           eyebrow={t("admin:candidates.title")}
           headline={t("admin:candidates.empty")}
         />
+      ) : awaitingAppCache ? (
+        <>
+          <div className="md:hidden">
+            <MobileListSkeleton rows={6} />
+          </div>
+          <div className="hidden md:block">
+            <TableSkeleton rows={6} columns={4} />
+          </div>
+        </>
       ) : filteredCandidates.length === 0 ? (
         <NoResults />
       ) : (
