@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { apiErrorKey } from "@/utils/apiError";
-import { getActiveCompanies } from "@/services/adminCompanies";
-import { getJobs } from "@/services/adminJobs";
 import { getApplications } from "@/services/adminApplications";
 import { deleteCandidate, getCandidate, getCandidates } from "@/services/adminCandidates";
+import { getCached } from "@/utils/resourceCache";
+import { useAdminLookups } from "@/hooks/useAdminLookups";
 import type { ApplicationWithDetails, CandidateProfileRead } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -61,45 +61,24 @@ export default function AdminCandidatesPage() {
   const [jobFilter, setJobFilter] = useState<number[]>([]);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
 
-  // Cache jobs + companies for the filter selects, and applications for the
-  // candidate→job / candidate→company lookup.
-  const [allJobs, setAllJobs] = useState<{ id: number; title: string; company_id: number }[]>([]);
-  const [companyNameById, setCompanyNameById] = useState<Map<number, string>>(
-    new Map(),
-  );
-  const [jobTitleById, setJobTitleById] = useState<Map<number, string>>(new Map());
-  const [appCache, setAppCache] = useState<ApplicationWithDetails[]>([]);
+  // Jobs + active companies for the filter selects (shared cache across admin pages).
+  const { allJobs, companyNameById, jobTitleById } = useAdminLookups();
 
+  // Applications cache for the candidate→job / candidate→company lookup
+  // (also shared/cached so other admin pages can reuse it).
+  const [appCache, setAppCache] = useState<ApplicationWithDetails[]>([]);
   useEffect(() => {
-    const ctrl = new AbortController();
-    Promise.all([
-      getJobs({ limit: 100 }, ctrl.signal),
-      getActiveCompanies({ limit: 100 }, ctrl.signal),
-      getApplications({ limit: 100 }, ctrl.signal),
-    ])
-      .then(([jobsPage, companiesPage, appsPage]) => {
-        setAllJobs(
-          jobsPage.items.map((j) => ({
-            id: j.id,
-            title: j.title,
-            company_id: j.company_id,
-          })),
-        );
-        setJobTitleById(new Map(jobsPage.items.map((j) => [j.id, j.title])));
-        setCompanyNameById(
-          new Map(
-            companiesPage.items.map((row) => [
-              row.company_profile.id,
-              row.company_profile.name,
-            ]),
-          ),
-        );
-        setAppCache(appsPage.items);
+    let cancelled = false;
+    getCached("admin-lookups:applications", () => getApplications({ limit: 100 }), 60_000)
+      .then((appsPage) => {
+        if (!cancelled) setAppCache(appsPage.items);
       })
       .catch(() => {
         /* best-effort */
       });
-    return () => ctrl.abort();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // candidate_id → set of job IDs / company IDs they applied to.

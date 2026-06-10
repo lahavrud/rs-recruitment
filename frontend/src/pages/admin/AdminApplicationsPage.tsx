@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTranslation } from "react-i18next";
-import { getActiveCompanies } from "@/services/adminCompanies";
-import { getJobs } from "@/services/adminJobs";
 import { deleteApplication, getApplications } from "@/services/adminApplications";
 import type { ApplicationListParams } from "@/services/adminApplications";
 import { ApplicationStatus } from "@/types/api";
@@ -25,6 +23,7 @@ import KebabButton from "@/components/ui/KebabButton";
 import NoResults from "@/components/ui/NoResults";
 import InfiniteScrollFooter from "@/components/ui/InfiniteScrollFooter";
 import { useInfiniteList, type CursorPage } from "@/hooks/useInfiniteList";
+import { useAdminLookups } from "@/hooks/useAdminLookups";
 import { useAutoOpenFromRouteState } from "@/hooks/useAutoOpenFromRouteState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/useToast";
@@ -129,43 +128,8 @@ export default function AdminApplicationsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [companyFilter, setCompanyFilter] = useState<number[]>([]);
 
-  // Cache of all jobs and active companies for the filter selects.
-  const [allJobs, setAllJobs] = useState<{ id: number; title: string; company_id: number }[]>([]);
-  const [companyNameById, setCompanyNameById] = useState<Map<number, string>>(
-    new Map(),
-  );
-  const [jobTitleById, setJobTitleById] = useState<Map<number, string>>(
-    new Map(),
-  );
-  useEffect(() => {
-    const ctrl = new AbortController();
-    Promise.all([
-      getJobs({ limit: 100 }, ctrl.signal),
-      getActiveCompanies({ limit: 100 }, ctrl.signal),
-    ])
-      .then(([jobsPage, companiesPage]) => {
-        setAllJobs(
-          jobsPage.items.map((j) => ({
-            id: j.id,
-            title: j.title,
-            company_id: j.company_id,
-          })),
-        );
-        setJobTitleById(new Map(jobsPage.items.map((j) => [j.id, j.title])));
-        setCompanyNameById(
-          new Map(
-            companiesPage.items.map((row) => [
-              row.company_profile.id,
-              row.company_profile.name,
-            ]),
-          ),
-        );
-      })
-      .catch(() => {
-        /* best-effort */
-      });
-    return () => ctrl.abort();
-  }, []);
+  // Jobs + active companies for the filter selects (shared cache across admin pages).
+  const { allJobs, companyNameById, jobTitleById } = useAdminLookups();
 
   const filteredApplications = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
