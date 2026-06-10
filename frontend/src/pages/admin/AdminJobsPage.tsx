@@ -12,7 +12,7 @@ import {
   getJobs,
   rejectJob,
 } from "@/services/adminJobs";
-import { ACTIVE_COMPANIES_CACHE_KEY } from "@/hooks/useAdminLookups";
+import { ACTIVE_COMPANIES_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
 import { getCached } from "@/utils/resourceCache";
 import type { JobRead } from "@/types/api";
 import { JobStatus } from "@/types/api";
@@ -211,7 +211,7 @@ export default function AdminJobsPage() {
     let cancelled = false;
     // Same lookup (and cache key) as useAdminLookups — shares the result
     // with the applications/candidates/triage pages on warm navigation.
-    getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), 60_000)
+    getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), LOOKUP_TTL_MS)
       .then((page) => {
         if (cancelled) return;
         const names = new Map<number, string>();

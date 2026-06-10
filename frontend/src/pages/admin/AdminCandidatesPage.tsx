@@ -5,7 +5,7 @@ import { apiErrorKey } from "@/utils/apiError";
 import { getApplications } from "@/services/adminApplications";
 import { deleteCandidate, getCandidate, getCandidates } from "@/services/adminCandidates";
 import { getCached } from "@/utils/resourceCache";
-import { useAdminLookups } from "@/hooks/useAdminLookups";
+import { APPLICATIONS_CACHE_KEY, LOOKUP_TTL_MS, useAdminLookups } from "@/hooks/useAdminLookups";
 import type { ApplicationWithDetails, CandidateProfileRead } from "@/types/api";
 import PageHeader from "@/components/ui/PageHeader";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -73,7 +73,7 @@ export default function AdminCandidatesPage() {
   useEffect(() => {
     if (!lookupsEnabled) return;
     let cancelled = false;
-    getCached("admin-lookups:applications", () => getApplications({ limit: 100 }), 60_000)
+    getCached(APPLICATIONS_CACHE_KEY, () => getApplications({ limit: 100 }), LOOKUP_TTL_MS)
       .then((appsPage) => {
         if (!cancelled) setAppCache(appsPage.items);
       })

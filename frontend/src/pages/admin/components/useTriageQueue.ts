@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getApplications } from "@/services/adminApplications";
 import { getActiveCompanies } from "@/services/adminCompanies";
-import { ACTIVE_COMPANIES_CACHE_KEY } from "@/hooks/useAdminLookups";
+import { ACTIVE_COMPANIES_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
 import { getCached } from "@/utils/resourceCache";
 import {
   ApplicationStatus,
@@ -58,7 +58,7 @@ export function useTriageQueue() {
         ),
         // Same lookup (and cache key) as useAdminLookups — shares the result
         // with the applications/candidates pages on warm navigation.
-        getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: PAGE_SIZE }), 60_000),
+        getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: PAGE_SIZE }), LOOKUP_TTL_MS),
       ]);
 
       const companyNameById = new Map(

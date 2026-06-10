@@ -3,9 +3,11 @@ import { getActiveCompanies } from "@/services/adminCompanies";
 import { getJobs } from "@/services/adminJobs";
 import { getCached } from "@/utils/resourceCache";
 
-const JOBS_CACHE_KEY = "admin-lookups:jobs";
+export const JOBS_CACHE_KEY = "admin-lookups:jobs";
 export const ACTIVE_COMPANIES_CACHE_KEY = "admin-lookups:active-companies";
-const TTL_MS = 60_000;
+export const APPLICATIONS_CACHE_KEY = "admin-lookups:applications";
+/** Shared TTL for all `resourceCache` entries keyed above. */
+export const LOOKUP_TTL_MS = 60_000;
 
 export interface AdminJobLookup {
   id: number;
@@ -27,7 +29,7 @@ const EMPTY_LOOKUPS: AdminLookups = {
 
 /**
  * Jobs + active-companies lookups used to populate admin filter dropdowns
- * and resolve names for display. Cached for `TTL_MS` and shared across
+ * and resolve names for display. Cached for `LOOKUP_TTL_MS` and shared across
  * every admin page via `resourceCache` so navigating between admin pages
  * doesn't re-issue the same two requests each time.
  *
@@ -42,8 +44,8 @@ export function useAdminLookups(enabled = true): AdminLookups {
     if (!enabled) return;
     let cancelled = false;
     Promise.all([
-      getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), TTL_MS),
-      getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), TTL_MS),
+      getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), LOOKUP_TTL_MS),
+      getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), LOOKUP_TTL_MS),
     ])
       .then(([jobsPage, companiesPage]) => {
         if (cancelled) return;

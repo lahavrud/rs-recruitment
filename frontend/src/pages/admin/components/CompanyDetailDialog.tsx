@@ -7,6 +7,8 @@ import type { CompanyProfileRead, JobRead } from "@/types/api";
 import Dialog from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Eyebrow from "@/components/ui/Eyebrow";
+import { JOBS_CACHE_KEY, LOOKUP_TTL_MS } from "@/hooks/useAdminLookups";
+import { getCached } from "@/utils/resourceCache";
 
 interface DetailProps {
   profile: CompanyProfileRead | null;
@@ -28,22 +30,26 @@ export default function CompanyDetailDialog({
 
   useEffect(() => {
     if (!profile) return;
-    const ctrl = new AbortController();
+    let cancelled = false;
     /* eslint-disable react-hooks/set-state-in-effect */
     setJobs(null);
     setJobsError(false);
     /* eslint-enable react-hooks/set-state-in-effect */
     // No backend ?company_id= filter on /admin/jobs yet; fetch first page and
-    // filter client-side. Adequate while companies have ~5 jobs each.
-    getJobs({ limit: 100 }, ctrl.signal)
-      .then((page) =>
-        setJobs(page.items.filter((j) => j.company_id === profile.id)),
-      )
+    // filter client-side. Adequate while companies have ~5 jobs each. Same
+    // lookup (and cache key) as useAdminLookups — shares the result across
+    // admin pages and repeated dialog opens.
+    getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), LOOKUP_TTL_MS)
+      .then((page) => {
+        if (!cancelled) setJobs(page.items.filter((j) => j.company_id === profile.id));
+      })
       .catch((e) => {
-        if (axios.isCancel(e)) return;
+        if (cancelled || axios.isCancel(e)) return;
         setJobsError(true);
       });
-    return () => ctrl.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [profile]);
 
   if (!profile) return null;
@@ -93,20 +99,22 @@ export function CompanyDetailBody({
   const useLocal = jobsProp === undefined;
   useEffect(() => {
     if (!useLocal) return;
-    const ctrl = new AbortController();
+    let cancelled = false;
     /* eslint-disable react-hooks/set-state-in-effect */
     setLocalJobs(null);
     setLocalJobsError(false);
     /* eslint-enable react-hooks/set-state-in-effect */
-    getJobs({ limit: 100 }, ctrl.signal)
-      .then((page) =>
-        setLocalJobs(page.items.filter((j) => j.company_id === profile.id)),
-      )
+    getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), LOOKUP_TTL_MS)
+      .then((page) => {
+        if (!cancelled) setLocalJobs(page.items.filter((j) => j.company_id === profile.id));
+      })
       .catch((e) => {
-        if (axios.isCancel(e)) return;
+        if (cancelled || axios.isCancel(e)) return;
         setLocalJobsError(true);
       });
-    return () => ctrl.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [profile.id, useLocal]);
   const jobs = useLocal ? localJobs : jobsProp;
   const jobsError = useLocal ? localJobsError : (jobsErrorProp ?? false);
