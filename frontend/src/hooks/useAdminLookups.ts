@@ -4,7 +4,7 @@ import { getJobs } from "@/services/adminJobs";
 import { getCached } from "@/utils/resourceCache";
 
 const JOBS_CACHE_KEY = "admin-lookups:jobs";
-const COMPANIES_CACHE_KEY = "admin-lookups:active-companies";
+export const ACTIVE_COMPANIES_CACHE_KEY = "admin-lookups:active-companies";
 const TTL_MS = 60_000;
 
 export interface AdminJobLookup {
@@ -38,7 +38,7 @@ export function useAdminLookups(): AdminLookups {
     let cancelled = false;
     Promise.all([
       getCached(JOBS_CACHE_KEY, () => getJobs({ limit: 100 }), TTL_MS),
-      getCached(COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), TTL_MS),
+      getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), TTL_MS),
     ])
       .then(([jobsPage, companiesPage]) => {
         if (cancelled) return;
