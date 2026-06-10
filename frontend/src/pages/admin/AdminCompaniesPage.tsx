@@ -85,6 +85,7 @@ export default function AdminCompaniesPage() {
   const [invitesCount, setInvitesCount] = useState<ViewCount>(null);
   useEffect(() => {
     const ctrl = new AbortController();
+    let cancelled = false;
     function toCount<T>(p: { items: T[]; next_cursor: string | null }): ViewCount {
       return { n: p.items.length, capped: p.next_cursor != null };
     }
@@ -94,7 +95,9 @@ export default function AdminCompaniesPage() {
     // Same lookup (and cache key) as useAdminLookups — shares the result
     // with the applications/candidates/jobs/triage pages on warm navigation.
     getCached(ACTIVE_COMPANIES_CACHE_KEY, () => getActiveCompanies({ limit: 100 }), LOOKUP_TTL_MS)
-      .then((p) => setActiveCount(toCount(p)))
+      .then((p) => {
+        if (!cancelled) setActiveCount(toCount(p));
+      })
       .catch(() => {});
     getInvites(
       { status: InviteTokenStatus.PENDING, limit: 100 },
@@ -102,7 +105,10 @@ export default function AdminCompaniesPage() {
     )
       .then((p) => setInvitesCount(toCount(p)))
       .catch(() => {});
-    return () => ctrl.abort();
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+    };
   }, []);
 
   function formatCount(c: ViewCount): string {
