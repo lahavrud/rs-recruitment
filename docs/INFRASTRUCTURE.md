@@ -34,13 +34,21 @@ flowchart LR
     end
 
     S3A[("S3 bucket<br/>rs-recruiting-app<br/>versioning suspended · SSE-S3<br/>resumes + deploy artifacts")]
-    S3CT[("S3 bucket<br/>rs-recruiting-cloudtrail<br/>versioned · SSE-S3 · BPA full")]
     ECR1[("ECR rs-recruiting/api<br/>IMMUTABLE · scanOnPush")]
     SSM[("SSM Parameter Store<br/>secrets + CURRENT_SHA")]
-    CW["CloudWatch<br/>1 log group · 9 alarms · 1 dashboard"]
-    CT["CloudTrail<br/>multi-region · log validation"]
+    CW["CloudWatch<br/>5 log groups, no retention set<br/>0 alarms · 0 dashboards"]
+    GD["GuardDuty<br/>6h finding frequency"]
+    CT["CloudTrail<br/>org trail · multi-region · log validation"]
+  end
+
+  subgraph mgmt["AWS Management Account (rs-admin)"]
     SNS1["SNS ops-alerts"]
     Budget["AWS Budget<br/>monthly-40<br/>50/80/100 actual + 100 forecast"]
+    EBGD["EventBridge rule<br/>guardduty-findings"]
+  end
+
+  subgraph logsacct["AWS Logs Account (rs-logs-admin)"]
+    S3CT[("S3 bucket<br/>rs-recruiting-org-trail-*<br/>versioned · SSE-S3 · BPA full")]
   end
 
   subgraph grafana["Grafana Cloud"]
@@ -48,6 +56,7 @@ flowchart LR
     Tempo["Tempo<br/>traces"]
     Mimir["Mimir<br/>metrics"]
     GrafanaDash["Grafana<br/>dashboards"]
+    GrafanaSM["Synthetic Monitoring<br/>uptime checks"]
   end
 
   GHA["GitHub Actions<br/>OIDC role"]
@@ -87,9 +96,12 @@ flowchart LR
   ec2host -->|pull images| ECR1
   ec2host -->|API calls audit| CT
   CT -->|deliver logs| S3CT
-  CW -->|ops alarms| SNS1
+  GD -->|findings| EBGD
+  EBGD --> SNS1
   SNS1 --> Email
   Budget -->|direct email, no SNS| Email
+  GrafanaSM -->|"uptime checks<br/>(replaces R53 health-check alarm)"| CFD
+  GrafanaSM -->|alerts| GrafanaDash
 ```
 
 ### Network notes
@@ -97,7 +109,7 @@ flowchart LR
 - **Single VPC** (`<VPC_ID>`); default VPC was deleted 2026-05-09.
 - **No NAT Gateway, no ALB.** EC2 has an Elastic IP and reaches the internet via IGW. TLS terminates at CloudFront via ACM — EC2 only accepts HTTP :80 from the CloudFront managed prefix list.
 - **CloudFront distribution** (`d2ghcom3efd3zg.cloudfront.net`) sits in front of both the S3 frontend bucket (default behavior) and EC2 (API behaviors). Lambda@Edge on the viewer-request event handles bot/crawler detection for OG prerendering.
-- **DNS lives at Cloudflare** (grey-cloud, DNS only — proxying disabled). The only Route 53 resource is one health check (`<R53_HC_ID>`) used by `rs-recruiting-uptime` alarm.
+- **DNS lives at Cloudflare** (grey-cloud, DNS only — proxying disabled). The only Route 53 resource is one health check (`<R53_HC_ID>`) — **orphaned**: the `rs-recruiting-uptime` CloudWatch alarm that used to consume it no longer exists. Uptime monitoring is now Grafana Cloud Synthetic Monitoring (`GRAFANA_SM_URL`/`GRAFANA_SM_ACCESS_TOKEN` in SSM). Candidate for deletion once SM is confirmed covering the same checks.
 - **ACM certificate** (`arn:aws:acm:us-east-1:892512306022:certificate/d0e1d1f5-7bc9-41f8-9d81-98cb3786a626`) validated for `rs-recruiting.com` and `www.rs-recruiting.com`; attached to the CloudFront distribution.
 
 ### Security groups
@@ -149,7 +161,7 @@ flowchart LR
 | EC2 | `<EC2_INSTANCE_ID>` (t3.micro) | IMDSv2 required, basic monitoring, in `App-SG` + `Web-SG`. Port 80 restricted to CloudFront prefix list. |
 | EBS root | `<EBS_VOL_ID>` (8 GB gp3) | **Unencrypted** (pre-default-encryption); account-default now ON; one-shot re-encryption pending |
 | Elastic IP | `<ELASTIC_IP>` (`<EIP_ASSOC_ID>`) | Attached to EC2 |
-| RDS | `rs-recruiting-prod-db` (db.t3.micro) | Postgres 16, single-AZ, encrypted, 7d backup retention, deletion protection ON, Performance Insights 7d, postgresql log export to CW |
+| RDS | `rs-recruiting-prod-db` (db.t3.micro) | Postgres 16, single-AZ, encrypted, 7d backup retention, deletion protection ON, Performance Insights 7d. **No CloudWatch log export enabled** (doc previously claimed postgresql log export — not configured) |
 | Key pair | `rs-recruiting-key` | EC2 SSH key |
 
 ### Storage
@@ -157,35 +169,33 @@ flowchart LR
 |---|---|---|
 | `<APP_BUCKET>` | App data — resumes (`resumes/`), public assets (`public/*`), deploy artifacts (`deploy/${SHA}/`) | **Versioning SUSPENDED** (was ON; suspended 2026-05-13 — see decisions log). SSE-S3. BPA partial (public path allowed for BIMI logo). **Lifecycle:** noncurrent versions expire after 1d; delete markers auto-cleaned (`ExpiredObjectDeleteMarker: true`); abort incomplete multipart 7d. Deploy artifacts (`deploy/` prefix) expire after 30d (S3 lifecycle rule — CI does not prune; see decisions log 2026-05-09). |
 | `rs-recruiting-frontend` | Frontend SPA bundle — CloudFront default-behavior origin | SSE-S3. **Lifecycle:** current versions expire after 3 days (stale bundle cleanup). CI syncs the new bundle and CloudFront serves from here; previous deploy's assets expire automatically. |
-| `<CLOUDTRAIL_BUCKET>` | CloudTrail logs | Versioning ON, SSE-S3, BPA full block |
+| `rs-recruiting-org-trail-*` | CloudTrail org-trail logs — **lives in the separate logs account (`rs-logs-admin`), not this account** | Versioning ON, SSE-S3, BPA full block |
 | ECR `rs-recruiting/api` | Backend image | IMMUTABLE, scanOnPush, lifecycle "keep last 10 images" (manually applied — no IaC) |
 
 ### IAM
 | Principal | Type | What it does |
 |---|---|---|
-| `lahav-admin` | User | Console + CLI admin (MFA on) |
-| `rs-recruiting-app-role` | EC2 instance profile | EC2-side: ECR pull, SSM read on `/rs-recruiting/*`, S3 `GetObject`/`PutObject`/`DeleteObject`/`DeleteObjectVersion`/`ListBucket`/`ListBucketVersions` on the app bucket, CW Logs write, namespace-scoped `cloudwatch:PutMetricData` for `RsRecruiting/Retention` |
-| `github-actions-rs-recruiting` | GHA OIDC | CI: ECR push, S3 write to deploy prefix, SSM SendCommand + PutParameter on CURRENT_SHA |
-| `github-role` | Older GHA role | Legacy — verify if still referenced; candidate for cleanup |
+| `rs-recruiting-prod-ec2-role` (instance profile `rs-recruiting-prod-ec2-profile`) | EC2 instance profile | Renamed from `rs-recruiting-app-role` during the #686 reorg. ECR pull, SSM read on `/rs-recruiting/prod/*` + `/rs-recruiting/infra/*` (write limited to `CURRENT_SHA`/`PREV_SHA`), S3 `GetObject`/`PutObject`/`DeleteObject`/`ListBucket` on the data bucket + read on the deploy bucket, SQS send/receive/delete on `rs-recruiting-tasks`, CW Logs write scoped to `/rs-recruiting/worker` only, `cloudwatch:GetMetricData`/`ListMetrics` (read-only, for Alloy's `prometheus.exporter.cloudwatch`). **No longer has `cloudwatch:PutMetricData`** — `RsRecruiting/Retention` namespace has zero metrics; the nightly `PurgedCandidatesCount` emit is likely broken. |
+| `rs-recruiting-prod-github-actions` | GHA OIDC | Renamed from `github-actions-rs-recruiting`. CI: ECR push, S3 write to deploy prefix, SSM SendCommand + PutParameter on CURRENT_SHA |
+| `rs-recruiting-prod-lambda-edge` | Lambda@Edge execution role | Bot-detection viewer-request function |
+| `rs-recruiting-prod-scheduler` | Service role | Not yet documented — verify usage |
 | `AWSDataLifecycleManagerDefaultRole` | Service | DLM weekly EC2 snapshot policy |
-| `AWS-QuickSetup-SSM-*` | Service | SSM fleet manager quick-setup (unused) |
 
+No IAM users remain in this account — `lahav-admin` was retired as part of the #686 reorg; human access is now via Identity Center (`lahav.rudik`, SSO).
 Account password policy: 14-char, mixed, 90-day rotation, 5-prev reuse-prevent.
 Default EBS encryption: ON (account-wide).
 
 ### Configuration
 | Resource | Notes |
 |---|---|
-| SSM `/rs-recruiting/prod/*` | App secrets (DATABASE_URL, JWT_SECRET_KEY, SMTP_*, STORAGE_PROVIDER, etc.) — SecureString where appropriate. **Naming convention: parameter names are UPPERCASE**; the app loader lowercases them to match snake_case Pydantic field names. Keep new params UPPERCASE for operator clarity. |
-| SSM `/rs-recruiting/infra/CURRENT_SHA` | String — current deployed SHA (deploy version pointer) |
-| SSM `/rs-recruiting/infra/TLS_CERT`, `TLS_KEY` | SecureString — **superseded** by ACM + CloudFront; no longer materialized at deploy time. Kept in SSM pending cleanup. |
-| SSM `/rs-recruiting/infra/GRAFANA_LOKI_URL` | SecureString — Grafana Cloud Loki push endpoint URL |
-| SSM `/rs-recruiting/infra/GRAFANA_LOKI_USER` | SecureString — Grafana Cloud Loki numeric instance ID |
-| SSM `/rs-recruiting/infra/GRAFANA_TEMPO_URL` | SecureString — Grafana Cloud Tempo OTLP endpoint URL |
-| SSM `/rs-recruiting/infra/GRAFANA_TEMPO_USER` | SecureString — Grafana Cloud Tempo numeric instance ID |
-| SSM `/rs-recruiting/infra/GRAFANA_PROMETHEUS_URL` | SecureString — Grafana Cloud Mimir remote_write URL |
-| SSM `/rs-recruiting/infra/GRAFANA_PROMETHEUS_USER` | SecureString — Grafana Cloud Mimir numeric instance ID |
-| SSM `/rs-recruiting/infra/GRAFANA_API_TOKEN` | SecureString — Grafana Cloud API token (scoped to Loki/Tempo/Mimir write) |
+| SSM `/rs-recruiting/prod/*` | App secrets (DATABASE_URL, JWT_SECRET_KEY, SMTP_*, STORAGE_PROVIDER, GA4_*, etc.) — SecureString where appropriate. **Naming convention: parameter names are UPPERCASE**; the app loader lowercases them to match snake_case Pydantic field names. Keep new params UPPERCASE for operator clarity. The Grafana Cloud credentials below also live under this prefix, not `/rs-recruiting/infra/` as previously documented. |
+| SSM `/rs-recruiting/infra/CURRENT_SHA`, `PREV_SHA` | String — current + previous deployed SHA (deploy version pointer + one-step rollback target for `scripts/rollback.sh`) |
+| SSM `/rs-recruiting/prod/GRAFANA_LOKI_URL`, `GRAFANA_LOKI_USER` | SecureString — Grafana Cloud Loki push endpoint URL + numeric instance ID |
+| SSM `/rs-recruiting/prod/GRAFANA_TEMPO_URL`, `GRAFANA_TEMPO_USER` | SecureString — Grafana Cloud Tempo OTLP endpoint URL + numeric instance ID |
+| SSM `/rs-recruiting/prod/GRAFANA_PROMETHEUS_URL`, `GRAFANA_PROMETHEUS_USER` | SecureString — Grafana Cloud Mimir remote_write URL + numeric instance ID |
+| SSM `/rs-recruiting/prod/GRAFANA_API_TOKEN` | SecureString — Grafana Cloud API token (scoped to Loki/Tempo/Mimir write) |
+| SSM `/rs-recruiting/prod/GRAFANA_ORG_ID` | SecureString — Grafana Cloud org/stack ID |
+| SSM `/rs-recruiting/prod/GRAFANA_SM_URL`, `GRAFANA_SM_ACCESS_TOKEN` | SecureString — Grafana Cloud Synthetic Monitoring API endpoint + access token (uptime checks, replaces the orphaned Route 53 health check + `rs-recruiting-uptime` alarm) |
 | KMS | 2 customer-managed keys (default RDS + SSM) |
 | Route 53 | 1 health check; no hosted zones (DNS at Cloudflare) |
 
@@ -202,40 +212,41 @@ Grafana Alloy (`grafana/alloy:v1.5.1`) runs as a sidecar container. It exposes a
 | nginx logs | Docker socket tail (Alloy `loki.source.docker`) | Grafana Cloud Loki |
 | App metrics | api + worker (OTLP) | Alloy → Grafana Cloud Mimir |
 | AWS metrics | Alloy `prometheus.exporter.cloudwatch` (EC2 CPU/net, RDS CPU/conns/storage, SQS depth) | Grafana Cloud Mimir |
-| Worker compliance logs | awslogs driver (parallel to OTLP) | CloudWatch `/rs-recruiting/worker` 400d |
+| Worker compliance logs | awslogs driver (parallel to OTLP) | CloudWatch `/rs-recruiting/worker` — **no retention policy set** (was documented as 400d; not actually configured) |
 
 `otelTraceID` and `otelSpanID` are injected into every log record by `LoggingInstrumentor(set_logging_format=True)` in `telemetry.py`, enabling Loki → Tempo correlation. Sentry errors carry a `trace_id` tag (set in `RequestMiddleware`) that links to the same Tempo trace.
 
 Credentials (`GRAFANA_LOKI_URL/USER`, `GRAFANA_TEMPO_URL/USER`, `GRAFANA_PROMETHEUS_URL/USER`, `GRAFANA_API_TOKEN`) are read from SSM by `deploy_ec2.sh` and injected as env vars into the Alloy container at startup.
 
-**CloudWatch — retained for compliance and alarms only:**
+**CloudWatch in the workload account — minimal, mostly orphaned:**
+
+As of 2026-06-10, the workload account (`rs-recruiting` prod) has **zero CloudWatch alarms, zero dashboards, and zero metric filters**. Every alarm/dashboard/filter previously documented here (`ec2-cpu-high-rs-server`, `rds-cpu-high`, `rds-connections-high`, `rds-storage-low`, `rs-recruiting-uptime`, `retention-purge-stale`, `SecurityAlarm-CloudTrailChanges`, `nginx-5xx-rate-high`, `auth-*`, dashboard `rs-recruiting-ops`) is gone — confirmed via `cloudwatch describe-alarms` / `list-dashboards` / `describe-metric-filters` returning empty. These were not deliberately migrated one-for-one; they appear to have been dropped during the #686 account/IAM reorg and not recreated. Grafana Cloud (Mimir alerting + Synthetic Monitoring) is now the only active alerting layer for prod.
 
 | Resource | Settings |
 |---|---|
-| Log group `/rs-recruiting/worker` | **400d retention** — compliance audit trail for `retention.purge candidate_id=` events (awslogs driver on worker container, parallel to OTLP) |
-| Log group `/aws/rds/instance/rs-recruiting-prod-db/postgresql` | RDS log export · **30d retention** |
-| Metric filter `nginx-5xx-errors` | `/rs-recruiting/nginx` · nginx combined log field pattern `status=5*` · emits `RsRecruiting/Nginx / Http5xxCount` (Sum, `defaultValue=0`) — **stale: nginx no longer ships to CloudWatch; filter is a no-op** |
-| Metric filter `auth-login-failed` | `/rs-recruiting/api` · `{ $.message = "login_failed" }` · emits `RsRecruiting/Auth / LoginFailedCount` — **stale: api logs route via OTLP, not CloudWatch** |
-| Metric filter `auth-account-locked` | `/rs-recruiting/api` · `{ $.message = "login_account_locked" }` · emits `RsRecruiting/Auth / AccountLockedCount` — **stale** |
-| Metric filter `auth-lockout-hit` | `/rs-recruiting/api` · `{ $.message = "login_lockout_hit" }` · emits `RsRecruiting/Auth / LockoutHitCount` — **stale** |
-| Metric filter `auth-rate-limited` | `/rs-recruiting/api` · `{ $.message = "rate_limit_hit" }` · emits `RsRecruiting/Auth / RateLimitHitCount` — **stale** |
-| Alarm `nginx-5xx-rate-high` | `Http5xxCount` Sum > 5 in 5 min → ops-alerts — **stale: metric filter is a no-op** |
-| Alarm `auth-login-failed-spike` | `LoginFailedCount` Sum > 10 in 5 min → ops-alerts — **stale** |
-| Alarm `ec2-cpu-high-rs-server` | EC2 CPU >80% for 30min → ops-alerts |
-| Alarm `rds-connections-high` | RDS connections high → ops-alerts |
-| Alarm `rds-cpu-high` | RDS CPU >80% for 30min → ops-alerts |
-| Alarm `rds-storage-low` | RDS free storage <4GB → ops-alerts |
-| Alarm `rs-recruiting-uptime` | Route53 health check failure → ops-alerts |
-| Alarm `retention-purge-stale` | No `PurgedCandidatesCount` datapoint in 26h → ops-alerts (see `RETENTION_PURGE.md`) |
-| Alarm `SecurityAlarm-CloudTrailChanges` | CloudTrail configuration changes → ops-alerts |
-| Dashboard `rs-recruiting-ops` | 6 panels: `Http5xxCount`, `PurgedCandidatesCount`, EC2 CPU, RDS CPU, RDS free storage, auth failures. **Partially stale** — panels backed by metric filters that no longer fire are empty. Grafana Cloud dashboard is the primary ops view. |
-| SNS `ops-alerts` | Email → `<OPS_EMAIL>` (confirmed). Consumers: 5 ops alarms + EventBridge rule `guardduty-findings`. Topic policy explicitly allows `events.amazonaws.com` to publish. |
-| CloudTrail `rs-recruiting-trail` | Multi-region, log file validation, → `rs-recruiting-cloudtrail-<ACCOUNT_ID>` |
-| GuardDuty detector `<GUARDDUTY_DETECTOR_ID>` | ENABLED, 15-minute finding frequency; primary input is CloudTrail (above) |
-| EventBridge rule `guardduty-findings` | Pattern: `source=aws.guardduty, detail-type=GuardDuty Finding`. Target: `ops-alerts` SNS with input transformer that flattens raw JSON into a human-readable email (severity, type, title, description, region, resource type) |
-| AWS Budget `monthly-40` | $40/mo cost budget with **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted |
+| Log group `/rs-recruiting/worker` | **No retention set** (documented as 400d — not configured). Compliance audit trail for `retention.purge candidate_id=` events (awslogs driver, parallel to OTLP). Only log group the EC2 role can still write to. |
+| Log group `/rs-recruiting/api` | **No retention set.** Orphaned — IAM no longer grants write access (api logs route via OTLP only). Contains stale pre-migration data (~30KB). |
+| Log group `/rs-recruiting/nginx` | **No retention set.** Orphaned — nginx logs route to Loki via Alloy's `loki.source.docker`. Contains stale pre-migration data (~1.7MB). |
+| Log group `/aws/lambda/us-east-1.rs-recruiting-prod-bot-detection` | **No retention set.** Lambda@Edge function logs (AWS-managed, replicated per-region). |
+| Log group `/aws/cloudfront/LambdaEdge/E2NPH508TQO0YO` | **No retention set.** CloudFront/Lambda@Edge access logs. |
+| GuardDuty detector | ENABLED, **6h finding frequency** (was documented as 15-minute) |
+| AWS RDS | **No CloudWatch log export enabled** (postgresql log export documented but not configured) |
 
-**Cleanup pending:** CloudWatch metric filters for api + nginx logs, their backed alarms (`nginx-5xx-rate-high`, `auth-*`), and the stale `rs-recruiting-ops` panels are dead weight now that logs route via OTLP. Delete them once Grafana Cloud alerting covers the same signals.
+**In the management account (`rs-admin`), not the workload account:**
+
+| Resource | Settings |
+|---|---|
+| SNS `ops-alerts` | Email → ops address (confirmed). Consumer: EventBridge rule `guardduty-findings`. |
+| EventBridge rule `guardduty-findings` | Pattern: `source=aws.guardduty, detail-type=GuardDuty Finding`. Target: `ops-alerts` SNS with input transformer that flattens raw JSON into a human-readable email (severity, type, title, description, region, resource type). Receives findings from the prod account's GuardDuty detector via the org delegated-admin setup. |
+| AWS Budget `monthly-40` | $40/mo cost budget, **4 direct EMAIL subscriptions** (no SNS): 50%/80%/100% actual + 100% forecasted. ~$15.91 actual / ~$38.71 forecasted as of 2026-06-10. |
+
+**CloudTrail:** the workload account's trail is `rs-recruiting-org-trail` (org-wide, multi-region, log file validation), delivering to a bucket in a separate logs account (`rs-logs-admin`, account ending `213059`) — not a same-account `rs-recruiting-cloudtrail-*` bucket as previously documented.
+
+**Known gaps surfaced by this audit (not yet fixed — flagged for follow-up):**
+- `/rs-recruiting/worker` has no retention policy, so the 400d compliance retention requirement for `retention.purge` audit logs is currently unmet.
+- The EC2 role lost `cloudwatch:PutMetricData`; `RsRecruiting/Retention` namespace has zero datapoints, so the nightly `PurgedCandidatesCount` emit (`tasks.py::_emit_purge_count_metric`) is likely failing silently.
+- The orphaned `/rs-recruiting/api` and `/rs-recruiting/nginx` log groups (and the two AWS-managed Lambda/CloudFront groups) have no retention and accrue storage cost indefinitely.
+- The Route 53 health check is unused (see Network notes above) — candidate for deletion once Grafana Synthetic Monitoring coverage is confirmed equivalent.
 
 ### Backup posture
 | Layer | Mechanism | Retention |
@@ -243,19 +254,24 @@ Credentials (`GRAFANA_LOKI_URL/USER`, `GRAFANA_TEMPO_URL/USER`, `GRAFANA_PROMETH
 | RDS | Automated daily snapshot | 7 days |
 | EC2 root EBS | DLM policy `<DLM_POLICY_ID>` weekly | Last 4 |
 | S3 (app bucket) | Versioning suspended — new writes get null version; `delete_file` purges all versions + markers explicitly | N/A (versioning off for new objects; lifecycle expires orphaned noncurrent versions within 1d) |
-| S3 (CloudTrail bucket) | Versioning | All versions kept |
+| S3 (CloudTrail bucket, `rs-logs-admin` account) | Versioning | All versions kept |
 
 ### Custom metrics namespace
-| Namespace | Metric | Source |
-|---|---|---|
-| `RsRecruiting/Retention` | `PurgedCandidatesCount` | Worker — Arq cron, see `tasks.py::_emit_purge_count_metric` |
-| `RsRecruiting/Auth` | `LoginFailedCount`, `AccountLockedCount`, `LockoutHitCount`, `RateLimitHitCount` | API — structured log events via CloudWatch metric filters |
+| Namespace | Metric | Source | Status |
+|---|---|---|---|
+| `RsRecruiting/Retention` | `PurgedCandidatesCount` | Worker — Arq cron, see `tasks.py::_emit_purge_count_metric` | **Broken** — namespace has zero datapoints; EC2 role lacks `cloudwatch:PutMetricData` (see Known gaps above) |
+| `RsRecruiting/Auth` | `LoginFailedCount`, `AccountLockedCount`, `LockoutHitCount`, `RateLimitHitCount` | API — structured log events via CloudWatch metric filters | **Removed** — backing metric filters and alarms no longer exist; auth events are still logged structurally and route to Loki via OTLP, but no CloudWatch/Grafana alert currently watches them |
 
 ---
 
 ## 4. Decisions log (append-only)
 
 Newest first. Each entry: date, what, why, links. When updating, append; don't rewrite history.
+
+### 2026-06-10 — Audit: doc vs. reality reconciliation post-#686 reorg + Grafana migration
+**Decision:** No infra changes — this is a documentation correction. Audited the prod account (`rs-prod-admin`) plus the management (`rs-admin`), security (`rs-security-admin`), and logs (`rs-logs-admin`) accounts via CLI and found the "CloudWatch — retained for compliance and alarms only" section (last touched 2026-06-05) no longer matched reality. The 9 documented alarms, the `rs-recruiting-ops` dashboard, and all 5 metric filters do not exist anywhere in the org — `describe-alarms`/`list-dashboards`/`describe-metric-filters` all return empty in the prod account. `ops-alerts` SNS and the `monthly-40` budget exist, but in the management account, not the workload account. The `rs-recruiting-app-role`/`github-actions-rs-recruiting` IAM principals were renamed to `rs-recruiting-prod-ec2-role`/`rs-recruiting-prod-github-actions` (with `rs-recruiting-prod-lambda-edge` and `rs-recruiting-prod-scheduler` added) and the `lahav-admin` IAM user is gone (Identity Center now). CloudTrail is now an org trail delivering to a bucket in the separate logs account. GuardDuty's finding frequency is 6h (not 15min). Grafana Cloud Synthetic Monitoring credentials exist in SSM under `/rs-recruiting/prod/GRAFANA_SM_*`, replacing the orphaned Route 53 health check + `rs-recruiting-uptime` alarm. Updated the topology diagram, resource inventory, IAM table, SSM table, and observability section to match.
+**Why:** This doc is the source of truth per the maintenance rules, but had drifted significantly — almost certainly because the #686 account/IAM reorg and the 2026-06-05 Grafana cutover both touched this area without a follow-up doc pass once the dust settled.
+**New gaps surfaced (not yet fixed):** `/rs-recruiting/worker` has no retention policy (compliance requirement is 400d); `RsRecruiting/Retention` → `PurgedCandidatesCount` is likely failing silently (EC2 role lost `cloudwatch:PutMetricData`); orphaned `/rs-recruiting/api` and `/rs-recruiting/nginx` log groups (plus 2 AWS-managed Lambda/CloudFront groups) have no retention. See "Known gaps" in the Observability section.
 
 ### 2026-06-05 — Grafana Cloud observability stack: Alloy → Loki / Tempo / Mimir
 **Decision:** Replace CloudWatch as the primary log/metric/trace backend with Grafana Cloud. Grafana Alloy (`v1.5.1`) runs as a sidecar container on EC2 and receives all telemetry from the api and worker containers via OTLP gRPC (port 4317 on loopback). Alloy fans out: traces → Grafana Cloud Tempo, structured logs → Grafana Cloud Loki, app metrics → Grafana Cloud Mimir, and AWS native metrics (EC2/RDS/SQS) scraped from CloudWatch → Mimir. nginx container logs are tailed from the Docker socket directly into Loki. The Python `LoggingInstrumentor(set_logging_format=True)` injects `otelTraceID`/`otelSpanID` into every log record for Loki→Tempo deep linking. `RequestMiddleware` sets a Sentry `trace_id` tag from the active OTel span so Sentry errors can be correlated to Tempo traces. Worker logs ship dual-path: OTLP → Loki (primary) and awslogs driver → CloudWatch `/rs-recruiting/worker` (compliance, 400d retention). CloudWatch alarms backed by now-dead metric filters (`nginx-5xx-rate-high`, `auth-*`) remain in AWS but are no-ops — cleanup tracked in the observability table above.
