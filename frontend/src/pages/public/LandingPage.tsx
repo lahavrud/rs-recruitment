@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 import { useAuth } from "@/hooks/useAuth";
 import SeoHead, { SITE_URL } from "@/components/ui/SeoHead";
+import { getPublicJobs } from "@/services/jobs";
+import type { JobPublicRead } from "@/types/api";
 import LandingHero from "./components/LandingHero";
 import LandingSectors from "./components/LandingSectors";
-import LandingAbout from "./components/LandingAbout";
 import LandingFeaturedJobs from "./components/LandingFeaturedJobs";
+import LandingClosingCta from "./components/LandingClosingCta";
 
 // Combined Organization + WebSite schema via @graph. WebSite gives Google a
 // canonical brand entity for the domain (helps consolidate the homepage and
@@ -25,13 +29,7 @@ const SITE_SCHEMA = {
       description:
         "משרד גיוס והשמה בוטיקי המתמחה בגיוס לתפקידי ניהול ותפעול מבנים ונכסים בישראל",
       areaServed: "IL",
-      knowsAbout: [
-        "ניהול מבנים",
-        "תפעול מבנים",
-        "ניהול נכסים",
-        "גיוס עובדים",
-        "השמה",
-      ],
+      knowsAbout: ["ניהול מבנים", "תפעול מבנים", "ניהול נכסים", "גיוס עובדים", "השמה"],
       contactPoint: {
         "@type": "ContactPoint",
         email: "support@rs-recruiting.com",
@@ -52,34 +50,58 @@ const SITE_SCHEMA = {
 };
 
 export default function LandingPage() {
-  const { t } = useTranslation(['https', 'landing']);
+  const { t } = useTranslation("landing");
   useAuth(); // keeps auth context initialised for child components
   const navigate = useNavigate();
-
-  const audienceRef = useRef<HTMLDivElement>(null);
-  const [audienceVisible, setAudienceVisible] = useState(false);
-  const [heroLoaded, setHeroLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Audience panels visibility via IntersectionObserver
+  const [jobs, setJobs] = useState<JobPublicRead[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+
+  // Inertia scrolling, scoped to the landing route only — the rest of the
+  // app keeps native scroll. Skipped entirely under prefers-reduced-motion.
   useEffect(() => {
-    const el = audienceRef.current;
-    if (!el || !("IntersectionObserver" in window)) { setAudienceVisible(true); return; }
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setAudienceVisible(true); obs.disconnect(); } },
-      { threshold: 0.2, rootMargin: "0px 0px -60px 0px" }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    const lenis = new Lenis({ autoRaf: true });
+    return () => lenis.destroy();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicJobs()
+      .then((page) => {
+        if (!cancelled) setJobs(page.items);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setJobsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    navigate(`/jobs${searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ""}`);
+    navigate(
+      `/jobs${searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ""}`,
+    );
   }
 
+  // overflow-x-clip: the hero's skewed plane and pre-reveal translated
+  // elements must not widen the document.
   return (
-    <div className="bg-page">
+    <div className="font-display relative overflow-x-clip bg-void">
+      {/* Container guides: vertical hairlines at the content column's
+          edges, running the full page over every section. Hidden below sm
+          where the column spans the viewport. z-10 keeps them above section
+          backgrounds. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-10 mx-auto hidden max-w-7xl border-x border-white/6 sm:block"
+      />
       <SeoHead
         title={t("landing:seo.title")}
         description={t("landing:seo.description")}
@@ -88,38 +110,17 @@ export default function LandingPage() {
         structuredData={SITE_SCHEMA}
       />
 
-      {/* ── Hero + audience panels share one image so they fade into each
-            other without a visible seam where the sections meet. ─────────── */}
-      <div className="relative overflow-hidden bg-void">
-        <picture>
-          <source type="image/webp" srcSet="/hero-city.webp" />
-          <img
-            src="/hero-city.jpg"
-            alt=""
-            aria-hidden="true"
-            onLoad={() => setHeroLoaded(true)}
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out"
-            style={{
-              objectPosition: "center 60%",
-              opacity: heroLoaded ? 1 : 0,
-            }}
-          />
-        </picture>
-
-        <LandingHero
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearchSubmit={handleSearch}
-          audienceVisible={audienceVisible}
-          audienceRef={audienceRef}
-        />
-      </div>
+      <LandingHero
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearchSubmit={handleSearch}
+      />
 
       <LandingSectors />
 
-      <LandingAbout />
+      <LandingFeaturedJobs jobs={jobs} loading={jobsLoading} />
 
-      <LandingFeaturedJobs />
+      <LandingClosingCta />
     </div>
   );
 }

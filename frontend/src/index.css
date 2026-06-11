@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&family=Heebo:wght@300;400;500;700;900&display=swap");
 
 @import "tailwindcss";
 
@@ -7,75 +7,99 @@
 }
 
 @keyframes cookie-up {
-  from { opacity: 0; transform: translateY(1rem); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes cookie-down {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(1rem); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
 }
 
 @theme {
   --animate-cookie-up: cookie-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-cookie-down: cookie-down 0.25s ease-in both;
+
+  /* Display face — landing page identity (Hebrew-first). Body stays Inter
+     app-wide; the landing leads the brand, the app follows gradually. */
+  --font-display: "Heebo", "Inter", system-ui, sans-serif;
   /* Warm neutral palette */
-  --color-canvas: #F7F5F1;
-  --color-surface: #FDFCFA;
-  --color-subtle: #EFEBE4;
-  --color-ink: #1C1917;
-  --color-ink-2: #57534E;
-  --color-ink-3: #A8A29E;
-  --color-line: #E7E2DA;
-  --color-line-2: #CEC6BB;
+  --color-canvas: #f7f5f1;
+  --color-surface: #fdfcfa;
+  --color-subtle: #efebe4;
+  --color-ink: #1c1917;
+  --color-ink-2: #57534e;
+  --color-ink-3: #a8a29e;
+  --color-line: #e7e2da;
+  --color-line-2: #cec6bb;
 
   /* Brand */
-  --color-copper: #B87333;
-  --color-copper-dark: #8B5A1E;
-  --color-gold: #C9A84C;
-  --color-gold-light: #DDBF72;
+  --color-copper: #b87333;
+  --color-copper-dark: #8b5a1e;
+  --color-gold: #c9a84c;
+  --color-gold-light: #ddbf72;
   --color-nickel: #727472;
 
+  /* Warm-sunset accents — used only by the landing hero's light pillar to
+     give it chromatic hue travel (plum → wine → copper → gold) without
+     introducing cold or candy-pink colors. Not for UI surfaces or text. */
+  --color-plum: #5a2a4a;
+  --color-wine: #8c4a55;
+
   /* Darker surface variants for landing page sections */
-  --color-canvas-dark: #DDD5C8;
-  --color-surface-dark: #E6DFD5;
+  --color-canvas-dark: #ddd5c8;
+  --color-surface-dark: #e6dfd5;
 
   /* Dark mode surfaces — ordered deepest → most elevated */
-  --color-void: #0D0B09;         /* header, nav, auth page backgrounds */
-  --color-page: #121110;          /* main app / content area background */
-  --color-well: #141210;          /* form inputs, table headers */
-  --color-section: #181614;       /* dark section backgrounds */
-  --color-card: #1A1816;          /* card and panel surfaces */
-  --color-card-raised: #1E1C1A;   /* elevated cards, modals, hover states */
+  --color-void: #0d0b09; /* header, nav, auth page backgrounds */
+  --color-page: #121110; /* main app / content area background */
+  --color-well: #141210; /* form inputs, table headers */
+  --color-section: #181614; /* dark section backgrounds */
+  --color-card: #1a1816; /* card and panel surfaces */
+  --color-card-raised: #1e1c1a; /* elevated cards, modals, hover states */
 
   /* Status */
-  --color-success: #2D7D46;
-  --color-warning: #B8860B;
-  --color-danger: #C72A2A;
-  --color-info: #3B6B9A;
-  --color-hired: #7C3AED;
+  --color-success: #2d7d46;
+  --color-warning: #b8860b;
+  --color-danger: #c72a2a;
+  --color-info: #3b6b9a;
+  --color-hired: #7c3aed;
 }
 
 html {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .font-wordmark {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: "Playfair Display", Georgia, serif;
 }
 
 /* Paper grain — dark (hero) */
 .texture-wave {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Ccircle cx='23' cy='47' r='1.2' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='87' cy='112' r='0.8' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='156' cy='23' r='1.5' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='234' cy='89' r='1.0' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='312' cy='167' r='0.9' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='67' cy='234' r='1.3' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='178' cy='178' r='0.8' fill='%23ffffff' opacity='0.025'/%3E%3Ccircle cx='345' cy='56' r='1.1' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='45' cy='312' r='0.7' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='267' cy='289' r='1.4' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='123' cy='345' r='0.9' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='389' cy='234' r='1.0' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='198' cy='134' r='0.8' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='56' cy='178' r='1.2' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='312' cy='12' r='0.7' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='145' cy='267' r='1.3' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='378' cy='345' r='0.9' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='234' cy='378' r='1.1' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='89' cy='89' r='1.0' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='278' cy='156' r='0.8' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='34' cy='145' r='1.4' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='167' cy='312' r='0.9' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='356' cy='178' r='1.2' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='112' cy='389' r='0.7' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='289' cy='45' r='1.0' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='45' cy='267' r='1.3' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='201' cy='201' r='0.8' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='367' cy='289' r='1.1' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='78' cy='156' r='0.9' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='323' cy='345' r='1.5' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='134' cy='78' r='1.2' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='245' cy='234' r='0.7' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='189' cy='389' r='1.0' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='389' cy='112' r='0.8' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='12' cy='356' r='1.3' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='256' cy='23' r='0.9' fill='%23ffffff' opacity='0.035'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Ccircle cx='23' cy='47' r='1.2' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='87' cy='112' r='0.8' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='156' cy='23' r='1.5' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='234' cy='89' r='1.0' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='312' cy='167' r='0.9' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='67' cy='234' r='1.3' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='178' cy='178' r='0.8' fill='%23ffffff' opacity='0.025'/%3E%3Ccircle cx='345' cy='56' r='1.1' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='45' cy='312' r='0.7' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='267' cy='289' r='1.4' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='123' cy='345' r='0.9' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='389' cy='234' r='1.0' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='198' cy='134' r='0.8' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='56' cy='178' r='1.2' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='312' cy='12' r='0.7' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='145' cy='267' r='1.3' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='378' cy='345' r='0.9' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='234' cy='378' r='1.1' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='89' cy='89' r='1.0' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='278' cy='156' r='0.8' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='34' cy='145' r='1.4' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='167' cy='312' r='0.9' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='356' cy='178' r='1.2' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='112' cy='389' r='0.7' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='289' cy='45' r='1.0' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='45' cy='267' r='1.3' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='201' cy='201' r='0.8' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='367' cy='289' r='1.1' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='78' cy='156' r='0.9' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='323' cy='345' r='1.5' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='134' cy='78' r='1.2' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='245' cy='234' r='0.7' fill='%23ffffff' opacity='0.035'/%3E%3Ccircle cx='189' cy='389' r='1.0' fill='%23ffffff' opacity='0.03'/%3E%3Ccircle cx='389' cy='112' r='0.8' fill='%23ffffff' opacity='0.045'/%3E%3Ccircle cx='12' cy='356' r='1.3' fill='%23ffffff' opacity='0.04'/%3E%3Ccircle cx='256' cy='23' r='0.9' fill='%23ffffff' opacity='0.035'/%3E%3C/svg%3E");
   background-size: 400px 400px;
   background-repeat: repeat;
 }
 
 /* Paper grain — for light sections */
 .texture-paper {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Ccircle cx='20' cy='20' r='1' fill='%23907060' opacity='0.1'/%3E%3Ccircle cx='80' cy='55' r='0.8' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='140' cy='30' r='1.2' fill='%23907060' opacity='0.06'/%3E%3Ccircle cx='170' cy='90' r='0.9' fill='%23907060' opacity='0.09'/%3E%3Ccircle cx='50' cy='120' r='1' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='110' cy='160' r='0.7' fill='%23907060' opacity='0.08'/%3E%3Ccircle cx='30' cy='175' r='1.1' fill='%23907060' opacity='0.08'/%3E%3Ccircle cx='190' cy='145' r='0.8' fill='%23907060' opacity='0.11'/%3E%3Ccircle cx='95' cy='95' r='1' fill='%23907060' opacity='0.05'/%3E%3Ccircle cx='155' cy='170' r='0.9' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='60' cy='10' r='0.7' fill='%23907060' opacity='0.09'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Ccircle cx='20' cy='20' r='1' fill='%23907060' opacity='0.1'/%3E%3Ccircle cx='80' cy='55' r='0.8' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='140' cy='30' r='1.2' fill='%23907060' opacity='0.06'/%3E%3Ccircle cx='170' cy='90' r='0.9' fill='%23907060' opacity='0.09'/%3E%3Ccircle cx='50' cy='120' r='1' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='110' cy='160' r='0.7' fill='%23907060' opacity='0.08'/%3E%3Ccircle cx='30' cy='175' r='1.1' fill='%23907060' opacity='0.08'/%3E%3Ccircle cx='190' cy='145' r='0.8' fill='%23907060' opacity='0.11'/%3E%3Ccircle cx='95' cy='95' r='1' fill='%23907060' opacity='0.05'/%3E%3Ccircle cx='155' cy='170' r='0.9' fill='%23907060' opacity='0.07'/%3E%3Ccircle cx='60' cy='10' r='0.7' fill='%23907060' opacity='0.09'/%3E%3C/svg%3E");
   background-size: 200px 200px;
   background-repeat: repeat;
 }
@@ -86,22 +110,18 @@ html {
     transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
     filter 0.4s ease-out,
     opacity 0.35s ease-out;
-  transform:
-    rotateY(calc(var(--offset, 0) * 28deg))
+  transform: rotateY(calc(var(--offset, 0) * 28deg))
     translateZ(calc(var(--abs-offset, 0) * -80px))
     translateX(calc(var(--direction, 0) * (var(--abs-offset, 0) * 62%)))
     scale(calc(1 - var(--abs-offset, 0) * 0.09));
-  filter:
-    brightness(calc(1 - var(--abs-offset, 0) * 0.45))
+  filter: brightness(calc(1 - var(--abs-offset, 0) * 0.45))
     blur(calc(var(--abs-offset, 0) * 0.8px));
 }
 
 /* On desktop: side cards brighten and sharpen on hover — invites clicking */
 @media (min-width: 640px) {
   .carousel-card:hover {
-    filter:
-      brightness(calc(1 - var(--abs-offset, 0) * 0.18))
-      blur(0px);
+    filter: brightness(calc(1 - var(--abs-offset, 0) * 0.18)) blur(0px);
   }
 }
 
@@ -157,21 +177,41 @@ html {
 /* Mobile: replace 3D entrance animations with a simple fade-up */
 @media (max-width: 639px) {
   @keyframes card-tilt-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes card-rise-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes card-swing-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
 .feature-card {
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
   position: relative;
 }
 
@@ -215,7 +255,6 @@ html {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-copper) 15%, transparent);
 }
 
-
 @keyframes page-in {
   from {
     opacity: 0;
@@ -237,89 +276,167 @@ html {
 /* Text rises from below its container — requires overflow:hidden on parent.
    Used for headlines, eyebrow labels, and the philosophy quote words.         */
 @keyframes text-rise {
-  from { transform: translateY(110%); }
-  to   { transform: translateY(0); }
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 /* Colored panel slides out of frame to reveal the image underneath.
    Attach to an absolute-positioned sibling that overlays the image.           */
 @keyframes panel-wipe {
-  from { transform: translateX(0%); }
-  to   { transform: translateX(-101%); }
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-101%);
+  }
 }
 
 /* Background image emerges from blur + darkness — cinematic reveal.           */
 @keyframes focus-in {
-  from { filter: blur(20px) brightness(0.2); transform: scale(1.08); opacity: 0; }
-  to   { filter: blur(0px)  brightness(1);   transform: scale(1);    opacity: 1; }
+  from {
+    filter: blur(20px) brightness(0.2);
+    transform: scale(1.08);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0px) brightness(1);
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Subtle fade — for decorative / secondary elements (watermarks, etc.)        */
 @keyframes luxury-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* General scroll-reveal with a slight scale settle                            */
 @keyframes reveal-up {
-  from { opacity: 0; transform: translateY(28px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Directional slides for asymmetric rows                                      */
 @keyframes reveal-from-right {
-  from { opacity: 0; transform: translateX(28px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes reveal-from-left {
-  from { opacity: 0; transform: translateX(-28px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Horizontal rule draws from transform-origin (set inline to right for RTL)  */
 @keyframes line-expand-h {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Image wipe via clip-path — no overlay needed, no corner bleed.
    Reveals right-to-left (start side in RTL = natural reading direction). */
 @keyframes clip-wipe-reveal {
-  from { clip-path: inset(0 0 0 100% round 0.75rem); }
-  to   { clip-path: inset(0 0 0 0% round 0.75rem); }
+  from {
+    clip-path: inset(0 0 0 100% round 0.75rem);
+  }
+  to {
+    clip-path: inset(0 0 0 0% round 0.75rem);
+  }
 }
 
 /* Manifesto ellipse burst — starts as a solid dot, expands outward.
    Inner text counter-fades in only after the ellipse has expanded.            */
 @keyframes ellipse-burst {
-  from { transform: scale(0.01); opacity: 0; }
-  20%  { opacity: 1; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.01);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 @keyframes manifesto-text-in {
-  from { opacity: 0; transform: scale(1.08); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Section-level entrance — content rises with scale settle
    Uses power3.out equivalent: cubic-bezier(0.215, 0.61, 0.355, 1)            */
 @keyframes section-rise {
-  from { opacity: 0; transform: translateY(56px) scale(0.98); }
-  55%  { opacity: 1; }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(56px) scale(0.98);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Card-level reveal — UI cards, lighter than section-rise                     */
 @keyframes card-reveal {
-  from { opacity: 0; transform: translateY(36px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Clip-based text reveal — requires overflow:hidden parent.
    Text slides UP from below the clipping boundary, never visible beforehand.  */
 @keyframes text-clip-rise {
-  from { transform: translateY(105%); }
-  to   { transform: none; }
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: none;
+  }
 }
 
 /* Article body typography — Hebrew prose with copper accents. Used by
@@ -349,8 +466,12 @@ html {
   margin-bottom: 1rem;
   padding-inline-start: 1.25rem;
 }
-.prose-article ul { list-style: disc; }
-.prose-article ol { list-style: decimal; }
+.prose-article ul {
+  list-style: disc;
+}
+.prose-article ol {
+  list-style: decimal;
+}
 .prose-article li {
   margin-bottom: 0.4rem;
 }
@@ -379,21 +500,87 @@ html {
 
 /* Pill that appears + fades out (swipe hint). Used by SwipeHint. */
 @keyframes triage-hint-fade {
-  0%   { opacity: 0; transform: translateY(8px); }
-  12%  { opacity: 1; transform: translateY(0); }
-  85%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(8px); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 /* Toast slides up into view. Used by UndoToast. */
 @keyframes triage-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* View/edit content swap inside the job dialog — a soft settle-in rather
    than an abrupt swap, without animating layout height. Used by JobDialog. */
 @keyframes job-mode-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+/* ── Landing design language ────────────────────────────────────────────────
+   Warm-black space and brass hairlines over a Stripe-style diagonal layout.
+   Motion lives in motion/react; CSS owns the ambient layers. */
+
+/* Client marquee — moving: colorful marks; paused (hover/drag): the band
+   drops to mono and only the mark under the cursor stays lit. Per-logo
+   filters arrive via CSS custom properties set inline. */
+.client-logo {
+  filter: var(--logo-color);
+  opacity: 0.9;
+  /* Quick and shallow — the mono shift should register barely, not
+     announce itself. */
+  transition:
+    filter 0.25s ease,
+    opacity 0.25s ease;
+}
+/* The mono dim only exists where hover exists — on touch screens the band
+   pauses for dragging but stays in color. */
+@media (min-width: 640px) {
+  .marquee-paused .client-logo {
+    filter: var(--logo-mono);
+    opacity: 0.75;
+  }
+  .marquee-paused .client-logo:hover {
+    filter: var(--logo-color);
+    opacity: 1;
+  }
+}
+
+/* Brass hairline — the 1px lit edge of a slab. */
+.brass-hairline {
+  background: linear-gradient(
+    to left,
+    transparent,
+    color-mix(in srgb, var(--color-copper) 55%, transparent) 30%,
+    color-mix(in srgb, var(--color-gold) 75%, transparent) 50%,
+    color-mix(in srgb, var(--color-copper) 55%, transparent) 70%,
+    transparent
+  );
+}
+
