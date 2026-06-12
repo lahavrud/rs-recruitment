@@ -548,6 +548,13 @@ html {
    Warm-black space and brass hairlines over a Stripe-style diagonal layout.
    Motion lives in motion/react; CSS owns the ambient layers. */
 
+:root {
+  /* Gap reserved between the hero copy and the client-logo ribbon — shared
+     by LandingHero's spacer and LandingSilk's host inset so the silk's
+     bottom edge always lands exactly on the ribbon. */
+  --landing-ribbon-gap: clamp(1rem, 4dvh, 2.75rem);
+}
+
 /* Client marquee — moving: colorful marks; paused (hover/drag): the band
    drops to mono and only the mark under the cursor stays lit. Per-logo
    filters arrive via CSS custom properties set inline. */

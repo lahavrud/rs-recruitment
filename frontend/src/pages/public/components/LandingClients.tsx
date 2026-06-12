@@ -7,6 +7,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { fadeRise } from "./landingMotionUtils";
+import LandingEyebrow from "./LandingEyebrow";
 
 /* Client logo marquee: marks drift by in color; on hover or drag the
    track pauses and drops to mono.
@@ -79,17 +80,6 @@ export default function LandingClients() {
     return () => observer.disconnect();
   }, []);
 
-  // Prime the decoded-image cache up front so the logos never pop in blank as
-  // they scroll into view (the imgs decode async, so this never blocks rAF).
-  useEffect(() => {
-    for (const { src } of CLIENTS) {
-      const img = new Image();
-      img.src = src;
-      const decoding = img.decode?.();
-      decoding?.catch(() => {});
-    }
-  }, []);
-
   // Drift left by exactly one copy's width, then wrap — the spare copies keep
   // the strip filled across the seam.
   useAnimationFrame((_, delta) => {
@@ -98,7 +88,7 @@ export default function LandingClients() {
     const current = x.get();
     if (!paused) {
       x.set(wrap(-w, 0, current - (SPEED_PX_S * delta) / 1000));
-    } else if (current <= -w || current > 0) {
+    } else if (current < -w || current > 0) {
       // While dragging, only step in to re-wrap at the loop seam.
       x.set(wrap(-w, 0, current));
     }
@@ -117,9 +107,9 @@ export default function LandingClients() {
         viewport={{ once: true, amount: 0.4 }}
         className="mx-auto max-w-7xl bg-section px-6 py-[clamp(0.5rem,2dvh,1.25rem)] sm:px-12"
       >
-        <p className="text-center text-xs font-medium tracking-widest text-copper">
+        <LandingEyebrow className="text-center">
           {t("landing:clients.eyebrow")}
-        </p>
+        </LandingEyebrow>
 
         <div
           ref={viewportRef}

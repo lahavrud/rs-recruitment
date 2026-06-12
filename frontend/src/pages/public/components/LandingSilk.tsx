@@ -125,11 +125,38 @@ export default function LandingSilk() {
     });
     ro.observe(host);
 
+    // GPU processes get suspended (and lose their WebGL context) when the
+    // window is minimized; the browser fires `webglcontextrestored` once
+    // it's back, but the old GL resources are gone — rebuild the renderer.
+    // Shared between the reduced-motion and animated paths so a context loss
+    // while reduced motion is active still falls back to the CSS wash and
+    // recovers (redrawing the static frame) on restore.
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+      stop();
+      canvas.style.display = "none";
+    };
+    const onContextRestored = () => {
+      renderer?.dispose();
+      renderer = createSilkRenderer(canvas, readSilkPalette());
+      if (!renderer) {
+        return;
+      }
+      canvas.style.display = "";
+      fit();
+      if (reduceMotion) return;
+      if (intersecting) start();
+    };
+    canvas.addEventListener("webglcontextlost", onContextLost);
+    canvas.addEventListener("webglcontextrestored", onContextRestored);
+
     if (reduceMotion) {
       return () => {
         refitRef.current = () => {};
         cancelAnimationFrame(fitRaf);
         ro.disconnect();
+        canvas.removeEventListener("webglcontextlost", onContextLost);
+        canvas.removeEventListener("webglcontextrestored", onContextRestored);
         renderer?.dispose();
       };
     }
@@ -150,27 +177,6 @@ export default function LandingSilk() {
     });
     io.observe(host);
 
-    // GPU processes get suspended (and lose their WebGL context) when the
-    // window is minimized; the browser fires `webglcontextrestored` once
-    // it's back, but the old GL resources are gone — rebuild the renderer.
-    const onContextLost = (e: Event) => {
-      e.preventDefault();
-      stop();
-      canvas.style.display = "none";
-    };
-    const onContextRestored = () => {
-      renderer?.dispose();
-      renderer = createSilkRenderer(canvas, readSilkPalette());
-      if (!renderer) {
-        return;
-      }
-      canvas.style.display = "";
-      fit();
-      if (intersecting) start();
-    };
-    canvas.addEventListener("webglcontextlost", onContextLost);
-    canvas.addEventListener("webglcontextrestored", onContextRestored);
-
     return () => {
       refitRef.current = () => {};
       stop();
@@ -187,12 +193,13 @@ export default function LandingSilk() {
   return (
     /* Stage rides the content column (same pattern as the page's guide
        hairlines), inset 1px so the guides stay visible as cutting edges.
-       The negative bottom extends through the hero's reserved spacer —
-       keep it in sync with the spacer in LandingHero — so the canvas's
-       bottom edge lands exactly on the client ribbon, which cuts the silk. */
+       The negative bottom extends through the hero's reserved spacer — both
+       read the shared --landing-ribbon-gap custom property (index.css) —
+       so the canvas's bottom edge lands exactly on the client ribbon, which
+       cuts the silk. */
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-px top-0 -bottom-[clamp(1rem,4dvh,2.75rem)] mx-auto max-w-7xl"
+      className="pointer-events-none absolute inset-x-px top-0 -bottom-[var(--landing-ribbon-gap)] mx-auto max-w-7xl"
     >
       {/* end-0 = the visual left in RTL: the void beside the hero copy. */}
       <div

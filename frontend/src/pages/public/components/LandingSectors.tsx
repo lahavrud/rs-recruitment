@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, useReducedMotion } from "motion/react";
 import { staggerContainer, fadeRise, VIEWPORT_ONCE } from "./landingMotionUtils";
+import LandingEyebrow from "./LandingEyebrow";
 
 const SECTORS = [
   { titleKey: "landing:sectors.s1Title", subKey: "landing:sectors.s1Sub" },
@@ -26,12 +27,7 @@ export default function LandingSectors() {
         viewport={VIEWPORT_ONCE}
         className="mx-auto max-w-7xl px-6 sm:px-12"
       >
-        <motion.p
-          variants={fadeRise}
-          className="text-xs font-medium tracking-widest text-copper"
-        >
-          {t("landing:sectors.eyebrow")}
-        </motion.p>
+        <LandingEyebrow>{t("landing:sectors.eyebrow")}</LandingEyebrow>
         <motion.h2
           variants={fadeRise}
           className="font-display mt-4 max-w-2xl text-3xl font-black leading-tight text-white/95 sm:text-5xl"

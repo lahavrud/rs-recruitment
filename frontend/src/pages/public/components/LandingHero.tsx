@@ -123,8 +123,10 @@ export default function LandingHero({
           it sits within the hero rather than pinned to the very bottom. */}
       {/* Reserved margin between the hero copy and the ribbon. It sits
           outside the clipped copy column, so even when the copy compresses to
-          its floor on a short window this gap is never eaten into. */}
-      <div aria-hidden="true" className="h-[clamp(1rem,4dvh,2.75rem)] shrink-0" />
+          its floor on a short window this gap is never eaten into.
+          Height comes from the shared --landing-ribbon-gap custom property
+          (index.css), which LandingSilk's host inset also reads. */}
+      <div aria-hidden="true" className="h-[var(--landing-ribbon-gap)] shrink-0" />
 
       <LandingClients />
       <div aria-hidden="true" className="h-[clamp(1.25rem,4dvh,3.5rem)] shrink-0" />

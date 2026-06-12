@@ -11,6 +11,7 @@ import {
   VIEWPORT_ONCE,
   EASE_OUT,
 } from "./landingMotionUtils";
+import LandingEyebrow from "./LandingEyebrow";
 
 const MAX_CARDS = 5;
 const MAX_VISIBLE_DEPTH = 3;
@@ -133,12 +134,7 @@ export default function LandingFeaturedJobs({
       >
         {/* Text column */}
         <div>
-          <motion.p
-            variants={fadeRise}
-            className="text-xs font-medium tracking-widest text-copper"
-          >
-            {t("landing:featuredJobs.eyebrow")}
-          </motion.p>
+          <LandingEyebrow>{t("landing:featuredJobs.eyebrow")}</LandingEyebrow>
           <motion.h2
             variants={fadeRise}
             className="font-display mt-4 text-3xl font-black leading-tight text-white/95 sm:text-5xl"
