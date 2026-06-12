@@ -52,9 +52,10 @@
   --color-gold-light: #ddbf72;
   --color-nickel: #727472;
 
-  /* Warm-sunset accents — used only by the landing hero's light pillar to
-     give it chromatic hue travel (plum → wine → copper → gold) without
-     introducing cold or candy-pink colors. Not for UI surfaces or text. */
+  /* Warm-sunset accents — used only by the landing hero's silk backdrop
+     (LandingSilk reads them at runtime) to give it chromatic hue travel
+     (plum → wine → copper → gold) without introducing cold or candy-pink
+     colors. Not for UI surfaces or text. */
   --color-plum: #5a2a4a;
   --color-wine: #8c4a55;
 
@@ -583,4 +584,3 @@ html {
     transparent
   );
 }
-
