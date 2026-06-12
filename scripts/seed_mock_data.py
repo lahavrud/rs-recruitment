@@ -3,6 +3,7 @@
 
 שימוש:
     PYTHONPATH=. uv run python scripts/seed_mock_data.py
+    PYTHONPATH=. uv run python scripts/seed_mock_data.py --reset  # מאפס לפני ההזרעה
 
 הרץ לאחר הפעלת הבקאנד (docker compose up) והוספת משתמש מנהל.
 
@@ -10,20 +11,34 @@
     - 1 משתמש מנהל (admin@rsrecruit.com / Admin123!)
     - 3 חברות עם פרופילים
     - 15 משרות (5 לכל חברה, סטטוסים מעורבים)
-    - 8 פרופילי מועמדים
-    - כ-12 מועמדויות (סטטוסים שונים)
+    - 8 פרופילי מועמדים (4 רשומים עם משתמש + הסכמת פרטיות, 4 לידים אנונימיים)
+    - כ-16 מועמדויות (סטטוסים שונים, עם תשובות שאלון ראיון וקובץ קו"ח)
 """
 
+import argparse
 import asyncio
+import hashlib
+from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from src.core.infrastructure.config import settings
 from src.core.infrastructure.database import async_session, init_db
 from src.core.infrastructure.security import get_password_hash
 from src.core.services.storage_local import LocalStorageProvider
 from src.enums import ApplicationStatus, JobStatus, UserRole
-from src.models import Application, CandidateProfile, CompanyProfile, Job, User
+from src.models import (
+    Application,
+    CandidateProfile,
+    CompanyProfile,
+    InviteToken,
+    Job,
+    User,
+)
+from src.services.utils.legal import (
+    CURRENT_PRIVACY_POLICY_VERSION,
+    CURRENT_TERMS_OF_SERVICE_VERSION,
+)
 
 # Minimal valid single-page PDF used as a placeholder resume in seed data
 _PLACEHOLDER_PDF = (
@@ -39,10 +54,21 @@ _PLACEHOLDER_PDF = (
     b"trailer<</Size 4/Root 1 0 R>>\n"
     b"startxref\n150\n%%EOF\n"
 )
+_PLACEHOLDER_PDF_HASH = hashlib.sha256(_PLACEHOLDER_PDF).hexdigest()
+
+# Reserved documentation IP (RFC 5737 TEST-NET-3) — never a real client address
+_MOCK_CONSENT_IP = "203.0.113.10"
+_MOCK_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
 
 # ── מנהל ──
 ADMIN_EMAIL = "admin@rsrecruit.com"
 ADMIN_PASSWORD = "Admin123!"  # pragma: allowlist secret
+
+# ── מועמד רשום ──
+CANDIDATE_PASSWORD = "Candidate123!"  # pragma: allowlist secret
 
 # ── חברות ──
 COMPANIES = [
@@ -337,6 +363,13 @@ JOBS_BY_COMPANY = [
 ]
 
 # ── מועמדים ──
+# `registered` candidates have a linked CANDIDATE user account (password
+# CANDIDATE_PASSWORD) and privacy/ToS consent on file — mirroring a
+# completed /register-candidate + activation flow. The rest are anonymous
+# leads created via the public apply form (no user_id, no consent).
+# `service_concept` / `salary_expectations` / `strength` / `growth_area` are
+# interview-questionnaire answers — these live on `Application`, not
+# `CandidateProfile` (see commit 6866251).
 CANDIDATES = [
     {
         "full_name": "אחמד פאהום",
@@ -344,13 +377,14 @@ CANDIDATES = [
         "phone": "0500000101",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-1",
         "resume": True,
+        "registered": True,
         "service_concept": (
             "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
             "אני מאמין בתקשורת יזומה — לעדכן לפני שמבקשים."
         ),
         "salary_expectations": "18,000–22,000 ₪ לחודש",
-        "personality_strength": "רגוע תחת לחץ ומאוד שיטתי",
-        "personality_weakness": "לפעמים מרבה לעסוק בפרטים הקטנים",
+        "strength": "רגוע תחת לחץ ומאוד שיטתי",
+        "growth_area": "לפעמים מרבה לעסוק בפרטים הקטנים",
     },
     {
         "full_name": "מאיה בן-דוד",
@@ -358,13 +392,14 @@ CANDIDATES = [
         "phone": "0500000102",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-2",
         "resume": True,
+        "registered": True,
         "service_concept": (
             "הלקוח צריך להרגיש שיש מישהו שאחראי. "
             "אני מגדירה ציפיות ברורות מהרגע הראשון ומעדכנת בכל שלב."
         ),
         "salary_expectations": "23,000–28,000 ₪ לחודש",
-        "personality_strength": "מנהיגות חזקה ותיאום צוות",
-        "personality_weakness": "נוטה לקחת על עצמה יותר מדי משימות",
+        "strength": "מנהיגות חזקה ותיאום צוות",
+        "growth_area": "נוטה לקחת על עצמה יותר מדי משימות",
     },
     {
         "full_name": "יוסי ממן",
@@ -372,13 +407,14 @@ CANDIDATES = [
         "phone": "0500000103",
         "linkedin_url": None,
         "resume": False,
+        "registered": False,
         "service_concept": (
             "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. "
             "אני לא עוזב אתר עד שהדבר תוקן לגמרי."
         ),
         "salary_expectations": "12,000–15,000 ₪ לחודש",
-        "personality_strength": "אמין, חרוץ, מצוין עם אנשים",
-        "personality_weakness": "אנגלית מוגבלת",
+        "strength": "אמין, חרוץ, מצוין עם אנשים",
+        "growth_area": "אנגלית מוגבלת",
     },
     {
         "full_name": "רינת שפירא",
@@ -386,13 +422,14 @@ CANDIDATES = [
         "phone": "0500000104",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-4",
         "resume": True,
+        "registered": True,
         "service_concept": (
             "שירות טוב מבוסס על סדר ומעקב. "
             "כל פנייה מקבלת מענה, כל הבטחה מתועדת ומקוימת."
         ),
         "salary_expectations": "16,000–20,000 ₪ לחודש",
-        "personality_strength": "ארגון ותכנון מעולים",
-        "personality_weakness": "לעיתים מתקשה להאציל משימות",
+        "strength": "ארגון ותכנון מעולים",
+        "growth_area": "לעיתים מתקשה להאציל משימות",
     },
     {
         "full_name": "שלמה אברהם",
@@ -400,13 +437,14 @@ CANDIDATES = [
         "phone": "0500000105",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-5",
         "resume": True,
+        "registered": False,
         "service_concept": (
             "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
             "אנשים צריכים להבין את הבעיה כדי לסמוך על הפתרון."
         ),
         "salary_expectations": "14,000–18,000 ₪ לחודש",
-        "personality_strength": "פותר בעיות מעשי, לומד מהר",
-        "personality_weakness": "מעדיף עבודה עצמאית על פני צוות גדול",
+        "strength": "פותר בעיות מעשי, לומד מהר",
+        "growth_area": "מעדיף עבודה עצמאית על פני צוות גדול",
     },
     {
         "full_name": "ליאת אוחנה",
@@ -414,13 +452,14 @@ CANDIDATES = [
         "phone": "0500000106",
         "linkedin_url": None,
         "resume": False,
+        "registered": False,
         "service_concept": (
             "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. "
             "הרושם הראשוני הוא כל הביקור."
         ),
         "salary_expectations": "10,000–13,000 ₪ לחודש",
-        "personality_strength": "ידידותית, מאורגנת, נוכחות טלפונית מצוינת",
-        "personality_weakness": "אין רקע טכני",
+        "strength": "ידידותית, מאורגנת, נוכחות טלפונית מצוינת",
+        "growth_area": "אין רקע טכני",
     },
     {
         "full_name": "עמיר גולן",
@@ -428,13 +467,14 @@ CANDIDATES = [
         "phone": "0500000107",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-7",
         "resume": True,
+        "registered": True,
         "service_concept": (
             "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
             "אני מעדיף תחזוקה מונעת על פני תיקון בשעת חירום."
         ),
         "salary_expectations": "25,000–32,000 ₪ לחודש",
-        "personality_strength": "חשיבה אסטרטגית וידע טכני רחב",
-        "personality_weakness": "חסר סבלנות לתהליכים איטיים",
+        "strength": "חשיבה אסטרטגית וידע טכני רחב",
+        "growth_area": "חסר סבלנות לתהליכים איטיים",
     },
     {
         "full_name": "סאמי ג'בארין",
@@ -442,12 +482,13 @@ CANDIDATES = [
         "phone": "0500000108",
         "linkedin_url": None,
         "resume": False,
+        "registered": False,
         "service_concept": (
             "לקוח מרוצה מביא לקוח נוסף. אני עובד כאילו כל עבודה היא כרטיס הביקור שלי."
         ),
         "salary_expectations": "11,000–14,000 ₪ לחודש",
-        "personality_strength": "עובד קשה ואמין ביותר",
-        "personality_weakness": "השכלה פורמלית מוגבלת (כיתה י')",
+        "strength": "עובד קשה ואמין ביותר",
+        "growth_area": "השכלה פורמלית מוגבלת (כיתה י')",
     },
 ]
 
@@ -457,11 +498,24 @@ def _print_result(entity: str, action: str, detail: str = "") -> None:
     print(f"  {icon} {entity}: {detail}")
 
 
+async def reset(session_factory) -> None:
+    """מוחק את כל נתוני הבדיקה הקיימים (מועמדים, מועמדויות, משרות, חברות, משתמשים)."""
+    print("🧹 מוחק נתוני בדיקה קיימים...\n")
+    async with session_factory() as session:
+        # InviteToken.created_by_admin_id has no ON DELETE rule — clear it
+        # first. Deleting User then cascades to its CompanyProfile -> Jobs ->
+        # Applications. Deleting CandidateProfile cascades to any remaining
+        # Applications for that candidate.
+        await session.execute(delete(InviteToken))
+        await session.execute(delete(User))
+        await session.execute(delete(CandidateProfile))
+        await session.commit()
+    print("  ✅ הנתונים הקיימים נמחקו\n")
+
+
 async def seed() -> None:
     """פונקציית הזרעה הראשית."""
     print("🌱 מזריע נתוני בדיקה עבור RS Recruiting\n")
-
-    await init_db()
 
     async with async_session() as session:
         # ── מנהל ──
@@ -469,7 +523,6 @@ async def seed() -> None:
         admin = result.scalar_one_or_none()
         if admin:
             _print_result("מנהל", "skipped", ADMIN_EMAIL)
-            admin_user = admin
         else:
             admin_user = User(
                 email=ADMIN_EMAIL,
@@ -482,7 +535,6 @@ async def seed() -> None:
             _print_result("מנהל", "created", f"{ADMIN_EMAIL} / {ADMIN_PASSWORD}")
 
         # ── חברות + משתמשים ──
-        company_users: list[User] = []
         company_profiles: list[CompanyProfile] = []
         for c in COMPANIES:
             result = await session.execute(select(User).where(User.email == c["email"]))
@@ -523,7 +575,6 @@ async def seed() -> None:
                 await session.flush()
                 _print_result("פרופיל חברה", "created", c["company_name"])
 
-            company_users.append(user)
             company_profiles.append(profile)
 
         # ── משרות ──
@@ -563,6 +614,7 @@ async def seed() -> None:
 
         # ── מועמדים ──
         storage = LocalStorageProvider(storage_path=settings.local_storage_path)
+        now = datetime.now(timezone.utc)
         created_candidates: list[CandidateProfile] = []
         for cand in CANDIDATES:
             result = await session.execute(
@@ -572,31 +624,61 @@ async def seed() -> None:
             if existing:
                 _print_result("מועמד", "skipped", cand["full_name"])
                 created_candidates.append(existing)
-            else:
-                resume_path: str | None = None
-                if cand["resume"]:
-                    file_name = (
-                        cand["full_name"].replace(" ", "_").replace("'", "") + ".pdf"
-                    )
-                    resume_path = await storage.upload_file(
-                        _PLACEHOLDER_PDF, file_name, "application/pdf"
-                    )
+                continue
 
-                profile = CandidateProfile(
-                    full_name=cand["full_name"],
-                    email=cand["email"],
-                    phone=cand["phone"],
-                    linkedin_url=cand["linkedin_url"],
-                    service_concept=cand["service_concept"],
-                    salary_expectations=cand["salary_expectations"],
-                    personality_strength=cand["personality_strength"],
-                    personality_weakness=cand["personality_weakness"],
+            resume_path: str | None = None
+            resume_filename: str | None = None
+            resume_hash: str | None = None
+            if cand["resume"]:
+                resume_filename = (
+                    cand["full_name"].replace(" ", "_").replace("'", "") + ".pdf"
                 )
-                profile.resume_path = resume_path
-                session.add(profile)
+                resume_path = await storage.upload_file(
+                    _PLACEHOLDER_PDF, resume_filename, "application/pdf"
+                )
+                resume_hash = _PLACEHOLDER_PDF_HASH
+
+            user_id: int | None = None
+            consent_kwargs: dict = {}
+            if cand["registered"]:
+                cand_user = User(
+                    email=cand["email"],
+                    hashed_password=get_password_hash(CANDIDATE_PASSWORD),
+                    role=UserRole.CANDIDATE,
+                    is_active=True,
+                )
+                session.add(cand_user)
                 await session.flush()
-                _print_result("מועמד", "created", cand["full_name"])
-                created_candidates.append(profile)
+                user_id = cand_user.id
+                consent_kwargs = {
+                    "consent_given_at": now,
+                    "consent_policy_version": CURRENT_PRIVACY_POLICY_VERSION,
+                    "consent_ip": _MOCK_CONSENT_IP,
+                    "consent_user_agent": _MOCK_USER_AGENT,
+                    "tos_accepted_at": now,
+                    "tos_version": CURRENT_TERMS_OF_SERVICE_VERSION,
+                }
+                _print_result(
+                    "משתמש מועמד",
+                    "created",
+                    f"{cand['email']} / {CANDIDATE_PASSWORD}",
+                )
+
+            profile = CandidateProfile(
+                user_id=user_id,
+                full_name=cand["full_name"],
+                email=cand["email"],
+                phone=cand["phone"],
+                linkedin_url=cand["linkedin_url"],
+                resume_path=resume_path,
+                resume_filename=resume_filename,
+                resume_hash=resume_hash,
+                **consent_kwargs,
+            )
+            session.add(profile)
+            await session.flush()
+            _print_result("מועמד", "created", cand["full_name"])
+            created_candidates.append(profile)
 
         # ── מועמדויות ──
         published_jobs = [j for j in all_jobs if j.status == JobStatus.PUBLISHED]
@@ -608,6 +690,7 @@ async def seed() -> None:
         ]
 
         for i, candidate in enumerate(created_candidates):
+            cand_data = CANDIDATES[i]
             for offset in range(2):
                 job_idx = (i + offset) % len(published_jobs)
                 job = published_jobs[job_idx]
@@ -640,6 +723,13 @@ async def seed() -> None:
                     candidate_id=candidate.id,
                     status=app_status,
                     admin_notes=admin_notes,
+                    service_concept=cand_data["service_concept"],
+                    salary_expectations=cand_data["salary_expectations"],
+                    strength=cand_data["strength"],
+                    growth_area=cand_data["growth_area"],
+                    resume_path=candidate.resume_path,
+                    resume_filename=candidate.resume_filename,
+                    resume_hash=candidate.resume_hash,
                 )
                 session.add(app)
                 await session.flush()
@@ -651,22 +741,41 @@ async def seed() -> None:
 
         await session.commit()
 
+    registered_count = sum(1 for c in CANDIDATES if c["registered"])
     print(f"\n{'─' * 50}")
-    print(f"  {'סה"כ':<30} {'נוצר':>8} {'דולג':>8}")
+    print(f"  {'סה"כ':<30} {'נוצר':>8}")
     print(f"  {'─' * 46}")
     print(f"  {'מנהלים':<30} {'1':>8}")
     print(f"  {'חברות':<30} {'3':>8}")
     print(f"  {'משרות':<30} {'15':>8}")
     print(f"  {'מועמדים':<30} {'8':>8}")
-    print(f"  {'מועמדויות':<30} {'~12–15':>8}")
+    print(f"  {'מועמדים רשומים':<30} {registered_count!s:>8}")
+    print(f"  {'מועמדויות':<30} {'~16':>8}")
     print(f"{'─' * 50}")
     print(f"\n🔑 כניסת מנהל:  {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
     print("🔑 כניסת חברה:  (כל חברה עם האימייל שלה / Company123!)")
+    print(
+        f"🔑 כניסת מועמד רשום:  (candidate1/2/4/7@example.com / {CANDIDATE_PASSWORD})"
+    )
 
 
 def main() -> None:
     """נקודת כניסה."""
-    asyncio.run(seed())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="מחיקת כל נתוני הבדיקה הקיימים לפני ההזרעה",
+    )
+    args = parser.parse_args()
+
+    async def run() -> None:
+        await init_db()
+        if args.reset:
+            await reset(async_session)
+        await seed()
+
+    asyncio.run(run())
 
 
 if __name__ == "__main__":
