@@ -42,6 +42,7 @@ export function PublicFooter() {
 export function PublicHeader({ transparent = false }: { transparent?: boolean }) {
   const { t } = useTranslation(['auth', 'common', 'http', 'landing', 'nav']);
   const { isAuthenticated } = useAuth();
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   // When transparent=true, track scroll to solidify the bar
   const [scrolled, setScrolled] = useState(false);
@@ -58,6 +59,10 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
     return () => window.removeEventListener("scroll", onScroll);
   }, [transparent]);
 
+  // Stagger delay for the mobile menu links cascading in on open
+  const STAGGER_BASE_MS = 80;
+  const STAGGER_STEP_MS = 40;
+
   const links = [
     { to: "/jobs",     label: t("nav:jobs") },
     { to: "/articles", label: t("nav:articles") },
@@ -68,6 +73,9 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
   // Glass style (landing page at top): white-tinted frosted glass
   // Solid style (all other pages, or after scrolling): dark void bar
   const solid = !transparent || scrolled;
+
+  const isLinkActive = (to: string) =>
+    pathname === to || pathname.startsWith(`${to}/`);
 
   return (
     <>
@@ -82,6 +90,7 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
           borderBottom: solid
             ? "1px solid rgba(255,255,255,0.06)"
             : "1px solid rgba(255,255,255,0.08)",
+          boxShadow: solid ? "0 8px 24px -16px rgba(0,0,0,0.6)" : "none",
         }}
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
@@ -94,35 +103,64 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
           </Link>
 
           {/* Desktop links */}
-          <nav className="hidden items-center gap-6 sm:flex">
-            {links.map((l) => (
-              <Link key={l.to} to={l.to}
-                className="text-sm text-white/45 transition hover:text-white/80">
-                {l.label}
-              </Link>
-            ))}
+          <nav className="hidden items-center gap-7 sm:flex">
+            {links.map((l) => {
+              const active = isLinkActive(l.to);
+              return (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  className={`relative py-1 text-sm transition after:absolute after:inset-x-0 after:-bottom-1 after:h-px after:origin-center after:bg-copper after:transition-transform after:duration-300 ${
+                    active
+                      ? "text-white/90 after:scale-x-100"
+                      : "text-white/45 after:scale-x-0 hover:text-white/80 hover:after:scale-x-100"
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+            <div className="h-5 w-px bg-white/10" />
             {isAuthenticated ? (
               <Link to="/dashboard"
-                className="rounded-sm border border-white/18 px-4 py-1.5 text-sm text-white/60 transition hover:border-white/35 hover:text-white/90">
+                className="relative inline-flex items-center gap-2 border border-white/15 px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/70 transition-colors duration-300 hover:border-copper/50 hover:text-copper"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
                 {t("nav:dashboard")}
               </Link>
             ) : (
               <Link to="/login"
-                className="rounded-sm border border-copper/40 px-4 py-1.5 text-sm text-copper/80 transition hover:border-copper/70 hover:text-copper">
+                className="relative inline-flex items-center gap-2 bg-copper-dark px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors duration-300 hover:bg-copper"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
+                <span className="brass-hairline absolute inset-x-0 top-0 h-px" />
                 {t("auth:login.submitText")}
               </Link>
             )}
           </nav>
 
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger — morphs into an × when the menu is open */}
           <button
-            onClick={() => setOpen(true)}
+            onClick={() => setOpen((o) => !o)}
             aria-label={t("nav:menu")}
-            className="flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
+            aria-expanded={open}
+            className="relative z-[60] flex size-9 flex-col items-center justify-center gap-[5px] sm:hidden"
           >
-            <span className="block h-px w-5 rounded-full bg-white/55" />
-            <span className="block h-px w-5 rounded-full bg-white/55" />
-            <span className="block h-px w-3.5 self-end rounded-full bg-white/55" />
+            <span
+              className="block h-px w-5 rounded-full bg-white/55 transition-all duration-300"
+              style={{
+                transform: open ? "translateY(5.5px) rotate(45deg)" : "none",
+              }}
+            />
+            <span
+              className="block h-px w-5 rounded-full bg-white/55 transition-all duration-300"
+              style={{ opacity: open ? 0 : 1 }}
+            />
+            <span
+              className="block h-px w-3.5 self-end rounded-full bg-white/55 transition-all duration-300"
+              style={{
+                width: open ? "1.25rem" : undefined,
+                transform: open ? "translateY(-5.5px) rotate(-45deg)" : "none",
+              }}
+            />
           </button>
         </div>
       </header>
@@ -136,54 +174,76 @@ export function PublicHeader({ transparent = false }: { transparent?: boolean })
             pointerEvents: open ? "auto" : "none",
             visibility: open ? "visible" : "hidden",
             transition: "opacity 0.25s ease",
+            backgroundImage:
+              "radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--color-copper) 12%, transparent), transparent 55%)",
           }}
         >
           {/* Top bar */}
-          <div className="flex items-center justify-between border-b border-white/8 px-5 py-3.5">
+          <div className="flex items-center border-b border-white/8 px-5 py-3.5">
             <Link to="/" onClick={() => setOpen(false)} className="flex items-center gap-2.5">
               <Logo size={26} />
               <span className="font-wordmark text-[15px] font-light tracking-widest text-gold/55">
                 RS Recruiting
               </span>
             </Link>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label={t("common:close")}
-              className="flex size-9 items-center justify-center text-white/35 transition hover:text-white/70"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth={1.5} className="size-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           {/* Links */}
           <nav className="flex flex-1 flex-col justify-center px-7">
-            {links.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className="group flex items-center justify-between border-b border-white/8 py-6 text-2xl font-light text-white/60 transition-colors hover:text-white"
-              >
-                {l.label}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth={1.5}
-                  className="size-4 text-copper/35 transition-transform duration-200 group-hover:-translate-x-1">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-              </Link>
-            ))}
+            {links.map((l, i) => {
+              const active = isLinkActive(l.to);
+              return (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className={`group flex items-center justify-between border-b border-white/8 py-6 text-2xl font-light transition-all duration-300 ${
+                    active ? "text-white" : "text-white/60 hover:text-white"
+                  }`}
+                  style={{
+                    opacity: open ? 1 : 0,
+                    transform: open ? "translateY(0)" : "translateY(8px)",
+                    transitionDelay: open ? `${STAGGER_BASE_MS + i * STAGGER_STEP_MS}ms` : "0ms",
+                  }}
+                >
+                  <span className="flex items-center gap-3">
+                    {active && <span className="size-1.5 rounded-full bg-copper" />}
+                    {l.label}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth={1.5}
+                    className="size-4 text-copper/35 transition-transform duration-200 group-hover:-translate-x-1">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                  </svg>
+                </Link>
+              );
+            })}
 
             {isAuthenticated ? (
               <Link to="/dashboard" onClick={() => setOpen(false)}
-                className="mt-8 self-start rounded-sm border border-copper/40 px-6 py-2.5 text-sm text-copper transition hover:bg-copper/10">
+                className="relative mt-8 inline-flex items-center gap-2 self-start border border-white/15 px-7 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white/70 transition-colors duration-300 hover:border-copper/50 hover:text-copper"
+                style={{
+                  clipPath: "polygon(0 0, 100% 0, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
+                  opacity: open ? 1 : 0,
+                  transform: open ? "translateY(0)" : "translateY(8px)",
+                  transitionDelay: open ? `${STAGGER_BASE_MS + links.length * STAGGER_STEP_MS}ms` : "0ms",
+                  transitionProperty: "opacity, transform, color, border-color",
+                  transitionDuration: "300ms",
+                }}>
                 {t("nav:dashboard")}
               </Link>
             ) : (
               <Link to="/login" onClick={() => setOpen(false)}
-                className="mt-8 self-start rounded-sm bg-copper px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gold">
+                className="relative mt-8 inline-flex items-center gap-2 self-start bg-copper-dark px-7 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors duration-300 hover:bg-copper"
+                style={{
+                  clipPath: "polygon(0 0, 100% 0, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
+                  opacity: open ? 1 : 0,
+                  transform: open ? "translateY(0)" : "translateY(8px)",
+                  transitionDelay: open ? `${STAGGER_BASE_MS + links.length * STAGGER_STEP_MS}ms` : "0ms",
+                  transitionProperty: "opacity, transform, background-color",
+                  transitionDuration: "300ms",
+                }}>
+                <span className="brass-hairline absolute inset-x-0 top-0 h-px" />
                 {t("auth:login.submitText")}
               </Link>
             )}
