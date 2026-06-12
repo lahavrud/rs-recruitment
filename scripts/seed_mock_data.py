@@ -9,10 +9,10 @@
 
 יוצר:
     - 1 משתמש מנהל (admin@rsrecruit.com / Admin123!)
-    - 3 חברות עם פרופילים
-    - 15 משרות (5 לכל חברה, סטטוסים מעורבים)
-    - 8 פרופילי מועמדים (4 רשומים עם משתמש + הסכמת פרטיות, 4 לידים אנונימיים)
-    - כ-16 מועמדויות (סטטוסים שונים, עם תשובות שאלון ראיון וקובץ קו"ח)
+    - 20 חברות עם פרופילים (3 ענפים: מתקנים, אבטחה, ניקיון)
+    - 15 משרות (סטטוסים מעורבים, מפוזרות בין החברות בכל ענף)
+    - 50 פרופילי מועמדים (25 רשומים עם משתמש + הסכמת פרטיות, 25 לידים אנונימיים)
+    - כ-100 מועמדויות (סטטוסים שונים, עם תשובות שאלון ראיון וקובץ קו"ח)
 """
 
 import argparse
@@ -60,39 +60,147 @@ ADMIN_PASSWORD = "Admin123!"  # pragma: allowlist secret
 # ── מועמד רשום ──
 CANDIDATE_PASSWORD = "Candidate123!"  # pragma: allowlist secret
 
-# ── חברות ──
-COMPANIES = [
-    {
-        "email": "company1@example.com",
-        "password": "Company123!",  # pragma: allowlist secret
-        "company_name": 'פתרונות מתקנים בע"מ',
-        "company_id": "511234561",  # ח.פ — 9 digits
-        "address": "רח׳ הברזל 32, תל אביב",
-        "contact_first_name": "דוד",
-        "contact_last_name": "כהן",
-        "contact_mobile_phone": "0500000001",
-    },
-    {
-        "email": "company2@example.com",
-        "password": "Company123!",  # pragma: allowlist secret
-        "company_name": "שריון — אבטחה ותחזוקה",
-        "company_id": "511234562",
-        "address": "שדרות רוטשילד 15, תל אביב",
-        "contact_first_name": "נועה",
-        "contact_last_name": "לוי",
-        "contact_mobile_phone": "0500000002",
-    },
-    {
-        "email": "company3@example.com",
-        "password": "Company123!",  # pragma: allowlist secret
-        "company_name": "קלינפרו שירותי מתקנים",
-        "company_id": "511234563",
-        "address": "רח׳ המסגר 22, תל אביב",
-        "contact_first_name": "רן",
-        "contact_last_name": "מזרחי",
-        "contact_mobile_phone": "0500000003",
-    },
+# Name pools used to generate companies' contact names and candidates'
+# full names deterministically (cycled via modulo, no `random`).
+FIRST_NAMES = [
+    "אחמד",
+    "מאיה",
+    "יוסי",
+    "רינת",
+    "שלמה",
+    "ליאת",
+    "עמיר",
+    "סאמי",
+    "דנה",
+    "אלון",
+    "מירב",
+    "תומר",
+    "אורית",
+    "גיא",
+    "שירה",
+    "רועי",
+    "נועה",
+    "איתי",
+    "טל",
+    "הדס",
+    "יואב",
+    "כרמית",
+    "עידו",
+    "ענת",
+    "בועז",
+    "מיכל",
+    "אסף",
+    "רוני",
+    "אביב",
+    "נטע",
 ]
+LAST_NAMES = [
+    "פאהום",
+    "בן-דוד",
+    "ממן",
+    "שפירא",
+    "אברהם",
+    "אוחנה",
+    "גולן",
+    "ג'בארין",
+    "לוי",
+    "כהן",
+    "מזרחי",
+    "פרץ",
+    "ביטון",
+    "אזולאי",
+    "דהן",
+    "חדד",
+    "אלקיים",
+    "סבן",
+    "נחום",
+    "אשכנזי",
+    "וקנין",
+    "טל",
+    "ברק",
+    "שמש",
+]
+
+# ── חברות ──
+# 20 companies grouped by sector — sectors map 1:1 to the JOBS_BY_SECTOR
+# groups below. Each sector has more companies than postings, so a few
+# companies in every sector have no jobs yet (realistic "registered but
+# hasn't posted" state).
+_FACILITIES_COMPANY_NAMES = [
+    'פתרונות מתקנים בע"מ',
+    'נדל"ן טכני בע"מ',
+    "תחזוקת מבנים מאוחדת",
+    'אחזקה כוללת בע"מ',
+    "סיסטם פתרונות מתקנים",
+    'מבני איכות בע"מ',
+    "תפעול ואחזקה ישראל",
+]
+_SECURITY_COMPANY_NAMES = [
+    "שריון — אבטחה ותחזוקה",
+    "מגן אבטחה ובקרה",
+    "פאר אבטחה",
+    'ביטחון כוללני בע"מ',
+    "נץ פתרונות אבטחה",
+    "סייבר-גארד אבטחה פיזית",
+    'שומרי הסף בע"מ',
+]
+_CLEANING_COMPANY_NAMES = [
+    "קלינפרו שירותי מתקנים",
+    'נקיון פלוס בע"מ',
+    "ספארקל שירותי ניקיון",
+    'כללי-נקי בע"מ',
+    "גרין קלין שירותים",
+    "אקופלוס ניקיון ומיחזור",
+]
+_COMPANY_NAMES = [
+    *_FACILITIES_COMPANY_NAMES,
+    *_SECURITY_COMPANY_NAMES,
+    *_CLEANING_COMPANY_NAMES,
+]
+_COMPANY_ADDRESSES = [
+    "רח׳ הברזל 32, תל אביב",
+    "שדרות רוטשילד 15, תל אביב",
+    "רח׳ המסגר 22, תל אביב",
+    "רח׳ העצמאות 10, נתניה",
+    "שדרות בן גוריון 5, חיפה",
+    "רח׳ הנשיא 8, ירושלים",
+    "רח׳ העמל 3, ראשון לציון",
+    "רח׳ ויצמן 12, פתח תקווה",
+    "רח׳ הסיבים 7, אשדוד",
+    "רח׳ סוקולוב 20, הרצליה",
+    "רח׳ ביאליק 4, רמת גן",
+    "רח׳ ההסתדרות 9, חולון",
+    "רח׳ אחוזה 50, רעננה",
+    "רח׳ עזריאלי 1, מודיעין",
+    "רח׳ ויצמן 30, כפר סבא",
+    "רח׳ הרצל 18, רחובות",
+    "רח׳ הנגיד 6, אשקלון",
+    "רח׳ הגעתון 2, נהריה",
+    "שדרות התמרים 14, אילת",
+    "רח׳ הירדן 11, טבריה",
+]
+
+
+def _build_companies() -> list[dict]:
+    companies = []
+    for i, name in enumerate(_COMPANY_NAMES):
+        n = i + 1
+        companies.append(
+            {
+                "email": f"company{n}@example.com",
+                "password": "Company123!",  # pragma: allowlist secret
+                "company_name": name,
+                "company_id": f"5112345{n:02d}",  # ח.פ — 9 digits
+                "address": _COMPANY_ADDRESSES[i % len(_COMPANY_ADDRESSES)],
+                "contact_first_name": FIRST_NAMES[(i * 3 + 5) % len(FIRST_NAMES)],
+                "contact_last_name": LAST_NAMES[(i * 5 + 3) % len(LAST_NAMES)],
+                "contact_mobile_phone": f"05000002{n:02d}",
+            }
+        )
+    return companies
+
+
+COMPANIES = _build_companies()
 
 
 def _reqs(*items: str) -> list[dict]:
@@ -100,8 +208,11 @@ def _reqs(*items: str) -> list[dict]:
 
 
 # ── משרות ──
-JOBS_BY_COMPANY = [
-    # פתרונות מתקנים
+# 15 postings total, grouped by sector. Each sector's jobs are handed out
+# one-per-company to the first `len(jobs)` companies in that sector — see
+# `_SECTOR_COMPANY_OFFSETS` below.
+JOBS_BY_SECTOR = [
+    # מתקנים
     [
         {
             "title": "מנהל מתקנים בכיר",
@@ -352,6 +463,14 @@ JOBS_BY_COMPANY = [
     ],
 ]
 
+# Index of the first company (within COMPANIES) for each sector — jobs in
+# JOBS_BY_SECTOR[s] go one-per-company to COMPANIES[offset], COMPANIES[offset+1], ...
+_SECTOR_COMPANY_OFFSETS = [
+    0,
+    len(_FACILITIES_COMPANY_NAMES),
+    len(_FACILITIES_COMPANY_NAMES) + len(_SECURITY_COMPANY_NAMES),
+]
+
 # ── מועמדים ──
 # `registered` candidates have a linked CANDIDATE user account (password
 # CANDIDATE_PASSWORD) and privacy/ToS consent on file — mirroring a
@@ -360,13 +479,8 @@ JOBS_BY_COMPANY = [
 # `service_concept` / `salary_expectations` / `strength` / `growth_area` are
 # interview-questionnaire answers — these live on `Application`, not
 # `CandidateProfile` (see commit 6866251).
-CANDIDATES = [
+INTERVIEW_ANSWERS = [
     {
-        "full_name": "אחמד פאהום",
-        "email": "candidate1@example.com",
-        "phone": "0500000101",
-        "linkedin_url": "https://www.linkedin.com/in/example-candidate-1",
-        "registered": True,
         "service_concept": (
             "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
             "אני מאמין בתקשורת יזומה — לעדכן לפני שמבקשים."
@@ -376,25 +490,15 @@ CANDIDATES = [
         "growth_area": "לפעמים מרבה לעסוק בפרטים הקטנים",
     },
     {
-        "full_name": "מאיה בן-דוד",
-        "email": "candidate2@example.com",
-        "phone": "0500000102",
-        "linkedin_url": "https://www.linkedin.com/in/example-candidate-2",
-        "registered": True,
         "service_concept": (
             "הלקוח צריך להרגיש שיש מישהו שאחראי. "
-            "אני מגדירה ציפיות ברורות מהרגע הראשון ומעדכנת בכל שלב."
+            "אני מגדיר/ה ציפיות ברורות מהרגע הראשון ומעדכן/ת בכל שלב."
         ),
         "salary_expectations": "23,000–28,000 ₪ לחודש",
         "strength": "מנהיגות חזקה ותיאום צוות",
-        "growth_area": "נוטה לקחת על עצמה יותר מדי משימות",
+        "growth_area": "נוטה לקחת על עצמי יותר מדי משימות",
     },
     {
-        "full_name": "יוסי ממן",
-        "email": "candidate3@example.com",
-        "phone": "0500000103",
-        "linkedin_url": None,
-        "registered": False,
         "service_concept": (
             "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. "
             "אני לא עוזב אתר עד שהדבר תוקן לגמרי."
@@ -404,11 +508,6 @@ CANDIDATES = [
         "growth_area": "אנגלית מוגבלת",
     },
     {
-        "full_name": "רינת שפירא",
-        "email": "candidate4@example.com",
-        "phone": "0500000104",
-        "linkedin_url": "https://www.linkedin.com/in/example-candidate-4",
-        "registered": True,
         "service_concept": (
             "שירות טוב מבוסס על סדר ומעקב. "
             "כל פנייה מקבלת מענה, כל הבטחה מתועדת ומקוימת."
@@ -418,13 +517,8 @@ CANDIDATES = [
         "growth_area": "לעיתים מתקשה להאציל משימות",
     },
     {
-        "full_name": "שלמה אברהם",
-        "email": "candidate5@example.com",
-        "phone": "0500000105",
-        "linkedin_url": "https://www.linkedin.com/in/example-candidate-5",
-        "registered": False,
         "service_concept": (
-            "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
+            "מסביר/ה ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
             "אנשים צריכים להבין את הבעיה כדי לסמוך על הפתרון."
         ),
         "salary_expectations": "14,000–18,000 ₪ לחודש",
@@ -432,47 +526,91 @@ CANDIDATES = [
         "growth_area": "מעדיף עבודה עצמאית על פני צוות גדול",
     },
     {
-        "full_name": "ליאת אוחנה",
-        "email": "candidate6@example.com",
-        "phone": "0500000106",
-        "linkedin_url": None,
-        "registered": False,
         "service_concept": (
             "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. "
             "הרושם הראשוני הוא כל הביקור."
         ),
         "salary_expectations": "10,000–13,000 ₪ לחודש",
-        "strength": "ידידותית, מאורגנת, נוכחות טלפונית מצוינת",
+        "strength": "ידידותי/ת, מאורגן/ת, נוכחות טלפונית מצוינת",
         "growth_area": "אין רקע טכני",
     },
     {
-        "full_name": "עמיר גולן",
-        "email": "candidate7@example.com",
-        "phone": "0500000107",
-        "linkedin_url": "https://www.linkedin.com/in/example-candidate-7",
-        "registered": True,
         "service_concept": (
             "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
-            "אני מעדיף תחזוקה מונעת על פני תיקון בשעת חירום."
+            "אני מעדיף/ה תחזוקה מונעת על פני תיקון בשעת חירום."
         ),
         "salary_expectations": "25,000–32,000 ₪ לחודש",
         "strength": "חשיבה אסטרטגית וידע טכני רחב",
-        "growth_area": "חסר סבלנות לתהליכים איטיים",
+        "growth_area": "חסר/ת סבלנות לתהליכים איטיים",
     },
     {
-        "full_name": "סאמי ג'בארין",
-        "email": "candidate8@example.com",
-        "phone": "0500000108",
-        "linkedin_url": None,
-        "registered": False,
         "service_concept": (
-            "לקוח מרוצה מביא לקוח נוסף. אני עובד כאילו כל עבודה היא כרטיס הביקור שלי."
+            "לקוח מרוצה מביא לקוח נוסף. אני עובד/ת כאילו כל עבודה היא כרטיס הביקור שלי."
         ),
         "salary_expectations": "11,000–14,000 ₪ לחודש",
-        "strength": "עובד קשה ואמין ביותר",
+        "strength": "עובד/ת קשה ואמין/ה ביותר",
         "growth_area": "השכלה פורמלית מוגבלת (כיתה י')",
     },
+    {
+        "service_concept": (
+            "שירות טוב מתחיל בהקשבה — להבין מה הלקוח באמת צריך לפני שמציעים פתרון."
+        ),
+        "salary_expectations": "13,000–17,000 ₪ לחודש",
+        "strength": "תקשורת בין-אישית מצוינת",
+        "growth_area": "עדיין צובר/ת ניסיון בניהול פרויקטים גדולים",
+    },
+    {
+        "service_concept": (
+            "אני מאמין/ה בשקיפות מלאה — אם משהו לא ייגמר בזמן, הלקוח יודע על זה מראש."
+        ),
+        "salary_expectations": "15,000–19,000 ₪ לחודש",
+        "strength": "אחריות גבוהה ועמידה בלוחות זמנים",
+        "growth_area": "לומד/ת להעביר משימות במקום לעשות הכל בעצמי/ה",
+    },
+    {
+        "service_concept": (
+            "שירות מצוין הוא כזה שהלקוח לא צריך לחשוב עליו פעמיים — הכול פשוט קורה."
+        ),
+        "salary_expectations": "20,000–26,000 ₪ לחודש",
+        "strength": "יוזמה ועבודה עצמאית",
+        "growth_area": "מעדיף/ה תהליכים מסודרים על פני אד-הוק",
+    },
+    {
+        "service_concept": (
+            "אני רואה בכל אתר הזדמנות לבנות אמון ארוך-טווח עם הלקוח, לא רק לסגור משימה."
+        ),
+        "salary_expectations": "17,000–21,000 ₪ לחודש",
+        "strength": "יחסי אנוש מעולים ויכולת הדרכה",
+        "growth_area": "משתפר/ת בתעדוף בין כמה משימות דחופות במקביל",
+    },
 ]
+
+
+def _build_candidates() -> list[dict]:
+    candidates = []
+    for i in range(50):
+        n = i + 1
+        first = FIRST_NAMES[i % len(FIRST_NAMES)]
+        last = LAST_NAMES[i % len(LAST_NAMES)]
+        full_name = f"{first} {last}"
+        linkedin_url = (
+            None if i % 3 == 0 else f"https://www.linkedin.com/in/example-candidate-{n}"
+        )
+        answers = INTERVIEW_ANSWERS[i % len(INTERVIEW_ANSWERS)]
+        candidates.append(
+            {
+                "full_name": full_name,
+                "email": f"candidate{n}@example.com",
+                "phone": f"0500000{n:03d}",
+                "linkedin_url": linkedin_url,
+                "registered": i % 2 == 0,
+                **answers,
+            }
+        )
+    return candidates
+
+
+CANDIDATES = _build_candidates()
 
 
 def _print_result(entity: str, action: str, detail: str = "") -> None:
@@ -561,9 +699,10 @@ async def seed() -> None:
 
         # ── משרות ──
         all_jobs: list[Job] = []
-        for idx, jobs in enumerate(JOBS_BY_COMPANY):
-            profile = company_profiles[idx]
-            for j in jobs:
+        for sector_idx, jobs in enumerate(JOBS_BY_SECTOR):
+            offset = _SECTOR_COMPANY_OFFSETS[sector_idx]
+            for job_idx, j in enumerate(jobs):
+                profile = company_profiles[offset + job_idx]
                 result = await session.execute(
                     select(Job).where(
                         Job.company_id == profile.id,
@@ -725,16 +864,17 @@ async def seed() -> None:
     print(f"  {'סה"כ':<30} {'נוצר':>8}")
     print(f"  {'─' * 46}")
     print(f"  {'מנהלים':<30} {'1':>8}")
-    print(f"  {'חברות':<30} {'3':>8}")
+    print(f"  {'חברות':<30} {'20':>8}")
     print(f"  {'משרות':<30} {'15':>8}")
-    print(f"  {'מועמדים':<30} {'8':>8}")
+    print(f"  {'מועמדים':<30} {'50':>8}")
     print(f"  {'מועמדים רשומים':<30} {registered_count!s:>8}")
-    print(f"  {'מועמדויות':<30} {'~16':>8}")
+    print(f"  {'מועמדויות':<30} {'~100':>8}")
     print(f"{'─' * 50}")
     print(f"\n🔑 כניסת מנהל:  {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
-    print("🔑 כניסת חברה:  (כל חברה עם האימייל שלה / Company123!)")
+    print("🔑 כניסת חברה:  (companyN@example.com / Company123!, N=1..20)")
     print(
-        f"🔑 כניסת מועמד רשום:  (candidate1/2/4/7@example.com / {CANDIDATE_PASSWORD})"
+        "🔑 כניסת מועמד רשום:  (candidateN@example.com עם N אי-זוגי, 1..49 / "
+        f"{CANDIDATE_PASSWORD})"
     )
 
 
