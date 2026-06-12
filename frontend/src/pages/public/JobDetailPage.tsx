@@ -7,6 +7,7 @@ import SeoHead, { SITE_URL, SITE_NAME } from "@/components/ui/SeoHead";
 import type { JobPublicRead } from "@/types/api";
 import { trackEvent } from "@/utils/analytics";
 import { formatDateLong as formatDate } from "@/utils/formatDate";
+import { formatSalary } from "@/utils/salary";
 import axios from "axios";
 
 const JOB_POSTING_VALID_DAYS = 90;
@@ -30,14 +31,6 @@ function buildDescriptionHtml(job: JobPublicRead): string {
     .map((t) => `<li>${escapeHtml(t)}</li>`);
   const reqList = items.length ? `<ul>${items.join("")}</ul>` : "";
   return paragraphs.join("") + reqList;
-}
-
-function formatSalary(min: number | null, max: number | null): string | null {
-  if (!min && !max) return null;
-  const fmt = (n: number) => n.toLocaleString("he-IL");
-  if (min && max) return `${fmt(min)}–${fmt(max)} ₪/חודש`;
-  if (min) return `מ-${fmt(min)} ₪/חודש`;
-  return `עד ${fmt(max!)} ₪/חודש`;
 }
 
 function DetailSkeleton() {
