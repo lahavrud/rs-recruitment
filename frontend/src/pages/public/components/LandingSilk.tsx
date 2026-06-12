@@ -34,6 +34,11 @@ export default function LandingSilk() {
   const [isDesktop, setIsDesktop] = useState(
     () => window.matchMedia(DESKTOP_QUERY).matches,
   );
+  // Read inside the render effect without making it a dependency — toggling
+  // this shouldn't tear down and recreate the WebGL context (disposing then
+  // re-`getContext`ing the same canvas leaves it permanently lost).
+  const isDesktopRef = useRef(isDesktop);
+  const refitRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP_QUERY);
@@ -43,21 +48,25 @@ export default function LandingSilk() {
   }, []);
 
   useEffect(() => {
+    isDesktopRef.current = isDesktop;
+    refitRef.current();
+  }, [isDesktop]);
+
+  useEffect(() => {
     const host = hostRef.current;
     const canvas = canvasRef.current;
     if (!host || !canvas) return;
 
-    const renderer = createSilkRenderer(canvas, readSilkPalette());
+    let renderer = createSilkRenderer(canvas, readSilkPalette());
     if (!renderer) {
       // No WebGL2 — leave the CSS gradient wash underneath visible.
       canvas.style.display = "none";
       return;
     }
 
-    const gain = isDesktop ? 1 : MOBILE_GAIN;
-
     let raf = 0;
     let running = false;
+    let intersecting = false;
     let started: number | null = null;
     let pointerX = 0;
     let pointerY = 0;
@@ -68,7 +77,8 @@ export default function LandingSilk() {
     let lastFade = reduceMotion ? 1 : 0;
 
     const drawFrame = () => {
-      renderer.draw(lastTime, pointerX, pointerY, lastFade * gain);
+      const gain = isDesktopRef.current ? 1 : MOBILE_GAIN;
+      renderer?.draw(lastTime, pointerX, pointerY, lastFade * gain);
     };
 
     const frame = (now: DOMHighResTimeStamp) => {
@@ -96,21 +106,31 @@ export default function LandingSilk() {
     };
 
     const fit = () => {
-      const cap = isDesktop ? DESKTOP_DPR_CAP : MOBILE_DPR_CAP;
+      const cap = isDesktopRef.current ? DESKTOP_DPR_CAP : MOBILE_DPR_CAP;
       const dpr = Math.min(window.devicePixelRatio || 1, cap);
-      renderer.resize(host.clientWidth, host.clientHeight, dpr);
+      renderer?.resize(host.clientWidth, host.clientHeight, dpr);
       // Resizing clears the buffer to black; repaint now rather than letting
       // a black box show until the next rAF tick (visible when maximizing).
       drawFrame();
     };
+    refitRef.current = fit;
     fit();
-    const ro = new ResizeObserver(fit);
+    // A live drag-resize fires the observer on every pixel — coalesce to
+    // one resize per frame so the GL drawing buffer isn't reallocated fast
+    // enough to exhaust the GPU and lose the context.
+    let fitRaf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(fitRaf);
+      fitRaf = requestAnimationFrame(fit);
+    });
     ro.observe(host);
 
     if (reduceMotion) {
       return () => {
+        refitRef.current = () => {};
+        cancelAnimationFrame(fitRaf);
         ro.disconnect();
-        renderer.dispose();
+        renderer?.dispose();
       };
     }
 
@@ -124,27 +144,45 @@ export default function LandingSilk() {
 
     // Only burn GPU while the hero is actually on screen.
     const io = new IntersectionObserver(([entry]) => {
-      if (entry?.isIntersecting) start();
+      intersecting = entry?.isIntersecting ?? false;
+      if (intersecting) start();
       else stop();
     });
     io.observe(host);
 
+    // GPU processes get suspended (and lose their WebGL context) when the
+    // window is minimized; the browser fires `webglcontextrestored` once
+    // it's back, but the old GL resources are gone — rebuild the renderer.
     const onContextLost = (e: Event) => {
       e.preventDefault();
       stop();
       canvas.style.display = "none";
     };
+    const onContextRestored = () => {
+      renderer?.dispose();
+      renderer = createSilkRenderer(canvas, readSilkPalette());
+      if (!renderer) {
+        return;
+      }
+      canvas.style.display = "";
+      fit();
+      if (intersecting) start();
+    };
     canvas.addEventListener("webglcontextlost", onContextLost);
+    canvas.addEventListener("webglcontextrestored", onContextRestored);
 
     return () => {
+      refitRef.current = () => {};
       stop();
+      cancelAnimationFrame(fitRaf);
       io.disconnect();
       ro.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("webglcontextlost", onContextLost);
-      renderer.dispose();
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
+      renderer?.dispose();
     };
-  }, [isDesktop, reduceMotion]);
+  }, [reduceMotion]);
 
   return (
     /* Stage rides the content column (same pattern as the page's guide

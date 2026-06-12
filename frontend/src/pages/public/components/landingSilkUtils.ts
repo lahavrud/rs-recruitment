@@ -247,8 +247,14 @@ export function createSilkRenderer(
 
   return {
     resize(cssWidth, cssHeight, dpr) {
-      width = Math.max(1, Math.round(cssWidth * dpr));
-      height = Math.max(1, Math.round(cssHeight * dpr));
+      const newWidth = Math.max(1, Math.round(cssWidth * dpr));
+      const newHeight = Math.max(1, Math.round(cssHeight * dpr));
+      // Reassigning canvas.width/height reallocates the GL drawing buffer —
+      // skip it when the pixel size hasn't actually changed, so a drag-resize
+      // that fires many same-size observer ticks doesn't churn the GPU.
+      if (newWidth === width && newHeight === height) return;
+      width = newWidth;
+      height = newHeight;
       canvas.width = width;
       canvas.height = height;
       gl.viewport(0, 0, width, height);
