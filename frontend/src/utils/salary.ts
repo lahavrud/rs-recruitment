@@ -5,5 +5,6 @@ export function formatSalary(min: number | null, max: number | null): string | n
   const fmt = (n: number) => n.toLocaleString("he-IL");
   if (min != null && max != null) return `${fmt(min)}–${fmt(max)} ₪/חודש`;
   if (min != null) return `מ-${fmt(min)} ₪/חודש`;
-  return `עד ${fmt(max)} ₪/חודש`;
+  if (max != null) return `עד ${fmt(max)} ₪/חודש`;
+  return null;
 }
