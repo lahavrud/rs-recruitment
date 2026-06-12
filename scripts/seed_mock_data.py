@@ -19,6 +19,7 @@ import argparse
 import asyncio
 import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy import delete, select
 
@@ -40,21 +41,10 @@ from src.services.utils.legal import (
     CURRENT_TERMS_OF_SERVICE_VERSION,
 )
 
-# Minimal valid single-page PDF used as a placeholder resume in seed data
-_PLACEHOLDER_PDF = (
-    b"%PDF-1.4\n"
-    b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
-    b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
-    b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\n"
-    b"xref\n0 4\n"
-    b"0000000000 65535 f \n"
-    b"0000000009 00000 n \n"
-    b"0000000052 00000 n \n"
-    b"0000000101 00000 n \n"
-    b"trailer<</Size 4/Root 1 0 R>>\n"
-    b"startxref\n150\n%%EOF\n"
-)
-_PLACEHOLDER_PDF_HASH = hashlib.sha256(_PLACEHOLDER_PDF).hexdigest()
+# Resume PDFs used as realistic placeholder uploads in seed data — cycled
+# round-robin across candidates.
+_RESUME_FIXTURES_DIR = Path(__file__).parent / "fixtures" / "resumes"
+_RESUME_FIXTURES = sorted(_RESUME_FIXTURES_DIR.glob("*.pdf"))
 
 # Reserved documentation IP (RFC 5737 TEST-NET-3) — never a real client address
 _MOCK_CONSENT_IP = "203.0.113.10"
@@ -376,7 +366,6 @@ CANDIDATES = [
         "email": "candidate1@example.com",
         "phone": "0500000101",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-1",
-        "resume": True,
         "registered": True,
         "service_concept": (
             "שירות טוב הוא זמינות ועמידה בהתחייבויות. "
@@ -391,7 +380,6 @@ CANDIDATES = [
         "email": "candidate2@example.com",
         "phone": "0500000102",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-2",
-        "resume": True,
         "registered": True,
         "service_concept": (
             "הלקוח צריך להרגיש שיש מישהו שאחראי. "
@@ -406,7 +394,6 @@ CANDIDATES = [
         "email": "candidate3@example.com",
         "phone": "0500000103",
         "linkedin_url": None,
-        "resume": False,
         "registered": False,
         "service_concept": (
             "שירות טוב זה לעשות את העבודה נכון בפעם הראשונה. "
@@ -421,7 +408,6 @@ CANDIDATES = [
         "email": "candidate4@example.com",
         "phone": "0500000104",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-4",
-        "resume": True,
         "registered": True,
         "service_concept": (
             "שירות טוב מבוסס על סדר ומעקב. "
@@ -436,7 +422,6 @@ CANDIDATES = [
         "email": "candidate5@example.com",
         "phone": "0500000105",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-5",
-        "resume": True,
         "registered": False,
         "service_concept": (
             "מסביר ללקוח מה נעשה ולמה — לא רק מתקן ועוזב. "
@@ -451,7 +436,6 @@ CANDIDATES = [
         "email": "candidate6@example.com",
         "phone": "0500000106",
         "linkedin_url": None,
-        "resume": False,
         "registered": False,
         "service_concept": (
             "כל פנייה — גם הקטנה ביותר — מקבלת יחס מכובד ומהיר. "
@@ -466,7 +450,6 @@ CANDIDATES = [
         "email": "candidate7@example.com",
         "phone": "0500000107",
         "linkedin_url": "https://www.linkedin.com/in/example-candidate-7",
-        "resume": True,
         "registered": True,
         "service_concept": (
             "שירות אמיתי הוא מניעת בעיות לפני שהן צצות. "
@@ -481,7 +464,6 @@ CANDIDATES = [
         "email": "candidate8@example.com",
         "phone": "0500000108",
         "linkedin_url": None,
-        "resume": False,
         "registered": False,
         "service_concept": (
             "לקוח מרוצה מביא לקוח נוסף. אני עובד כאילו כל עבודה היא כרטיס הביקור שלי."
@@ -616,7 +598,7 @@ async def seed() -> None:
         storage = LocalStorageProvider(storage_path=settings.local_storage_path)
         now = datetime.now(timezone.utc)
         created_candidates: list[CandidateProfile] = []
-        for cand in CANDIDATES:
+        for i, cand in enumerate(CANDIDATES):
             result = await session.execute(
                 select(CandidateProfile).where(CandidateProfile.email == cand["email"])
             )
@@ -626,17 +608,14 @@ async def seed() -> None:
                 created_candidates.append(existing)
                 continue
 
-            resume_path: str | None = None
-            resume_filename: str | None = None
-            resume_hash: str | None = None
-            if cand["resume"]:
-                resume_filename = (
-                    cand["full_name"].replace(" ", "_").replace("'", "") + ".pdf"
-                )
-                resume_path = await storage.upload_file(
-                    _PLACEHOLDER_PDF, resume_filename, "application/pdf"
-                )
-                resume_hash = _PLACEHOLDER_PDF_HASH
+            resume_filename = (
+                cand["full_name"].replace(" ", "_").replace("'", "") + ".pdf"
+            )
+            resume_content = _RESUME_FIXTURES[i % len(_RESUME_FIXTURES)].read_bytes()
+            resume_path = await storage.upload_file(
+                resume_content, f"resumes/{resume_filename}", "application/pdf"
+            )
+            resume_hash = hashlib.sha256(resume_content).hexdigest()
 
             user_id: int | None = None
             consent_kwargs: dict = {}
